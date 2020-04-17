@@ -27,9 +27,15 @@ internal class TFStateTest {
     }
 
     @Test
-    fun testWrongStuffIsntReturned() {
+    fun testMonitoringReturnsOne() {
         val nodes = state.getHosts(ServerType.Monitoring)
-        assertThat(nodes).isEmpty()
+        assertThat(nodes).hasSize(1)
+    }
+
+    @Test
+    fun testCassandraIsReturned() {
+        val cass = state.getHosts(ServerType.Cassandra)
+        assertThat(cass).isNotEmpty()
     }
 
     @Test

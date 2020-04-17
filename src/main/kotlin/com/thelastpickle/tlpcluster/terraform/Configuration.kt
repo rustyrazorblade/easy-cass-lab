@@ -110,7 +110,7 @@ class Configuration(val ticket: String,
 
         val instanceSg = SecurityGroupResource.Builder()
             .newSecurityGroupResource("${ticket}_TlpClusterSG_$unixTime","tlp-cluster ${ticket} security group", tags)
-            .withOutboundRule(0, 65535, "tcp", listOf("0.0.0.0/0"), "All traffic")
+            //.withOutboundRule(0, 65535, "tcp", listOf("0.0.0.0/0"), "All traffic")
             .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")
@@ -187,22 +187,26 @@ data class SecurityGroupRule(
     val to_port: Int,
     val protocol: String = "tcp",
     val self: Boolean = false,
-    val cidr_blocks: List<String> = listOf()
+    val cidr_blocks: List<String> = listOf(),
+    val ipv6_cidr_blocks: List<String> = listOf(),
+    val prefix_list_ids: List<String> = listOf(),
+    val security_groups: List<String> = listOf()
+
+
 )
 
 data class SecurityGroupResource(
     val name: String,
     val description : String,
     val tags: Map<String, String>,
-    val ingress: List<SecurityGroupRule>,
-    val egress: List<SecurityGroupRule>
+    val ingress: List<SecurityGroupRule>
 ) {
     class Builder {
         private var name: String = ""
         private var description: String = ""
         private var tags: Map<String, String> = mutableMapOf()
         private var ingress: MutableList<SecurityGroupRule> = mutableListOf()
-        private var egress: MutableList<SecurityGroupRule> = mutableListOf()
+//        private var egress: MutableList<SecurityGroupRule> = mutableListOf()
 
         fun newSecurityGroupResource(name: String, description: String, tags: Map<String, String>) : Builder {
             this.name = name
@@ -228,18 +232,8 @@ data class SecurityGroupResource(
             return this
         }
 
-        fun withOutboundRule(
-            from_port: Int,
-            to_port: Int,
-            protocol: String,
-            cidr_blocks: List<String>,
-            description: String) : Builder {
 
-            this.egress.add(SecurityGroupRule(description, from_port, to_port, protocol, cidr_blocks = cidr_blocks))
-            return this
-        }
-
-        fun build () = SecurityGroupResource(name, description, tags, ingress, egress)
+        fun build () = SecurityGroupResource(name, description, tags, ingress)
     }
 }
 

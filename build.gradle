@@ -157,6 +157,7 @@ test {
         junitXml.enabled = true
         html.enabled = true
     }
+    testLogging.showStandardStreams = true
 }
 
 buildRpm {

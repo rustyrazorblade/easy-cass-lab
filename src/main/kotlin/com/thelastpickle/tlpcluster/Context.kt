@@ -11,6 +11,9 @@ import com.thelastpickle.tlpcluster.core.YamlDelegate
 import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import java.nio.file.Files
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+
 
 data class Context(val tlpclusterUserDirectory: File) {
 
@@ -48,8 +51,11 @@ data class Context(val tlpclusterUserDirectory: File) {
      *
      * val state = mapper.readValue<MyStateObject>(json)
      */
-    val json = ObjectMapper()
+    val json = getJsonMapper()
     val yaml : ObjectMapper by YamlDelegate()
+
+    // if you need to to anything funky with the mapper (settings etc) use this
+    fun getJsonMapper() = jacksonObjectMapper()
 
     private val userConfigFile = File(profileDir, "settings.yaml")
 
