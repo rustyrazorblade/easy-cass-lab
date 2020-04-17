@@ -115,7 +115,6 @@ class Configuration(val ticket: String,
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")
             .withInboundRule(3000, 3000, "tcp", externalCidr, "Grafana GUI")
-            .withInboundRule(8080, 8080, "tcp", externalCidr, "Reaper GUI")
             .build()
 
         setSecurityGroupResource(instanceSg)
