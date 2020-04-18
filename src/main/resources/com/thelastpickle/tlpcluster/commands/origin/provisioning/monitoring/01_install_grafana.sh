@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Installing Grafana"
+export APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=true
 
 sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
 sudo wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
