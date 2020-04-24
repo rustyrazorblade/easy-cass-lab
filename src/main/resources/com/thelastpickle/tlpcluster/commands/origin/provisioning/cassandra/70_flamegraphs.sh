@@ -7,9 +7,9 @@ sudo bash -c "echo 0 > /proc/sys/kernel/kptr_restrict"
 mkdir profiler
 cd profiler
 
-wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v1.5/async-profiler-1.5-linux-x64.tar.gz
+PROFILER="https://github.com/jvm-profiling-tools/async-profiler/releases/download/v1.7/async-profiler-1.7-linux-x64.tar.gz"
 
-
+wget $PROFILER
 
 tar -zxvf async-profiler*
 

@@ -138,7 +138,7 @@ class UseCassandra(val context: Context) : ICommand {
         // write out the sd file
 
         val env = File(cassandraEnvLocation)
-        env.appendText("\nJVM_OPTS=\"\$JVM_OPTS -Dcassandra.consistent.rangemovement=false\"\n")
+        env.appendText("\nJVM_OPTS=\"\$JVM_OPTS -Dcassandra.consistent.rangemovement=false -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer \"\n")
 
         with(TermColors()) {
             println("Cassandra deb and config copied to provisioning/.  Config files are located in provisioning/cassandra. \n Use ${green("tlp-cluster install")} to push the artifacts to the nodes.")

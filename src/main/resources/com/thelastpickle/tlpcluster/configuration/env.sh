@@ -97,3 +97,15 @@ c-flame() {
 
 }
 
+c-flame-alloc() {
+  HOST=$1
+  OUTPUT=$2
+
+  [ -z "$HOST" ] || [ -z "$OUTPUT" ] && echo "Host and output path is required"
+
+  ssh $HOST -C 'cd provisioning/cassandra/profiler; sudo ./profiler.sh -e alloc -d 30 -f /tmp/flamegraph.svg $(cat /var/run/cassandra/cassandra.pid )'
+  scp $HOST:/tmp/flamegraph.svg $OUTPUT
+  ssh $HOST -C 'sudo rm /tmp/flamegraph.svg'
+
+}
+
