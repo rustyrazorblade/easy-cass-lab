@@ -2,13 +2,27 @@ package com.thelastpickle.tlpcluster.configuration.jvm
 
 sealed class JvmOption {
 
+    abstract fun isKeyEqual(j: JvmOption) : Boolean
+
     enum class HeapFlag { MAX_HEAP, NEW_GEN, STARTING_HEAP, UNKNOWN }
-    data class HeapOption(val key: HeapFlag, val value: String) : JvmOption()
+
+    /**
+     * -Xmx16G
+     */
+    data class HeapOption(val key: HeapFlag, val value: String) : JvmOption() {
+        override fun isKeyEqual(j: JvmOption): Boolean {
+            return (j is HeapOption) && (this.key.ordinal == j.key.ordinal)
+        }
+    }
+
     /**
      * -ea # enable assertions
      */
     data class Flag(val value: String) : JvmOption() {
         override fun toString() = "-$value"
+        override fun isKeyEqual(j: JvmOption): Boolean {
+            return (j is Flag && value == j.value)
+        }
     }
 
     /**
@@ -17,6 +31,9 @@ sealed class JvmOption {
      */
     data class Pair(val key: String, val value: String) : JvmOption() {
         override fun toString() = "-$key=$value"
+        override fun isKeyEqual(j: JvmOption): Boolean {
+            return (j is Pair && key == j.key)
+        }
     }
 
     /**
@@ -24,6 +41,9 @@ sealed class JvmOption {
      */
     data class DynamicOption(val name: String, val value: String) : JvmOption() {
         override fun toString() = "-D$name=$value"
+        override fun isKeyEqual(j: JvmOption): Boolean {
+            return (j is DynamicOption && name == j.name)
+        }
 
     }
 
@@ -33,10 +53,14 @@ sealed class JvmOption {
      */
     data class BooleanOption(val name: String, val enabled: Boolean) : JvmOption() {
         override fun toString() = "-XX:" + (if(enabled) "+" else "-") + name
+        override fun isKeyEqual(j: JvmOption): Boolean {
+            return (j is BooleanOption && name == j.name)
+        }
     }
 
     data class Unknown(val value: String) : JvmOption() {
         override fun toString() = value
+        override fun isKeyEqual(j: JvmOption): Boolean = false
     }
 
 

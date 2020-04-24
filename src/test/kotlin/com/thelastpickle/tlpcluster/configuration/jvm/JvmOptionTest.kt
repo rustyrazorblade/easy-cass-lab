@@ -50,6 +50,20 @@ internal class JvmOptionTest {
         val line = "-Xmx16G"
         val result = JvmOption.parse(line)
         assertThat(result).isInstanceOf(JvmOption.HeapOption::class.java)
+        (JvmOption.parse("-Xms16G") as JvmOption.HeapOption).run {
+            assertThat(key.ordinal == 2)
+        }
+    }
+
+    @Test
+    fun testHeapCompare() {
+        val h1 = JvmOption.parse("-Xmx16G")
+        val h2 = JvmOption.parse("-Xmx16G")
+        assertThat(h1.isKeyEqual(h2)).isTrue()
+
+        val h3 = JvmOption.parse("-Xms16G")
+        assertThat(h1.isKeyEqual(h3)).isFalse()
+
     }
 
 }
