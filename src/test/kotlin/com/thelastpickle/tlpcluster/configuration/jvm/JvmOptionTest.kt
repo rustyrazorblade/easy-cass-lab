@@ -63,7 +63,13 @@ internal class JvmOptionTest {
 
         val h3 = JvmOption.parse("-Xms16G")
         assertThat(h1.isKeyEqual(h3)).isFalse()
+    }
 
+    @Test
+    fun testFlagCompare() {
+        val f1 = JvmOption.parse("-ea")
+        val f2 = JvmOption.parse("-ef")
+        assertFalse(f1.isKeyEqual(f2))
     }
 
 }
