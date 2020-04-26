@@ -27,10 +27,10 @@ task copyWrappers(type: Copy) {
 }
 
 task createTarball(type: Tar) {
-    archiveFileName = "profiler.tar.gz"
+    archiveFileName = "profiler.tgz"
     compression = Compression.GZIP
-    destinationDirectory = file("build/")
-    from "$buildDir/profiler"
+    destinationDirectory = file("build/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra")
+    from "$buildDir/profiler/"
     dependsOn("copyWrappers")
 }
 
