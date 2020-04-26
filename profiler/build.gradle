@@ -30,6 +30,7 @@ task untar(type: Copy) {
 task copyWrappers(type: Copy) {
     from "src"
     into "$buildDir/profiler"
+    dependsOn("untar")
 }
 
 task createTarball(type: Tar) {
