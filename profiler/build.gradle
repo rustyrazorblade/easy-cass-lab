@@ -7,7 +7,13 @@ buildscript {
     }
 }
 
+plugins {
+    id 'java'
+}
+
 apply plugin: 'de.undercouch.download'
+
+def profilerSourceLocation = "$buildDir/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra"
 
 task download(type: Download) {
     src 'https://github.com/jvm-profiling-tools/async-profiler/releases/download/v1.7/async-profiler-1.7-linux-x64.tar.gz'
@@ -16,8 +22,8 @@ task download(type: Download) {
 }
 
 task untar(type: Copy) {
-    from tarTree(resources.gzip("build/async-profiler-1.7-linux-x64.tar.gz"))
-    into "build/profiler"
+    from tarTree(resources.gzip("$buildDir/async-profiler-1.7-linux-x64.tar.gz"))
+    into "$buildDir/profiler"
     dependsOn("download")
 }
 
@@ -29,9 +35,16 @@ task copyWrappers(type: Copy) {
 task createTarball(type: Tar) {
     archiveFileName = "profiler.tgz"
     compression = Compression.GZIP
-    destinationDirectory = file("build/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra")
+    destinationDirectory = file(profilerSourceLocation)
     from "$buildDir/profiler/"
     dependsOn("copyWrappers")
 }
+
+sourceSets {
+    main {
+        output.dir(profilerSourceLocation, builtBy: 'createTarball')
+    }
+}
+
 
 
