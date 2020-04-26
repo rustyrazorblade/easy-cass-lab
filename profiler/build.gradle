@@ -42,7 +42,7 @@ task createTarball(type: Tar) {
 
 sourceSets {
     main {
-        output.dir(profilerSourceLocation, builtBy: 'createTarball')
+        output.dir("$buildDir/resources", builtBy: 'createTarball')
     }
 }
 
