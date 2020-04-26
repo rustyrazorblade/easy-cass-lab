@@ -1,0 +1,10 @@
+#!/bin/bash
+
+CASS_PID=$(cat /var/run/cassandra/cassandra.pid )
+OUTPUT=(mktemp -p /tmp 'cassandra-profile-XXXX.svg')
+
+sudo ./profiler.sh $@ --tmpdir -f $OUTPUT $CASS_PID
+
+cp $OUTPUT .
+
+basename $OUTPUT

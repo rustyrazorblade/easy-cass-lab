@@ -3,14 +3,11 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath "com.netflix.nebula:gradle-ospackage-plugin:6.2.1"
         classpath 'de.undercouch:gradle-download-task:4.0.4'
     }
 }
 
 apply plugin: 'de.undercouch.download'
-apply plugin: "nebula.ospackage"
-apply plugin: 'nebula.ospackage-application'
 
 task download(type: Download) {
     src 'https://github.com/jvm-profiling-tools/async-profiler/releases/download/v1.7/async-profiler-1.7-linux-x64.tar.gz'
@@ -22,6 +19,19 @@ task untar(type: Copy) {
     from tarTree(resources.gzip("build/async-profiler-1.7-linux-x64.tar.gz"))
     into "build/profiler"
     dependsOn("download")
+}
+
+task copyWrappers(type: Copy) {
+    from "src"
+    into "$buildDir/profiler"
+}
+
+task createTarball(type: Tar) {
+    archiveFileName = "profiler.tar.gz"
+    compression = Compression.GZIP
+    destinationDirectory = file("build/")
+    from "$buildDir/profiler"
+    dependsOn("copyWrappers")
 }
 
 
