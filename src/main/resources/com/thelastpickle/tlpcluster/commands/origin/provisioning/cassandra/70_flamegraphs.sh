@@ -8,3 +8,6 @@ sudo mkdir /usr/local/cassandra-profiler
 
 sudo tar -zxvf profiler.tgz -C /usr/local/cassandra-profiler
 
+sudo chmod 755 /usr/local/cassandra-profiler/cassandra-flamegraph
+
+
