@@ -2,12 +2,12 @@
 
 echo "Installing Grafana"
 export APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=true
+export DEBIAN_FRONTEND=noninteractive
 
 sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
 sudo wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
 sudo apt-get update
 sudo apt-get install -y grafana
-sudo apt-get install grafana -y
 
 sudo cp config/grafana/grafana.ini /etc/grafana/
 

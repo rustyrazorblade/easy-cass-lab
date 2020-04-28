@@ -12,7 +12,6 @@ import org.apache.logging.log4j.kotlin.logger
  */
 class Pssh(val context: Context, val sshKey: String) {
     private val provisionCommand = "cd provisioning; chmod +x install.sh; sudo ./install.sh"
-    private val postStartCommand = "cd provisioning; chmod +x post_start.sh; sudo ./post_start.sh"
 
     val log = logger()
 
@@ -34,7 +33,7 @@ class Pssh(val context: Context, val sshKey: String) {
 
     private fun serviceCommand(nodeType: ServerType, serviceName: String, command: String) : Result<String> {
         return execute("parallel_ssh.sh",
-                "sudo service $serviceName $command && sleep 5 && sudo service $serviceName status && $postStartCommand ${nodeType.serverType}",
+                "sudo service $serviceName $command ",
                 nodeType)
     }
 

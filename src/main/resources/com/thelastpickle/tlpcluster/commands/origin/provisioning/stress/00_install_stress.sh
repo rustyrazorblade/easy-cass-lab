@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+export DEBIAN_FRONTEND=noninteractive
+export APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=true
+
+
 echo "Installing tlp-stress"
 
 

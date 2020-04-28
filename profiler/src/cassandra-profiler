@@ -1,0 +1,6 @@
+#!/bin/bash
+
+CASSANDRA_PID=$(cat /var/run/cassandra.pid)
+echo "Running on $CASSANDRA_PID"
+
+sudo ./profiler.sh $@ $CASSANDRA_PID

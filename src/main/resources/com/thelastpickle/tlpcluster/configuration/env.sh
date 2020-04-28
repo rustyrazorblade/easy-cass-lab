@@ -87,25 +87,22 @@ alias c-df="c-all df -h | grep -E 'cassandra|Filesystem'"
 
 c-flame() {
   HOST=$1
-  OUTPUT=$2
 
-  [ -z "$HOST" ] || [ -z "$OUTPUT" ] && echo "Host and output path is required"
+  [ -z "$HOST" ] &&  echo "Host is required"
 
-  ssh $HOST -C 'cd provisioning/cassandra/profiler; sudo ./profiler.sh -d 30 -f /tmp/flamegraph.svg $(cat /var/run/cassandra/cassandra.pid )'
-  scp $HOST:/tmp/flamegraph.svg $OUTPUT
-  ssh $HOST -C 'sudo rm /tmp/flamegraph.svg'
+  NAME=$(ssh $HOST -C /usr/local/cassandra-profiler/cassandra-flamegraph)
+  scp $HOST:$NAME .
+  echo $NAME
 
 }
 
 c-flame-alloc() {
   HOST=$1
-  OUTPUT=$2
 
-  [ -z "$HOST" ] || [ -z "$OUTPUT" ] && echo "Host and output path is required"
+  [ -z "$HOST" ] &&  echo "Host is required"
 
-  ssh $HOST -C 'cd provisioning/cassandra/profiler; sudo ./profiler.sh -e alloc -d 30 -f /tmp/flamegraph.svg $(cat /var/run/cassandra/cassandra.pid )'
-  scp $HOST:/tmp/flamegraph.svg $OUTPUT
-  ssh $HOST -C 'sudo rm /tmp/flamegraph.svg'
+  NAME=$(ssh $HOST -C /usr/local/cassandra-profiler/cassandra-flamegraph -e alloc)
+  scp $HOST:$NAME .
+  echo $NAME
 
 }
-
