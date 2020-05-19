@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils
 import com.thelastpickle.tlpcluster.terraform.Configuration
 import com.thelastpickle.tlpcluster.containers.Terraform
 import org.apache.logging.log4j.kotlin.logger
+import java.time.LocalDate
 import java.util.zip.GZIPInputStream
 
 
@@ -42,6 +43,9 @@ class Init(val context: Context) : ICommand {
 
     @Parameter(description = "Limit to specified availability zones", names = ["--azs", "--az", "-z"], listConverter = AZConverter::class)
     var azs: List<String> = listOf()
+
+    @Parameter(description = "Specify when the instances can be deleted", names = ["--until"])
+    var until = LocalDate.now().plusDays(1).toString()
 
     override fun execute() {
         println("Initializing directory")
@@ -75,7 +79,7 @@ class Init(val context: Context) : ICommand {
         println("Copying provisioning files")
 
 
-        var config = initializeDirectory(client, ticket, purpose)
+        var config = initializeDirectory(client, ticket, purpose, until)
 
 
         config.numCassandraInstances = cassandraInstances
@@ -85,6 +89,7 @@ class Init(val context: Context) : ICommand {
         config.setVariable("client", client)
         config.setVariable("ticket", ticket)
         config.setVariable("purpose", purpose)
+        config.setVariable("NeededUntil", until)
 
         if(azs.isNotEmpty()) {
             println("Overriding default az list with $azs")
@@ -105,7 +110,7 @@ class Init(val context: Context) : ICommand {
     }
 
 
-    fun initializeDirectory(client: String, ticket: String, purpose: String) : Configuration {
+    fun initializeDirectory(client: String, ticket: String, purpose: String, until: String) : Configuration {
         val reflections = Reflections("com.thelastpickle.tlpcluster.commands.origin", ResourcesScanner())
         val provisioning = reflections.getResources(".*".toPattern())
 
@@ -144,7 +149,7 @@ class Init(val context: Context) : ICommand {
         val dash = Dashboards(dashboardLocation)
         dash.copyDashboards()
 
-        return Configuration(ticket, client, purpose, context.userConfig.region , context = context)
+        return Configuration(ticket, client, purpose, until, context.userConfig.region , context = context)
     }
 
 

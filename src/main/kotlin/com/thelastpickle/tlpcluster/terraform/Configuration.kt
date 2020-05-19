@@ -13,6 +13,7 @@ import java.net.URL
 class Configuration(val ticket: String,
                     val client: String,
                     val purpose: String,
+                    val until: String,
                     var region: String,
                     var context: Context) {
 
@@ -24,7 +25,8 @@ class Configuration(val ticket: String,
     val tags = mutableMapOf("ticket" to ticket,
         "client" to client,
         "purpose" to purpose,
-        "email" to email)
+        "email" to email,
+        "NeededUntil" to until)
 
     var cassandraInstanceType = "m5d.xlarge"
 
