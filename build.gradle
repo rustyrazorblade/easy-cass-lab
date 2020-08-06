@@ -34,6 +34,7 @@ apply plugin: 'nebula.ospackage-application'
 
 group 'com.thelastpickle'
 version '0.6-SNAPSHOT'
+
 sourceCompatibility = 1.8
 
 ext {
@@ -102,12 +103,15 @@ dependencies {
     implementation project(":dashboards")
     implementation project(":core")
     implementation project(":aws-import")
-    implementation project(":profiler")
+//    implementation project(":profiler")
 }
 
-build.dependsOn(":docker-pssh:buildDocker")
-build.dependsOn(":docker-grafonnet:buildDocker")
-build.dependsOn(":dashboards:generateDashboards")
+build {
+    build.dependsOn(":docker-pssh:buildDocker")
+    build.dependsOn(":docker-grafonnet:buildDocker")
+    build.dependsOn(":dashboards:generateDashboards")
+    build.dependsOn(":docker-cassandra-build:buildDocker")
+}
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
@@ -137,8 +141,6 @@ sourceSets {
     }
 }
 
-
-
 configurations {
     integrationTestCompile.extendsFrom testCompile
     integrationTestRuntime.extendsFrom testRuntime
@@ -151,6 +153,16 @@ task integrationTest(type: Test) {
     description = "Runs the full end to end tests.  Will create a cluster in AWS.  Errors might require manual cluster tear down."
     group = "Verification"
 }
+
+tasks.register("copyProfiler", Copy) {
+    dependsOn(":profiler:createTarball")
+    from("profiler/build/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra") {
+        include("*.tgz")
+    }
+    into "build/resources/main/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra"
+}
+
+compileKotlin.dependsOn("copyProfiler")
 
 test {
     useJUnitPlatform()
@@ -244,18 +256,3 @@ task copyRegion(type: Copy, dependsOn: ':aws-import:generateRegionYaml') {
  * Without it, we won't be able to pull the region yaml into the main JAR and we can't pick the right AMI for a region
  */
 compileKotlin.dependsOn(copyRegion)
-
-build {
-    dependsOn(":docker-cassandra-build:buildDocker")
-    dependsOn(":docker-grafonnet:buildDocker")
-    dependsOn(":docker-pssh:buildDocker")
-}
-
-distributions {
-    main {
-        baseName = "profiler"
-        contents {
-            from "$buildDir/resources"
-        }
-    }
-}
