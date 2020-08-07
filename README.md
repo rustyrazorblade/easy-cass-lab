@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/thelastpickle/tlp-cluster.svg?style=svg)](https://circleci.com/gh/thelastpickle/tlp-cluster)
 
-This is a tool to aid in Cassandra development.  
+This is a tool to aid in [Apache Cassandra](https://cassandra.apache.org/) development.  
 
 Please see our [Google Group](https://groups.google.com/d/forum/tlp-dev-tools) for discussion.
 
