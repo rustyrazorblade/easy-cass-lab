@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -x
 echo "Deploying cassandra configs files"
 
 sudo cp ~/provisioning/cassandra/conf/* /etc/cassandra/

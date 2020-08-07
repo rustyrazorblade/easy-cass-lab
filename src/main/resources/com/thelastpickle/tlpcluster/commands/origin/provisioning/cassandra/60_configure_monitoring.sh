@@ -2,12 +2,12 @@
 
 echo "Configuring Cassandra monitoring"
 
-EXPORTER_AGENT_VERSION="0.12.0"
+EXPORTER_AGENT_VERSION="0.13.0"
 EXPORTER_AGENT_JAR="jmx_prometheus_javaagent-${EXPORTER_AGENT_VERSION}.jar"
 
 CASSANDRA_LIB="/usr/share/cassandra/lib"
 
-curl -LO https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.12.0/jmx_prometheus_javaagent-${EXPORTER_AGENT_VERSION}.jar
+curl -LO "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${EXPORTER_AGENT_VERSION}/jmx_prometheus_javaagent-${EXPORTER_AGENT_VERSION}.jar"
 
 sudo mv ${EXPORTER_AGENT_JAR} ${CASSANDRA_LIB}/
 sudo cp config.yaml /etc/cassandra/
