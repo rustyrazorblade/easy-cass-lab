@@ -1,12 +1,11 @@
 
 buildscript {
     ext.kotlin_version = "1.9.0"
-    ext.jcommander_version = "1.72"
+    ext.jcommander_version = '1.74'
     ext.docker_compose_version = "0.9.4"
 
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
@@ -72,7 +71,7 @@ dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
 
     implementation group: 'com.beust', name: 'jcommander', version: jcommander_version
-    implementation 'com.google.guava:guava:27.0-jre'
+    implementation 'com.google.guava:guava:30.0-jre'
 
     // for finding resources
     // https://mvnrepository.com/artifact/org.reflections/reflections
@@ -147,7 +146,7 @@ configurations {
     integrationTestRuntime.extendsFrom testRuntime
 }
 
-task integrationTest(type: Test) {
+tasks.register('integrationTest', Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
     outputs.upToDateWhen { false }
