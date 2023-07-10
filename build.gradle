@@ -1,6 +1,6 @@
 
 buildscript {
-    ext.kotlin_version = "1.3.50"
+    ext.kotlin_version = "1.9.0"
     ext.jcommander_version = "1.72"
     ext.docker_compose_version = "0.9.4"
 
@@ -21,21 +21,23 @@ buildscript {
 
 plugins {
     id "com.bmuschko.docker-remote-api" version "9.3.1"
+    id "org.jetbrains.kotlin.jvm" version "1.9.0"
+//    id("com.github.johnrengelman.shadow") version "8.1.1"
+//    id("nebula.ospackage") version "9.1.1"
+//    id("nebula.ospackage-application") version "9.1.1"
 }
 
 // Apply the java plugin to add support for Java
 apply plugin: 'idea'
 apply plugin: 'java'
-apply plugin: 'kotlin'
+//apply plugin: 'kotlin'
 apply plugin: 'application'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: "nebula.ospackage"
-apply plugin: 'nebula.ospackage-application'
+//apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'com.thelastpickle'
 version '0.6-SNAPSHOT'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 1.11
 
 ext {
     log4j_api_version = "1.0.0"
@@ -65,40 +67,40 @@ allprojects {
 // In this section you declare the dependencies for your production and test code
 dependencies {
 
-    compile "org.apache.logging.log4j:log4j-api-kotlin:$log4j_api_version"
-    compile "org.apache.logging.log4j:log4j-core:$log4j_core_version"
-    compile group: "org.apache.logging.log4j", name: "log4j-slf4j18-impl", version: slf4j_version
+    implementation "org.apache.logging.log4j:log4j-api-kotlin:$log4j_api_version"
+    implementation "org.apache.logging.log4j:log4j-core:$log4j_core_version"
+    implementation group: "org.apache.logging.log4j", name: "log4j-slf4j18-impl", version: slf4j_version
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib
-    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
 
-    compile group: 'com.beust', name: 'jcommander', version: jcommander_version
-    compile 'com.google.guava:guava:27.0-jre'
+    implementation group: 'com.beust', name: 'jcommander', version: jcommander_version
+    implementation 'com.google.guava:guava:27.0-jre'
 
     // for finding resources
     // https://mvnrepository.com/artifact/org.reflections/reflections
-    compile group: 'org.reflections', name: 'reflections', version: '0.9.11'
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.6'
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    compile group: 'com.github.docker-java', name: 'docker-java', version: '3.1.2'
+    implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.1.2'
 
-    compile group: 'software.amazon.awssdk', name: 'ec2', version: '2.5.8'
+    implementation group: 'software.amazon.awssdk', name: 'ec2', version: '2.5.8'
 
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
-    compile group: 'com.fasterxml.jackson.module', name:'jackson-module-kotlin', version: jackson_kotlin_version
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
+    implementation group: 'com.fasterxml.jackson.module', name:'jackson-module-kotlin', version: jackson_kotlin_version
 
 
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
-    testCompile group: 'org.assertj', name: 'assertj-core', version: assertj_version
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: assertj_version
 
-    compile 'com.github.ajalt:mordant:1.2.1'
+    implementation 'com.github.ajalt:mordant:1.2.1'
 
-    testCompile "io.mockk:mockk:1.9.3"
+    testImplementation "io.mockk:mockk:1.9.3"
 
     implementation project(":dashboards")
     implementation project(":core")
@@ -166,81 +168,81 @@ compileKotlin.dependsOn("copyProfiler")
 
 test {
     useJUnitPlatform()
-    reports {
-        junitXml.enabled = true
-        html.enabled = true
-    }
+//    reports {
+//        junitXml.enabled = true
+//        html.enabled = true
+//    }
     testLogging.showStandardStreams = true
 }
-
-buildRpm {
-    requires("java-1.8.0-openjdk")
-    user "root"
-    group = "build"
-}
-
-
-ospackage {
-    os = LINUX
-    link("/usr/local/bin/tlp-cluster", "/opt/tlp-cluster/bin/tlp-cluster" )
-    packager "Jon Haddad"
-    maintainer "Jon Haddad"
-    vendor "The Last Pickle"
-    url "http://thelastpickle.com/tlp-cluster/"
-    license "Apache License 2.0"
-    description "Cluster Experimentation Tool for Apache Cassandra by The Last Pickle"
-}
-
-buildDeb {
-    distribution "weezy,bionic,xenial,jessie"
-    requires("openjdk-8-jre")
-}
-
-task uploadDeb(type: Exec) {
-    group = "Publish"
-    workingDir 'build/distributions'
-
-    def debPackage = "tlp-cluster_${version}_all.deb"
-
-    // get the deb package
-
-    logger.info("Uploading DEB $debPackage")
-    commandLine "curl", "-T", debPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-deb/tlp-cluster/${version}/$debPackage;deb_distribution=weezy,bionic,jessie,xenial;deb_component=main;deb_architecture=amd64;publish=1"
-
-}
-
-task uploadRpm(type: Exec) {
-    group = "Publish"
-    workingDir 'build/distributions'
-
-    def rpmPackage = "tlp-cluster-${version}.noarch.rpm"
-
-    logger.info("Uploading RPM $rpmPackage")
-    commandLine "curl", "-T", rpmPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-rpm/tlp-cluster/${version}/$rpmPackage;publish=1"
-}
-
-task uploadTar(type:Exec) {
-    group = "Publish"
-    workingDir 'build/distributions'
-    def tarball = "tlp-cluster-${version}.tar"
-
-    logger.info("Uploading Tar $tarball")
-    commandLine "curl", "-T", tarball, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-tarball/tlp-cluster/${version}/$tarball;publish=1"
-}
-
-task buildAll {
-    group = "Publish"
-    dependsOn "buildDeb"
-    dependsOn "buildRpm"
-    dependsOn "distTar"
-}
-
-task uploadAll  {
-    group = "Publish"
-    dependsOn "uploadDeb"
-    dependsOn "uploadRpm"
-    dependsOn "uploadTar"
-}
+//
+//buildRpm {
+//    requires("java-1.8.0-openjdk")
+//    user "root"
+//    group = "build"
+//}
+//
+//
+//ospackage {
+//    os = LINUX
+//    link("/usr/local/bin/tlp-cluster", "/opt/tlp-cluster/bin/tlp-cluster" )
+//    packager "Jon Haddad"
+//    maintainer "Jon Haddad"
+//    vendor "The Last Pickle"
+//    url "http://thelastpickle.com/tlp-cluster/"
+//    license "Apache License 2.0"
+//    description "Cluster Experimentation Tool for Apache Cassandra by The Last Pickle"
+//}
+//
+//buildDeb {
+//    distribution "weezy,bionic,xenial,jessie"
+//    requires("openjdk-8-jre")
+//}
+//
+//task uploadDeb(type: Exec) {
+//    group = "Publish"
+//    workingDir 'build/distributions'
+//
+//    def debPackage = "tlp-cluster_${version}_all.deb"
+//
+//    // get the deb package
+//
+//    logger.info("Uploading DEB $debPackage")
+//    commandLine "curl", "-T", debPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-deb/tlp-cluster/${version}/$debPackage;deb_distribution=weezy,bionic,jessie,xenial;deb_component=main;deb_architecture=amd64;publish=1"
+//
+//}
+//
+//task uploadRpm(type: Exec) {
+//    group = "Publish"
+//    workingDir 'build/distributions'
+//
+//    def rpmPackage = "tlp-cluster-${version}.noarch.rpm"
+//
+//    logger.info("Uploading RPM $rpmPackage")
+//    commandLine "curl", "-T", rpmPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-rpm/tlp-cluster/${version}/$rpmPackage;publish=1"
+//}
+//
+//task uploadTar(type:Exec) {
+//    group = "Publish"
+//    workingDir 'build/distributions'
+//    def tarball = "tlp-cluster-${version}.tar"
+//
+//    logger.info("Uploading Tar $tarball")
+//    commandLine "curl", "-T", tarball, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-tarball/tlp-cluster/${version}/$tarball;publish=1"
+//}
+//
+//task buildAll {
+//    group = "Publish"
+//    dependsOn "buildDeb"
+//    dependsOn "buildRpm"
+//    dependsOn "distTar"
+//}
+//
+//task uploadAll  {
+//    group = "Publish"
+//    dependsOn "uploadDeb"
+//    dependsOn "uploadRpm"
+//    dependsOn "uploadTar"
+//}
 
 
 assemble.mustRunAfter clean

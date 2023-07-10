@@ -8,26 +8,26 @@ apply plugin: 'kotlin'
 def regionYamlLoction = "$buildDir/aws/com/thelastpickle/tlpcluster/ubuntu"
 
 dependencies {
-    compile "org.apache.logging.log4j:log4j-api-kotlin:$log4j_api_version"
-    compile "org.apache.logging.log4j:log4j-core:$log4j_core_version"
-    compile group: "org.apache.logging.log4j", name: "log4j-slf4j18-impl", version: slf4j_version
-    compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
+    implementation "org.apache.logging.log4j:log4j-api-kotlin:$log4j_api_version"
+    implementation "org.apache.logging.log4j:log4j-core:$log4j_core_version"
+    implementation group: "org.apache.logging.log4j", name: "log4j-slf4j18-impl", version: slf4j_version
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
 
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
     // Declare the dependency for your favourite test framework you want to use in your tests.
     // TestNG is also supported by the Gradle Test task. Just change the
     // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
     // 'test.useTestNG()' to your build script.
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
 
-    compile group: "com.fasterxml.jackson.module", name: "jackson-module-kotlin", version: jackson_kotlin_version
+    implementation group: "com.fasterxml.jackson.module", name: "jackson-module-kotlin", version: jackson_kotlin_version
 
     implementation project(":core")
 
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
-    testCompile group: 'org.assertj', name: 'assertj-core', version: assertj_version
+    testImplementation group: 'org.assertj', name: 'assertj-core', version: assertj_version
 
 }
 

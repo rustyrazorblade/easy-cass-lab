@@ -62,10 +62,10 @@ task generateDashboards(type: Exec) {
     doLast {
         logger.info(standardOutput.toString())
         logger.error(errorOutput.toString())
-        if (execResult.getExitValue() != 0) {
-            print(standardOutput)
-            throw new GradleScriptException("non zero exit code")
-        }
+//        if (executionResult.getExitValue() != 0) {
+//            print(standardOutput)
+//            throw new GradleScriptException("non zero exit code")
+//        }
     }
 }
 
@@ -77,7 +77,7 @@ sourceSets {
 
 distributions {
     main {
-        baseName = "tlp-dashboards"
+        distributionBaseName = "tlp-dashboards"
 
         contents {
             from dashboardOutput

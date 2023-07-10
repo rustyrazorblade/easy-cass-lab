@@ -20,11 +20,12 @@ ext {
 }
 
 task buildDocker(type: DockerBuildImage) {
-    tags = ["$container:latest".toString(), "$container:$version".toString()]
+    images = ["$container:latest".toString(), "$container:$version".toString()]
     inputDir = file("docker")
 }
 
 task push(type: DockerPushImage) {
     dependsOn buildDocker
-    imageName = container
+
+//    imageName  container
 }
