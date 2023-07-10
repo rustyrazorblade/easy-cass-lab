@@ -39,7 +39,7 @@ sourceCompatibility = 1.11
 
 ext {
     log4j_api_version = "1.0.0"
-    log4j_core_version = "2.11.1"
+    log4j_core_version = "2.20.0"
     slf4j_version = "2.11.2"
     jackson_dataformat_version = "2.9.0"
     jackson_kotlin_version = "2.9.+"
