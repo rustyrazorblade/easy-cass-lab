@@ -13,8 +13,8 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
-        classpath "com.netflix.nebula:gradle-ospackage-plugin:6.2.1"
+//        classpath 'com.github.jengelman.gradle.plugins:shadow:5.1.0'
+//        classpath "com.netflix.nebula:gradle-ospackage-plugin:6.2.1"
         classpath "com.avast.gradle:gradle-docker-compose-plugin:$docker_compose_version"
     }
 }
@@ -22,7 +22,7 @@ buildscript {
 plugins {
     id "com.bmuschko.docker-remote-api" version "9.3.1"
     id "org.jetbrains.kotlin.jvm" version "1.9.0"
-//    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 //    id("nebula.ospackage") version "9.1.1"
 //    id("nebula.ospackage-application") version "9.1.1"
 }
@@ -30,9 +30,7 @@ plugins {
 // Apply the java plugin to add support for Java
 apply plugin: 'idea'
 apply plugin: 'java'
-//apply plugin: 'kotlin'
 apply plugin: 'application'
-//apply plugin: 'com.github.johnrengelman.shadow'
 
 group 'com.thelastpickle'
 version '0.6-SNAPSHOT'
@@ -115,14 +113,16 @@ build {
     build.dependsOn(":docker-cassandra-build:buildDocker")
 }
 
+kotlin {
+    jvmToolchain(11)
+}
+
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
     kotlinOptions.freeCompilerArgs = ["-Xallow-result-return-type"]
 
 
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
     kotlinOptions.freeCompilerArgs = ["-Xallow-result-return-type"]
 }
 
@@ -249,6 +249,7 @@ assemble.mustRunAfter clean
 
 evaluationDependsOn(":aws-import")
 task copyRegion(type: Copy, dependsOn: ':aws-import:generateRegionYaml') {
+
     from tasks.getByPath("aws-import:generateRegionYaml").outputs
     into "build/aws/com/thelastpickle/tlpcluster/ubuntu"
 }
@@ -258,3 +259,4 @@ task copyRegion(type: Copy, dependsOn: ':aws-import:generateRegionYaml') {
  * Without it, we won't be able to pull the region yaml into the main JAR and we can't pick the right AMI for a region
  */
 compileKotlin.dependsOn(copyRegion)
+processResources.dependsOn(copyRegion)
