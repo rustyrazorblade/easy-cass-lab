@@ -36,7 +36,7 @@ task generateRegionYaml(type: JavaExec, dependsOn: ":aws-import:build") {
     outputs.dir(regionYamlLoction).withPropertyName("regions")
 
     classpath = sourceSets.main.runtimeClasspath
-    main = 'com.thelastpickle.tlpcluster.ubuntu.RegionsKt'
+    mainClass = 'com.thelastpickle.tlpcluster.ubuntu.RegionsKt'
 
 }
 

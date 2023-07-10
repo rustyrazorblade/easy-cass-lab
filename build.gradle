@@ -1,7 +1,7 @@
 
 buildscript {
     ext.kotlin_version = "1.9.0"
-    ext.jcommander_version = '1.74'
+    ext.jcommander_version = '1.82'
     ext.docker_compose_version = "0.9.4"
 
     repositories {
@@ -12,7 +12,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-//        classpath "com.netflix.nebula:gradle-ospackage-plugin:9.1.1"
+//        classpath "com.netflix.nebula:gradle-ospackage-plugin:9.1.1" // broken in Gradle 8+, removed for now
         classpath "com.avast.gradle:gradle-docker-compose-plugin:$docker_compose_version"
     }
 }
@@ -33,7 +33,9 @@ apply plugin: 'application'
 group 'com.thelastpickle'
 version '0.6-SNAPSHOT'
 
-sourceCompatibility = 1.11
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
 
 ext {
     log4j_api_version = "1.2.0"
@@ -48,14 +50,13 @@ ext {
 
 application {
     applicationName = "tlp-cluster"
-    mainClassName = "com.thelastpickle.tlpcluster.MainKt"
+    mainClass.set("com.thelastpickle.tlpcluster.MainKt")
 }
 
 // In this section you declare where to find the dependencies of your project
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
     }
 }
 
