@@ -6,9 +6,6 @@ buildscript {
 
     repositories {
         mavenCentral()
-//        maven {
-//            url "https://plugins.gradle.org/m2/"
-//        }
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -19,9 +16,8 @@ buildscript {
 plugins {
     id "com.bmuschko.docker-remote-api" version "9.3.1"
     id "org.jetbrains.kotlin.jvm" version "1.9.0"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-//    id("nebula.ospackage") version "11.3.0"
-//    id("nebula.ospackage-application") version "9.1.1"
+    id "com.github.johnrengelman.shadow"  version "8.1.1"
+//    id "com.netflix.nebula.ospackage"  version "11.3.0"
 }
 
 // Apply the java plugin to add support for Java
