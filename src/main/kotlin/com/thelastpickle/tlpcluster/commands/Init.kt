@@ -80,7 +80,7 @@ class Init(val context: Context) : ICommand {
 
 
         var config = initializeDirectory(client, ticket, purpose, until)
-
+        println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
         config.numStressInstances = stressInstances
@@ -96,6 +96,7 @@ class Init(val context: Context) : ICommand {
             config.azs = expand(context.userConfig.region, azs)
         }
 
+        println("Writing Config")
         writeTerraformConfig(config)
 
         println("Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}")
@@ -149,6 +150,7 @@ class Init(val context: Context) : ICommand {
         val dash = Dashboards(dashboardLocation)
         dash.copyDashboards()
 
+
         return Configuration(ticket, client, purpose, until, context.userConfig.region , context = context)
     }
 
@@ -158,6 +160,7 @@ class Init(val context: Context) : ICommand {
         config.write(configOutput)
 
         val terraform = Terraform(context)
+        println("Calling init")
         return terraform.init()
     }
 

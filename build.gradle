@@ -77,9 +77,10 @@ dependencies {
     implementation group: 'commons-io', name: 'commons-io', version: '2.7'
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.3.2'
+    implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.3.3'
+    implementation group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: '2.0.61.Final'
 
-    implementation group: 'software.amazon.awssdk', name: 'ec2', version: '2.5.8'
+    implementation group: 'software.amazon.awssdk', name: 'ec2', version: '2.20.145'
 
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
     implementation group: 'com.fasterxml.jackson.module', name:'jackson-module-kotlin', version: jackson_kotlin_version
