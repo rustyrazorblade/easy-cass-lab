@@ -1,5 +1,11 @@
 # tlp-cluster
 
+Grab the source and build locally:
+
+```bash
+./gradlew assemble installdist
+```
+
 [![CircleCI](https://circleci.com/gh/thelastpickle/tlp-cluster.svg?style=svg)](https://circleci.com/gh/thelastpickle/tlp-cluster)
 
 This is a tool to aid in [Apache Cassandra](https://cassandra.apache.org/) development.  

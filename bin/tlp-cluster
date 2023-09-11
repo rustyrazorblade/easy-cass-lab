@@ -1,11 +1,12 @@
 #!/bin/bash
 
 dir=$(dirname $0)
+
 BASE_CLUSTER_DIR="$(dirname "$dir")"
 
 TLP_CLUSTER_USER_DATA=~/.tlp-cluster/
 
-JAR=$(find $BASE_CLUSTER_DIR/build/libs -name '*-all.jar' | tail -n 1)
+JAR=$(find ${BASE_CLUSTER_DIR}/build/libs -name 'tlp-cluster-*-all.jar' | tail -n 1)
 
 java -jar $JAR "$@"
 

@@ -70,7 +70,8 @@ task generateDashboards(type: Exec) {
 }
 
 installDist.dependsOn(":dashboards:generateDashboards")
-
+distTar.dependsOn(":dashboards:generateDashboards")
+distZip.dependsOn(":dashboards:generateDashboards")
 
 sourceSets {
     main {
