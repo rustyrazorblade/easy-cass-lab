@@ -224,12 +224,12 @@ test {
 //    commandLine "curl", "-T", tarball, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-tarball/tlp-cluster/${version}/$tarball;publish=1"
 //}
 //
-//task buildAll {
-//    group = "Publish"
+task buildAll {
+    group = "Publish"
 //    dependsOn "buildDeb"
 //    dependsOn "buildRpm"
-//    dependsOn "distTar"
-//}
+    dependsOn "distTar"
+}
 //
 //task uploadAll  {
 //    group = "Publish"
@@ -247,6 +247,7 @@ task copyRegion(type: Copy, dependsOn: ':aws-import:generateRegionYaml') {
     from tasks.getByPath("aws-import:generateRegionYaml").outputs
     into "build/aws/com/thelastpickle/tlpcluster/ubuntu"
 }
+
 
 /*
  * This forces the CopyTask copyRegion to run before we compile any of the main sources
