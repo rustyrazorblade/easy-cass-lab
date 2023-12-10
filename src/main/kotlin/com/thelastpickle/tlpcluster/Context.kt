@@ -12,7 +12,6 @@ import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import java.nio.file.Files
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 
 
 data class Context(val tlpclusterUserDirectory: File) {
@@ -73,24 +72,10 @@ data class Context(val tlpclusterUserDirectory: File) {
     val docker by lazy {
         nettyInitialised = true
 
-        /*
-        Docker Desktop for Mac removed /var/run/docker.sock per 4.13.0 Release Notes:
-        https://docs.docker.com/desktop/release-notes/#docker-desktop-4130
-        "By default Docker will not create the /var/run/docker.sock symlink on the host and use the docker-desktop CLI context instead."
-         */
-//        val socketLocation = "/var/run/docker.sock"
-//        val socket = "unix://$socketLocation"
-
-//        if(!File(socketLocation).exists())
-//            throw Exception("Could not find the docker socket, is docker running?  Using $socket")
-
         val dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                //.withDockerHost(socket)
                 .build()
 
-
         DockerClientBuilder.getInstance(dockerConfig)
-                //.withDockerCmdExecFactory(netty)
                 .build()
     }
 
@@ -115,7 +100,7 @@ data class Context(val tlpclusterUserDirectory: File) {
             val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "tlpcluster")
             // create a default profile
             // generate a fake key
-            val user = User("test@thelastpickle.com", "us-west-2", "test", "test", "test", "test", "test")
+            val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test")
 
             val context = Context(testTempDirectory.toFile())
             context.yaml.writeValue(context.userConfigFile, user)
