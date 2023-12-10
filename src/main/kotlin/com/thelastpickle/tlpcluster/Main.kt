@@ -51,8 +51,5 @@ fun main(arguments: Array<String>) {
         commandObj.execute()
     else
         jc.usage()
-
-    // currently this is a work around to break out of a docker thread (netty?) that is never shut down.
-    context.shutdown()
 }
 

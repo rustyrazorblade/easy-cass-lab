@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientBuilder
-import com.github.dockerjava.netty.NettyDockerCmdExecFactory
 import com.thelastpickle.tlpcluster.configuration.TFState
 import com.thelastpickle.tlpcluster.configuration.User
 import com.thelastpickle.tlpcluster.core.YamlDelegate
@@ -36,11 +35,6 @@ data class Context(val tlpclusterUserDirectory: File) {
         buildLocation.mkdirs()
         File(buildLocation, "conf").mkdirs()
         File(buildLocation, "deb").mkdirs()
-    }
-
-    fun shutdown() {
-        if (nettyInitialised)
-            netty.close()
     }
 
     /**
@@ -77,10 +71,6 @@ data class Context(val tlpclusterUserDirectory: File) {
 
         DockerClientBuilder.getInstance(dockerConfig)
                 .build()
-    }
-
-    private val netty by lazy  {
-        NettyDockerCmdExecFactory()
     }
 
     val cwdPath = System.getProperty("user.dir")
