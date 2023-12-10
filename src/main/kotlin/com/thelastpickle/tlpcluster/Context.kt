@@ -73,19 +73,24 @@ data class Context(val tlpclusterUserDirectory: File) {
     val docker by lazy {
         nettyInitialised = true
 
-        val socketLocation = "/var/run/docker.sock"
-        val socket = "unix://$socketLocation"
+        /*
+        Docker Desktop for Mac removed /var/run/docker.sock per 4.13.0 Release Notes:
+        https://docs.docker.com/desktop/release-notes/#docker-desktop-4130
+        "By default Docker will not create the /var/run/docker.sock symlink on the host and use the docker-desktop CLI context instead."
+         */
+//        val socketLocation = "/var/run/docker.sock"
+//        val socket = "unix://$socketLocation"
 
-        if(!File(socketLocation).exists())
-            throw Exception("Could not find the docker socket, is docker running?  Using $socket")
+//        if(!File(socketLocation).exists())
+//            throw Exception("Could not find the docker socket, is docker running?  Using $socket")
 
         val dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(socket)
+                //.withDockerHost(socket)
                 .build()
 
 
         DockerClientBuilder.getInstance(dockerConfig)
-                .withDockerCmdExecFactory(netty)
+                //.withDockerCmdExecFactory(netty)
                 .build()
     }
 
