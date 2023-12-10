@@ -10,12 +10,15 @@ import com.thelastpickle.tlpcluster.ubuntu.Regions
 import java.io.File
 import java.net.URL
 
+typealias Ami = String
+
 class Configuration(val ticket: String,
                     val client: String,
                     val purpose: String,
                     val until: String,
                     var region: String,
-                    var context: Context) {
+                    var context: Context,
+                    val ami: Ami) {
 
     val regionLookup = Regions.load()
 
@@ -69,7 +72,7 @@ class Configuration(val ticket: String,
     }
 
     private fun setInstanceResource(key: String,
-                                    ami: String,
+                                    ami: Ami,
                                     instanceType: String,
                                     count: Int,
                                     securityGroups: List<String>,
@@ -92,17 +95,11 @@ class Configuration(val ticket: String,
 
 
     private fun build() : Configuration {
-        val regionObj = regionLookup.get(region)!!
-
-        var cassandraAMI = regionObj.getAmi(cassandraInstanceType)
-        val stressAMI = regionObj.getAmi(stressInstanceType)
 
         setVariable("email", email)
         setVariable("key_name", context.userConfig.keyName)
         setVariable("key_path", context.userConfig.sshKeyPath)
         setVariable("region", region)
-
-
 
         setVariable("zones", Variable(azs))
 
@@ -123,14 +120,14 @@ class Configuration(val ticket: String,
 
         setInstanceResource(
             "cassandra",
-            cassandraAMI,
+            ami,
             cassandraInstanceType,
             numCassandraInstances,
             listOf(instanceSg.name),
             setTagName(tags, ServerType.Cassandra))
         setInstanceResource(
             "stress",
-            stressAMI,
+            ami,
             stressInstanceType,
             numStressInstances,
             listOf(instanceSg.name),

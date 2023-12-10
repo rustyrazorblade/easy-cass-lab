@@ -47,7 +47,7 @@ data class Context(val tlpclusterUserDirectory: File) {
     val json = getJsonMapper()
     val yaml : ObjectMapper by YamlDelegate()
 
-    // if you need to to anything funky with the mapper (settings etc) use this
+    // if you need to anything funky with the mapper (settings etc) use this
     fun getJsonMapper() = jacksonObjectMapper()
 
     private val userConfigFile = File(profileDir, "settings.yaml")

@@ -78,6 +78,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
     implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.3.3'
+    implementation project(path: ':core')
     constraints {
         implementation("io.netty:netty-codec-http:4.1.97.Final") {
             because "Previous version throws exception"

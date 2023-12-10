@@ -47,6 +47,9 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Specify when the instances can be deleted", names = ["--until"])
     var until = LocalDate.now().plusDays(1).toString()
 
+    @Parameter(description = "AMI.  Set TLP_CLUSTER_AMI to set a default.", names = ["--ami"])
+    var ami = ""
+
     override fun execute() {
         println("Initializing directory")
 
@@ -57,6 +60,7 @@ class Init(val context: Context) : ICommand {
         check(client.isNotBlank())
         check(ticket.isNotBlank())
         check(purpose.isNotBlank())
+        check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
 
@@ -79,7 +83,7 @@ class Init(val context: Context) : ICommand {
         println("Copying provisioning files")
 
 
-        var config = initializeDirectory(client, ticket, purpose, until)
+        var config = initializeDirectory(client, ticket, purpose, until, ami)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
@@ -111,7 +115,7 @@ class Init(val context: Context) : ICommand {
     }
 
 
-    fun initializeDirectory(client: String, ticket: String, purpose: String, until: String) : Configuration {
+    fun initializeDirectory(client: String, ticket: String, purpose: String, until: String, ami: String) : Configuration {
         val reflections = Reflections("com.thelastpickle.tlpcluster.commands.origin", ResourcesScanner())
         val provisioning = reflections.getResources(".*".toPattern())
 
@@ -151,7 +155,7 @@ class Init(val context: Context) : ICommand {
         dash.copyDashboards()
 
 
-        return Configuration(ticket, client, purpose, until, context.userConfig.region , context = context)
+        return Configuration(ticket, client, purpose, until, context.userConfig.region, context, ami)
     }
 
 
