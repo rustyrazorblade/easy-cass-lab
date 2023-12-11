@@ -48,7 +48,7 @@ class Init(val context: Context) : ICommand {
     var until = LocalDate.now().plusDays(1).toString()
 
     @Parameter(description = "AMI.  Set TLP_CLUSTER_AMI to set a default.", names = ["--ami"])
-    var ami = ""
+    var ami = System.getenv("TLP_CLUSTER_AMI") ?: ""
 
     override fun execute() {
         println("Initializing directory")
