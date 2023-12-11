@@ -13,7 +13,7 @@ locals {
 
 source "amazon-ebs" "ubuntu" {
   ami_name      = "cassandra-${local.timestamp}"
-  instance_type = "t2.micro"
+  instance_type = "c3.xlarge"
   region        = "us-west-2"
   source_ami_filter {
     filters = {
