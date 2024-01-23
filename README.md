@@ -1,5 +1,32 @@
 # tlp-cluster
 
+Usage instructions (wip)
+
+This project uses packer to create a base AMI with all versions of Cassandra, bcc tools, (and soon) async-profiler, tlp-stress, and other useful debugging tools.
+
+```shell
+cd packer
+packer build cassandra.pkr.hcl
+```
+
+Grab the AMI and set the following environment variable (or pass it every time with `--ami`)
+
+```shell
+# substitute the AMI created in the above command
+export TLP_CLUSTER_AMI="ami-abcdefg" 
+```
+
+I'm currently moving the project in a new direction and doing so without regard for breaking old features. 
+
+
+TODO:
+
+* Remove the old ubuntu ami code
+* Remove all the old install code
+* Start the right version on `start` command
+* populate the config and push it up on the install command (maybe rename to load-config?)
+* Add option to pass AxonOps account information for monitoring instead of prometheus and grafana
+
 Grab the source and build locally:
 
 ```bash
