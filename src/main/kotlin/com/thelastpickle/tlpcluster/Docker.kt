@@ -1,5 +1,6 @@
 package com.thelastpickle.tlpcluster
 
+import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.*
 import com.github.dockerjava.core.command.AttachContainerResultCallback
@@ -211,15 +212,15 @@ class Docker(val context: Context) {
                 stdInputPipe.write(line.toByteArray())
             }
         }
-
+        println("Attaching to running container")
         var framesRead = 0
         context.docker.attachContainerCmd(dockerContainer.id)
                 .withStdIn(PipedInputStream(stdInputPipe))
                 .withStdOut(true)
                 .withStdErr(true)
                 .withFollowStream(true)
-                .exec(object : AttachContainerResultCallback() {
-                    override fun onNext(item: Frame?) {
+            .exec(object : ResultCallback.Adapter<Frame>() {
+                override fun onNext(item: Frame?) {
                         // should only include standard out - please fix me
                         if(item == null) return
 
@@ -235,14 +236,42 @@ class Docker(val context: Context) {
                         }
                     }
 
-                    override fun onError(throwable: Throwable?) {
+                    override fun onError(throwable: Throwable) {
                         println(throwable.toString())
+                        println(throwable.printStackTrace())
                         super.onError(throwable)
                     }
-                })
+            })
+//                .exec(object : AttachContainerResultCallback() {
+//                    override fun onNext(item: Frame?) {
+//                        // should only include standard out - please fix me
+//                        if(item == null) return
+//
+//                        framesRead++
+//                        val payloadStr = String(item.payload)
+//
+//                        if(item.streamType.name.equals("STDOUT")) {
+//                            // no need to use println - payloadStr already has carriage returns
+//                            print(payloadStr)
+//                            capturedStdOut.append(payloadStr)
+//                        } else if(item.streamType.name.equals("STDERR")) {
+//                            log.error(payloadStr)
+//                        }
+//                    }
+//
+//                    override fun onError(throwable: Throwable?) {
+//                        println(throwable.toString())
+//                        super.onError(throwable)
+//                    }
+//                })
+        println("Starting container ${dockerContainer.id}")
+        try {
+            context.docker.startContainerCmd(dockerContainer.id).exec()
+        } catch (e: Exception) {
+            println("Error starting container: ${e.printStackTrace()}")
+            throw e
+        }
 
-        context.docker.startContainerCmd(dockerContainer.id).exec()
-        
         // stay here till the container stops
         do {
             Thread.sleep(1000)

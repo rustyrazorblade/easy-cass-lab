@@ -11,9 +11,6 @@ import java.io.File
 @Parameters(commandDescription = "Starts instances")
 class Up(val context: Context) : ICommand {
 
-    @Parameter(description = "Auto approve changes", names = ["--auto-approve", "-a", "--yes", "-y"])
-    var autoApprove = false
-
     override fun execute() {
         // we have to list both the variable files explicitly here
         // even though we have a terraform.tvars
@@ -25,7 +22,7 @@ class Up(val context: Context) : ICommand {
 
         with(TermColors()) {
 
-            terraform.up(autoApprove).onFailure {
+            terraform.up().onFailure {
                 println(it.message)
                 println("${red("Some resources may have been unsuccessfully provisioned.")}  Rerun ${green("tlp-cluster up")} to provision the remaining resources.")
             }.onSuccess {

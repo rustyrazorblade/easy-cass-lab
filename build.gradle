@@ -14,7 +14,7 @@ buildscript {
 }
 
 plugins {
-    id "com.bmuschko.docker-remote-api" version "9.3.1"
+    id "com.bmuschko.docker-remote-api" version "9.4.0"
     id "org.jetbrains.kotlin.jvm" version "1.9.0"
     id "com.github.johnrengelman.shadow"  version "8.1.1"
 //    id "com.netflix.nebula.ospackage"  version "11.3.0"
@@ -77,16 +77,11 @@ dependencies {
     implementation group: 'commons-io', name: 'commons-io', version: '2.7'
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.3.3'
-    implementation project(path: ':core')
-    constraints {
-        implementation("io.netty:netty-codec-http:4.1.97.Final") {
-            because "Previous version throws exception"
-        }
-    }
-    implementation group: 'io.netty', name: 'netty-resolver-dns-native-macos', version: '4.1.97.Final', classifier: 'osx-aarch_64'
-    implementation 'io.netty:netty-transport-native-kqueue:4.1.97.Final'
-    implementation group: 'io.netty', name: 'netty-tcnative-boringssl-static', version: '2.0.61.Final'
+    implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.3.4'
+    // https://mvnrepository.com/artifact/com.github.docker-java/docker-java-transport-httpclient5
+    implementation 'com.github.docker-java:docker-java-transport-httpclient5:3.3.4'
+
+    implementation project(path: ":core")
 
     implementation group: 'software.amazon.awssdk', name: 'ec2', version: '2.20.145'
 

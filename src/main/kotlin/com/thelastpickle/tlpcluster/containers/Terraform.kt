@@ -17,11 +17,9 @@ class Terraform(val context: Context) {
     }
 
 
-    fun up(autoApprove : Boolean = false) : Result<String> {
+    fun up() : Result<String> {
         val commands = mutableListOf("apply")
-        if(autoApprove) {
-            commands.add("-auto-approve")
-        }
+        commands.add("-auto-approve")
         return execute(*commands.toTypedArray())
     }
 

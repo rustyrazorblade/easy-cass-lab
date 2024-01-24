@@ -11,6 +11,9 @@ import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import java.nio.file.Files
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.dockerjava.core.DockerClientImpl
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.github.dockerjava.transport.DockerHttpClient
 
 
 data class Context(val tlpclusterUserDirectory: File) {
@@ -69,8 +72,11 @@ data class Context(val tlpclusterUserDirectory: File) {
         val dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .build()
 
-        DockerClientBuilder.getInstance(dockerConfig)
-                .build()
+        val httpClient = ApacheDockerHttpClient.Builder()
+                .dockerHost(dockerConfig.dockerHost)
+                .sslConfig(dockerConfig.sslConfig)
+                .build();
+        DockerClientImpl.getInstance(dockerConfig, httpClient)
     }
 
     val cwdPath = System.getProperty("user.dir")

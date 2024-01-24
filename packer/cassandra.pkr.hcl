@@ -34,8 +34,10 @@ build {
   ]
   provisioner "shell" {
       inline = [
-        "sudo apt-get update",
-        "sudo apt-get install wget"
+        "sudo apt update",
+        "sudo apt upgrade -y",
+        "sudo apt update",
+        "sudo apt install -y wget sysstat fio bpftrace"
       ]
   }
 
@@ -45,6 +47,7 @@ build {
 
   provisioner "shell" {
     script = "install_bcc.sh"
+    # export PATH="$PATH:/usr/share/bcc/tools/"
   }
 }
 
