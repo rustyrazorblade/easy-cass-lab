@@ -101,16 +101,16 @@ class TFState(val context: Context,
 
     fun writeSshConfig(config: BufferedWriter) {
         // write standard stuff first
-        config.appendln("StrictHostKeyChecking=no")
-        config.appendln("User ubuntu")
-        config.appendln("IdentityFile ${context.userConfig.sshKeyPath}")
+        config.appendLine("StrictHostKeyChecking=no")
+        config.appendLine("User ubuntu")
+        config.appendLine("IdentityFile ${context.userConfig.sshKeyPath}")
 
         // get each server type and get the hosts for type and add it to the sshConfig.
         ServerType.values().forEach {
             getHosts(it).forEach {
-                config.appendln("Host ${it.alias}")
-                config.appendln(" Hostname ${it.public}")
-                config.appendln()
+                config.appendLine("Host ${it.alias}")
+                config.appendLine(" Hostname ${it.public}")
+                config.appendLine()
             }
         }
         config.flush()
@@ -120,8 +120,8 @@ class TFState(val context: Context,
 
         // write the initial SSH aliases
 
-        fp.appendln("#!/bin/bash")
-        fp.appendln()
+        fp.appendLine("#!/bin/bash")
+        fp.appendLine()
 
         var i = 0
         fp.append("SERVERS=(")
@@ -129,21 +129,21 @@ class TFState(val context: Context,
             fp.append("cassandra$i ")
             i++
         }
-        fp.appendln(")")
+        fp.appendLine(")")
 
         i=0
         getHosts(ServerType.Cassandra).forEach {
-            fp.appendln("alias c${i}=\"ssh cassandra${i}\"")
+            fp.appendLine("alias c${i}=\"ssh cassandra${i}\"")
             i++
         }
 
-        fp.appendln()
+        fp.appendLine()
 
         val content = this.javaClass.getResourceAsStream("env.sh").bufferedReader()
         val lines = content.readLines().toMutableList()
 
         for(line in lines) {
-            fp.appendln(line)
+            fp.appendLine(line)
         }
         fp.flush()
     }

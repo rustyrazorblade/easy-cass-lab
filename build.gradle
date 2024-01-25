@@ -99,9 +99,8 @@ dependencies {
     testImplementation "io.mockk:mockk:1.9.3"
 
     implementation project(path: ":dashboards")
-    implementation project(path: ':core')
+    implementation project(path: ":core")
     implementation project(path: ":aws-import")
-//    implementation project(":profiler")
 }
 
 build {
