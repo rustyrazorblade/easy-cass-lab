@@ -18,9 +18,8 @@ class Terraform(val context: Context) {
 
 
     fun up() : Result<String> {
-        val commands = mutableListOf("apply")
-        commands.add("-auto-approve")
-        return execute(*commands.toTypedArray())
+        val commands = mutableListOf("apply", "-auto-approve").toTypedArray()
+        return execute(*commands)
     }
 
 

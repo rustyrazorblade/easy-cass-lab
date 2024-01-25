@@ -24,6 +24,7 @@ class Up(val context: Context) : ICommand {
 
             terraform.up().onFailure {
                 println(it.message)
+                println(it.printStackTrace())
                 println("${red("Some resources may have been unsuccessfully provisioned.")}  Rerun ${green("tlp-cluster up")} to provision the remaining resources.")
             }.onSuccess {
 

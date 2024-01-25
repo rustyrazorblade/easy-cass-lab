@@ -232,6 +232,7 @@ class Docker(val context: Context) {
                             print(payloadStr)
                             capturedStdOut.append(payloadStr)
                         } else if(item.streamType.name.equals("STDERR")) {
+                            print(payloadStr)
                             log.error(payloadStr)
                         }
                     }
@@ -242,28 +243,7 @@ class Docker(val context: Context) {
                         super.onError(throwable)
                     }
             })
-//                .exec(object : AttachContainerResultCallback() {
-//                    override fun onNext(item: Frame?) {
-//                        // should only include standard out - please fix me
-//                        if(item == null) return
-//
-//                        framesRead++
-//                        val payloadStr = String(item.payload)
-//
-//                        if(item.streamType.name.equals("STDOUT")) {
-//                            // no need to use println - payloadStr already has carriage returns
-//                            print(payloadStr)
-//                            capturedStdOut.append(payloadStr)
-//                        } else if(item.streamType.name.equals("STDERR")) {
-//                            log.error(payloadStr)
-//                        }
-//                    }
-//
-//                    override fun onError(throwable: Throwable?) {
-//                        println(throwable.toString())
-//                        super.onError(throwable)
-//                    }
-//                })
+
         println("Starting container ${dockerContainer.id}")
         try {
             context.docker.startContainerCmd(dockerContainer.id).exec()
@@ -286,7 +266,7 @@ class Docker(val context: Context) {
                 errorMessage = ", ${containerState.error}"
             }
 
-            "Container exited with exit code ${containerState.exitCode}$errorMessage, frames read: $framesRead"
+            "Container exited with exit code ${containerState.exitCodeLong}$errorMessage, frames read: $framesRead"
         }
 
         println(returnMessage)
