@@ -29,7 +29,6 @@ fun main(arguments: Array<String>) {
                          "up" to Up(context),
                          "start" to Start(context),
                          "stop" to Stop(context),
-                         "install" to Install(context),
                          "down" to Down(context),
                          "build" to BuildCassandra(context),
                          "ls" to ListCassandraBuilds(context),
