@@ -17,7 +17,6 @@ include 'services:webservice'
 
 rootProject.name = 'tlp-cluster'
 
-include "aws-import"
 include "core"
 include "dashboards"
 

@@ -16,17 +16,31 @@ buildscript {
 plugins {
     id "com.bmuschko.docker-remote-api" version "9.4.0"
     id "org.jetbrains.kotlin.jvm" version "1.9.0"
+    id "idea"
+    id "java"
+    id "application"
     id "com.github.johnrengelman.shadow"  version "8.1.1"
-//    id "com.netflix.nebula.ospackage"  version "11.3.0"
+    //id "com.netflix.nebula.ospackage"  version "11.6.0"
 }
 
+
+
 // Apply the java plugin to add support for Java
-apply plugin: 'idea'
-apply plugin: 'java'
-apply plugin: 'application'
+//apply plugin: 'idea'
+//apply plugin: 'java'
+//apply plugin: 'application'
 
 group 'com.thelastpickle'
 version '0.6-SNAPSHOT'
+
+//if (System.getenv("CI") != null) {
+//    buildScan {
+//        publishAlways()
+//        termsOfServiceUrl = "https://gradle.com/terms-of-service"
+//        termsOfServiceAgree = "yes"
+//    }
+//}
+
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -81,7 +95,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java-transport-httpclient5
     implementation 'com.github.docker-java:docker-java-transport-httpclient5:3.3.4'
 
-    implementation project(path: ":core")
+    implementation project(':core')
 
     implementation group: 'software.amazon.awssdk', name: 'ec2', version: '2.20.145'
 
@@ -100,7 +114,6 @@ dependencies {
 
     implementation project(path: ":dashboards")
     implementation project(path: ":core")
-    implementation project(path: ":aws-import")
 }
 
 build {
@@ -171,90 +184,14 @@ test {
 //    }
     testLogging.showStandardStreams = true
 }
-//
-//buildRpm {
-//    requires("java-1.8.0-openjdk")
-//    user "root"
-//    group = "build"
-//}
-//
-//
-//ospackage {
-//    os = LINUX
-//    link("/usr/local/bin/tlp-cluster", "/opt/tlp-cluster/bin/tlp-cluster" )
-//    packager "Jon Haddad"
-//    maintainer "Jon Haddad"
-//    vendor "The Last Pickle"
-//    url "http://thelastpickle.com/tlp-cluster/"
-//    license "Apache License 2.0"
-//    description "Cluster Experimentation Tool for Apache Cassandra by The Last Pickle"
-//}
-//
-//buildDeb {
-//    distribution "weezy,bionic,xenial,jessie"
-//    requires("openjdk-8-jre")
-//}
-//
-//task uploadDeb(type: Exec) {
-//    group = "Publish"
-//    workingDir 'build/distributions'
-//
-//    def debPackage = "tlp-cluster_${version}_all.deb"
-//
-//    // get the deb package
-//
-//    logger.info("Uploading DEB $debPackage")
-//    commandLine "curl", "-T", debPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-deb/tlp-cluster/${version}/$debPackage;deb_distribution=weezy,bionic,jessie,xenial;deb_component=main;deb_architecture=amd64;publish=1"
-//
-//}
-//
-//task uploadRpm(type: Exec) {
-//    group = "Publish"
-//    workingDir 'build/distributions'
-//
-//    def rpmPackage = "tlp-cluster-${version}.noarch.rpm"
-//
-//    logger.info("Uploading RPM $rpmPackage")
-//    commandLine "curl", "-T", rpmPackage, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-rpm/tlp-cluster/${version}/$rpmPackage;publish=1"
-//}
-//
-//task uploadTar(type:Exec) {
-//    group = "Publish"
-//    workingDir 'build/distributions'
-//    def tarball = "tlp-cluster-${version}.tar"
-//
-//    logger.info("Uploading Tar $tarball")
-//    commandLine "curl", "-T", tarball, "-u", System.getenv("BINTRAY_USER") + ":" + System.getenv("BINTRAY_KEY"), "https://api.bintray.com/content/thelastpickle/tlp-tools-tarball/tlp-cluster/${version}/$tarball;publish=1"
-//}
-//
+
 task buildAll {
     group = "Publish"
 //    dependsOn "buildDeb"
 //    dependsOn "buildRpm"
     dependsOn "distTar"
 }
-//
-//task uploadAll  {
-//    group = "Publish"
-//    dependsOn "uploadDeb"
-//    dependsOn "uploadRpm"
-//    dependsOn "uploadTar"
-//}
 
 
 assemble.mustRunAfter clean
 
-evaluationDependsOn(":aws-import")
-task copyRegion(type: Copy, dependsOn: ':aws-import:generateRegionYaml') {
-
-    from tasks.getByPath("aws-import:generateRegionYaml").outputs
-    into "build/aws/com/thelastpickle/tlpcluster/ubuntu"
-}
-
-
-/*
- * This forces the CopyTask copyRegion to run before we compile any of the main sources
- * Without it, we won't be able to pull the region yaml into the main JAR and we can't pick the right AMI for a region
- */
-compileKotlin.dependsOn(copyRegion)
-processResources.dependsOn(copyRegion)

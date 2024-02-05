@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.thelastpickle.tlpcluster.Context
 import com.thelastpickle.tlpcluster.configuration.ServerType
-import com.thelastpickle.tlpcluster.ubuntu.Regions
 import java.io.File
 import java.net.URL
 
@@ -20,7 +19,6 @@ class Configuration(val ticket: String,
                     var context: Context,
                     val ami: Ami) {
 
-    val regionLookup = Regions.load()
 
     var numCassandraInstances = 3
     var email = context.userConfig.email
@@ -41,9 +39,6 @@ class Configuration(val ticket: String,
     //monitoring
     var monitoringInstanceType = "c3.2xlarge"
 
-    var regionObj = regionLookup.get(region)!!
-
-    var monitoringAMI = regionObj.getAmi(monitoringInstanceType)
 
     private val config  = TerraformConfig(region, context.userConfig.awsAccessKey, context.userConfig.awsSecret)
 
@@ -54,8 +49,11 @@ class Configuration(val ticket: String,
         mapper.enable(SerializationFeature.INDENT_OUTPUT)
     }
 
+    var regions = mapOf(
+        "us-west-2" to listOf("us-west-2a", "us-west-2b", "us-west-2c"),
+    )
 
-    var azs = regionLookup.getAzs(region)
+    var azs = regions[region]
 
     fun setVariable(key: String, default: String?) : Configuration {
         config.variable[key] = Variable(default)
@@ -134,7 +132,7 @@ class Configuration(val ticket: String,
             setTagName(tags, ServerType.Stress))
         setInstanceResource(
             "monitoring",
-            monitoringAMI,
+            ami,
             monitoringInstanceType,
             1, // we always enable monitoring now
             listOf(instanceSg.name),
