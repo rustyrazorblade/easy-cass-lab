@@ -75,7 +75,7 @@ class Configuration(val ticket: String,
                                     count: Int,
                                     securityGroups: List<String>,
                                     tags: Map<String, String>) : Configuration {
-        val conf = InstanceResource(ami, instanceType, tags, security_groups = securityGroups, count = count)
+        val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count)
         config.resource.aws_instance[key] = conf
         return this
     }
@@ -171,7 +171,7 @@ data class InstanceResource(
     val ami: String = "ami-5153702",
     val instance_type: String = "m5d.xlarge",
     val tags: Map<String, String> = mapOf(),
-    val security_groups : List<String> = listOf(),
+    val vpc_security_group_ids : List<String> = listOf(),
     val key_name : String = "\${var.key_name}",
     val availability_zone: String = "\${element(var.zones, count.index)}",
     val count : Int
