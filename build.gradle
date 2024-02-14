@@ -166,16 +166,6 @@ tasks.register('integrationTest', Test) {
     group = "Verification"
 }
 
-tasks.register("copyProfiler", Copy) {
-    dependsOn(":profiler:createTarball")
-    from("profiler/build/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/cassandra") {
-        include("*.tgz")
-    }
-    into "build/resources/main/com/rustyrazorblade/easycasslab/commands/origin/provisioning/cassandra"
-}
-
-compileKotlin.dependsOn("copyProfiler")
-
 test {
     useJUnitPlatform()
 //    reports {

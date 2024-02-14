@@ -43,6 +43,6 @@ If you aren't comfortable digging into code, this tool probably isn't for you, a
 
 Please refer to the project [documentation](http://rustyrazorblade.com/easy-cass-lab/) for usage instructions. 
 
-Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read our [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
+Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
 
 

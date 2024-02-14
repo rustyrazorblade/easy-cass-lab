@@ -81,7 +81,7 @@ sourceSets {
 
 distributions {
     main {
-        distributionBaseName = "tlp-dashboards"
+        distributionBaseName = "easy-cass-lab-dashboards"
 
         contents {
             from dashboardOutput

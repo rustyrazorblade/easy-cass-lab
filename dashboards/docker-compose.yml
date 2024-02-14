@@ -13,7 +13,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
     volumes:
       - "./monitoring-environment/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
 
@@ -35,7 +35,7 @@ services:
       - cassandra
       - cassandra2
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
 
   node_exporter2:
     image: prom/node-exporter:v0.18.1
@@ -55,7 +55,7 @@ services:
       - cassandra
       - cassandra2
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
 
   grafana:
     image: grafana/grafana
@@ -67,7 +67,7 @@ services:
       - "./monitoring-environment/provisioning/:/etc/grafana/provisioning/"
       - "${DASHBOARD_DIR}:/var/lib/grafana/dashboards:ro"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
     environment:
       # Attempts to get a nice nodes up/total panel...
       - "GF_PANELS_DISABLE_SANITIZE_HTML=true"
@@ -86,7 +86,7 @@ services:
       CASSANDRA_NUM_TOKENS: 1
       CASSANDRA_SEEDS: "cassandra, cassandra2"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
 
   cassandra2:
     image: cassandra:3.11.4
@@ -99,7 +99,7 @@ services:
       - "../src/main/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/cassandra/jmx_prometheus_javaagent-0.12.0.jar.txt:/usr/share/jmx_prometheus_javaagent-0.12.0.jar:ro"
       - "../src/main/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/cassandra/config.yaml:/usr/share/config.yaml:ro"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
     environment:
       JVM_EXTRA_OPTS: '-javaagent:/usr/share/jmx_prometheus_javaagent-0.12.0.jar=9501:/usr/share/config.yaml -Dcassandra.consistent.rangemovement=false -Dcassandra.ring_delay_ms=100'
       CASSANDRA_NUM_TOKENS: 1
@@ -110,7 +110,7 @@ services:
     ports:
       - "9500:9500"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
     environment:
       - "TLP_STRESS_CASSANDRA_HOST=cassandra"
     command: "run KeyValue --rate 100 -d 1d -r .8"
@@ -123,7 +123,7 @@ services:
     ports:
       - "9500"
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
     environment:
       - "TLP_STRESS_CASSANDRA_HOST=cassandra"
     command: "run BasicTimeSeries --rate 100 -d 1d -r .9"
@@ -139,8 +139,8 @@ services:
       - cassandra2
     command: cassandra:9042 cassandra2:9042
     networks:
-      - tlp_cluster_net
+      - easy_cass_lab_net
 
 networks:
-  tlp_cluster_net:
+  easy_cass_lab_net:
     driver: bridge

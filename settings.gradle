@@ -25,4 +25,3 @@ include "docker-grafonnet"
 include "docker-pssh"
 
 include "manual"
-include "profiler"
