@@ -1,41 +1,48 @@
 # easy-cass-lab
 
+This is a tool to create lab environments with Apache Cassandra.
+
 Usage instructions (wip)
 
-This project uses packer to create a base AMI with all versions of Cassandra, bcc tools, (and soon) async-profiler, tlp-stress, and other useful debugging tools.
+This project uses packer to create a base AMI with all versions of Cassandra, bcc tools, (and soon) async-profiler, easy-cass-stress, and other useful debugging tools.
+
+Grab the repo and do the following to create your AMI.  You need to have an AWS profile set up already (needs verification)
 
 ```shell
 cd packer
 packer build cassandra.pkr.hcl
 ```
 
-Grab the AMI and set the following environment variable (or pass it every time with `--ami`)
+You'll get a bunch of output, at the end you'll see something like this:
+
+```text
+==> Builds finished. The artifacts of successful builds are:
+--> cassandra.amazon-ebs.ubuntu: AMIs were created:
+us-west-2: ami-abcdeabcde1231231
+```
+
+Grab the AMI and set the following environment variable (or pass it every time with `--ami`),
+you'll probably want it in your .bash_profile or .zshrc
 
 ```shell
 # substitute the AMI created in the above command
-export EASY_CASS_LAB_AMI="ami-abcdefg" 
+export EASY_CASS_LAB_AMI="ami-abcdeabcde1231231" 
 ```
 
-I'm currently moving the project in a new direction and doing so without regard for breaking old features. 
-
-
-TODO:
-
-* Remove the old ubuntu ami code
-* Remove all the old install code
-* Start the right version on `start` command
-* populate the config and push it up on the install command (maybe rename to load-config?)
-* Add option to pass AxonOps account information for monitoring instead of prometheus and grafana
-
-Grab the source and build locally:
+Now build the project:
 
 ```bash
-./gradlew assemble installdist
+./gradlew shadowJar installdist
 ```
 
-[![CircleCI](https://circleci.com/gh/rustyrazorblade/easy-cass-lab.svg?style=svg)](https://circleci.com/gh/rustyrazorblade/easy-cass-lab)
+Run this to provision the cluster:
 
-This is a tool to create lab environments with Apache Cassandra. 
+```bash
+bin/easy-cass-lab init  test test test # see https://github.com/rustyrazorblade/easy-cass-lab/issues/1
+bin/easy-cass-lab up 
+```
+
+This is currently all that works as the rewrite is in progress.
 
 This tool is a work in progress and is intended for developers to use to quickly launch clusters based on arbitrary builds.
 
