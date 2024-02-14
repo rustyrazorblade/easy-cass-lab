@@ -13,7 +13,7 @@ Grab the AMI and set the following environment variable (or pass it every time w
 
 ```shell
 # substitute the AMI created in the above command
-export TLP_CLUSTER_AMI="ami-abcdefg" 
+export EASY_CASS_LAB_AMI="ami-abcdefg" 
 ```
 
 I'm currently moving the project in a new direction and doing so without regard for breaking old features. 
