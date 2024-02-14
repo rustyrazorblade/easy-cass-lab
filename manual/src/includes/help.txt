@@ -1,10 +1,10 @@
-Usage: tlp-cluster [options] [command] [command options]
+Usage: easy-cass-lab [options] [command] [command options]
   Options:
     --help, -h
       Shows this help.
       Default: false
   Commands:
-    init      Initialize this directory for tlp-cluster
+    init      Initialize this directory for easy-cass-lab
       Usage: init [options] Client, Ticket, Purpose
         Options:
           --ami

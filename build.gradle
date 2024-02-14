@@ -30,8 +30,8 @@ plugins {
 //apply plugin: 'java'
 //apply plugin: 'application'
 
-group 'com.thelastpickle'
-version '0.6-SNAPSHOT'
+group 'com.rustyrazorblade'
+version '0.7-SNAPSHOT'
 
 //if (System.getenv("CI") != null) {
 //    buildScan {
@@ -58,8 +58,8 @@ ext {
 
 
 application {
-    applicationName = "tlp-cluster"
-    mainClass.set("com.thelastpickle.tlpcluster.MainKt")
+    applicationName = "easy-cass-lab"
+    mainClass.set(" com.rustyrazorblade.easycasslab.MainKt")
 }
 
 // In this section you declare where to find the dependencies of your project
@@ -168,10 +168,10 @@ tasks.register('integrationTest', Test) {
 
 tasks.register("copyProfiler", Copy) {
     dependsOn(":profiler:createTarball")
-    from("profiler/build/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra") {
+    from("profiler/build/resources/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra") {
         include("*.tgz")
     }
-    into "build/resources/main/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra"
+    into "build/resources/main/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra"
 }
 
 compileKotlin.dependsOn("copyProfiler")

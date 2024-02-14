@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-export v="ls -lahG"
+alias v="ls -lahG"
+
+export PATH="$PATH:/usr/share/bcc/tools"

@@ -18,7 +18,7 @@ docker {
 }
 
 ext {
-    container = "thelastpickle/pssh"
+    container = "rustyrazorblade/pssh"
 }
 
 
@@ -29,7 +29,7 @@ task buildDocker(type: DockerBuildImage) {
 
 task push(type: DockerPushImage) {
     dependsOn buildDocker
-//    imageName  "thelastpickle/pssh"
+//    imageName  "rustyrazorblade/pssh"
 }
 
 

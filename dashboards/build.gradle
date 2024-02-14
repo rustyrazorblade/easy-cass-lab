@@ -7,7 +7,7 @@ plugins {
 version "1.0"
 
 def dashboardSourceLocation = "$buildDir/dashboards"
-def dashboardOutput = "$dashboardSourceLocation/com/thelastpickle/dashboards"
+def dashboardOutput = "$dashboardSourceLocation/com/rustyrazorblade/dashboards"
 
 task startDependencies(type:Exec) {
     group = "dashboard"

@@ -15,7 +15,7 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'tlp-cluster'
+rootProject.name = 'easy-cass-lab'
 
 include "core"
 include "dashboards"

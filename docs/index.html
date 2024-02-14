@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
 <meta name="author" content="Jon Haddad">
-<title>tlp-cluster</title>
+<title>easy-cass-lab</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -434,7 +434,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article toc2 toc-left">
 <div id="header">
-<h1>tlp-cluster</h1>
+<h1>easy-cass-lab</h1>
 <div class="details">
 <span id="author" class="author">Jon Haddad</span><br>
 <span id="email" class="email"><a href="mailto:jon@thelastpickle.com">jon@thelastpickle.com</a></span><br>
@@ -465,7 +465,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>This is the manual for tlp-cluster, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.</p>
+<p>This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.</p>
 </div>
 <div class="paragraph">
 <p>If you are looking for a tool to aid in benchmarking these clusters please see the companion project <a href="http://thelastpickle.com/tlp-stress/">tlp-stress</a>.</p>
@@ -481,7 +481,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="ulist">
 <ul>
 <li>
-<p>An AWS access key and secret.  tlp-cluster uses <a href="https://www.terraform.io/">Terraform</a> to create and destroy instances.  You will be prompted for these the first time you start tlp-cluster.</p>
+<p>An AWS access key and secret.  easy-cass-lab uses <a href="https://www.terraform.io/">Terraform</a> to create and destroy instances.  You will be prompted for these the first time you start easy-cass-lab.</p>
 </li>
 <li>
 <p>The access key needs permissions to create an S3 bucket as well as create SSH keys.  Separate keys are used by default for security reasons.</p>
@@ -511,7 +511,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <pre class="highlight"><code>$ echo "deb https://dl.bintray.com/thelastpickle/tlp-tools-deb weezy main" | sudo tee -a /etc/apt/sources.list
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2895100917357435
 $ sudo apt update
-$ sudo apt install tlp-cluster</code></pre>
+$ sudo apt install easy-cass-lab</code></pre>
 </div>
 </div>
 </div>
@@ -535,7 +535,7 @@ enabled=1</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>$ yum install tlp-cluster</code></pre>
+<pre class="highlight"><code>$ yum install easy-cass-lab</code></pre>
 </div>
 </div>
 </div>
@@ -546,17 +546,17 @@ enabled=1</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/tlp-cluster-0.5.tar"
-$ tar -xzf tlp-cluster-0.5.tar</code></pre>
+<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/easy-cass-lab-0.5.tar"
+$ tar -xzf easy-cass-lab-0.5.tar</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>To get started, add the bin directory of tlp-cluster to your $PATH.  For example:</p>
+<p>To get started, add the bin directory of easy-cass-lab to your $PATH.  For example:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">export PATH="$PATH:/path/to/tlp-cluster/bin"
-cd /path/to/tlp-cluster
+<pre class="highlight"><code class="language-bash" data-lang="bash">export PATH="$PATH:/path/to/easy-cass-lab/bin"
+cd /path/to/easy-cass-lab
 ./gradlew assemble</code></pre>
 </div>
 </div>
@@ -571,7 +571,7 @@ cd /path/to/tlp-cluster
 <p>We currently have a dependency on shell scripts meaning you&#8217;ll need a Mac or Linux box to use this tool.</p>
 </div>
 <div class="paragraph">
-<p>If you&#8217;ve never used to the tool before, the first time you run a command you&#8217;ll be asked to supply some information, which will generate a configuration file which will be placed in your <code>$HOME/.tlp-cluster/profiles/default/settings.yaml</code>.</p>
+<p>If you&#8217;ve never used to the tool before, the first time you run a command you&#8217;ll be asked to supply some information, which will generate a configuration file which will be placed in your <code>$HOME/.easy-cass-lab/profiles/default/settings.yaml</code>.</p>
 </div>
 <div class="admonitionblock important">
 <table>
@@ -590,7 +590,7 @@ We currently only support the ubuntu 16 ami in us-west-2.  We&#8217;d love a pul
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -598,13 +598,13 @@ We currently only support the ubuntu 16 ami in us-west-2.  We&#8217;d love a pul
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>Usage: tlp-cluster [options] [command] [command options]
+<pre class="highlight"><code>Usage: easy-cass-lab [options] [command] [command options]
   Options:
     --help, -h
       Shows this help.
       Default: false
   Commands:
-    init      Initialize this directory for tlp-cluster
+    init      Initialize this directory for easy-cass-lab
       Usage: init [options] Client, Ticket, Purpose
         Options:
           --ami
@@ -705,7 +705,7 @@ Done</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster init CLIENT TICKET PURPOSE</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab init CLIENT TICKET PURPOSE</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -714,10 +714,10 @@ Done</code></pre>
 <div class="ulist">
 <ul>
 <li>
-<p><code>CLIENT</code> - Name of the customer, client, or project associated with the work you are doing with <code>tlp-cluster</code>.</p>
+<p><code>CLIENT</code> - Name of the customer, client, or project associated with the work you are doing with <code>easy-cass-lab</code>.</p>
 </li>
 <li>
-<p><code>TICKET</code> - Jira or github ticket number associated with the work you are doing with <code>tlp-cluster</code>.</p>
+<p><code>TICKET</code> - Jira or github ticket number associated with the work you are doing with <code>easy-cass-lab</code>.</p>
 </li>
 <li>
 <p><code>PURPOSE</code> - Reason why you are creating the cluster.</p>
@@ -725,7 +725,7 @@ Done</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn&#8217;t have to do this.  If you find yourself doing it often, please submit an <a href="https://github.com/thelastpickle/tlp-cluster/issues">issue</a> describing your requirements and we&#8217;ll work with you to solve the problem.</p>
+<p>This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn&#8217;t have to do this.  If you find yourself doing it often, please submit an <a href="https://github.com/thelastpickle/easy-cass-lab/issues">issue</a> describing your requirements and we&#8217;ll work with you to solve the problem.</p>
 </div>
 <div class="paragraph">
 <p>Certain instances types may not work with the ami that&#8217;s hard coded at the moment, we&#8217;re looking to fix / improve this.</p>
@@ -740,14 +740,14 @@ Done</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster up</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab up</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Terraform will eventually ask you to type <code>yes</code> and fire up your instances.  Optionally you can pass <code>--yes</code> to the <code>-up</code> command and you won&#8217;t be prompted.</p>
 </div>
 <div class="paragraph">
-<p>tlp-cluster will create a file, <code>env.sh</code>, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:</p>
+<p>easy-cass-lab will create a file, <code>env.sh</code>, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -800,9 +800,9 @@ Done</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster use 3.11.4
-tlp-cluster install
-tlp-cluster start</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab use 3.11.4
+easy-cass-lab install
+easy-cass-lab start</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -820,19 +820,19 @@ tlp-cluster start</code></pre>
 <p>Build the version you need and give it a build name (optional)</p>
 </li>
 <li>
-<p>Tell tlp-cluster to use the custom build</p>
+<p>Tell easy-cass-lab to use the custom build</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>The first step is optional because you may already have a build in the <code>~/.tlp-cluster/build</code> directory that you want to use.</p>
+<p>The first step is optional because you may already have a build in the <code>~/.easy-cass-lab/build</code> directory that you want to use.</p>
 </div>
 <div class="paragraph">
 <p>If you have no builds you will need to run the following:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster build -n BUILD_NAME /path/to/repo</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab build -n BUILD_NAME /path/to/repo</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -853,11 +853,11 @@ tlp-cluster start</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster use BUILD_NAME</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab use BUILD_NAME</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This will copy the binaries and configuration files to the <code>provisioning/cassandra</code> directory in your <code>tlp-cluster</code> repository. The <code>provisioning</code> directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.</p>
+<p>This will copy the binaries and configuration files to the <code>provisioning/cassandra</code> directory in your <code>easy-cass-lab</code> repository. The <code>provisioning</code> directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.</p>
 </div>
 <div class="paragraph">
 <p>If you want to install other binaries or perform other operations during provisioning of the instances, you can add them to the <code>provisioning/cassandra</code> directory. Note that any new scripts you add should be prefixed with a number which is used to determine the order they are executed by the <code>install.sh</code> script.</p>
@@ -867,7 +867,7 @@ tlp-cluster start</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-bash" data-lang="bash">tlp-cluster install</code></pre>
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab install</code></pre>
 </div>
 </div>
 <div class="paragraph">

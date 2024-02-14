@@ -2,7 +2,7 @@ version: "3.0"
 
 services:
   grafonnet:
-    image: "thelastpickle/grafonnet:1.0"
+    image: "rustyrazorblade/grafonnet:1.0"
     volumes:
       - "./dashboards/:/input:ro"
       - "${BUILD_DIR}:/output"
@@ -79,8 +79,8 @@ services:
       - "9042:9042"
       - "7000"
     volumes:
-      - "../src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra/jmx_prometheus_javaagent-0.12.0.jar.txt:/usr/share/jmx_prometheus_javaagent-0.12.0.jar:ro"
-      - "../src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra/config.yaml:/usr/share/config.yaml:ro"
+      - "../src/main/resources/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra/jmx_prometheus_javaagent-0.12.0.jar.txt:/usr/share/jmx_prometheus_javaagent-0.12.0.jar:ro"
+      - "../src/main/resources/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra/config.yaml:/usr/share/config.yaml:ro"
     environment:
       JVM_EXTRA_OPTS: '-javaagent:/usr/share/jmx_prometheus_javaagent-0.12.0.jar=9501:/usr/share/config.yaml -Dcassandra.consistent.rangemovement=false -Dcassandra.ring_delay_ms=100'
       CASSANDRA_NUM_TOKENS: 1
@@ -96,8 +96,8 @@ services:
       - "9042"
       - "7000"
     volumes:
-      - "../src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra/jmx_prometheus_javaagent-0.12.0.jar.txt:/usr/share/jmx_prometheus_javaagent-0.12.0.jar:ro"
-      - "../src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra/config.yaml:/usr/share/config.yaml:ro"
+      - "../src/main/resources/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra/jmx_prometheus_javaagent-0.12.0.jar.txt:/usr/share/jmx_prometheus_javaagent-0.12.0.jar:ro"
+      - "../src/main/resources/com/rustyrazorblade/tlpcluster/commands/origin/provisioning/cassandra/config.yaml:/usr/share/config.yaml:ro"
     networks:
       - tlp_cluster_net
     environment:
@@ -106,7 +106,7 @@ services:
       CASSANDRA_SEEDS: "cassandra"
 
   stress:
-    image: thelastpickle/tlp-stress:latest
+    image: rustyrazorblade/tlp-stress:latest
     ports:
       - "9500:9500"
     networks:
@@ -119,7 +119,7 @@ services:
       - cassandra2
 
   stress2:
-    image: thelastpickle/tlp-stress:latest
+    image: rustyrazorblade/tlp-stress:latest
     ports:
       - "9500"
     networks:

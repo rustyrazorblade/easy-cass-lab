@@ -14,7 +14,7 @@ plugins {
 
 asciidoctor {
     sourceDir = file("src")
-    attributes "TLP_CLUSTER_VERSION" : rootProject.version.toString()
+    attributes "EASY_CASS_LAB_VERSION" : rootProject.version.toString()
 }
 
 tasks.register('publish', Copy) {

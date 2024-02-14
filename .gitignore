@@ -107,8 +107,8 @@ src/main/resources/com/thelastpickle/tlpcluster/instances/importers/instances.js
 /prometheus.yml
 /env.sh
 /artifacts
-tlp-cluster.ipr
-tlp-cluster.iws
+easy-cass-lab.ipr
+easy-cass-lab.iws
 
 /prometheus_labels.yml
 /src/main/dashboards/

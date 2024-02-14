@@ -1,56 +1,22 @@
-= tlp-cluster
+= easy-cass-lab
 Jon Haddad <jon@thelastpickle.com>
 :toc: left
 :icons: font
 
-This is the manual for tlp-cluster, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
+This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
 
-If you are looking for a tool to aid in benchmarking these clusters please see the companion project http://thelastpickle.com/tlp-stress/[tlp-stress].
+If you are looking for a tool to aid in benchmarking these clusters please see the companion project http://rustyrazorblade.com/tlp-stress/[tlp-stress].
 
 If you're looking for tools to help manage Cassandra in _production_ environments please see the http://cassandra-reaper.io/[Reaper] project and https://github.com/spotify/cstar[cstar]
 
 == Prerequisites
 
-- An AWS access key and secret.  tlp-cluster uses https://www.terraform.io/[Terraform] to create and destroy instances.  You will be prompted for these the first time you start tlp-cluster.
+- An AWS access key and secret.  easy-cass-lab uses https://www.terraform.io/[Terraform] to create and destroy instances.  You will be prompted for these the first time you start easy-cass-lab.
 - The access key needs permissions to create an S3 bucket as well as create SSH keys.  Separate keys are used by default for security reasons.
 
 == Installation
 
-The easiest way to get started is to use one of our prebuilt packages.
-
-=== Installing a Package
-
-The easiest way to get started is to use your favorite package manager.
-
-The current version is {TLP_CLUSTER_VERSION}.
-
-==== Deb Packages
-
-```
-$ echo "deb https://dl.bintray.com/thelastpickle/tlp-tools-deb weezy main" | sudo tee -a /etc/apt/sources.list
-$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2895100917357435
-$ sudo apt update
-$ sudo apt install tlp-cluster
-```
-
-==== RPM Packages
-
-You'll need the bintray repo set up on your machine.  Create this `/etc/yum.repos.d/tlp-tools.repo`:
-
-```
-[bintraybintray-thelastpickle-tlp-tools-rpm]
-name=bintray-thelastpickle-tlp-tools-rpm
-baseurl=https://dl.bintray.com/thelastpickle/tlp-tools-rpm
-gpgcheck=0
-repo_gpgcheck=0
-enabled=1
-```
-
-Then run the following to install:
-
-```
-$ yum install tlp-cluster
-```
+The current version is {EASY_CASS_LAB_VERSION}.
 
 
 ==== Tarball Install
@@ -59,16 +25,16 @@ If you're using mac, for now you'll need to grab our tarball using:
 
 [subs="attributes"]
 ```
-$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/tlp-cluster-{TLP_CLUSTER_VERSION}.tar"
-$ tar -xzf tlp-cluster-{TLP_CLUSTER_VERSION}.tar
+$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar"
+$ tar -xzf easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar
 ```
 
-To get started, add the bin directory of tlp-cluster to your $PATH.  For example:
+To get started, add the bin directory of easy-cass-lab to your $PATH.  For example:
 
 [source,bash]
 ----
-export PATH="$PATH:/path/to/tlp-cluster/bin"
-cd /path/to/tlp-cluster
+export PATH="$PATH:/path/to/easy-cass-lab/bin"
+cd /path/to/easy-cass-lab
 ./gradlew assemble
 ----
 
@@ -76,7 +42,7 @@ cd /path/to/tlp-cluster
 
 We currently have a dependency on shell scripts meaning you'll need a Mac or Linux box to use this tool.
 
-If you've never used to the tool before, the first time you run a command you'll be asked to supply some information, which will generate a configuration file which will be placed in your `$HOME/.tlp-cluster/profiles/default/settings.yaml`.
+If you've never used to the tool before, the first time you run a command you'll be asked to supply some information, which will generate a configuration file which will be placed in your `$HOME/.easy-cass-lab/profiles/default/settings.yaml`.
 
 IMPORTANT: We currently only support the ubuntu 16 ami in us-west-2.  We'd love a pull request to improve this!
 
@@ -84,7 +50,7 @@ Running the command without any arguments will print out the usage:
 
 [source,bash]
 ----
-tlp-cluster
+easy-cass-lab
 ----
 
 You'll see the help.  It looks like this:
@@ -99,16 +65,16 @@ The tool uses the current working directory as a project, of sorts. To get start
 
 [source,bash]
 ----
-tlp-cluster init CLIENT TICKET PURPOSE
+easy-cass-lab init CLIENT TICKET PURPOSE
 ----
 
 Where:
 
-* `CLIENT` - Name of the customer, client, or project associated with the work you are doing with `tlp-cluster`.
-* `TICKET` - Jira or github ticket number associated with the work you are doing with `tlp-cluster`.
+* `CLIENT` - Name of the customer, client, or project associated with the work you are doing with `easy-cass-lab`.
+* `TICKET` - Jira or github ticket number associated with the work you are doing with `easy-cass-lab`.
 * `PURPOSE` - Reason why you are creating the cluster.
 
-This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn't have to do this.  If you find yourself doing it often, please submit an https://github.com/thelastpickle/tlp-cluster/issues[issue] describing your requirements and we'll work with you to solve the problem.
+This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn't have to do this.  If you find yourself doing it often, please submit an https://github.com/thelastpickle/easy-cass-lab/issues[issue] describing your requirements and we'll work with you to solve the problem.
 
 Certain instances types may not work with the ami that's hard coded at the moment, we're looking to fix / improve this.
 
@@ -119,12 +85,12 @@ Launch your instances with the following:
 
 [source,bash]
 ----
-tlp-cluster up
+easy-cass-lab up
 ----
 
 Terraform will eventually ask you to type `yes` and fire up your instances.  Optionally you can pass `--yes` to the `-up` command and you won't be prompted.
 
-tlp-cluster will create a file, `env.sh`, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:
+easy-cass-lab will create a file, `env.sh`, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:
 
 [source,bash]
 ----
@@ -156,9 +122,9 @@ The easiest path forward to getting a cluster up and running is the following:
 
 [source,bash]
 ----
-tlp-cluster use 3.11.4
-tlp-cluster install
-tlp-cluster start
+easy-cass-lab use 3.11.4
+easy-cass-lab install
+easy-cass-lab start
 ----
 
 Simply replace 3.11.4 with the release version.
@@ -171,15 +137,15 @@ Simply replace 3.11.4 with the release version.
 To install Cassandra on your instances, you will need to follow these steps:
 
 1. Build the version you need and give it a build name (optional)
-2. Tell tlp-cluster to use the custom build
+2. Tell easy-cass-lab to use the custom build
 
-The first step is optional because you may already have a build in the `~/.tlp-cluster/build` directory that you want to use.
+The first step is optional because you may already have a build in the `~/.easy-cass-lab/build` directory that you want to use.
 
 If you have no builds you will need to run the following:
 
 [source,bash]
 ----
-tlp-cluster build -n BUILD_NAME /path/to/repo
+easy-cass-lab build -n BUILD_NAME /path/to/repo
 ----
 
 Where:
@@ -191,10 +157,10 @@ If you already have a build that you would like to use you can run the following
 
 [source,bash]
 ----
-tlp-cluster use BUILD_NAME
+easy-cass-lab use BUILD_NAME
 ----
 
-This will copy the binaries and configuration files to the `provisioning/cassandra` directory in your `tlp-cluster` repository. The `provisioning` directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.
+This will copy the binaries and configuration files to the `provisioning/cassandra` directory in your `easy-cass-lab` repository. The `provisioning` directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.
 
 If you want to install other binaries or perform other operations during provisioning of the instances, you can add them to the `provisioning/cassandra` directory. Note that any new scripts you add should be prefixed with a number which is used to determine the order they are executed by the `install.sh` script.
 
@@ -202,7 +168,7 @@ To provision the instances run the following:
 
 [source,bash]
 ----
-tlp-cluster install
+easy-cass-lab install
 ----
 
 Where:
