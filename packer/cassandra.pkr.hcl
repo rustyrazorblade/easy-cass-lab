@@ -37,7 +37,7 @@ build {
         "sudo apt update",
         "sudo apt upgrade -y",
         "sudo apt update",
-        "sudo apt install -y wget sysstat fio bpftrace"
+        "sudo apt install -y wget sysstat fio" # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
       ]
   }
 
