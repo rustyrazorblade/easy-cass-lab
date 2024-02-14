@@ -103,7 +103,7 @@ local.properties
 .sts4-cache/
 
 # End of https://www.gitignore.io/api/eclipse
-src/main/resources/com/thelastpickle/tlpcluster/instances/importers/instances.json
+src/main/resources/com/rustyrazorblade/easycasslab/instances/importers/instances.json
 /prometheus.yml
 /env.sh
 /artifacts

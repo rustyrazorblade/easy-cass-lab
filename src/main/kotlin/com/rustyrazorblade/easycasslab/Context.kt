@@ -14,12 +14,12 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 
 
-data class Context(val tlpclusterUserDirectory: File) {
+data class Context(val easycasslabUserDirectory: File) {
 
-    val cassandraBuildDir = File(tlpclusterUserDirectory, "builds")
-    var profilesDir = File(tlpclusterUserDirectory, "profiles")
+    val cassandraBuildDir = File(easycasslabUserDirectory, "builds")
+    var profilesDir = File(easycasslabUserDirectory, "profiles")
     var profileDir = File(profilesDir, "default")
-    val terraformCacheDir = File(tlpclusterUserDirectory, "terraform_cache").also { it.mkdirs() }
+    val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
 
     var nettyInitialised = false
     val cassandraRepo = com.rustyrazorblade.easycasslab.Cassandra()
@@ -91,7 +91,7 @@ data class Context(val tlpclusterUserDirectory: File) {
             val tmpContentParent = File("test/contexts")
             tmpContentParent.mkdirs()
 
-            val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "tlpcluster")
+            val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "easycasslab")
             // create a default profile
             // generate a fake key
             val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test")

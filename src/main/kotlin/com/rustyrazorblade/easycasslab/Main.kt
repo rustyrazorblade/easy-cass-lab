@@ -14,11 +14,11 @@ class MainArgs {
 
 fun main(arguments: Array<String>) {
 
-    val tlpclusterUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
+    val easycasslabUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
 
     val logger = logger(" com.rustyrazorblade.easycasslab.MainKt")
 
-    val context = Context(tlpclusterUserDirectory)
+    val context = Context(easycasslabUserDirectory)
 
     val jcommander = JCommander.newBuilder().programName("easy-cass-lab")
 

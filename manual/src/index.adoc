@@ -1,5 +1,5 @@
 = easy-cass-lab
-Jon Haddad <jon@thelastpickle.com>
+Jon Haddad <jon@rustyrazorblade.com>
 :toc: left
 :icons: font
 
@@ -25,7 +25,7 @@ If you're using mac, for now you'll need to grab our tarball using:
 
 [subs="attributes"]
 ```
-$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar"
+$ curl -L -O "https://dl.bintray.com/rustyrazorblade/tlp-tools-tarball/easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar"
 $ tar -xzf easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar
 ```
 
@@ -74,7 +74,7 @@ Where:
 * `TICKET` - Jira or github ticket number associated with the work you are doing with `easy-cass-lab`.
 * `PURPOSE` - Reason why you are creating the cluster.
 
-This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn't have to do this.  If you find yourself doing it often, please submit an https://github.com/thelastpickle/easy-cass-lab/issues[issue] describing your requirements and we'll work with you to solve the problem.
+This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn't have to do this.  If you find yourself doing it often, please submit an https://github.com/rustyrazorblade/easy-cass-lab/issues[issue] describing your requirements and we'll work with you to solve the problem.
 
 Certain instances types may not work with the ami that's hard coded at the moment, we're looking to fix / improve this.
 
@@ -194,7 +194,7 @@ You can regenerate the dashboards using the following:
 
 Optionally you can add the `-t` flag and Gradle will watch for changes, and rebuild the dashboards when it detects changes.
 
-They get output here: `src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/monitoring/config/grafana/dashboards`
+They get output here: `src/main/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/monitoring/config/grafana/dashboards`
 
 There's a docker-compose file, `docker-compose-monitoring-dev.yml`, which has all the necessary configuration to start a full environment designed to make editing dashboards easier.  You can start it with:
 

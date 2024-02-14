@@ -13,7 +13,7 @@ plugins {
 
 apply plugin: 'de.undercouch.download'
 
-def profilerSourceLocation = "$buildDir/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/cassandra"
+def profilerSourceLocation = "$buildDir/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/cassandra"
 
 task download(type: Download) {
     src 'https://github.com/jvm-profiling-tools/async-profiler/releases/download/v1.7/async-profiler-1.7-linux-x64.tar.gz'

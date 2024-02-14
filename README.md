@@ -33,7 +33,7 @@ Grab the source and build locally:
 ./gradlew assemble installdist
 ```
 
-[![CircleCI](https://circleci.com/gh/thelastpickle/easy-cass-lab.svg?style=svg)](https://circleci.com/gh/thelastpickle/easy-cass-lab)
+[![CircleCI](https://circleci.com/gh/rustyrazorblade/easy-cass-lab.svg?style=svg)](https://circleci.com/gh/rustyrazorblade/easy-cass-lab)
 
 This is a tool to create lab environments with Apache Cassandra. 
 
@@ -41,8 +41,8 @@ This tool is a work in progress and is intended for developers to use to quickly
 
 If you aren't comfortable digging into code, this tool probably isn't for you, as you're very likely going to need to do some customizations.
 
-Please refer to the project [documentation](http://thelastpickle.com/easy-cass-lab/) for usage instructions. 
+Please refer to the project [documentation](http://rustyrazorblade.com/easy-cass-lab/) for usage instructions. 
 
-Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read our [development documentation](http://thelastpickle.com/easy-cass-lab/development) before getting started.
+Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read our [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
 
 

@@ -437,7 +437,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h1>easy-cass-lab</h1>
 <div class="details">
 <span id="author" class="author">Jon Haddad</span><br>
-<span id="email" class="email"><a href="mailto:jon@thelastpickle.com">jon@thelastpickle.com</a></span><br>
+<span id="email" class="email"><a href="mailto:jon@rustyrazorblade.com">jon@rustyrazorblade.com</a></span><br>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -468,7 +468,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.</p>
 </div>
 <div class="paragraph">
-<p>If you are looking for a tool to aid in benchmarking these clusters please see the companion project <a href="http://thelastpickle.com/tlp-stress/">tlp-stress</a>.</p>
+<p>If you are looking for a tool to aid in benchmarking these clusters please see the companion project <a href="http://rustyrazorblade.com/tlp-stress/">tlp-stress</a>.</p>
 </div>
 <div class="paragraph">
 <p>If you&#8217;re looking for tools to help manage Cassandra in <em>production</em> environments please see the <a href="http://cassandra-reaper.io/">Reaper</a> project and <a href="https://github.com/spotify/cstar">cstar</a></p>
@@ -508,7 +508,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h4 id="_deb_packages">Deb Packages</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>$ echo "deb https://dl.bintray.com/thelastpickle/tlp-tools-deb weezy main" | sudo tee -a /etc/apt/sources.list
+<pre class="highlight"><code>$ echo "deb https://dl.bintray.com/rustyrazorblade/tlp-tools-deb weezy main" | sudo tee -a /etc/apt/sources.list
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 2895100917357435
 $ sudo apt update
 $ sudo apt install easy-cass-lab</code></pre>
@@ -522,9 +522,9 @@ $ sudo apt install easy-cass-lab</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>[bintraybintray-thelastpickle-tlp-tools-rpm]
-name=bintray-thelastpickle-tlp-tools-rpm
-baseurl=https://dl.bintray.com/thelastpickle/tlp-tools-rpm
+<pre class="highlight"><code>[bintraybintray-rustyrazorblade-tlp-tools-rpm]
+name=bintray-rustyrazorblade-tlp-tools-rpm
+baseurl=https://dl.bintray.com/rustyrazorblade/tlp-tools-rpm
 gpgcheck=0
 repo_gpgcheck=0
 enabled=1</code></pre>
@@ -546,7 +546,7 @@ enabled=1</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/thelastpickle/tlp-tools-tarball/easy-cass-lab-0.5.tar"
+<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/rustyrazorblade/tlp-tools-tarball/easy-cass-lab-0.5.tar"
 $ tar -xzf easy-cass-lab-0.5.tar</code></pre>
 </div>
 </div>
@@ -725,7 +725,7 @@ Done</code></pre>
 </ul>
 </div>
 <div class="paragraph">
-<p>This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn&#8217;t have to do this.  If you find yourself doing it often, please submit an <a href="https://github.com/thelastpickle/easy-cass-lab/issues">issue</a> describing your requirements and we&#8217;ll work with you to solve the problem.</p>
+<p>This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn&#8217;t have to do this.  If you find yourself doing it often, please submit an <a href="https://github.com/rustyrazorblade/easy-cass-lab/issues">issue</a> describing your requirements and we&#8217;ll work with you to solve the problem.</p>
 </div>
 <div class="paragraph">
 <p>Certain instances types may not work with the ami that&#8217;s hard coded at the moment, we&#8217;re looking to fix / improve this.</p>
@@ -928,7 +928,7 @@ if you want to do anything in the dashboards, you’d need to run <code>./gradle
 <p>Optionally you can add the <code>-t</code> flag and Gradle will watch for changes, and rebuild the dashboards when it detects changes.</p>
 </div>
 <div class="paragraph">
-<p>They get output here: <code>src/main/resources/com/thelastpickle/tlpcluster/commands/origin/provisioning/monitoring/config/grafana/dashboards</code></p>
+<p>They get output here: <code>src/main/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/monitoring/config/grafana/dashboards</code></p>
 </div>
 <div class="paragraph">
 <p>There&#8217;s a docker-compose file, <code>docker-compose-monitoring-dev.yml</code>, which has all the necessary configuration to start a full environment designed to make editing dashboards easier.  You can start it with:</p>

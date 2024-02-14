@@ -121,7 +121,7 @@ class Init(val context: Context) : ICommand {
 
         for (f in provisioning) {
             val input = this.javaClass.getResourceAsStream("/" + f)
-            val outputFile = f.replace("com/rustyrazorblade/tlpcluster/commands/origin/", "")
+            val outputFile = f.replace("com/rustyrazorblade/easycasslab/commands/origin/", "")
 
             val output = File(outputFile)
             println("Writing ${output.absolutePath}")

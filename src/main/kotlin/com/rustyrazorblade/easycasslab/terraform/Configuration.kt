@@ -106,7 +106,7 @@ class Configuration(val ticket: String,
         val unixTime = System.currentTimeMillis() / 1000L
 
         val instanceSg = SecurityGroupResource.Builder()
-            .newSecurityGroupResource("${ticket}_TlpClusterSG_$unixTime","easy-cass-lab ${ticket} security group", tags)
+            .newSecurityGroupResource("${ticket}_easycasslabSG_$unixTime","easy-cass-lab ${ticket} security group", tags)
             //.withOutboundRule(0, 65535, "tcp", listOf("0.0.0.0/0"), "All traffic")
             .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
