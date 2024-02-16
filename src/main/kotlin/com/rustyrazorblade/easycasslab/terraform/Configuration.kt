@@ -196,7 +196,8 @@ data class SecurityGroupResource(
     val name: String,
     val description : String,
     val tags: Map<String, String>,
-    val ingress: List<SecurityGroupRule>
+    val ingress: List<SecurityGroupRule>,
+    val egress: List<SecurityGroupRule>
 ) {
     class Builder {
         private var name: String = ""
@@ -240,7 +241,7 @@ data class SecurityGroupResource(
             return this
         }
 
-        fun build () = SecurityGroupResource(name, description, tags, ingress)
+        fun build () = SecurityGroupResource(name, description, tags, ingress, egress)
     }
 }
 

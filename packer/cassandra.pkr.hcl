@@ -98,6 +98,18 @@ build {
     ]
   }
 
+  provisioner "file" {
+    source = "use-cassandra"
+    destination = "use-cassandra"
+  }
+
+  provisioner "shell" {
+    inline = [
+       "sudo mv use-cassandra /usr/local/bin/use-cassandra",
+       "sudo chmod +x /usr/local/bin/use-cassandra"
+    ]
+  }
+
 }
 
 
