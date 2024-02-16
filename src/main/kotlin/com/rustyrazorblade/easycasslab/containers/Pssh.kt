@@ -57,7 +57,4 @@ class Pssh(val context: Context) {
                 .runContainer(Containers.PSSH, mutableListOf("/usr/local/bin/$scriptName", scriptCommand), "")
     }
 
-    init {
-        // pull container
-    }
 }

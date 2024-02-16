@@ -95,7 +95,7 @@ class Configuration(var name: String,
         val externalCidr = listOf("${getExternalIpAddress()}/32")
 
         val instanceSg = SecurityGroupResource.Builder()
-            .newSecurityGroupResource("easycasslab","easy-cass-lab security group", tags)
+            .newSecurityGroupResource("easycasslab_{$name}","easy-cass-lab security group", tags)
             .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")

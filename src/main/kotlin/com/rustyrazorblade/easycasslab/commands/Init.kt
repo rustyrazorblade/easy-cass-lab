@@ -55,7 +55,8 @@ class Init(val context: Context) : ICommand {
         println("Initializing directory")
         val docker = Docker(context)
         docker.pullImage(Containers.TERRAFORM)
-        
+        docker.pullImage(Containers.PSSH)
+
         check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")

@@ -1,5 +1,5 @@
 #!/bin/bash
 
 # set cassandra version to $1
-ln -vfns /usr/local/cassandra/current /usr/local/cassandra/$1
+ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
 
