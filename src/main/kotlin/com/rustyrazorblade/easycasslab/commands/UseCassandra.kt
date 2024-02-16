@@ -36,83 +36,41 @@ class UseCassandra(val context: Context) : ICommand {
         }
 
         // setup the provisioning directory
-        val artifactDest = File("provisioning/cassandra/")
+//        val artifactDest = File("provisioning/cassandra/")
 
-        println("Destination artifacts: $artifactDest")
-        artifactDest.mkdirs()
+//        println("Destination artifacts: $artifactDest")
+//        artifactDest.mkdirs()
 
         // delete existing deb packages
-        for(deb in artifactDest.listFiles(FileFilter { it.extension.equals("deb") })) {
-            deb.delete()
-        }
+//        for(deb in artifactDest.listFiles(FileFilter { it.extension.equals("deb") })) {
+//            deb.delete()
+//        }
 
         // if we're been passed a version, use the debs we get from apache
         val versionRegex = """\d+\.\d+[\.~]\w+""".toRegex()
 
-
-        if(versionRegex.matches(name)) {
-            val cacheLocation = File(System.getProperty("user.home"), ".easy-cass-lab/cache")
-            println("Using released version $name")
-            val unpacker = CassandraUnpack(context, name, artifactDest.toPath(), Optional.of(cacheLocation.toPath()))
-            log.info("Downloading")
-            unpacker.download()
-            log.info("Extracting conf")
-            unpacker.extractConf()
-
-        } else {
-            // otherwise it's a custom build
-
-            val buildDir = File(context.cassandraRepo.buildDir, name)
-
-            if (!buildDir.exists()) {
-                println("Unable to find build $name in the list of builds. Has it been built using the 'build' command?")
-                return
-            }
-
-            val conf = File(buildDir, "conf")
-            val debs = File(buildDir, "deb")
-
-
-            for(deb in debs.listFiles().filter { it.isFile }) {
-                println("Copying $deb")
-                FileUtils.copyFileToDirectory(deb, artifactDest)
-            }
-
-            val configDest = File(artifactDest, "conf")
-            configDest.mkdir()
-
-            for(config in conf.listFiles()) {
-                println("Copying configuration $config")
-                if(config.isDirectory) {
-                    FileUtils.copyDirectory(config, configDest)
-                } else {
-                    FileUtils.copyFileToDirectory(config, configDest)
-                }
-            }
-        }
-
-
-        // update the seeds list
-        val cassandraYamlLocation = "provisioning/cassandra/conf/cassandra.yaml"
+//        // update the seeds list
+//        val cassandraYamlLocation = "provisioning/cassandra/conf/cassandra.yaml"
         val cassandraEnvLocation = "provisioning/cassandra/conf/cassandra-env.sh"
-        val cassandraYaml = CassandraYaml.create(File(cassandraYamlLocation))
-
-        cassandraYaml.setProperty("endpoint_snitch", "Ec2Snitch")
-
+//        val cassandraYaml = CassandraYaml.create(File(cassandraYamlLocation))
+//
+        // need to move this out
+//        cassandraYaml.setProperty("endpoint_snitch", "Ec2Snitch")
+//
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-        val seeds = cassandraHosts.take(3)
+//        val seeds = cassandraHosts.take(3)
+//
+//        cassandraYaml.setSeeds(seeds.map { it.private })
+//
+//        configSettings.forEach {
+//            val keyValue = it.split(":")
+//            if (keyValue.count() > 1) {
+//                cassandraYaml.setProperty(keyValue[0], keyValue[1])
+//            }
+//        }
 
-        cassandraYaml.setSeeds(seeds.map { it.private })
-
-        configSettings.forEach {
-            val keyValue = it.split(":")
-            if (keyValue.count() > 1) {
-                cassandraYaml.setProperty(keyValue[0], keyValue[1])
-            }
-        }
-
-        log.debug { "Writing Cassandra YAML to $cassandraYamlLocation" }
-        cassandraYaml.write(cassandraYamlLocation)
+//        log.debug { "Writing Cassandra YAML to $cassandraYamlLocation" }
+//        cassandraYaml.write(cassandraYamlLocation)
 
         val stressHosts = context.tfstate.getHosts(ServerType.Stress)
 
@@ -127,6 +85,7 @@ class UseCassandra(val context: Context) : ICommand {
         val cassandraOSLabelOutput = File(labelBaseLocation, "cassandra-os.yml").outputStream()
         val stressLabelOutput = File(labelBaseLocation, "stress.yml").outputStream()
 
+        println("Writing prometheus configuration")
         Prometheus.writeConfiguration(cassandraHosts.map {
             HostInfo(it.private, it.alias, rack = it.availabilityZone)
         }, stressHosts.map {
@@ -136,12 +95,11 @@ class UseCassandra(val context: Context) : ICommand {
         log.debug { "Writing Prometheus YAML to $prometheusYamlLocation" }
 
         // write out the sd file
+        // val env = File(cassandraEnvLocation)
+        // env.appendText("\nJVM_OPTS=\"\$JVM_OPTS -Dcassandra.consistent.rangemovement=false -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer \"\n")
 
-        val env = File(cassandraEnvLocation)
-        env.appendText("\nJVM_OPTS=\"\$JVM_OPTS -Dcassandra.consistent.rangemovement=false -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer \"\n")
-
-        with(TermColors()) {
-            println("Cassandra deb and config copied to provisioning/.  Config files are located in provisioning/cassandra. \n Use ${green("easy-cass-lab install")} to push the artifacts to the nodes.")
-        }
+//        with(TermColors()) {
+//            println("Cassandra deb and config copied to provisioning/.  Config files are located in provisioning/cassandra. \n Use ${green("easy-cass-lab install")} to push the artifacts to the nodes.")
+//        }
     }
 }

@@ -25,10 +25,6 @@ sealed class CopyResourceResult {
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
 class Init(val context: Context) : ICommand {
 
-
-    @Parameter(description = "Client, Ticket, Purpose", required = true, arity = 3)
-    var tags = mutableListOf<String>()
-
     @Parameter(description = "Number of Cassandra instances", names = ["--cassandra", "-c"])
     var cassandraInstances = 3
 
@@ -52,14 +48,6 @@ class Init(val context: Context) : ICommand {
 
     override fun execute() {
         println("Initializing directory")
-
-        val client = tags[0]
-        val ticket = tags[1]
-        val purpose = tags[2]
-
-        check(client.isNotBlank())
-        check(ticket.isNotBlank())
-        check(purpose.isNotBlank())
         check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
@@ -83,16 +71,16 @@ class Init(val context: Context) : ICommand {
         println("Copying provisioning files")
 
 
-        var config = initializeDirectory(client, ticket, purpose, until, ami)
+        var config = initializeDirectory("", "", "", until, ami)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
         config.numStressInstances = stressInstances
         config.cassandraInstanceType = instanceType
 
-        config.setVariable("client", client)
-        config.setVariable("ticket", ticket)
-        config.setVariable("purpose", purpose)
+        config.setVariable("client", "")
+        config.setVariable("ticket", "")
+        config.setVariable("purpose", "")
         config.setVariable("NeededUntil", until)
 
         if(azs.isNotEmpty()) {
@@ -153,7 +141,6 @@ class Init(val context: Context) : ICommand {
         val dashboardLocation = File("provisioning/monitoring/dashboards")
         val dash = Dashboards(dashboardLocation)
         dash.copyDashboards()
-
 
         return Configuration(ticket, client, purpose, until, context.userConfig.region, context, ami)
     }
