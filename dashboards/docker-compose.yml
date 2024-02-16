@@ -2,7 +2,7 @@ version: "3.0"
 
 services:
   grafonnet:
-    image: "rustyrazorblade/grafonnet:1.0"
+    image: "thelastpickle/grafonnet:1.0"
     volumes:
       - "./dashboards/:/input:ro"
       - "${BUILD_DIR}:/output"
