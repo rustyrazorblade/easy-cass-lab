@@ -30,9 +30,9 @@ class Up(val context: Context) : ICommand {
 
                 println("""Instances have been provisioned.
 
-    You can edit the provisioning scripts before running them, they've been copied to ./provisioning.
-
-    Next you'll probably want to run easy-cass-lab build to create a new build, or ${green("easy-cass-lab use <version>")} if you already have a Cassandra build you'd like to deploy.""")
+                Use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
+                
+                Supported versions are 3.0, 3.11, 4.0, 4.1, """)
 
                 println("Writing ssh config file to sshConfig.")
 
@@ -56,7 +56,7 @@ class Up(val context: Context) : ICommand {
 
         val host = context.tfstate.getHosts(ServerType.Cassandra).first().private
 
-        stressEnvironmentVars.write("export TLP_STRESS_CASSANDRA_HOST=$host")
+        stressEnvironmentVars.write("export  EASY_CASS_STRESS_CASSANDRA_HOST=$host")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()

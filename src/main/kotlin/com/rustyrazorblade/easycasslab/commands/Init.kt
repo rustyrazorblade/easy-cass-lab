@@ -46,13 +46,16 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "AMI.  Set EASY_CASS_LAB_AMI to set a default.", names = ["--ami"])
     var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
 
+    @Parameter(description = "Cluster name")
+    var name = "test"
+
     override fun execute() {
         println("Initializing directory")
         check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
 
-        if(System.getenv("TLP_CLUSTER_SKIP_INSTANCE_CHECK") == "") {
+        if(System.getenv("EASY_CASS_LAB_SKIP_INSTANCE_CHECK") == "") {
             var found = false
             for (x in allowedTypes) {
                 if (instanceType.startsWith(x))
@@ -70,8 +73,7 @@ class Init(val context: Context) : ICommand {
 
         println("Copying provisioning files")
 
-
-        var config = initializeDirectory("", "", "", until, ami)
+        var config = initializeDirectory(name, ami)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
@@ -103,7 +105,7 @@ class Init(val context: Context) : ICommand {
     }
 
 
-    fun initializeDirectory(client: String, ticket: String, purpose: String, until: String, ami: String) : Configuration {
+    fun initializeDirectory(name: String, ami: String) : Configuration {
         val reflections = Reflections("com.rustyrazorblade.easycasslab.commands.origin", ResourcesScanner())
         val provisioning = reflections.getResources(".*".toPattern())
 
@@ -142,7 +144,7 @@ class Init(val context: Context) : ICommand {
         val dash = Dashboards(dashboardLocation)
         dash.copyDashboards()
 
-        return Configuration(ticket, client, purpose, until, context.userConfig.region, context, ami)
+        return Configuration(name, context.userConfig.region, context, ami)
     }
 
 

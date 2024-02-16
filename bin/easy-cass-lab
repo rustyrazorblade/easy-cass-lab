@@ -4,7 +4,7 @@ dir=$(dirname $0)
 
 BASE_CLUSTER_DIR="$(dirname "$dir")"
 
-TLP_CLUSTER_USER_DATA=~/.easy-cass-lab/
+EASY_CASS_LAB_USER_DATA=~/.easy-cass-lab/
 
 JAR=$(find ${BASE_CLUSTER_DIR}/build/libs -name 'easy-cass-lab-*-all.jar' | tail -n 1)
 

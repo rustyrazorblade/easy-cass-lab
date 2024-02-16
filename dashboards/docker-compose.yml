@@ -106,7 +106,7 @@ services:
       CASSANDRA_SEEDS: "cassandra"
 
   stress:
-    image: rustyrazorblade/tlp-stress:latest
+    image: rustyrazorblade/easy-cass-stress-stress:latest
     ports:
       - "9500:9500"
     networks:
@@ -119,13 +119,13 @@ services:
       - cassandra2
 
   stress2:
-    image: rustyrazorblade/tlp-stress:latest
+    image: rustyrazorblade/easy-cass-stress:latest
     ports:
       - "9500"
     networks:
       - easy_cass_lab_net
     environment:
-      - "TLP_STRESS_CASSANDRA_HOST=cassandra"
+      - "EASY_CASS_STRESS_CASSANDRA_HOST=cassandra"
     command: "run BasicTimeSeries --rate 100 -d 1d -r .9"
     depends_on:
       - cassandra

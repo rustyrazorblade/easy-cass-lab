@@ -11,10 +11,7 @@ import java.net.URL
 
 typealias Ami = String
 
-class Configuration(val ticket: String,
-                    val client: String,
-                    val purpose: String,
-                    val until: String,
+class Configuration(var name: String,
                     var region: String,
                     var context: Context,
                     val ami: Ami) {
@@ -23,11 +20,9 @@ class Configuration(val ticket: String,
     var numCassandraInstances = 3
     var email = context.userConfig.email
 
-    val tags = mutableMapOf("ticket" to ticket,
-        "client" to client,
-        "purpose" to purpose,
-        "email" to email,
-        "NeededUntil" to until)
+    val tags = mutableMapOf(
+        "email" to email
+    )
 
     var cassandraInstanceType = "m5d.xlarge"
 
@@ -35,10 +30,6 @@ class Configuration(val ticket: String,
     var numStressInstances = 0
 
     var stressInstanceType = "c3.2xlarge"
-
-    //monitoring
-    var monitoringInstanceType = "c3.2xlarge"
-
 
     private val config  = TerraformConfig(region, context.userConfig.awsAccessKey, context.userConfig.awsSecret)
 
@@ -87,7 +78,7 @@ class Configuration(val ticket: String,
 
     private fun setTagName(tags: Map<String, String>, nodeType: ServerType) : MutableMap<String, String> {
         val newTags = HashMap<String, String>(tags).toMutableMap()
-        newTags["Name"] = "${ticket}_${nodeType.serverType}"
+        newTags["Name"] = nodeType.serverType
         return newTags
     }
 
@@ -103,11 +94,8 @@ class Configuration(val ticket: String,
 
         val externalCidr = listOf("${getExternalIpAddress()}/32")
 
-        val unixTime = System.currentTimeMillis() / 1000L
-
         val instanceSg = SecurityGroupResource.Builder()
-            .newSecurityGroupResource("${ticket}_easycasslabSG_$unixTime","easy-cass-lab ${ticket} security group", tags)
-            //.withOutboundRule(0, 65535, "tcp", listOf("0.0.0.0/0"), "All traffic")
+            .newSecurityGroupResource("easycasslab","easy-cass-lab security group", tags)
             .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")
@@ -131,13 +119,6 @@ class Configuration(val ticket: String,
             numStressInstances,
             listOf(instanceSg.name),
             setTagName(tags, ServerType.Stress))
-        setInstanceResource(
-            "monitoring",
-            ami,
-            monitoringInstanceType,
-            1, // we always enable monitoring now
-            listOf(instanceSg.name),
-            setTagName(tags, ServerType.Monitoring))
 
         return this
     }

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 
 internal class InitTest {
     val testContext = Context.testContext()
-    val testConfiguration = Configuration("ticket", "client", "purpose", "us-west-2", testContext)
+    val testConfiguration = Configuration("test", "us-west-2", testContext, "ami-abcd")
 
 
     @Test
@@ -23,14 +23,13 @@ internal class InitTest {
     @Test
     fun testAZsGetSetCorrectly() {
         val init = Init(testContext).apply {
-            tags = mutableListOf("client", "ticket", "purpose")
             azs = listOf("a", "b", "c")
         }
 
         mockkObject(init)
 
         every { init.writeTerraformConfig(any()) } returns Result.success("")
-        every { init.initializeDirectory(any(), any(), any()) } returns testConfiguration
+        every { init.initializeDirectory(any(), any()) } returns testConfiguration
 
         init.execute()
     }

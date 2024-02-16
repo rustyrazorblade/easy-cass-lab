@@ -35,17 +35,6 @@ class UseCassandra(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        // setup the provisioning directory
-//        val artifactDest = File("provisioning/cassandra/")
-
-//        println("Destination artifacts: $artifactDest")
-//        artifactDest.mkdirs()
-
-        // delete existing deb packages
-//        for(deb in artifactDest.listFiles(FileFilter { it.extension.equals("deb") })) {
-//            deb.delete()
-//        }
-
         // if we're been passed a version, use the debs we get from apache
         val versionRegex = """\d+\.\d+[\.~]\w+""".toRegex()
 

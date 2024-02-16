@@ -2,4 +2,4 @@
 
 alias v="ls -lahG"
 
-export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/bin:/usr/local/cassandra/tools/bin:/usr/local/async-profiler/bin"
+export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/current/bin:/usr/local/cassandra/current/tools/bin:/usr/local/async-profiler/bin"
