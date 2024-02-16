@@ -12,12 +12,7 @@ sudo mkdir -p /usr/local/cassandra
 (
 cd cassandra
 
-# TODO: pull from /etc/cassandra_versions.yaml
-wget https://dlcdn.apache.org/cassandra/4.1.3/apache-cassandra-4.1.3-bin.tar.gz
-wget https://dlcdn.apache.org/cassandra/4.0.12/apache-cassandra-4.0.12-bin.tar.gz
-wget https://dlcdn.apache.org/cassandra/3.0.29/apache-cassandra-3.0.29-bin.tar.gz
-wget https://dlcdn.apache.org/cassandra/3.11.16/apache-cassandra-3.11.16-bin.tar.gz
-wget https://dlcdn.apache.org/cassandra/5.0-beta1/apache-cassandra-5.0-beta1-bin.tar.gz
+yq '.[].url' /etc/cassandra_versions.yaml | xargs -I{} wget {}
 
 for f in *.tar.gz;
 do
@@ -35,9 +30,10 @@ do
   if [[ $f =~ $regex ]]; then
     version="${BASH_REMATCH[1]}"
     echo "Moving $f to $version"
+    rm -rf $f/data
     sudo mv "$f" /usr/local/cassandra/$version;
   fi
 done
 
-chown -R cassandra:cassandra /usr/local/cassandra
+sudo chown -R cassandra:cassandra /usr/local/cassandra
 )
