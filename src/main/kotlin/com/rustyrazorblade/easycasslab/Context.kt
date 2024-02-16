@@ -101,4 +101,11 @@ data class Context(val easycasslabUserDirectory: File) {
             return context
         }
     }
+
+    fun requireSshKey() {
+        if(!File(userConfig.sshKeyPath).exists()) {
+            log.error { "SSH key not found at ${userConfig.sshKeyPath}" }
+            System.exit(1)
+        }
+    }
 }

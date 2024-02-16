@@ -10,7 +10,8 @@ import org.apache.logging.log4j.kotlin.logger
 /**
  * This is currently flawed in that it only allows for SSH'ing to Cassandra
  */
-class Pssh(val context: Context, val sshKey: String) {
+class Pssh(val context: Context) {
+    var sshKey =  context.userConfig.sshKeyPath
     private val provisionCommand = "cd provisioning; chmod +x install.sh; sudo ./install.sh"
 
     val log = logger()
@@ -54,5 +55,9 @@ class Pssh(val context: Context, val sshKey: String) {
                 }
                 .addEnv(hosts)
                 .runContainer(Containers.PSSH, mutableListOf("/usr/local/bin/$scriptName", scriptCommand), "")
+    }
+
+    init {
+        // pull container
     }
 }

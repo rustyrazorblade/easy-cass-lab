@@ -110,6 +110,17 @@ build {
     ]
   }
 
+  provisioner "file" {
+    source = "cassandra.service"
+  }
+
+  provisioner "shell" {
+    inline = [
+       "sudo mv cassandra.service /etc/systemd/system/cassandra.service",
+       "sudo systemctl enable cassandra.service"
+    ]
+  }
+
 }
 
 

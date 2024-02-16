@@ -1,27 +1,18 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.containers.Pssh
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
-import java.io.File
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
 
     override fun execute() {
-        val sshKeyPath = context.userConfig.sshKeyPath
-
-        check(sshKeyPath.isNotBlank())
-
-        if (!File(sshKeyPath).exists()) {
-            println("Unable to find SSH key $sshKeyPath. Aborting start.")
-            return
-        }
+        context.requireSshKey()
 
         println("Starting all nodes.")
-        val parallelSsh = Pssh(context, sshKeyPath)
+        val parallelSsh = Pssh(context)
         val successMessage = "service successfully started"
         val failureMessage = "service failed to started"
 

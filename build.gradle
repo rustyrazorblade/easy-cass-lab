@@ -23,23 +23,8 @@ plugins {
     //id "com.netflix.nebula.ospackage"  version "11.6.0"
 }
 
-
-
-// Apply the java plugin to add support for Java
-//apply plugin: 'idea'
-//apply plugin: 'java'
-//apply plugin: 'application'
-
 group 'com.rustyrazorblade'
 version '0.7-SNAPSHOT'
-
-//if (System.getenv("CI") != null) {
-//    buildScan {
-//        publishAlways()
-//        termsOfServiceUrl = "https://gradle.com/terms-of-service"
-//        termsOfServiceAgree = "yes"
-//    }
-//}
 
 
 java {
@@ -101,7 +86,6 @@ dependencies {
 
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
     implementation group: 'com.fasterxml.jackson.module', name:'jackson-module-kotlin', version: jackson_kotlin_version
-
 
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
 

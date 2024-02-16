@@ -1,0 +1,9 @@
+[Unit]
+Description=Apache Cassandra
+
+[Service]
+ExecStart=/usr/local/cassandra/bin/cassandra -f
+
+[Install]
+WantedBy=multi-user.target
+

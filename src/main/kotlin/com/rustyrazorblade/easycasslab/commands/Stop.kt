@@ -11,17 +11,10 @@ import java.io.File
 class Stop(val context: Context) : ICommand {
 
     override fun execute() {
-        val sshKeyPath = context.userConfig.sshKeyPath
-
-        check(sshKeyPath.isNotBlank())
-
-        if (!File(sshKeyPath).exists()) {
-            println("Unable to find SSH key $sshKeyPath. Aborting stop.")
-            return
-        }
+        context.requireSshKey()
 
         println("Stopping cassandra service on all nodes.")
-        val parallelSsh = Pssh(context, sshKeyPath)
+        val parallelSsh = Pssh(context)
 
         parallelSsh.stopService(ServerType.Cassandra, "cassandra")
 
