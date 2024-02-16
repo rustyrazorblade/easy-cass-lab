@@ -112,6 +112,7 @@ build {
 
   provisioner "file" {
     source = "cassandra.service"
+    destination = "cassandra.service"
   }
 
   provisioner "shell" {
