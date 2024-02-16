@@ -116,7 +116,7 @@ class Init(val context: Context) : ICommand {
 
 
     fun initializeDirectory(client: String, ticket: String, purpose: String, until: String, ami: String) : Configuration {
-        val reflections = Reflections(" com.rustyrazorblade.easycasslab.commands.origin", ResourcesScanner())
+        val reflections = Reflections("com.rustyrazorblade.easycasslab.commands.origin", ResourcesScanner())
         val provisioning = reflections.getResources(".*".toPattern())
 
         for (f in provisioning) {
