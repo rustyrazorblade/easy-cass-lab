@@ -16,7 +16,7 @@ docker {
 }
 
 ext {
-    container = "rustyrazorblade/grafonnet"
+    container = "thelastpickle/grafonnet"
 }
 
 task buildDocker(type: DockerBuildImage) {
