@@ -1,9 +1,36 @@
 #!/bin/bash
 
+# require this script be run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root"
+  exit 1
+fi
+
 # set cassandra version to $1
 ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
 
 # hacky, not really what I want long term but whatever.
-chown -R cassandra:cassandra /usr/local/cassandra
+sudo chown -R cassandra:cassandra /usr/local/cassandra
 
 # set the java version
+export VERSION=$1
+
+export JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' cassandra_versions.yaml)
+
+if [ -z "$JAVA_VERSION" ]; then
+  echo "No java version found for $1"
+  exit 1
+fi
+
+# if java version = 8 then run update-java-alternatives -s java-1.8.0-openjdk-amd64
+if [ "$JAVA_VERSION" = "8" ]; then
+  sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
+# if java version = 11 then run update-java-alternatives -s java-1.11.0-openjdk-amd64
+elif [ "$JAVA_VERSION" = "11" ]; then
+  sudo update-java-alternatives -s java-1.11.0-openjdk-amd64
+elif [ "$JAVA_VERSION" = "17" ]; then
+  sudo update-java-alternatives -s java-1.17.0-openjdk-amd64
+else
+  echo "Unknown java version $JAVA_VERSION"
+  exit 1
+fi
