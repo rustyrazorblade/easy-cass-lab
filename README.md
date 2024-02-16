@@ -38,7 +38,7 @@ Now build the project:
 Run this to provision the cluster:
 
 ```bash
-bin/easy-cass-lab init  test test test # see https://github.com/rustyrazorblade/easy-cass-lab/issues/1
+bin/easy-cass-lab init [cluster_name] # optional cluster name, uses "test" if not specified 
 bin/easy-cass-lab up 
 ```
 
