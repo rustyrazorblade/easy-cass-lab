@@ -3,3 +3,7 @@
 # set cassandra version to $1
 ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
 
+# hacky, not really what I want long term but whatever.
+chown -R cassandra:cassandra /usr/local/cassandra
+
+# set the java version

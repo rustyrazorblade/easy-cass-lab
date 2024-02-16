@@ -3,6 +3,7 @@ Description=Apache Cassandra
 
 [Service]
 ExecStart=/usr/local/cassandra/current/bin/cassandra -f
+User=cassandra
 
 [Install]
 WantedBy=multi-user.target

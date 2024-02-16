@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# creating cassandra user
+sudo useradd -m cassandra
+
 echo "Downloading version 4"
 
 mkdir cassandra
@@ -36,4 +39,5 @@ do
   fi
 done
 
+chown -R cassandra:cassandra /usr/local/cassandra
 )
