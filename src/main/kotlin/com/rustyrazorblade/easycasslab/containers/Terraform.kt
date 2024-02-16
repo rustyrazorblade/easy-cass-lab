@@ -34,6 +34,7 @@ class Terraform(val context: Context) {
 
     private fun execute(vararg command: String) : Result<String> {
         val args = command.toMutableList()
+        docker.pullImage(Containers.TERRAFORM)
         return docker
                 .addVolume(VolumeMapping(context.cwdPath, "/local", AccessMode.rw))
                 .addVolume(VolumeMapping(context.terraformCacheDir.absolutePath, "/tcache", AccessMode.rw))

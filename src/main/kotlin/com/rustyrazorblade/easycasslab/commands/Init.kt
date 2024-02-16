@@ -3,7 +3,9 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.Containers
 import  com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.Docker
 import  com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import  com.rustyrazorblade.easycasslab.configuration.Dashboards
 import org.reflections.Reflections
@@ -51,6 +53,9 @@ class Init(val context: Context) : ICommand {
 
     override fun execute() {
         println("Initializing directory")
+        val docker = Docker(context)
+        docker.pullImage(Containers.TERRAFORM)
+        
         check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
