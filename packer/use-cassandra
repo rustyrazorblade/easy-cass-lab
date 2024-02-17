@@ -16,9 +16,15 @@ sudo chown -R cassandra:cassandra /usr/local/cassandra
 export VERSION=$1
 
 export JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' /etc/cassandra_versions.yaml)
+export PY_VERSION=$(yq e '.[] | select(.version == env(VERSION)).python' /etc/cassandra_versions.yaml)
 
 if [ -z "$JAVA_VERSION" ]; then
-  echo "No java version found for $1"
+  echo "No java version found for $VERSION"
+  exit 1
+fi
+
+if [ -z "$PY_VERSION" ]; then
+  echo "No python version found for $VERSION"
   exit 1
 fi
 
@@ -34,3 +40,11 @@ else
   echo "Unknown java version $JAVA_VERSION"
   exit 1
 fi
+
+# set python version
+# NOTE: a bit hacky but we have to switch back to ubuntu user for this
+#       since its expected that this script run as root by pyenv doesn't
+sudo -u ubuntu bash << EOF
+source ~/.bash_profile
+pyenv global $PY_VERSION
+EOF
