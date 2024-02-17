@@ -2,7 +2,15 @@
 
 This is a tool to create lab environments with Apache Cassandra.
 
-Usage instructions (wip)
+## Pre-requisites
+
+The following must be set up before using this project:
+
+* AWS Account - TODO links
+* [Install Packer](https://developer.hashicorp.com/packer/install?ajs_aid=dc7c0e66-3245-44af-87cd-e692bd64d1df&product_intent=packer)
+* [Install Docker](https://www.docker.com/products/docker-desktop/)
+
+## Usage instructions (wip)
 
 This project uses packer to create a base AMI with all versions of Cassandra, bcc tools, (and soon) async-profiler, easy-cass-stress, and other useful debugging tools.
 
@@ -10,6 +18,7 @@ Grab the repo and do the following to create your AMI.  You need to have an AWS 
 
 ```shell
 cd packer
+packer init cassandra.pkr.hcl # only needs to be run the first time you setup the project
 packer build cassandra.pkr.hcl
 ```
 
@@ -29,7 +38,7 @@ you'll probably want it in your .bash_profile or .zshrc
 export EASY_CASS_LAB_AMI="ami-abcdeabcde1231231" 
 ```
 
-Now build the project:
+Now build the project. The following command should be run from the root directory of the project. Docker will need to be running for this step.
 
 ```bash
 ./gradlew shadowJar installdist
@@ -40,6 +49,16 @@ Run this to provision the cluster:
 ```bash
 bin/easy-cass-lab init [cluster_name] # optional cluster name, uses "test" if not specified 
 bin/easy-cass-lab up 
+```
+
+To access the cluster afterards follow the instructions at the end of the output of the `up` command:
+
+```bash
+source env.sh # to setup local environment with commands to access the cluster
+
+# ssh to a node
+ssh cassandra0
+ssh cassandra1 # number corresponds to an instance
 ```
 
 This is currently all that works as the rewrite is in progress.
