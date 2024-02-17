@@ -14,14 +14,11 @@ class Stop(val context: Context) : ICommand {
         context.requireSshKey()
 
         println("Stopping cassandra service on all nodes.")
-        val parallelSsh = Pssh(context)
-
-        parallelSsh.stopService(ServerType.Cassandra, "cassandra")
-
-        if (context.tfstate.getHosts(ServerType.Monitoring).count() > 0) {
-            println("Stopping services on monitoring host.")
-            parallelSsh.stopService(ServerType.Monitoring, "grafana-server")
-            parallelSsh.stopService(ServerType.Monitoring, "prometheus")
+        context.requireSshKey()
+        val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
+        cassandraHosts.map {
+            context.executeRemotely(it, "sudo service cassandra stop")
         }
+
     }
 }
