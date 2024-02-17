@@ -8,6 +8,7 @@ import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.io.File
 import java.net.URL
+import kotlin.random.Random
 
 typealias Ami = String
 
@@ -93,9 +94,11 @@ class Configuration(var name: String,
         setVariable("zones", Variable(azs))
 
         val externalCidr = listOf("${getExternalIpAddress()}/32")
+        val suffix = List(4) { Random.nextInt(0, 100) }.joinToString("")
 
+        val name = "easycasslab_${name}_${suffix}"
         val instanceSg = SecurityGroupResource.Builder()
-            .newSecurityGroupResource("easycasslab_${name}","easy-cass-lab security group", tags)
+            .newSecurityGroupResource(name,"easy-cass-lab security group", tags)
             .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")

@@ -12,6 +12,12 @@ import java.nio.file.Files
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.rustyrazorblade.easycasslab.configuration.Host
+import org.apache.sshd.client.SshClient
+import org.apache.sshd.common.keyprovider.KeyIdentityProvider
+import org.apache.sshd.common.util.security.SecurityUtils
+import java.time.Duration
+import kotlin.io.path.Path
 
 
 data class Context(val easycasslabUserDirectory: File) {
@@ -81,7 +87,41 @@ data class Context(val easycasslabUserDirectory: File) {
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
-    
+
+    val keyPairs by lazy {
+        val loader = SecurityUtils.getKeyPairResourceParser()
+        loader.loadKeyPairs(null, Path( userConfig.sshKeyPath), null)
+
+    }
+
+    val sshClient by lazy {
+        val client = SshClient.setUpDefaultClient()
+        client.setKeyIdentityProvider(KeyIdentityProvider.wrapKeyPairs(keyPairs))
+        client.start()
+        client
+    }
+
+    fun executeRemotely(host: Host, command: String) {
+        // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
+
+        // Create the client.
+        // We have to register the keys with the client.
+        // Client can be used to connect to multiple hosts
+
+        println("Connecting to ${host.public}")
+        val session = sshClient.connect("ubuntu", host.public,22)
+            .verify(Duration.ofSeconds(10))
+            .session
+        session.addPublicKeyIdentity(keyPairs.first())
+        session.auth().verify()
+
+        println("Executing remote command: $command")
+        println(session.executeRemoteCommand(command))
+    }
+
+    fun stop() {
+        sshClient.stop()
+    }
 
     companion object {
         /**

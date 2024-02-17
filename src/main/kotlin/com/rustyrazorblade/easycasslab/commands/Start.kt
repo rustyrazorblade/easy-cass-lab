@@ -1,55 +1,40 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import org.apache.sshd.client.SshClient
 import com.beust.jcommander.Parameters
-import  com.rustyrazorblade.easycasslab.Context
-import  com.rustyrazorblade.easycasslab.containers.Pssh
-import  com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.ServerType
+import org.apache.sshd.common.keyprovider.KeyIdentityProvider
+import org.apache.sshd.common.util.security.SecurityUtils
+import java.time.Duration
+import kotlin.io.path.Path
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
 
     override fun execute() {
         context.requireSshKey()
-
-        println("Starting all nodes.")
-        val parallelSsh = Pssh(context)
-        val successMessage = "service successfully started"
-        val failureMessage = "service failed to started"
-
-        var serviceName = "cassandra"
-        parallelSsh.startService(ServerType.Cassandra, serviceName).fold({
-            println("$serviceName $successMessage")}, {
-            println("$serviceName $failureMessage. ${it.message}")
-            return
-        })
-
-        val monitoringHost = context.tfstate.getHosts(ServerType.Monitoring)
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
 
-        if (monitoringHost.count() > 0) {
+        val keyPath = context.userConfig.sshKeyPath
 
-            serviceName = "prometheus"
-            parallelSsh.startService(ServerType.Monitoring, serviceName).fold({
-                println("$serviceName $successMessage")
+        // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
 
-                serviceName = "grafana-server"
-                parallelSsh.startService(ServerType.Monitoring, serviceName).fold({
-                    println("Grafana started")
+        // Create the client.
+        // We have to register the keys with the client.
+        // Client can be used to connect to multiple hosts
+        val client = SshClient.setUpDefaultClient()
+        val loader = SecurityUtils.getKeyPairResourceParser()
+        val keyPairs = loader.loadKeyPairs(null, Path(keyPath), null)
+        client.setKeyIdentityProvider(KeyIdentityProvider.wrapKeyPairs(keyPairs))
+        client.start()
 
-                    println("$serviceName $successMessage")
-                    println("""
-You can access the monitoring UI using the following URLs:
- - Prometheus: http://${monitoringHost.first().public}:9090
- - Grafana:    http://${monitoringHost.first().public}:3000
-                        """)
-                }, {
-                    // error starting grafana
-                    println("$serviceName $failureMessage. ${it.message}")
-                })
-            }, {
-                // error starting prometheus
-                println("$serviceName $failureMessage. ${it.message}")
-            })
-        }
+        val host = cassandraHosts.first()
+        val session = client.connect("ubuntu", host.public,22)
+            .verify(Duration.ofSeconds(10))
+            .session
+        session.addPublicKeyIdentity(keyPairs.first())
+        session.executeRemoteCommand("sudo service cassandra start")
+        client.stop()
     }
 }

@@ -87,6 +87,10 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: jackson_dataformat_version
     implementation group: 'com.fasterxml.jackson.module', name:'jackson-module-kotlin', version: jackson_kotlin_version
 
+    // https://mvnrepository.com/artifact/org.apache.sshd/sshd-core
+    implementation 'org.apache.sshd:sshd-core:2.12.0'
+
+
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: jupiter_version
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core

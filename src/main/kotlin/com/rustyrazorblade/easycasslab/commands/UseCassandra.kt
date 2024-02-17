@@ -9,25 +9,30 @@ import  com.rustyrazorblade.easycasslab.configuration.*
 import  com.rustyrazorblade.easycasslab.containers.CassandraUnpack
 import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.kotlin.logger
+import org.apache.sshd.client.SshClient
+import org.apache.sshd.common.keyprovider.KeyIdentityProvider
+import org.apache.sshd.common.util.security.SecurityUtils
 import java.io.File
 import java.io.FileFilter
 import java.io.FileNotFoundException
+import java.time.Duration
 import java.util.*
+import kotlin.io.path.Path
 
 @Parameters(commandDescription = "Use a Cassandra build")
 class UseCassandra(val context: Context) : ICommand {
     @Parameter
-    var name: String = ""
+    var version: String = ""
 
     val log = logger()
 
-    @Parameter(description = "Configuration settings to change in the cassandra.yaml file specified in the format key:value,...", names = ["--config", "-c"])
-    var configSettings = listOf<String>()
+//    @Parameter(description = "Configuration settings to change in the cassandra.yaml file specified in the format key:value,...", names = ["--config", "-c"])
+//    var configSettings = listOf<String>()
 
     val yaml by YamlDelegate()
 
     override fun execute() {
-        check(name.isNotBlank())
+        check(version.isNotBlank())
         try {
             context.tfstate
         } catch (e: FileNotFoundException) {
@@ -35,60 +40,11 @@ class UseCassandra(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        // if we're been passed a version, use the debs we get from apache
-        val versionRegex = """\d+\.\d+[\.~]\w+""".toRegex()
-
-//        // update the seeds list
-//        val cassandraYamlLocation = "provisioning/cassandra/conf/cassandra.yaml"
-        val cassandraEnvLocation = "provisioning/cassandra/conf/cassandra-env.sh"
-//        val cassandraYaml = CassandraYaml.create(File(cassandraYamlLocation))
-//
-        // need to move this out
-//        cassandraYaml.setProperty("endpoint_snitch", "Ec2Snitch")
-//
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-//        val seeds = cassandraHosts.take(3)
-//
-//        cassandraYaml.setSeeds(seeds.map { it.private })
-//
-//        configSettings.forEach {
-//            val keyValue = it.split(":")
-//            if (keyValue.count() > 1) {
-//                cassandraYaml.setProperty(keyValue[0], keyValue[1])
-//            }
-//        }
+        println("Using version ${version} on ${cassandraHosts.size} hosts")
+        cassandraHosts.map { host ->
+            context.executeRemotely(host, "sudo use-cassandra ${version}")
+        }
 
-//        log.debug { "Writing Cassandra YAML to $cassandraYamlLocation" }
-//        cassandraYaml.write(cassandraYamlLocation)
-
-        val stressHosts = context.tfstate.getHosts(ServerType.Stress)
-
-        // TODO: possibly move the prometheus file generation to Up command, i'm not sure if we need to wait before generating it
-        // if using a monitoring instance, set the hosts to pull metrics from
-        val prometheusYamlLocation = "provisioning/monitoring/config/prometheus/prometheus.yml"
-        val prometheusOutput = File(prometheusYamlLocation).outputStream()
-
-        val labelBaseLocation = "provisioning/monitoring/config/prometheus/"
-
-        val cassandraLabelOutput = File(labelBaseLocation, "cassandra.yml").outputStream()
-        val cassandraOSLabelOutput = File(labelBaseLocation, "cassandra-os.yml").outputStream()
-        val stressLabelOutput = File(labelBaseLocation, "stress.yml").outputStream()
-
-        println("Writing prometheus configuration")
-        Prometheus.writeConfiguration(cassandraHosts.map {
-            HostInfo(it.private, it.alias, rack = it.availabilityZone)
-        }, stressHosts.map {
-            HostInfo(it.private, it.alias, rack = it.availabilityZone)
-        },
-                "/etc/prometheus/", prometheusOutput, cassandraLabelOutput, cassandraOSLabelOutput, stressLabelOutput)
-        log.debug { "Writing Prometheus YAML to $prometheusYamlLocation" }
-
-        // write out the sd file
-        // val env = File(cassandraEnvLocation)
-        // env.appendText("\nJVM_OPTS=\"\$JVM_OPTS -Dcassandra.consistent.rangemovement=false -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+PreserveFramePointer \"\n")
-
-//        with(TermColors()) {
-//            println("Cassandra deb and config copied to provisioning/.  Config files are located in provisioning/cassandra. \n Use ${green("easy-cass-lab install")} to push the artifacts to the nodes.")
-//        }
     }
 }
