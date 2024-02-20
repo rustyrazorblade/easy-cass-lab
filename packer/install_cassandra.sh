@@ -31,6 +31,7 @@ do
     version="${BASH_REMATCH[1]}"
     echo "Moving $f to $version"
     rm -rf $f/data
+    cp conf/cassandra.yaml conf/cassandra.yaml.orig
     sudo mv "$f" /usr/local/cassandra/$version;
   fi
 done

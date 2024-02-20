@@ -37,11 +37,21 @@ build {
         "sudo apt update",
         "sudo apt upgrade -y",
         "sudo apt update",
-        "sudo apt install -y wget sysstat fio", # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
+        "sudo apt install -y wget sysstat fio unzip", # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
         "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_amd64 -O /usr/local/bin/yq",
         "sudo chmod +x /usr/local/bin/yq",
       ]
   }
+
+  # easy-cass-stress gets installed on every node.
+  provisioner "shell" {
+    inline = [
+      "wget https://github.com/rustyrazorblade/easy-cass-stress/releases/download/6.0-preview/easy-cass-stress-6.0.0.zip",
+      "unzip easy-cass-stress-6.0.0.zip",
+      "sudo mv easy-cass-stress-6.0.0 /usr/local/easy-cass-stress",
+    ]
+  }
+
 
   # install pyenv and python
   provisioner "shell" {
@@ -84,7 +94,7 @@ build {
 
   provisioner "shell" {
     inline = [
-        "sudo cp cassandra_versions.yaml /etc/cassandra_versions.yaml"
+        "sudo mv cassandra_versions.yaml /etc/cassandra_versions.yaml"
     ]
   }
 
@@ -115,7 +125,7 @@ build {
 
   provisioner "shell" {
     inline = [
-       "sudo cp aliases.sh /etc/profile.d/aliases.sh"
+       "sudo mv aliases.sh /etc/profile.d/aliases.sh"
     ]
   }
 
@@ -142,6 +152,9 @@ build {
        "sudo systemctl enable cassandra.service"
     ]
   }
+
+
+
 
 }
 
