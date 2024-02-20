@@ -4,6 +4,7 @@ Description=Apache Cassandra
 [Service]
 ExecStart=/usr/local/cassandra/current/bin/cassandra -f
 User=cassandra
+Environment=CASSANDRA_LOG_DIR=/mnt/cassandra/logs
 
 [Install]
 WantedBy=multi-user.target
