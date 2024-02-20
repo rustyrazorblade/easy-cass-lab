@@ -7,6 +7,8 @@ echo "Downloading version 4"
 
 mkdir cassandra
 sudo mkdir -p /usr/local/cassandra
+sudo mkdir -p /mnt/cassandra
+sudo chown -R cassandra:cassandra /mnt/cassandra
 
 # shellcheck disable=SC2164
 (
