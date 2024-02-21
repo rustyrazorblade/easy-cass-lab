@@ -68,7 +68,7 @@ build {
       "eval \"$(pyenv init --path)\"",
       "eval \"$(pyenv virtualenv-init -)\"",
       # now install python
-      "pyenv install 3.12.2",
+      "pyenv install 3.10.6",
       "pyenv install 2.7.18"
     ]
   }
