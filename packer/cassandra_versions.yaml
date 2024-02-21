@@ -6,7 +6,7 @@
   python: "2.7.18"
 
 - version: "3.11"
-  url: https://dlcdn.apache.org/cassandra/3.0.29/apache-cassandra-3.0.29-bin.tar.gz
+  url: https://dlcdn.apache.org/cassandra/3.11.16/apache-cassandra-3.11.16-bin.tar.gz
   java: "8"
   python: "2.7.18"
 
