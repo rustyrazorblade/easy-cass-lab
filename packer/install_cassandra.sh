@@ -25,7 +25,7 @@ done
 #regex="apache-cassandra-([0-9].[0-9*])"
 
 # extracts the version number from the directory name
-regex="apache-cassandra-([0-9].[0-9*](-beta[0-9])?)"
+regex="apache-cassandra-([0-9].[0-9*]+(-beta[0-9])?)"
 
 for f in apache-cassandra-*/;
 do
