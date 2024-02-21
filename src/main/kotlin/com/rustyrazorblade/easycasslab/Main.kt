@@ -25,16 +25,18 @@ fun main(arguments: Array<String>) {
     val args = MainArgs()
     jcommander.addObject(args)
 
-    val commands = mapOf("init" to Init(context),
-                         "up" to Up(context),
-                         "start" to Start(context),
-                         "stop" to Stop(context),
-                         "down" to Down(context),
-                         "build" to BuildCassandra(context),
-                         "ls" to ListCassandraBuilds(context),
-                         "use" to UseCassandra(context),
-                         "clean" to Clean(),
-                         "hosts" to Hosts(context))
+    val commands = mapOf(
+        "init" to Init(context),
+        "up" to Up(context),
+        "start" to Start(context),
+        "stop" to Stop(context),
+        "down" to Down(context),
+        "build" to BuildCassandra(context),
+        "use" to UseCassandra(context),
+        "clean" to Clean(),
+        "hosts" to Hosts(context),
+        "patch" to PatchConfig(context)
+    )
 
     for(c in commands.entries) {
         logger.debug { "Adding command: ${c.key}" }

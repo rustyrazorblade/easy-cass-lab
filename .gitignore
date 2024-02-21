@@ -113,3 +113,6 @@ easy-cass-lab.iws
 /src/main/dashboards/
 out/
 packer/ec2_ubuntu.pem
+
+cassandra.patch.yaml
+

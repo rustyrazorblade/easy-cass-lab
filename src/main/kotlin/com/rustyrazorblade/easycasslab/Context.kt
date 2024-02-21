@@ -14,8 +14,13 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.rustyrazorblade.easycasslab.configuration.Host
 import org.apache.sshd.client.SshClient
+import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
+import org.apache.sshd.scp.client.CloseableScpClient
+import org.apache.sshd.scp.client.ScpClient
+import org.apache.sshd.scp.client.ScpClientCreator
+import java.nio.file.Path
 import java.time.Duration
 import kotlin.io.path.Path
 
@@ -101,22 +106,37 @@ data class Context(val easycasslabUserDirectory: File) {
         client
     }
 
+    private fun getSession(host: Host): ClientSession {
+        val session = sshClient.connect("ubuntu", host.public, 22)
+            .verify(Duration.ofSeconds(10))
+            .session
+        session.addPublicKeyIdentity(keyPairs.first())
+        session.auth().verify()
+        return session
+    }
+
     fun executeRemotely(host: Host, command: String) {
         // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
 
         // Create the client.
         // We have to register the keys with the client.
         // Client can be used to connect to multiple hosts
-
         println("Connecting to ${host.public}")
-        val session = sshClient.connect("ubuntu", host.public,22)
-            .verify(Duration.ofSeconds(10))
-            .session
-        session.addPublicKeyIdentity(keyPairs.first())
-        session.auth().verify()
-
+        val session = getSession(host)
         println("Executing remote command: $command")
         println(session.executeRemoteCommand(command))
+    }
+
+    fun getScpClient(host: Host) : CloseableScpClient {
+        val session = getSession(host)
+        val creator = ScpClientCreator.instance()
+        val client = creator.createScpClient(session)
+        return CloseableScpClient.singleSessionInstance(client)
+    }
+
+    fun upload(host: Host, local: Path, remote: String) {
+        val client = getScpClient(host)
+        client.upload(local, remote)
     }
 
     fun stop() {
