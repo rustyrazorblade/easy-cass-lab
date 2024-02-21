@@ -112,3 +112,4 @@ easy-cass-lab.iws
 /prometheus_labels.yml
 /src/main/dashboards/
 out/
+packer/ec2_ubuntu.pem

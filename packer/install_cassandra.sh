@@ -3,12 +3,12 @@
 # creating cassandra user
 sudo useradd -m cassandra
 
-echo "Downloading version 4"
-
 mkdir cassandra
 sudo mkdir -p /usr/local/cassandra
 sudo mkdir -p /mnt/cassandra
 sudo chown -R cassandra:cassandra /mnt/cassandra
+
+lsblk
 
 # shellcheck disable=SC2164
 (

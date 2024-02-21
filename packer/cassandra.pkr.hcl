@@ -34,6 +34,7 @@ build {
   ]
   provisioner "shell" {
       inline = [
+        "sudo umount -l -f /mnt", # needed early on before we do anything with /mnt
         "sudo apt update",
         "sudo apt upgrade -y",
         "sudo apt update",
