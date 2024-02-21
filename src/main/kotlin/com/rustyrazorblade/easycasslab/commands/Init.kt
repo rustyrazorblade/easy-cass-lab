@@ -87,7 +87,6 @@ class Init(val context: Context) : ICommand {
         config.cassandraInstanceType = instanceType
 
         config.setVariable("client", "")
-        config.setVariable("ticket", "")
         config.setVariable("purpose", "")
         config.setVariable("NeededUntil", until)
 

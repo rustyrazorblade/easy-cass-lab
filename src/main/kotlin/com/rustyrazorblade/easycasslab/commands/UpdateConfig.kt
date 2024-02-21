@@ -1,11 +1,13 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
+import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 
-class PatchConfig(val context: Context) : ICommand {
+@Parameters(commandDescription = "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml")
+class UpdateConfig(val context: Context) : ICommand {
     @Parameter(names = ["--host"], descriptionKey = "Host to patch, optional")
     var host: String = ""
 
