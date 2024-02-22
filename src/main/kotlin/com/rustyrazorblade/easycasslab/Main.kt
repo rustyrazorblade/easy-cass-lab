@@ -48,11 +48,10 @@ fun main(arguments: Array<String>) {
     val jc = jcommander.build()
     jc.parse(*arguments)
 
-    val commandObj = commands.filter { it.name == jc.parsedCommand }.firstOrNull()
-
-    if(commandObj != null)
-        commandObj.command.execute()
-    else
+    commands.filter { it.name == jc.parsedCommand }.firstOrNull()?.run {
+        this.command.execute()
+    } ?: run {
         jc.usage()
+    }
 }
 
