@@ -19,7 +19,7 @@ import java.time.Duration
 import java.util.*
 import kotlin.io.path.Path
 
-@Parameters(commandDescription = "Use a Cassandra build")
+@Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
 class UseCassandra(val context: Context) : ICommand {
     @Parameter
     var version: String = ""

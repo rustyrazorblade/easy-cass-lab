@@ -138,16 +138,6 @@ class Init(val context: Context) : ICommand {
 
         out.writeBytes(fp.readBytes())
 
-        // the above was more work than necessary, will need to fix it soon
-        val agentName = "jmx_prometheus_javaagent-0.12.0.jar"
-
-        val agent = File(dir, "$agentName.txt")
-        agent.renameTo(File(dir, agentName))
-
-        // dashboards
-        val dashboardLocation = File("provisioning/monitoring/dashboards")
-        val dash = Dashboards(dashboardLocation)
-        dash.copyDashboards()
 
         return Configuration(name, context.userConfig.region, context, ami)
     }

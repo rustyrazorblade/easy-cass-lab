@@ -28,15 +28,16 @@ fun main(arguments: Array<String>) {
     data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
 
     val commands = listOf(
+        Command("clean", Clean()),
+        Command("down", Down(context)),
+        Command("hosts", Hosts(context)),
         Command("init", Init(context)),
-        Command("up", Up(context)),
         Command("start", Start(context)),
         Command("stop", Stop(context)),
-        Command("down", Down(context)),
+        Command("up", Up(context)),
+        Command("update-config", UpdateConfig(context), listOf("uc")),
         Command("use", UseCassandra(context)),
-        Command("clean", Clean()),
-        Command("hosts", Hosts(context)),
-        Command("update-config", UpdateConfig(context), listOf("uc"))
+        Command("write-config", WriteConfig(context), listOf("wc"))
     )
 
     for(c in commands) {

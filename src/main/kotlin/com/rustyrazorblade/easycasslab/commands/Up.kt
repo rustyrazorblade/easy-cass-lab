@@ -61,6 +61,8 @@ class Up(val context: Context) : ICommand {
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
 
+        WriteConfig(context).execute()
+
     }
 
 }
