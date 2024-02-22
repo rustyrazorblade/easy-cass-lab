@@ -36,8 +36,8 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Start instances automatically", names = ["--up"])
     var start = false
 
-    @Parameter(description = "Instance Type", names = ["--instance"])
-    var instanceType =  "r3.2xlarge"
+    @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance"])
+    var instanceType =  System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
     @Parameter(description = "Limit to specified availability zones", names = ["--azs", "--az", "-z"], listConverter = AZConverter::class)
     var azs: List<String> = listOf()
