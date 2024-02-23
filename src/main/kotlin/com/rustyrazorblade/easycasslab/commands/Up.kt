@@ -63,6 +63,12 @@ class Up(val context: Context) : ICommand {
 
         WriteConfig(context).execute()
 
+        // once the instances are up we can connect and set up
+        // the disks, axonops, system settings, etc
+        // we can't set up the configs yet though,
+        // because those are dependent on the C* version in use.
+        println("Waiting for instances to come up..")
+        Thread.sleep(5000)
     }
 
 }

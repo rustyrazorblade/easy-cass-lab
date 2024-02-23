@@ -169,6 +169,18 @@ build {
     ]
   }
 
+  provisioner "file" {
+    source = "patch-config"
+    destination = "patch-config"
+  }
+
+  provisioner "shell" {
+    inline = [
+       "sudo mv patch-config /usr/local/bin/patch-config",
+       "sudo chmod +x /usr/local/bin/patch-config"
+    ]
+  }
+
 
 
 

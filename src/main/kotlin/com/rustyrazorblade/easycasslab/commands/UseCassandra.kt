@@ -46,5 +46,7 @@ class UseCassandra(val context: Context) : ICommand {
             context.executeRemotely(host, "sudo use-cassandra ${version}")
         }
 
+        UpdateConfig(context).execute()
+
     }
 }
