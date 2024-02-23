@@ -4,7 +4,6 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import org.apache.logging.log4j.kotlin.logger
 
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
 class ConfigureAxonOps(val context: Context) : ICommand {
