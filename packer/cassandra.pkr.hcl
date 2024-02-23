@@ -25,6 +25,12 @@ source "amazon-ebs" "ubuntu" {
     owners      = ["099720109477"]
   }
   ssh_username = "ubuntu"
+  launch_block_device_mappings {
+    device_name = "/dev/sda1"
+    volume_size = 16
+    volume_type = "gp2"
+    delete_on_termination = true
+  }
 }
 
 build {
