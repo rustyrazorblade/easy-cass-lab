@@ -38,7 +38,8 @@ fun main(arguments: Array<String>) {
         Command("up", Up(context)),
         Command("update-config", UpdateConfig(context), listOf("uc")),
         Command("use", UseCassandra(context)),
-        Command("write-config", WriteConfig(context), listOf("wc"))
+        Command("write-config", WriteConfig(context), listOf("wc")),
+        Command("configure-axonops", ConfigureAxonOps(context))
     )
 
     for(c in commands) {

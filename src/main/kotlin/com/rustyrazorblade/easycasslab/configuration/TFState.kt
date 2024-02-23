@@ -99,6 +99,10 @@ class TFState(val context: Context,
 //        }
     }
 
+    fun withHosts(serverType: ServerType, withHost: (h: Host) -> Unit) {
+        getHosts(serverType).forEach(withHost)
+    }
+
     fun writeSshConfig(config: BufferedWriter) {
         // write standard stuff first
         config.appendLine("StrictHostKeyChecking=no")

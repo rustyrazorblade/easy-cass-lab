@@ -135,6 +135,23 @@ build {
         ]
   }
 
+  # instal axonops
+  provisioner "shell" {
+    script = "install_axon.sh"
+  }
+
+  provisioner "file" {
+    source      = "setup-axonops"
+    destination = "setup-axonops"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "sudo mv setup-axonops /usr/local/bin/setup-axonops",
+      "sudo chmod +x /usr/local/bin/setup-axonops"
+    ]
+  }
+
   # install my extra nice tools, exa, bat, fd, ripgrep
   # wrapper for aprof to output results to a folder content shared by nginx
   # open to what port?
@@ -186,9 +203,6 @@ build {
        "sudo chmod +x /usr/local/bin/patch-config"
     ]
   }
-
-
-
 
 }
 

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# validate inputs
+ORG=$1
+KEY=$2
+if [ -z "$ORG" ]; then
+  echo "no org given"
+  echo "setup-axonops <org> <apikey>"
+  exit 1
+fi
+
+if [ -z "$KEY" ]; then
+  echo "no api key key given"
+  echo "setup-axonops <org> <apikey>"
+  exit 1
+fi
+
+# copy axonenv into place for each version
+for v in $(yq '.[].version' /etc/cassandra_versions.yaml);
+do
+  if [[ $v == *"beta"* ]]; then
+    # axonops doesn't publish releases for beta versions
+    continue
+  fi
+  sudo cp /usr/local/cassandra/$v/conf/axonenv.template /usr/local/cassandra/$v/conf/axonenv
+  sudo chown cassandra:cassandra /usr/local/cassandra/$v/conf/axonenv
+done
+
+# setup axon-agent config
+axonconfig=/etc/axonops/axon-agent.yml
+sudo yq -i '.axon-server.hosts = "agents.axonops.cloud"' $axonconfig
+sudo yq -i ".axon-agent.org = \"$ORG\"" $axonconfig
+sudo yq -i ".axon-agent.key = \"$KEY\"" $axonconfig
+
+
+
