@@ -32,7 +32,7 @@ class Up(val context: Context) : ICommand {
 
                 Use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
                 
-                Supported versions are 3.0, 3.11, 4.0, 4.1, """)
+                Supported versions are 3.0, 3.11, 4.0, 4.1, """.trimMargin())
 
                 println("Writing ssh config file to sshConfig.")
 
@@ -41,6 +41,7 @@ class Up(val context: Context) : ICommand {
                 |${green("source env.sh")}
                 |
                 |""".trimMargin())
+                println("You can edit ${green("cassandra.patch.yaml")} with any changes you'd like to see merge in into the remote cassandra.yaml file.")
             }
         }
         
