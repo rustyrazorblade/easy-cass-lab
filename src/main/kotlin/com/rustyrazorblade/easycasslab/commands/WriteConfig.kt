@@ -16,7 +16,8 @@ class WriteConfig(val context: Context) : ICommand {
     var tokens: Int = 4
 
     override fun execute() {
-        println("Writing new configuration file") // create the cassandra.yaml patch file
+        println("Writing new configuration file to $file.") // create the cassandra.yaml patch file
+        println("It can be applied to the lab via easy-cass-lab update-config (or automatically when calling use-cassandra)")
 
         val data = object {
             val cluster_name = "Test Cluster" // TODO: put actual cluster name here
@@ -29,6 +30,7 @@ class WriteConfig(val context: Context) : ICommand {
             }
             val hints_directory = "/mnt/cassandra/hints"
             val data_file_directories = listOf("/mnt/cassandra/data")
+            val commitlog_directory = "/mnt/cassandra/commitlog"
             val concurrent_reads = 64
             val concurrent_writes = 64
             val trickle_fsync = true
