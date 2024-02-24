@@ -32,7 +32,7 @@ fun main(arguments: Array<String>) {
         Command("down", Down(context)),
         Command("hosts", Hosts(context)),
         Command("init", Init(context)),
-        Command("setup-disks", SetupDisks()),
+        Command("setup-disks", SetupDisks(context)),
         Command("start", Start(context)),
         Command("stop", Stop(context)),
         Command("up", Up(context)),

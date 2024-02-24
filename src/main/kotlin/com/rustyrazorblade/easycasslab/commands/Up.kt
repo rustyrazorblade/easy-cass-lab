@@ -6,7 +6,9 @@ import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
 import  com.rustyrazorblade.easycasslab.containers.Terraform
+import org.apache.sshd.common.SshException
 import java.io.File
+import java.nio.file.Path
 
 @Parameters(commandDescription = "Starts instances")
 class Up(val context: Context) : ICommand {
@@ -51,7 +53,8 @@ class Up(val context: Context) : ICommand {
         val envFile = File("env.sh").bufferedWriter()
         context.tfstate.writeEnvironmentFile(envFile)
 
-        val stressEnvironmentVars = File("provisioning/stress/environment.sh").bufferedWriter()
+        // sets up any environment variables we need for the stress tool
+        val stressEnvironmentVars = File("environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
         stressEnvironmentVars.newLine()
 
@@ -64,12 +67,42 @@ class Up(val context: Context) : ICommand {
 
         WriteConfig(context).execute()
 
+        this::class.java.getResourceAsStream("disk_setup.sh").use {
+            val diskSetup = File("disk_setup.sh").bufferedWriter()
+            diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
+            diskSetup.flush()
+            diskSetup.close()
+        }
+
         // once the instances are up we can connect and set up
         // the disks, axonops, system settings, etc
         // we can't set up the configs yet though,
         // because those are dependent on the C* version in use.
-        println("Waiting for instances to come up..")
+        println("Waiting for SSH to come up..")
         Thread.sleep(5000)
+
+        // probably need to loop and wait
+        // write to profile.d/stress.sh
+        var done = false
+        do {
+
+            try {
+                context.tfstate.withHosts(ServerType.Cassandra) {
+                    context.executeRemotely(it, "echo 1")
+                }
+                done = true
+            } catch (e: SshException) {
+                println("SSH still not up yet, waiting..")
+                Thread.sleep(1000)
+            }
+
+        } while (!done)
+
+        context.tfstate.withHosts(ServerType.Cassandra) {
+            context.upload(it, Path.of("environment.sh"), "environment.sh")
+            context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
+        }
+        SetupDisks(context).execute()
     }
 
 }

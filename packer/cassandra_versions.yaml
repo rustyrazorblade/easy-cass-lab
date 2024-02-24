@@ -25,3 +25,15 @@
   java: "17"
   python: "3.10.6"
 
+# This is the format I'd like to use for Git repos
+#- version: "trunk"
+#  url: https://github.com/apache/cassandra.git
+#  branch: trunk
+#  java: "17"
+#  python: "3.10.6"
+#
+#- version: "5.0-HEAD"
+#  url: https://github.com/apache/cassandra.git
+#  branch:
+#  java: "17"
+#  python: "3.10.6"

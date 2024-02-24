@@ -16,15 +16,22 @@ cd cassandra
 
 yq '.[].url' /etc/cassandra_versions.yaml | xargs -I{} wget {}
 
+#
+# Clone the git repos specified in the yaml file (ending in .git)
+# Use the directory name of the org (apache / rustyrazorblade)
+# as the directory to clone into
+# checkout the branch specified in the yaml file
+# do a build and create the tar.gz
+#
+
 for f in *.tar.gz;
 do
     tar zxvf "$f";
     rm -f "$f";
 done
 
-#regex="apache-cassandra-([0-9].[0-9*])"
-
 # extracts the version number from the directory name
+# this should be refactored to use the version in the yaml file instead
 regex="apache-cassandra-([0-9].[0-9*]+(-beta[0-9])?)"
 
 for f in apache-cassandra-*/;

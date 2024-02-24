@@ -116,3 +116,6 @@ packer/ec2_ubuntu.pem
 
 cassandra.patch.yaml
 
+environment.sh
+
+disk_setup.sh

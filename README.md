@@ -44,7 +44,8 @@ Now build the project. The following command should be run from the root directo
 ./gradlew shadowJar installdist
 ```
 
-Run this to provision the cluster:
+Run this to start the nodes in the cluster. Once the nodes are online, it will run several post-setup commands, including
+whatever is in the disk setup script
 
 ```bash
 bin/easy-cass-lab init [cluster_name] # optional cluster name, uses "test" if not specified 
@@ -61,13 +62,26 @@ ssh cassandra0
 ssh cassandra1 # number corresponds to an instance
 ```
 
-This is currently all that works as the rewrite is in progress.
+Choose your cassandra version.  This will 
+
+```shell
+
+bin/easy-cass-lab use 4.0
+```
+
+Start the cluster.  It will take about a minute to go through the startup process
+
+```shell
+bin/easy-cass-lab start
+```
 
 This tool is a work in progress and is intended for developers to use to quickly launch clusters based on arbitrary builds.
 
-If you aren't comfortable digging into code, this tool probably isn't for you, as you're very likely going to need to do some customizations.
+## Tools Installed
 
-Please refer to the project [documentation](http://rustyrazorblade.com/easy-cass-lab/) for usage instructions. 
+* bcc-tools
+* async-profiler
+* AxonOps agent (free monitoring!)
 
 Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
 
