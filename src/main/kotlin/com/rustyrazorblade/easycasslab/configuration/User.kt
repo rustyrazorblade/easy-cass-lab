@@ -25,7 +25,10 @@ data class User(
     // fallback for people who haven't set up the aws cli
 
     var awsAccessKey: String,
-    var awsSecret: String
+    var awsSecret: String,
+
+    var axonOpsOrg: String = "",
+    var axonOpsKey: String = ""
 ) {
     companion object {
 
@@ -64,6 +67,14 @@ data class User(
             val secret = File(context.profileDir, "secret.pem")
             secret.writeText(response.keyMaterial())
 
+            fun getAxonOps(inputName : String) =
+                Utils.prompt("AxonOps $inputName: ", "")
+
+            val axonOpsChoice = Utils.prompt("Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]", default = "N")
+            val useAxonOps = axonOpsChoice.equals("y", true);
+            val axonOpsOrg =  if (useAxonOps) getAxonOps("Org") else ""
+            val axonOpsKey =  if (useAxonOps) getAxonOps("Key") else ""
+
             // set permissions
             val perms = HashSet<PosixFilePermission>()
             perms.add(PosixFilePermission.OWNER_READ)
@@ -72,6 +83,7 @@ data class User(
             log.info { "Setting secret file permissions $perms"}
             Files.setPosixFilePermissions(secret.toPath(), perms)
 
+
             val user = User(
                 email,
                 "us-west-2",
@@ -79,7 +91,9 @@ data class User(
                 secret.absolutePath,
                 "", // future compatibility, when we start allowing people to use their existing AWS creds they've already set up.
                 awsAccessKey,
-                awsSecret)
+                awsSecret,
+                axonOpsOrg,
+                axonOpsKey)
 
             context.yaml.writeValue(location, user)
         }

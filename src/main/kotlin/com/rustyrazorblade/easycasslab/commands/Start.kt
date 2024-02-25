@@ -13,5 +13,9 @@ class Start(val context: Context) : ICommand {
         cassandraHosts.map {
             context.executeRemotely(it, "sudo service cassandra start")
         }
+
+        if (context.userConfig.axonOpsOrg.isNotBlank() && context.userConfig.axonOpsKey.isNotBlank()) {
+            StartAxonOps(context).execute()
+        }
     }
 }

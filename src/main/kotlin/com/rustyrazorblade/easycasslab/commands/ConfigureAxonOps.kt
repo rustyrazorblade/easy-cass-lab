@@ -15,8 +15,11 @@ class ConfigureAxonOps(val context: Context) : ICommand {
     var key = ""
 
     override fun execute() {
-        context.requireSshKey();
-        if (org.isEmpty() || key.isEmpty()) {
+        context.requireSshKey()
+
+        val axonOrg = if (org.isNotBlank()) org else context.userConfig.axonOpsOrg
+        val axonKey = if (key.isNotBlank()) key else context.userConfig.axonOpsKey
+        if ((axonOrg.isBlank() || axonKey.isBlank())) {
             println("--org and --key are required")
             System.exit(1)
         }
@@ -24,7 +27,7 @@ class ConfigureAxonOps(val context: Context) : ICommand {
         context.tfstate.withHosts(ServerType.Cassandra) {
             println("Configure axonops on $it")
 
-            context.executeRemotely(it, "/usr/local/bin/setup-axonops $org $key")
+            context.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey")
         }
     }
 }

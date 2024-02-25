@@ -155,7 +155,7 @@ data class Context(val easycasslabUserDirectory: File) {
             val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "easycasslab")
             // create a default profile
             // generate a fake key
-            val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test")
+            val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test", "", "")
 
             val context = Context(testTempDirectory.toFile())
             context.yaml.writeValue(context.userConfigFile, user)

@@ -103,6 +103,12 @@ class Up(val context: Context) : ICommand {
             context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
         }
         SetupDisks(context).execute()
+
+        if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
+            println("Setting up axonops for ${context.userConfig.axonOpsOrg}")
+
+            ConfigureAxonOps(context).execute()
+        }
     }
 
 }
