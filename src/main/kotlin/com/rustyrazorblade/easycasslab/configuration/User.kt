@@ -86,7 +86,7 @@ data class User(
 
             val user = User(
                 email,
-                "us-west-2",
+                region.toString(),
                 keyName,
                 secret.absolutePath,
                 "", // future compatibility, when we start allowing people to use their existing AWS creds they've already set up.
