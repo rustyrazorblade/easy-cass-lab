@@ -75,11 +75,7 @@ class Init(val context: Context) : ICommand {
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        // copy provisioning over
-
-        println("Copying provisioning files")
-
-        var config = initializeDirectory(name, ami)
+        var config = Configuration(name, context.userConfig.region, context, ami)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
@@ -101,6 +97,7 @@ class Init(val context: Context) : ICommand {
         println("Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}")
 
         if(start) {
+            println("Provisioning instances")
             Up(context).execute()
         } else {
             with(TermColors()) {
@@ -108,40 +105,6 @@ class Init(val context: Context) : ICommand {
             }
         }
     }
-
-
-    fun initializeDirectory(name: String, ami: String) : Configuration {
-        val reflections = Reflections("com.rustyrazorblade.easycasslab.commands.origin", ResourcesScanner())
-        val provisioning = reflections.getResources(".*".toPattern())
-
-        for (f in provisioning) {
-            val input = this.javaClass.getResourceAsStream("/" + f)
-            val outputFile = f.replace("com/rustyrazorblade/easycasslab/commands/origin/", "")
-
-            val output = File(outputFile)
-            println("Writing ${output.absolutePath}")
-
-            output.absoluteFile.parentFile.mkdirs()
-            FileUtils.copyInputStreamToFile(input, output)
-        }
-
-        // gunzip the collector
-        val collector = "collector-0.11.1-SNAPSHOT.jar.gz"
-
-        val dir = "provisioning/cassandra/"
-
-        println("Copying JMX collector")
-
-        val fp = GZIPInputStream(File(dir, collector).inputStream())
-
-        val out = File(dir, collector.removeSuffix(".gz"))
-
-        out.writeBytes(fp.readBytes())
-
-
-        return Configuration(name, context.userConfig.region, context, ami)
-    }
-
 
     fun writeTerraformConfig(config: Configuration): Result<String> {
         val configOutput = File("terraform.tf.json")
@@ -151,7 +114,6 @@ class Init(val context: Context) : ICommand {
         println("Calling init")
         return terraform.init()
     }
-
 
     companion object {
         fun expand(region: String, azs: List<String>) : List<String> = azs.map { region + it }
