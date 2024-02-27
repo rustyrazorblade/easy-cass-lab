@@ -27,6 +27,7 @@ logs/
 sshConfig
 /scripts
 logs
+/authorized_keys
 
 
 # Created by https://www.gitignore.io/api/eclipse

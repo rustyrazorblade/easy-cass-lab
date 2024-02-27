@@ -104,10 +104,14 @@ class TFState(val context: Context,
     }
 
     fun writeSshConfig(config: BufferedWriter) {
+        writeSshConfig(config, "${context.userConfig.sshKeyPath}")
+    }
+
+    fun writeSshConfig(config: BufferedWriter, identityFile: String) {
         // write standard stuff first
         config.appendLine("StrictHostKeyChecking=no")
         config.appendLine("User ubuntu")
-        config.appendLine("IdentityFile ${context.userConfig.sshKeyPath}")
+        config.appendLine("IdentityFile $identityFile")
 
         // get each server type and get the hosts for type and add it to the sshConfig.
         ServerType.values().forEach {
@@ -144,11 +148,20 @@ class TFState(val context: Context,
         fp.appendLine()
 
         val content = this.javaClass.getResourceAsStream("env.sh").bufferedReader()
-        val lines = content.readLines().toMutableList()
+        content.readLines().toMutableList().forEach(fp::appendLine)
 
-        for(line in lines) {
-            fp.appendLine(line)
-        }
+        // write out bash that generates ssh config for sharing the cluster
+        // this is meant for folks not using easy-cass-lab who need access
+        fp.appendLine("")
+        fp.appendLine("if ! [ -f \$SSH_CONFIG ]; then ")
+        fp.appendLine("  echo \"\$SSH_CONFIG does not exist. Setting it up...\"")
+        fp.appendLine("  echo -n 'Path to Private key: '")
+        fp.appendLine("  read identity_file")
+        fp.appendLine("  echo \"Writing \$SSH_CONFIG\"")
+        fp.appendLine("  tee \$SSH_CONFIG <<- EOF")
+        writeSshConfig(fp, "\$identity_file")
+        fp.appendLine("EOF")
+        fp.appendLine("fi")
         fp.flush()
     }
 
