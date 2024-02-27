@@ -2,13 +2,12 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.DeserializationFeature
-import  com.rustyrazorblade.easycasslab.Context
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.rustyrazorblade.easycasslab.Context
 import org.apache.logging.log4j.kotlin.logger
 import java.io.BufferedWriter
 import java.io.File
 import java.io.InputStream
-import java.util.LinkedHashMap
-import com.fasterxml.jackson.module.kotlin.readValue
 
 typealias HostList = List<Host>
 
@@ -127,7 +126,6 @@ class TFState(val context: Context,
     fun writeEnvironmentFile(fp: BufferedWriter) {
 
         // write the initial SSH aliases
-
         fp.appendLine("#!/bin/bash")
         fp.appendLine()
 
@@ -155,8 +153,12 @@ class TFState(val context: Context,
         fp.appendLine("")
         fp.appendLine("if ! [ -f \$SSH_CONFIG ]; then ")
         fp.appendLine("  echo \"\$SSH_CONFIG does not exist. Setting it up...\"")
-        fp.appendLine("  echo -n 'Path to Private key: '")
-        fp.appendLine("  read identity_file")
+        fp.appendLine("  identity_file=\$EASY_CASS_LAB_SSH_KEY")
+        fp.appendLine("  if [ -z \$identity_file ]; then")
+        fp.appendLine("    echo -n 'Path to Private key: '")
+        fp.appendLine("    read -r identity_file")
+        fp.appendLine("    echo \"add \${YELLOW}'export EASY_CASS_LAB_SSH_KEY=\$identity_file'\${NC} to .bash_profile, .zsh, or similar\"")
+        fp.appendLine("  fi")
         fp.appendLine("  echo \"Writing \$SSH_CONFIG\"")
         fp.appendLine("  tee \$SSH_CONFIG <<- EOF")
         writeSshConfig(fp, "\$identity_file")
