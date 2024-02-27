@@ -28,7 +28,7 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
                 ScpClient.Option.TargetIsDirectory
             )
 
-            context.executeRemotely(it, "ls ~/.ssh/easy_cass_lab_authorized_keys/authorized_keys/*.pub | xargs cat >> ~/.ssh/authorized_keys")
+            context.executeRemotely(it, "ls $uploadDir/$sourceDir/*.pub | xargs cat >> ~/.ssh/authorized_keys")
         }
     }
 
