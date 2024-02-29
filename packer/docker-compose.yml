@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  ubuntu:
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+      - ./cassandra_versions.yaml:/etc/cassandra_versions.yaml

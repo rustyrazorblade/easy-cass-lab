@@ -19,7 +19,8 @@ Grab the repo and do the following to create your AMI.  You need to have an AWS 
 ```shell
 cd packer
 packer init cassandra.pkr.hcl # only needs to be run the first time you setup the project
-packer build cassandra.pkr.hcl
+packer build base.pkr.hcl # build the base image 
+packer build cassandra.pkr.hcl # extends the base image
 ```
 
 You'll get a bunch of output, at the end you'll see something like this:
@@ -85,4 +86,9 @@ This tool is a work in progress and is intended for developers to use to quickly
 
 Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
 
+## Development
+
+```shell
+docker-compose run ubuntu
+```
 

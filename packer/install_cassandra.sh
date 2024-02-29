@@ -1,12 +1,16 @@
 #!/bin/bash
-
+set -x
 # creating cassandra user
 sudo useradd -m cassandra
-
 mkdir cassandra
+
 sudo mkdir -p /usr/local/cassandra
 sudo mkdir -p /mnt/cassandra
 sudo chown -R cassandra:cassandra /mnt/cassandra
+
+# used to skip the expensive checkstyle checks
+
+sudo update-java-alternatives -s java-1.11.0-openjdk-amd64
 
 lsblk
 
@@ -14,36 +18,54 @@ lsblk
 (
 cd cassandra
 
-yq '.[].url' /etc/cassandra_versions.yaml | xargs -I{} wget {}
+YAML=/etc/cassandra_versions.yaml
+VERSIONS=$(yq '.[].version' $YAML)
+echo "Installing versions: $VERSIONS"
 
-#
-# Clone the git repos specified in the yaml file (ending in .git)
-# Use the directory name of the org (apache / rustyrazorblade)
-# as the directory to clone into
-# checkout the branch specified in the yaml file
-# do a build and create the tar.gz
-#
-
-for f in *.tar.gz;
+for version in $VERSIONS;
 do
-    tar zxvf "$f";
-    rm -f "$f";
-done
+  echo "Configuring version: $version"
+  export version
+  URL=$(yq ".[] | select(.version == env(version)) | .url" $YAML)
+  echo $URL
 
-# extracts the version number from the directory name
-# this should be refactored to use the version in the yaml file instead
-regex="apache-cassandra-([0-9].[0-9*]+(-beta[0-9])?)"
+  # if the URL ends in .tar.gz, download it
+  if [[ $URL == *.tar.gz ]]; then
+    echo "Downloading $URL"
+    wget $URL
+    echo $(basename $URL)
+    tar zxvf "$(basename $URL)"
+    rm -f "$(basename $URL)"
+    f=$(basename $URL -bin.tar.gz)
+    sudo mv $f /usr/local/cassandra/$version
+  else
+    # Clone the git repos specified in the yaml file (ending in .git)
+    # Use the directory name of the version field as the dir name
+    # as the directory to clone into
+    # checkout the branch specified in the yaml file
+    # do a build and create the tar.gz
+    BRANCH=$(yq ".[] | select(.version == env(version)) | .branch" $YAML)
 
-for f in apache-cassandra-*/;
-do
-  if [[ $f =~ $regex ]]; then
-    version="${BASH_REMATCH[1]}"
-    echo "Moving $f to $version"
-    rm -rf $f/data
-    cp "$f"/conf/cassandra.yaml "$f"/conf/cassandra.orig.yaml
-    sudo mv "$f" /usr/local/cassandra/$version;
+    # all builds work with JDK 11 for now
+
+    echo "Cloning repo"
+    git clone --depth=1 --single-branch --branch $BRANCH $URL $version
+    (
+      cd $version
+      ant -Dno-checkstyle=true
+      rm -rf .git
+    )
+
+    sudo mv $version /usr/local/cassandra/$version
   fi
+  (
+      cd /usr/local/cassandra/$version
+      rm -rf data
+      sudo cp conf/cassandra.yaml conf/cassandra.orig.yaml
+  )
 done
-
-sudo chown -R cassandra:cassandra /usr/local/cassandra
 )
+
+#rm -rf cassandra
+sudo chown -R cassandra:cassandra /usr/local/cassandra
+

@@ -171,6 +171,12 @@ task buildAll {
     dependsOn "distTar"
 }
 
+task packer(type: Exec) {
+    group "Build"
+    workingDir "packer"
+    commandLine "packer", "build", "cassandra.pkr.hcl"
+}
+
 
 assemble.mustRunAfter clean
 
