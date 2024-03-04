@@ -6,18 +6,9 @@ import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.core.YamlDelegate
 import  com.rustyrazorblade.easycasslab.configuration.*
-import  com.rustyrazorblade.easycasslab.containers.CassandraUnpack
-import org.apache.commons.io.FileUtils
 import org.apache.logging.log4j.kotlin.logger
-import org.apache.sshd.client.SshClient
-import org.apache.sshd.common.keyprovider.KeyIdentityProvider
-import org.apache.sshd.common.util.security.SecurityUtils
-import java.io.File
-import java.io.FileFilter
 import java.io.FileNotFoundException
-import java.time.Duration
 import java.util.*
-import kotlin.io.path.Path
 
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
 class UseCassandra(val context: Context) : ICommand {
@@ -45,8 +36,13 @@ class UseCassandra(val context: Context) : ICommand {
         cassandraHosts.map { host ->
             context.executeRemotely(host, "sudo use-cassandra ${version}")
         }
+        println("Downloading jvm.options configuration file.")
+        DownloadConfig(context).execute()
 
         UpdateConfig(context).execute()
-
+        with (TermColors()) {
+            println("You can update the ${green("cassandra.patch.yaml")} and  ${green("jvm.options")} files " +
+                    "then run ${green("easy-cass-lab update-config")} to apply the changes.")
+        }
     }
 }

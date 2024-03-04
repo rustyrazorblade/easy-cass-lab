@@ -139,6 +139,11 @@ data class Context(val easycasslabUserDirectory: File) {
         client.upload(local, remote)
     }
 
+    fun download(host: Host, remote: String, local: Path) {
+        val client = getScpClient(host)
+        client.download(remote, local)
+    }
+
 
     fun stop() {
         sshClient.stop()

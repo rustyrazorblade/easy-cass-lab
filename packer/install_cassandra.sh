@@ -61,7 +61,27 @@ do
   (
       cd /usr/local/cassandra/$version
       rm -rf data
+      cp -R conf conf.orig
+
       sudo cp conf/cassandra.yaml conf/cassandra.orig.yaml
+
+      # hard link the JVM options if it's not jvm.options
+      # this will allow the user to overwrite jvm.options
+      # we can have consistency across versions this way
+      # it's easier then trying to deal with patching the file
+      # because with patching we need to identify all the GC options
+      # specific to each GC algo
+      # and make sure they're applied exclusively, which isn't really
+      # that big of a win for the amount of work I need to do.
+      JVM_OPTIONS=$(yq ".[] | select(.version == env(version)) | .jvm_options" $YAML)
+      # back it up
+
+      if [[ $JVM_OPTIONS != "jvm.options" ]]; then
+        echo "Linking $JVM_OPTIONS to jvm.options"
+        ln -f conf/$JVM_OPTIONS conf/jvm.options
+      else
+        echo "jvm.options exists, not linking."
+      fi
   )
 done
 )

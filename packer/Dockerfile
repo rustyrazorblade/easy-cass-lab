@@ -11,6 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     git \
     ant \
+    ant-optional \
+    sysstat \
+    unzip \
+    ripgrep \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Python 3 as the default python

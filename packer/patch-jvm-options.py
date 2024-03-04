@@ -1,12 +1,17 @@
-# Accepts 3 arguments
-# Path to base JVM options file
-# Path to patch JVM options file
-# Path to output JVM options file
-#
-# Example: python patch-jvm-options.py \
-#               /usr/local/cassandra/current/conf/jvm.orig.options \
-#               /home/ubuntu/jvm.options \
-#               /usr/local/cassandra/current/conf/jvm.options
+#!/usr/bin/env python3
+
+
+######
+# This is a work in progress. I don't know if we're going to use it.
+# The goal is to be able to patch fragments of the JVM config,
+# but I honestly don't know if there's a point.
+# I started this with the assumption that it's similar to the C* config
+# However looking at it now I realize I'm going to need to edit the file rather than patch it.
+# I might come back to this later
+######
+
+# Examples:
+# python patch-jvm-options.py -v 3.0 -i jvm.patch.options
 
 # read the patch file line by line and index the lines
 
@@ -25,6 +30,8 @@
 
 import sys
 import re
+import argparse
+import yaml
 
 class JVMOption:
     key = None
@@ -50,9 +57,51 @@ class JVMOption:
         return self.key + self.sep + self.value
 
 
+#######################################################
+
+# time to do the thing
+parser = argparse.ArgumentParser(
+    description="Patch JVM options file with a patch file"
+)
+
+group = parser.add_mutually_exclusive_group()
+
+# either specify the output file or the version to patch
+# when specifying a version, the output file is determined by cassandra_versions.yaml
+group.add_argument("-o", "--output", help="Output file.", required=False)
+group.add_argument("-v", "--version", help="Version of Cassandra to patch", required=False)
+
+# we don't need the base
+parser.add_argument("-b", "--base", help="Base config", required=False)
+parser.add_argument("-p", "--patch", help="Patch file", required=True)
+parser.add_argument("-c", help="cassandra_versions.yaml", default="/etc/cassandra_versions.yaml")
+
+args = parser.parse_args()
+
+## extracting all the variables here
+patch = args.patch
+base = args.base
+
+## if we have a version, we can figure out the base file and the output file
+if args.version:
+    print("Version: " + args.version)
+    with open(args.c, "r") as versions:
+        data = yaml.safe_load(versions)
+        if args.version in data:
+            base = data[args.version]["jvm"]
+            output = data[args.version]["jvm"]
+        else:
+            print("Version not found in cassandra_versions.yaml")
+            sys.exit(1)
+
+print(args)
+sys.exit(1)
+
+
+
 # iterate over the patch file line by line and index the lines
 patch = {}
-with open(sys.argv[2], "r") as patch_file:
+with open(args.patch, "r") as patch_file:
     for line in patch_file:
         if line.startswith("#") or line.strip() == "":
             continue
@@ -60,6 +109,7 @@ with open(sys.argv[2], "r") as patch_file:
         patch[option.key] = option
 
 # some arguments are mutually exclusive
+
 
 output = open(sys.argv[3], "w")
 
@@ -79,6 +129,9 @@ with open(sys.argv[1], "r") as base_file:
             print("Keeping " + option.key + " with " + option.value)
             print(option)
             output.write(str(option) + "\n")
+
+
+
 
 # add any remaining patch entries
 for key in patch:

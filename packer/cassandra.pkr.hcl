@@ -12,7 +12,7 @@ locals {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "easy-cass-lab-${local.timestamp}"
+  ami_name      = "easy-cass-lab-cassandra-${local.timestamp}"
   instance_type = "c3.xlarge"
   region        = "us-west-2"
   source_ami_filter {

@@ -18,6 +18,12 @@ class UpdateConfig(val context: Context) : ICommand {
     @Parameter(descriptionKey = "Patch file to upload")
     var file: String = "cassandra.patch.yaml"
 
+    @Parameter(names = ["--jvm"], descriptionKey = "jvm.options file to upload")
+    var jvm = "jvm.options"
+
+    @Parameter(names = ["--version"], descriptionKey = "Version to upload, default is current")
+    var version = "current"
+
     override fun execute() {
         context.requireSshKey()
         // upload the patch file
@@ -37,6 +43,13 @@ class UpdateConfig(val context: Context) : ICommand {
             tmp.deleteExisting()
 
             context.executeRemotely(it, "/usr/local/bin/patch-config $file")
+
+            // uploading jvm.options
+            context.tfstate.getHosts(ServerType.Cassandra).map { host ->
+                context.upload(host, Path.of(jvm), "jvm.options")
+                context.executeRemotely(host, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
+                context.executeRemotely(host, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
+            }
         }
     }
 

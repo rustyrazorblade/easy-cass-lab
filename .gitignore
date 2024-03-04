@@ -123,3 +123,4 @@ disk_setup.sh
 packer/test/test.options
 packer/cassandra/
 
+/jvm.options

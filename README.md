@@ -88,7 +88,20 @@ Interested in contributing?  Check out the [good first issue tag](https://github
 
 ## Development
 
+The packer directory has a docker-compose and Dockerfile that can make it easier to test the build environment, 
+as waiting for AWS can take a significant amount of time.
+
+This is work-in-progress and very developer centric, you may need to mount additional files in the volumes section of docker-compose.yml.
+
 ```shell
-docker-compose run ubuntu
+docker-compose build ubuntu # build the local environment
+docker-compose run ubuntu # test out scripts here
 ```
 
+As an example, to test the Cassandra install, run the Ubuntu container and then do:
+
+```shell
+bash install_cassandra.sh
+```
+
+You should now have a container with multiple versions of Cassandra installed.
