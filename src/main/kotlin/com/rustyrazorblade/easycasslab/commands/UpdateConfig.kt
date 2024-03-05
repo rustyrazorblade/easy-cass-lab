@@ -24,6 +24,9 @@ class UpdateConfig(val context: Context) : ICommand {
     @Parameter(names = ["--version"], descriptionKey = "Version to upload, default is current")
     var version = "current"
 
+    @Parameter(names = ["--restart", "-r"], descriptionKey = "Restart cassandra after patching")
+    var restart = false
+
     override fun execute() {
         context.requireSshKey()
         // upload the patch file
@@ -49,6 +52,10 @@ class UpdateConfig(val context: Context) : ICommand {
                 context.upload(host, Path.of(jvm), "jvm.options")
                 context.executeRemotely(host, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
                 context.executeRemotely(host, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
+            }
+
+            if (restart) {
+                Restart(context).execute()
             }
         }
     }
