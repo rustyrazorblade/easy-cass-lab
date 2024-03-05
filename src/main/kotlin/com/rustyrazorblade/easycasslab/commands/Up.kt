@@ -102,6 +102,10 @@ class Up(val context: Context) : ICommand {
             context.upload(it, Path.of("environment.sh"), "environment.sh")
             context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
         }
+        context.tfstate.withHosts(ServerType.Stress) {
+            context.upload(it, Path.of("environment.sh"), "environment.sh")
+            context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
+        }
         SetupDisks(context).execute()
 
         if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
