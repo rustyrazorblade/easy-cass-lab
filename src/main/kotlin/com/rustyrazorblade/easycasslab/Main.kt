@@ -33,7 +33,7 @@ fun main(arguments: Array<String>) {
         Command("hosts", Hosts(context)),
         Command("init", Init(context)),
         Command("list", ListVersions(context), listOf("ls")),
-        Command("setup-disks", SetupDisks(context)),
+        Command("setup-instances", SetupInstance(context), listOf("si")),
         Command("start", Start(context)),
         Command("stop", Stop(context)),
         Command("restart", Restart(context)),

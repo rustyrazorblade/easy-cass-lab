@@ -5,12 +5,12 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 
-@Parameters(commandDescription = "Sets up the disks for the instances")
-class SetupDisks(val context: Context) : ICommand {
+@Parameters(commandDescription = "Runs setup_instance.sh on all Cassandra instances")
+class SetupInstance(val context: Context) : ICommand {
     override fun execute() {
         context.tfstate.withHosts(ServerType.Cassandra) {
-            context.upload(it, Path.of("disk_setup.sh"), "disk_setup.sh")
-            context.executeRemotely(it, "sudo bash disk_setup.sh")
+            context.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
+            context.executeRemotely(it, "sudo bash setup_instance.sh")
         }
     }
 }

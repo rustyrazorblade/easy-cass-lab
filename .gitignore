@@ -124,3 +124,4 @@ packer/test/test.options
 packer/cassandra/
 
 /jvm.options
+/setup_instance.sh

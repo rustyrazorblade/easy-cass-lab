@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
@@ -67,8 +66,8 @@ class Up(val context: Context) : ICommand {
 
         WriteConfig(context).execute()
 
-        this::class.java.getResourceAsStream("disk_setup.sh").use {
-            val diskSetup = File("disk_setup.sh").bufferedWriter()
+        this::class.java.getResourceAsStream("setup_instance.sh").use {
+            val diskSetup = File("setup_instance.sh").bufferedWriter()
             diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
             diskSetup.flush()
             diskSetup.close()
@@ -106,7 +105,7 @@ class Up(val context: Context) : ICommand {
             context.upload(it, Path.of("environment.sh"), "environment.sh")
             context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
         }
-        SetupDisks(context).execute()
+        SetupInstance(context).execute()
 
         if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
             println("Setting up axonops for ${context.userConfig.axonOpsOrg}")
