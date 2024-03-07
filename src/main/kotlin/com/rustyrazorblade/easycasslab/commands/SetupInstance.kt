@@ -10,6 +10,7 @@ class SetupInstance(val context: Context) : ICommand {
     override fun execute() {
         context.tfstate.withHosts(ServerType.Cassandra) {
             context.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
+            context.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}")
             context.executeRemotely(it, "sudo bash setup_instance.sh")
         }
     }

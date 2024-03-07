@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.Host
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
 import  com.rustyrazorblade.easycasslab.containers.Terraform
 import org.apache.sshd.common.SshException
@@ -97,14 +98,18 @@ class Up(val context: Context) : ICommand {
 
         } while (!done)
 
+        fun setup(host: Host) {
+            context.upload(host, Path.of("environment.sh"), "environment.sh")
+            context.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh")
+        }
+
         context.tfstate.withHosts(ServerType.Cassandra) {
-            context.upload(it, Path.of("environment.sh"), "environment.sh")
-            context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
+            setup(it)
         }
         context.tfstate.withHosts(ServerType.Stress) {
-            context.upload(it, Path.of("environment.sh"), "environment.sh")
-            context.executeRemotely(it, "sudo mv environment.sh /etc/profile.d/stress.sh")
+            setup(it)
         }
+
         SetupInstance(context).execute()
 
         if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {

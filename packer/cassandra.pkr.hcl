@@ -38,6 +38,7 @@ build {
   sources = [
     "source.amazon-ebs.ubuntu"
   ]
+
   provisioner "shell" {
       inline = [
         "sudo umount -l -f /mnt", # needed early on before we do anything with /mnt
@@ -46,6 +47,22 @@ build {
         "sudo apt update"
       ]
   }
+
+  # catch all bin upload
+  # just drop stuff you need in bin and the next 2 provisioners will take care of it
+  provisioner "file" {
+    source = "bin-cassandra"
+    destination = "/home/ubuntu/"
+  }
+  provisioner "shell" {
+    inline = [
+      "sudo mv -v bin-cassandra/* /usr/local/bin/",
+      "sudo chmod +x /usr/local/bin/*",
+      "ls /usr/local/bin",
+      "rmdir bin-cassandra"
+    ]
+  }
+
 
   # easy-cass-stress gets installed on every node.
   provisioner "shell" {
@@ -80,34 +97,6 @@ build {
   }
 
   provisioner "file" {
-    source      = "setup-axonops"
-    destination = "setup-axonops"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "sudo mv setup-axonops /usr/local/bin/setup-axonops",
-      "sudo chmod +x /usr/local/bin/setup-axonops"
-    ]
-  }
-
-  # install my extra nice tools, exa, bat, fd, ripgrep
-  # wrapper for aprof to output results to a folder content shared by nginx
-  # open to what port?
-
-  provisioner "file" {
-    source = "use-cassandra"
-    destination = "use-cassandra"
-  }
-
-  provisioner "shell" {
-    inline = [
-       "sudo mv use-cassandra /usr/local/bin/use-cassandra",
-       "sudo chmod +x /usr/local/bin/use-cassandra"
-    ]
-  }
-
-  provisioner "file" {
     source = "cassandra.service"
     destination = "cassandra.service"
   }
@@ -116,18 +105,6 @@ build {
     inline = [
        "sudo mv cassandra.service /etc/systemd/system/cassandra.service",
        "sudo systemctl enable cassandra.service"
-    ]
-  }
-
-  provisioner "file" {
-    source = "patch-config"
-    destination = "patch-config"
-  }
-
-  provisioner "shell" {
-    inline = [
-       "sudo mv patch-config /usr/local/bin/patch-config",
-       "sudo chmod +x /usr/local/bin/patch-config"
     ]
   }
 
@@ -141,6 +118,18 @@ build {
        "sudo mv patch-jvm-options.py /usr/local/bin/patch-jvm-options.py",
        "sudo chmod +x /usr/local/bin/patch-jvm-options.py"
     ]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "mkdir -p /home/ubuntu/.config/htop/"
+    ]
+  }
+
+  provisioner "file" {
+    source = "htoprc"
+    destination = "/home/ubuntu/.config/htop/htoprc"
+
   }
 
 }

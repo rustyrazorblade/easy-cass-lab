@@ -50,6 +50,8 @@ build {
     ]
   }
 
+
+
   # install pyenv and python
   provisioner "shell" {
     inline = [
@@ -126,6 +128,13 @@ build {
 
 
 
+  provisioner "shell" {
+    inline = [
+      "wget https://training.ragozin.info/sjk.jar",
+      "sudo mv sjk.jar /usr/local/lib",
+      ""
+    ]
+  }
 }
 
 

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+systemctl show --property MainPID --value cassandra
