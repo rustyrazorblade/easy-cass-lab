@@ -149,6 +149,26 @@ class TerraformConfig(@JsonIgnore val region: String,
     var variable = mutableMapOf<String, Variable>()
     val provider = mutableMapOf("aws" to Provider(region, accessKey, secret))
     val resource = AWSResource()
+
+
+    val data = object {
+        val aws_ami = object {
+            val image = object {
+                val most_recent = true
+                val filter = listOf(
+                    object {
+                        val name = "name"
+                        val values = listOf("easy-cass-lab-cassandra-*")
+                    },
+                    object {
+                        val name = "virtualization-type"
+                        val values = listOf("hvm")
+                    }
+                )
+                val owners = listOf("self")
+            }
+        }
+    }
 }
 
 data class Provider(val region: String,
@@ -158,14 +178,20 @@ data class Provider(val region: String,
 data class Variable(val default: Any?, val type: String? = null)
 
 data class InstanceResource(
-    val ami: String = "ami-5153702",
+    var ami: String = "",
     val instance_type: String = "m5d.xlarge",
     val tags: Map<String, String> = mapOf(),
     val vpc_security_group_ids : List<String> = listOf(),
     val key_name : String = "\${var.key_name}",
     val availability_zone: String = "\${element(var.zones, count.index)}",
     val count : Int
-)
+) {
+    init {
+        if (ami == "") {
+            ami = "\${data.aws_ami.image.id}"
+        }
+    }
+}
 
 data class SecurityGroupRule(
     val description: String,

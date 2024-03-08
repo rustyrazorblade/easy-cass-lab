@@ -41,7 +41,7 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Specify when the instances can be deleted", names = ["--until"])
     var until = LocalDate.now().plusDays(1).toString()
 
-    @Parameter(description = "AMI.  Set EASY_CASS_LAB_AMI to set a default.", names = ["--ami"])
+    @Parameter(description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.", names = ["--ami"])
     var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
 
     @Parameter(description = "Cluster name")
@@ -55,8 +55,6 @@ class Init(val context: Context) : ICommand {
         val docker = Docker(context)
         docker.pullImage(Containers.TERRAFORM)
         docker.pullImage(Containers.PSSH)
-
-        check(ami.isNotBlank())
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
 
