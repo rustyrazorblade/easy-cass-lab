@@ -57,6 +57,11 @@ class Configuration(var name: String,
         return this
     }
 
+    fun setTag(key: String, value: String) : Configuration {
+        tags[key] = value
+        return this
+    }
+
     private fun getExternalIpAddress() : String {
         return URL("http://api.ipify.org/").readText()
     }

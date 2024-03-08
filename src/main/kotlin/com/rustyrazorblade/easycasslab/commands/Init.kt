@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.beust.jcommander.DynamicParameter
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
@@ -7,16 +8,11 @@ import com.rustyrazorblade.easycasslab.Containers
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import  com.rustyrazorblade.easycasslab.commands.converters.AZConverter
-import  com.rustyrazorblade.easycasslab.configuration.Dashboards
-import org.reflections.Reflections
-import org.reflections.scanners.ResourcesScanner
 import java.io.File
-import org.apache.commons.io.FileUtils
 import  com.rustyrazorblade.easycasslab.terraform.Configuration
 import  com.rustyrazorblade.easycasslab.containers.Terraform
 import org.apache.logging.log4j.kotlin.logger
 import java.time.LocalDate
-import java.util.zip.GZIPInputStream
 
 
 sealed class CopyResourceResult {
@@ -51,6 +47,9 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Cluster name")
     var name = "test"
 
+    @DynamicParameter(names = ["--tag."], description = "Tag instances")
+    var tags: Map<String, String> = mutableMapOf()
+
     override fun execute() {
         println("Initializing directory")
         val docker = Docker(context)
@@ -82,8 +81,10 @@ class Init(val context: Context) : ICommand {
         config.numStressInstances = stressInstances
         config.cassandraInstanceType = instanceType
 
-        config.setVariable("client", "")
-        config.setVariable("purpose", "")
+        for ((key, value) in tags) {
+            config.setTag(key, value)
+        }
+
         config.setVariable("NeededUntil", until)
 
         if(azs.isNotEmpty()) {

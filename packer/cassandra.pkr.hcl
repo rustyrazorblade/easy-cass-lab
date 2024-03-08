@@ -76,6 +76,10 @@ build {
   # the cassandra_versions.yaml file is used to define all the version of cassandra we want
   # and it's matching java version.  The use command will set the symlink of /usr/local/cassandra
   # to point to the version of cassandra we want to use, and set the java version using update-java-alternatives
+  provisioner "shell-local" {
+    inline = ["touch cassandra_versions_extra.yaml"]
+  }
+
   provisioner "file" {
     source = "cassandra_versions.yaml"
     destination = "cassandra_versions.yaml"

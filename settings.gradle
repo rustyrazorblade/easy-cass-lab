@@ -18,10 +18,5 @@ include 'services:webservice'
 rootProject.name = 'easy-cass-lab'
 
 include "core"
-include "dashboards"
-
-include "docker-cassandra-build"
-include "docker-grafonnet"
 include "docker-pssh"
-
 include "manual"

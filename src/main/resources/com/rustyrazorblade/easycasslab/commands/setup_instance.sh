@@ -61,10 +61,12 @@ else
     sudo mount $DISK /mnt/cassandra
 fi
 
-sudo chown cassandra:cassandra /mnt/cassandra
 sudo blockdev --setra $READAHEAD $DISK
 
-echo
+sudo mkdir /mnt/cassandra/artifacts
+sudo chown cassandra:cassandra /mnt/cassandra
+
+
 
 # Here's some other ideas
 

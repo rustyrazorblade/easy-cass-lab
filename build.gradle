@@ -100,16 +100,10 @@ dependencies {
     implementation 'com.github.ajalt:mordant:1.2.1'
 
     testImplementation "io.mockk:mockk:1.9.3"
-
-    implementation project(path: ":dashboards")
-    implementation project(path: ":core")
 }
 
 build {
     build.dependsOn(":docker-pssh:buildDocker")
-    build.dependsOn(":docker-grafonnet:buildDocker")
-    build.dependsOn(":dashboards:generateDashboards")
-    build.dependsOn(":docker-cassandra-build:buildDocker")
 }
 
 kotlin {
