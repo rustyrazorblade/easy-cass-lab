@@ -30,7 +30,7 @@ class Configuration(var name: String,
     // stress
     var numStressInstances = 0
 
-    var stressInstanceType = "c3.2xlarge"
+    var stressInstanceType = "c7i.2xlarge"
 
     private val config  = TerraformConfig(region, context.userConfig.awsAccessKey, context.userConfig.awsSecret)
 
@@ -212,7 +212,7 @@ data class SecurityGroupResource(
     val description : String,
     val tags: Map<String, String>,
     val ingress: List<SecurityGroupRule>,
-    val egress: List<SecurityGroupRule>
+    val egress: List<SecurityGroupRule>,
 ) {
     class Builder {
         private var name: String = ""

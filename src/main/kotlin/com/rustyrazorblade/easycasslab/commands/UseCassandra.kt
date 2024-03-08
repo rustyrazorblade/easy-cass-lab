@@ -36,7 +36,6 @@ class UseCassandra(val context: Context) : ICommand {
         cassandraHosts.map { host ->
             context.executeRemotely(host, "sudo use-cassandra ${version}")
         }
-        println("Downloading jvm.options configuration file.")
         DownloadConfig(context).execute()
 
         UpdateConfig(context).execute()

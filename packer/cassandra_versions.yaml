@@ -25,6 +25,7 @@
   url: https://dlcdn.apache.org/cassandra/4.1.4/apache-cassandra-4.1.4-bin.tar.gz
   java: "11"
   python: "3.10.6"
+  jvm_options: jvm11-server.options
 
 - version: "5.0-beta1"
   url: https://dlcdn.apache.org/cassandra/5.0-beta1/apache-cassandra-5.0-beta1-bin.tar.gz
@@ -49,3 +50,4 @@
   java_build: "11"
   python: "3.10.6"
   jvm_options: jvm17-server.options
+
