@@ -23,6 +23,7 @@
   python: "3.10.6"
   axonops: "4.0"
   jvm_options: jvm11-server.options
+  ant_flags: "-Duse.jdk11=true"
 
 - version: "4.1"
   url: https://dlcdn.apache.org/cassandra/4.1.4/apache-cassandra-4.1.4-bin.tar.gz
@@ -30,6 +31,7 @@
   python: "3.10.6"
   axonops: "4.1"
   jvm_options: jvm11-server.options
+  ant_flags: "-Duse.jdk11=true"
 
 - version: "5.0-beta1"
   url: https://dlcdn.apache.org/cassandra/5.0-beta1/apache-cassandra-5.0-beta1-bin.tar.gz
