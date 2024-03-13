@@ -5,15 +5,14 @@ curl -L https://packages.axonops.com/apt/repo-signing-key.gpg | sudo gpg --dearm
 echo "deb [arch=arm64,amd64 signed-by=/usr/share/keyrings/axonops.gpg] https://packages.axonops.com/apt axonops-apt main" | sudo tee /etc/apt/sources.list.d/axonops-apt.list
 sudo apt-get update
 
-# install the agent binary which is shared accorss all Casasndra verions
 sudo apt-get install -y axon-agent
 
 
 # download each version of the axon agent
 # unpack each one into /tmp so the files can be placed in the desired places
-for v in $(yq '.[].version' /etc/cassandra_versions.yaml);
+for v in $(yq '.[].axonops' /etc/cassandra_versions.yaml);
 do
-  if [[ $v == *"beta"* ]]; then
+  if [[ $v == "null" ]]; then
     # axonops doesn't publish releases for beta versions
     continue
   fi

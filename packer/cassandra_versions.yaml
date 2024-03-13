@@ -7,24 +7,28 @@
   url: https://dlcdn.apache.org/cassandra/3.0.29/apache-cassandra-3.0.29-bin.tar.gz
   java: "8"
   python: "2.7.18"
+  axonops: "3.0"
   jvm_config: jvm.options
 
 - version: "3.11"
   url: https://dlcdn.apache.org/cassandra/3.11.16/apache-cassandra-3.11.16-bin.tar.gz
   java: "8"
   python: "2.7.18"
+  axonops: "3.11"
   jvm_options: jvm.options
 
 - version: "4.0"
   url: https://dlcdn.apache.org/cassandra/4.0.12/apache-cassandra-4.0.12-bin.tar.gz
   java: "11"
   python: "3.10.6"
+  axonops: "4.0"
   jvm_options: jvm11-server.options
 
 - version: "4.1"
   url: https://dlcdn.apache.org/cassandra/4.1.4/apache-cassandra-4.1.4-bin.tar.gz
   java: "11"
   python: "3.10.6"
+  axonops: "4.1"
   jvm_options: jvm11-server.options
 
 - version: "5.0-beta1"
