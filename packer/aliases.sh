@@ -6,3 +6,15 @@ export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/current/bin:/usr/lo
 
 # use ubuntu users's logs directory for nodetool commands
 export CASSANDRA_LOG_DIR=/home/ubuntu/logs
+
+c() {
+  cqlsh $(hostname)
+}
+
+l() {
+  cd /mnt/cassandra/logs
+}
+
+ts() {
+  tail -f /mnt/cassandra/logs/system.log
+}
