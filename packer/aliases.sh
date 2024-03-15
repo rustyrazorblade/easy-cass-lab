@@ -18,3 +18,9 @@ l() {
 ts() {
   tail -f /mnt/cassandra/logs/system.log
 }
+
+d() {
+  cd /mnt/cassandra/data
+}
+
+
