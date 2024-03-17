@@ -64,13 +64,8 @@ build {
   }
 
 
-  # easy-cass-stress gets installed on every node.
   provisioner "shell" {
-    inline = [
-      "wget https://github.com/rustyrazorblade/easy-cass-stress/releases/download/6.0-preview/easy-cass-stress-6.0.0.zip",
-      "unzip easy-cass-stress-6.0.0.zip",
-      "sudo mv easy-cass-stress-6.0.0 /usr/local/easy-cass-stress",
-    ]
+    script = "install_easy_cass_stress.sh"
   }
 
   # the cassandra_versions.yaml file is used to define all the version of cassandra we want

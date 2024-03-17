@@ -6,6 +6,8 @@ class Clean : ICommand {
     override fun execute() {
         val toDelete = listOf(
                 "create_provisioning_resources.sh",
+                "cassandra.patch.yaml",
+                "jmx.options",
                 "seeds.txt",
                 "terraform.tfstate",
                 "terraform.tfstate.backup",

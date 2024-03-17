@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
@@ -12,6 +13,9 @@ import java.nio.file.Path
 
 @Parameters(commandDescription = "Starts instances")
 class Up(val context: Context) : ICommand {
+
+    @Parameter(names = ["--no-setup", "-n"])
+    var noSetup = false
 
     override fun execute() {
         // we have to list both the variable files explicitly here
@@ -31,10 +35,12 @@ class Up(val context: Context) : ICommand {
             }.onSuccess {
 
                 println("""Instances have been provisioned.
-
-                Use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
                 
-                Supported versions are 3.0, 3.11, 4.0, 4.1, """.trimMargin())
+                Use ${green("easy-cass-lab list")} to see all available versions
+                
+                Then use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
+                
+                """.trimMargin())
 
                 println("Writing ssh config file to sshConfig.")
 
@@ -98,24 +104,31 @@ class Up(val context: Context) : ICommand {
 
         } while (!done)
 
-        fun setup(host: Host) {
-            context.upload(host, Path.of("environment.sh"), "environment.sh")
-            context.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh")
-        }
+        if (noSetup) {
+            with (TermColors()) {
+                println("Skipping node setup.  You will need to run ${green("easy-cass-lab setup-instance to complete setup")}")
 
-        context.tfstate.withHosts(ServerType.Cassandra) {
-            setup(it)
-        }
-        context.tfstate.withHosts(ServerType.Stress) {
-            setup(it)
-        }
+            }
+        } else {
+            fun setup(host: Host) {
+                context.upload(host, Path.of("environment.sh"), "environment.sh")
+                context.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh")
+            }
 
-        SetupInstance(context).execute()
+            context.tfstate.withHosts(ServerType.Cassandra) {
+                setup(it)
+            }
+            context.tfstate.withHosts(ServerType.Stress) {
+                setup(it)
+            }
 
-        if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
-            println("Setting up axonops for ${context.userConfig.axonOpsOrg}")
+            SetupInstance(context).execute()
 
-            ConfigureAxonOps(context).execute()
+            if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
+                println("Setting up axonops for ${context.userConfig.axonOpsOrg}")
+
+                ConfigureAxonOps(context).execute()
+            }
         }
     }
 

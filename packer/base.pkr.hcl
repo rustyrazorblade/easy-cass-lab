@@ -44,7 +44,7 @@ build {
       "sudo apt update",
       "sudo apt upgrade -y",
       "sudo apt update",
-      "sudo apt install -y wget sysstat unzip ripgrep ant ant-optional", # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
+      "sudo apt install -y wget sysstat unzip ripgrep ant ant-optional tree", # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
       "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_amd64 -O /usr/local/bin/yq",
       "sudo chmod +x /usr/local/bin/yq",
     ]

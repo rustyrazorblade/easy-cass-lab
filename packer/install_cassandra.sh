@@ -45,7 +45,7 @@ do
     # checkout the branch specified in the yaml file
     # do a build and create the tar.gz
     BRANCH=$(yq ".[] | select(.version == env(version)) | .branch" $YAML)
-    ANT_FLAGS=$(yq ".[] | select(.version == env(version)) | .ant_flags" $YAML // "")
+    ANT_FLAGS=$(yq '.[] | select(.version == env(version)) | .ant_flags // ""' $YAML)
     # all builds work with JDK 11 for now
 
     echo "Cloning repo"
