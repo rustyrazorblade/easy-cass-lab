@@ -110,17 +110,6 @@ class Up(val context: Context) : ICommand {
 
             }
         } else {
-            fun setup(host: Host) {
-                context.upload(host, Path.of("environment.sh"), "environment.sh")
-                context.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh")
-            }
-
-            context.tfstate.withHosts(ServerType.Cassandra) {
-                setup(it)
-            }
-            context.tfstate.withHosts(ServerType.Stress) {
-                setup(it)
-            }
 
             SetupInstance(context).execute()
 

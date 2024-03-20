@@ -10,7 +10,7 @@ echo "Waiting for Cassandra to be available"
 # Loop until nodetool status exits with 0 or 60 seconds have gone by
 while true; do
     # Run the nodetool status command
-    /usr/local/cassandra/current/bin/nodetool status
+    /usr/local/cassandra/current/bin/nodetool status > /dev/null 2>&1
     status=$?
 
     # If the command was successful, exit the loop
