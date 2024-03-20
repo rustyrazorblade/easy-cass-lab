@@ -1,15 +1,29 @@
 #!/usr/bin/env bash
 
 ###### CONFIGURATION ######
+## ANY VARIABLE NEEDED IN THIS SCRIPT
+## SHOULD BE SET IN THIS BLOCK
 
-#export DISK=/dev/nvme0n1
-export DISK=/dev/xvdb
 export READAHEAD=8
 
+DISK=""
+
+for VOL in nvme1n1 xvdb; do
+  export VOL
+  echo "Checking $VOL"
+  TMP=$(lsblk -o NAME,MOUNTPOINTS -J | yq '.blockdevices[] | select(.name == env(VOL)) | length')
+  if [ -n "$TMP" ]; then
+    DISK="/dev/$VOL"
+    break
+  fi
+done
+
+echo "Using disk: $DISK"
+
+## END CONFIGURATION ###
 ###########################
 
-
-###### system settings #####
+###### SYSTEM SETTINGS // OS TUNINGS #####
 
 sudo sysctl kernel.perf_event_paranoid=1
 sudo sysctl kernel.kptr_restrict=0
@@ -36,34 +50,32 @@ sudo sysctl -p
 
 ########
 
-
-#export DISK=/dev/xvdb
-
-# i3 instances have NVMe drives
-
 sudo mkdir -p /mnt/cassandra
 
-FS_TYPE=$(sudo blkid -o value -s TYPE $DISK )
+if [[ -n "$DISK" ]]; then
+  FS_TYPE=$(sudo blkid -o value -s TYPE $DISK )
 
-if [ -z "$FS_TYPE" ]; then
-  echo "No file system found on $DISK. Formatting with XFS."
-  sudo mkfs.xfs $DISK
-else
-  echo "File system found on $DISK. Not formatting."
+  if [ -z "$FS_TYPE" ]; then
+    echo "No file system found on $DISK. Formatting with XFS."
+    sudo mkfs.xfs $DISK
+  else
+    echo "File system found on $DISK. Not formatting."
+  fi
+
+  sudo mount | grep $DISK
+
+  if [ $? -eq 0 ]; then
+      echo "$1 is mounted already."
+  else
+      echo "$1 is not mounted yet, mounting."
+      sudo mount $DISK /mnt/cassandra
+  fi
+
+  sudo blockdev --setra $READAHEAD $DISK
 fi
 
-sudo mount | grep $DISK
 
-if [ $? -eq 0 ]; then
-    echo "$1 is mounted already."
-else
-    echo "$1 is not mounted yet, mounting."
-    sudo mount $DISK /mnt/cassandra
-fi
-
-sudo blockdev --setra $READAHEAD $DISK
-
-sudo mkdir /mnt/cassandra/artifacts
+sudo mkdir -p /mnt/cassandra/artifacts
 sudo chown cassandra:cassandra /mnt/cassandra
 
 

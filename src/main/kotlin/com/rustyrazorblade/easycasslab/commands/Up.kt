@@ -106,7 +106,7 @@ class Up(val context: Context) : ICommand {
 
         if (noSetup) {
             with (TermColors()) {
-                println("Skipping node setup.  You will need to run ${green("easy-cass-lab setup-instance to complete setup")}")
+                println("Skipping node setup.  You will need to run ${green("easy-cass-lab setup-instance")} to complete setup")
 
             }
         } else {
