@@ -23,4 +23,5 @@ d() {
   cd /mnt/cassandra/data
 }
 
+alias nt="nodetool"
 

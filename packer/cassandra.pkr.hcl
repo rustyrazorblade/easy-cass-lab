@@ -12,12 +12,12 @@ locals {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "easy-cass-lab-cassandra-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${local.timestamp}"
   instance_type = "c3.xlarge"
   region        = "us-west-2"
   source_ami_filter {
     filters = {
-      name                = "easy-cass-lab-base-*"
+      name                = "rustyrazorblade/images/easy-cass-lab-base-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -48,6 +48,16 @@ build {
       ]
   }
 
+  # set up environment with PATH and aliases
+  provisioner "file" {
+    source = "environment"
+    destination = "environment"
+  }
+
+  provisioner "shell" {
+    inline = ["sudo mv environment /etc/environment"]
+  }
+
   # catch all bin upload
   # just drop stuff you need in bin and the next 2 provisioners will take care of it
   provisioner "file" {
@@ -71,9 +81,6 @@ build {
   # the cassandra_versions.yaml file is used to define all the version of cassandra we want
   # and it's matching java version.  The use command will set the symlink of /usr/local/cassandra
   # to point to the version of cassandra we want to use, and set the java version using update-java-alternatives
-  provisioner "shell-local" {
-    inline = ["touch cassandra_versions_extra.yaml"]
-  }
 
   provisioner "file" {
     source = "cassandra_versions.yaml"
@@ -130,6 +137,8 @@ build {
     destination = "/home/ubuntu/.config/htop/htoprc"
 
   }
+
+
 
 }
 

@@ -76,14 +76,7 @@ fi
 
 
 sudo mkdir -p /mnt/cassandra/artifacts
-sudo chown cassandra:cassandra /mnt/cassandra
+sudo chown -R cassandra:cassandra /mnt/cassandra
 
 sudo mkdir /mnt/cassandra/tmp
 sudo chmod 777 /mnt/cassandra/tmp/
-
-
-# Here's some other ideas
-
-# multiple drives in a RAID
-# multiple drives using JBOD
-

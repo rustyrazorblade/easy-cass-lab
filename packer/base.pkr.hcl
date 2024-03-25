@@ -12,7 +12,7 @@ locals {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "easy-cass-lab-base-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${local.timestamp}"
   instance_type = "c3.xlarge"
   region        = "us-west-2"
   source_ami_filter {

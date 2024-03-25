@@ -158,7 +158,7 @@ class TerraformConfig(@JsonIgnore val region: String,
                 val filter = listOf(
                     object {
                         val name = "name"
-                        val values = listOf("easy-cass-lab-cassandra-*")
+                        val values = listOf("rustyrazorblade/images/easy-cass-lab-cassandra-*")
                     },
                     object {
                         val name = "virtualization-type"
