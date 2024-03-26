@@ -37,6 +37,7 @@
   url: https://dlcdn.apache.org/cassandra/5.0-beta1/apache-cassandra-5.0-beta1-bin.tar.gz
   java: "17"
   python: "3.10.6"
+  axonops: "5.0"
   jvm_options: jvm17-server.options
 
 
@@ -46,6 +47,7 @@
   java: "17"
   java_build: "11"
   python: "3.10.6"
+  axonops: 5.0
   jvm_options: jvm17-server.options
 
 
@@ -55,5 +57,6 @@
   java: "17"
   java_build: "11"
   python: "3.10.6"
+  axonops: 5.0
   jvm_options: jvm17-server.options
 
