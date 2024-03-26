@@ -18,5 +18,4 @@ include 'services:webservice'
 rootProject.name = 'easy-cass-lab'
 
 include "core"
-include "docker-pssh"
-include "manual"
+//include "manual"
