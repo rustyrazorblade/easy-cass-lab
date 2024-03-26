@@ -171,6 +171,16 @@ task packer(type: Exec) {
     commandLine "packer", "build", "cassandra.pkr.hcl"
 }
 
+distributions {
+    main {
+        // Include the "packer" directory in the distribution
+        contents {
+            from('packer') {
+                into 'packer'
+            }
+        }
+    }
+}
 
 assemble.mustRunAfter clean
 
