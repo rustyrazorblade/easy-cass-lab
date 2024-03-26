@@ -10,27 +10,36 @@ sudo apt-get install -y axon-agent
 
 # download each version of the axon agent
 # unpack each one into /tmp so the files can be placed in the desired places
-for v in $(yq '.[].axonops' /etc/cassandra_versions.yaml);
+for cassandra_version in $(yq '.[].version' /etc/cassandra_versions.yaml);
 do
+  export cassandra_version
+  v=$(yq '.[] | select(.version == env(cassandra_version)) | .axonops' /etc/cassandra_versions.yaml)
   if [[ $v == "null" ]]; then
-    # axonops doesn't publish releases for beta versions
+    # if an axonops version is not specified for a cassandra version skip it
+    echo "skipping axonops install for $cassandra_version"
     continue
   fi
-  sudo apt install --download-only axon-cassandra$v-agent
+  echo "installing axonops-agent $v for cassandra $cassandra_version"
 
   tempdir=/tmp/axonops/$v
-  targetdir=/usr/local/cassandra/$v/lib
+  targetdir=/usr/local/cassandra/$cassandra_version/lib
   jar=axon-cassandra$v-agent.jar
-  mkdir -p $tempdir
-  # find the file since axon package version is unknown
-  file=$(sudo find /var/cache/apt/archives/ -name "axon-cassandra$v*")
-  echo "unpacking $file to $tempdir for copy into $targetdir (jar=$jar)"
-  dpkg-deb -xv $file $tempdir
+  echo "tmpdir=$tempdir, targetdir=$targetdir, jar=$jar"
+
+  if [ ! -d $tempdir ]; then
+    mkdir -p $tempdir
+    # find the file since axon package version is unknown
+    sudo apt install --download-only axon-cassandra$v-agent
+    file=$(sudo find /var/cache/apt/archives/ -name "axon-cassandra$v*")
+    echo "unpacking $file to $tempdir"
+    dpkg-deb -xv $file $tempdir
+  fi
+
   sudo cp $tempdir/usr/share/axonops/$jar $targetdir
   sudo chown cassandra:cassandra $targetdir/$jar
 
   # create the EnvironmentFile used by the systemd unit to wire up the agent
-  envfile=/usr/local/cassandra/$v/conf/axonenv.template
+  envfile=/usr/local/cassandra/$cassandra_version/conf/axonenv.template
   echo "JVM_EXTRA_OPTS=\"-javaagent:$targetdir/$jar=/etc/axonops/axon-agent.yml\"" | sudo tee $envfile
   sudo chown cassandra:cassandra $envfile
 done

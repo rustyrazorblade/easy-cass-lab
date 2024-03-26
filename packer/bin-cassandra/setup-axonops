@@ -16,10 +16,12 @@ if [ -z "$KEY" ]; then
 fi
 
 # copy axonenv into place for each version
-for v in $(yq '.[].axonops' /etc/cassandra_versions.yaml);
+for v in $(yq '.[].version' /etc/cassandra_versions.yaml);
 do
-  if [[ $v == "null" ]]; then
-    # axonops doesn't publish releases for beta or in-development versions
+  export v
+  av=$(yq '.[] | select(.version == env(v)) | .axonops' /etc/cassandra_versions.yaml);
+  if [[ $av == "null" ]]; then
+    # skip version that doesn't have axonops configure via cassandra_versions.yaml
     continue
   fi
   sudo cp /usr/local/cassandra/$v/conf/axonenv.template /usr/local/cassandra/$v/conf/axonenv
