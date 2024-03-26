@@ -143,6 +143,12 @@ class TFState(val context: Context,
             i++
         }
 
+        i=0
+        getHosts(ServerType.Stress).forEach {
+            fp.appendLine("alias s${i}=\"ssh stress${i}\"")
+            i++
+        }
+
         fp.appendLine()
 
         val content = this.javaClass.getResourceAsStream("env.sh").bufferedReader()

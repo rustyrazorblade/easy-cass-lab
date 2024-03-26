@@ -10,6 +10,7 @@ echo -e "${NC_BOLD}  ssh\n  sftp\n  scp\n  rsync\n${NC}"
 echo "The aliases point the commands they override to your new cluster."
 echo -e "To undo these changes exit this terminal.\n"
 
+mkdir -p artifacts
 
 SSH_CONFIG="$(pwd)/sshConfig"
 alias ssh="ssh -F $SSH_CONFIG"
@@ -25,84 +26,30 @@ c-all () {
     done
 }
 
-alias c-restart="c-all sudo systemctl restart cassandra.service"
-alias c-status="c0 nodetool status"
-alias c-tpstats="c-all nodetool tpstats"
-
-c-collect-artifacts() {
-    NAME="$1"
-    if [ -z "$NAME" ]
-    then
-        echo "name required"
-        return
-    fi
-
-    ARTIFACT_DIR="artifacts/$NAME"
-    mkdir -p $ARTIFACT_DIR
-    
-    echo $NAME > $ARTIFACT_DIR/issue.txt
-
+c-dl () {
     for i in "${SERVERS[@]}"
     do
-        echo "Collecting $i"
-        NODE_ARTIFACT_DIR=$ARTIFACT_DIR/extracted/$i
-        (
-            mkdir -p $NODE_ARTIFACT_DIR
-            cd $NODE_ARTIFACT_DIR
-            mkdir nodetool os storage cloud conf
-
-            #schema
-            ssh $i 'cqlsh $(hostname) -e "DESC SCHEMA"' > schema.cql
-
-            # ndoetool
-            ssh $i 'nodetool status' > nodetool/status.txt
-            ssh $i 'nodetool tablestats' > nodetool/cfstats.txt
-            ssh $i 'nodetool describecluster' > nodetool/describecluster.txt
-            ssh $i 'nodetool info' > nodetool/info.txt
-            ssh $i 'nodetool version' > nodetool/version.txt
-            ssh $i 'nodetool tpstats' > nodetool/tpstats.txt
-            ssh $i 'nodetool proxyhistograms' > nodetool/proxyhistograms.txt
-            ssh $i 'nodetool netstats' > nodetool/netstats.txt
-
-            # other OS
-            ssh $i 'sar -A' > os/sar.txt
-            ssh $i 'sudo blockdev --report' > os/blockdev-report.txt
-            ssh $i 'hostname' > os/hostname.txt
-            ssh $i 'cat /proc/meminfo' > os/meminfo
-            ssh $i 'cat /proc/cpuinfo' > os/cpuinfo
-            ssh $i 'lscpu' > os/lscpu.txt
-
-            # configs
-            rsync $i:/etc/cassandra/ ./conf/
-            rsync $i:/var/log/cassandra/ ./logs/
-
-            # JMX
-            ssh $i -C 'cd provisioning/cassandra; java -cp collector-0.11.1-SNAPSHOT.jar io.prometheus.jmx.JmxScraper service:jmx:rmi:///jndi/rmi://127.0.0.1:7199/jmxrmi' > metrics.jmx
-        )
+        rsync $i:/mnt/cassandra/artifacts/ artifacts/$i
     done
 }
+
+alias c-restart="c-all /usr/local/bin/restart-cassandra-and-wait"
+alias c-status="c0 nodetool status"
+alias c-tpstats="c-all nodetool tpstats"
 
 alias c-start="c-all sudo systemctl start cassandra.service"
 alias c-df="c-all df -h | grep -E 'cassandra|Filesystem'"
 
+
 c-flame() {
   HOST=$1
-
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  NAME=$(ssh $HOST -C /usr/local/cassandra-profiler/cassandra-flamegraph)
-  scp $HOST:$NAME .
-  echo $NAME
-
-}
-
-c-flame-alloc() {
-  HOST=$1
-
-  [ -z "$HOST" ] &&  echo "Host is required"
-
-  NAME=$(ssh $HOST -C /usr/local/cassandra-profiler/cassandra-flamegraph -e alloc)
-  scp $HOST:$NAME .
-  echo $NAME
-
+  if [[ $HOST =~ cassandra[0-9*] ]]; then
+    mkdir -p artifacts/$1
+    ssh $HOST -C /usr/local/bin/flamegraph "${@:2}"
+    c-dl
+  else
+    echo "Host must be in the format cassandra[0-9*]."
+  fi
 }
