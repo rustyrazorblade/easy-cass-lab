@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -7,12 +8,16 @@ import org.apache.sshd.scp.client.ScpClient
 import java.nio.file.Paths
 import kotlin.io.path.exists
 
-@Parameters(commandDescription = "upload authorized (public) keys from the ./authorized_keys directory")
+@Parameters(commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory")
 class UploadAuthorizedKeys(val context: Context) : ICommand {
 
+    @Parameter(descriptionKey = "Local directory of authorized keys")
+    var localDir = "authorized_keys"
+
     override fun execute() {
-        if (!Paths.get(sourceDir).exists()) {
-            println("$sourceDir does not exist")
+        var path = Paths.get(localDir)
+        if (!path.exists()) {
+            println("$localDir does not exist")
             System.exit(1)
         }
 
@@ -21,7 +26,7 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
 
             val scp = context.getScpClient(it)
             scp.upload(
-                Paths.get(sourceDir),
+                path,
                 uploadDir,
                 ScpClient.Option.Recursive,
                 ScpClient.Option.PreserveAttributes,
