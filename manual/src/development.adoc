@@ -27,24 +27,6 @@ where `PROJECT-NAME` is one of the subproject directories you see in the top lev
 
 We recommend updating your local Docker service to use 8GB of memory. This is necessary when running dashboard previews locally. The preview is configured to run multiple Cassandra containers at once.
 
-== Subprojects
-
-=== dashboards
-
-This subproject provides tools to preview the dashboards and build them using the Grafonnet Docker container (from the docker-grafonnet subproject).
-
-=== docker-cassandra-build
-
-This container builds the DEB package that installs Cassandra on a node.
-
-=== docker-pssh
-
-This subproject provides tools to perform provisioning operations in parallel on nodes in the cluster.
-
-=== docker-grafonnet
-
-This container builds the JSON files that define the Grafana dashboards.
-
 
 == Publishing
 
@@ -56,10 +38,6 @@ This container builds the JSON files that define the Grafana dashboards.
 ----
 ./gradlew :manual:asciidoctor :manual:publish
 
-# optional, if docker containers have changed
-./gradlew :docker-cassandra-build:push
-./gradlew :docker-grafonnet:push
-./gradlew :docker-pssh:push
 # end of optional stuff
 
 ./gradlew buildAll uploadAll

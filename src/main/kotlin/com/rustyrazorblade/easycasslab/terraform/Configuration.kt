@@ -15,7 +15,8 @@ typealias Ami = String
 class Configuration(var name: String,
                     var region: String,
                     var context: Context,
-                    val ami: Ami) {
+                    val ami: Ami,
+                    val open: Boolean) {
 
 
     var numCassandraInstances = 3
@@ -101,10 +102,12 @@ class Configuration(var name: String,
         val externalCidr = listOf("${getExternalIpAddress()}/32")
         val suffix = List(4) { Random.nextInt(0, 100) }.joinToString("")
 
+        val sshRule = if (open) listOf("0.0.0.0/0") else externalCidr
+
         val name = "easycasslab_${name}_${suffix}"
         val instanceSg = SecurityGroupResource.Builder()
             .newSecurityGroupResource(name,"easy-cass-lab security group", tags)
-            .withInboundRule(22, 22, "tcp", externalCidr, "SSH")
+            .withInboundRule(22, 22, "tcp", sshRule, "SSH")
             .withInboundSelfRule(0, 65535, "tcp", "Intra node")
             .withInboundRule(9090, 9090, "tcp", externalCidr, "Prometheus GUI")
             .withInboundRule(3000, 3000, "tcp", externalCidr, "Grafana GUI")

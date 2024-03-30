@@ -102,9 +102,6 @@ dependencies {
     testImplementation "io.mockk:mockk:1.9.3"
 }
 
-build {
-    build.dependsOn(":docker-pssh:buildDocker")
-}
 
 kotlin {
     jvmToolchain(11)

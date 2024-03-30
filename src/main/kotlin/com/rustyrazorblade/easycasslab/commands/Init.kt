@@ -44,6 +44,9 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.", names = ["--ami"])
     var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
 
+    @Parameter(description = "Unrestricted SSH access", names = ["--open"])
+    var open = false
+
     @Parameter(description = "Cluster name")
     var name = "test"
 
@@ -54,7 +57,6 @@ class Init(val context: Context) : ICommand {
         println("Initializing directory")
         val docker = Docker(context)
         docker.pullImage(Containers.TERRAFORM)
-        docker.pullImage(Containers.PSSH)
 
         val allowedTypes = listOf("m1", "m3", "t1", "c1", "c3", "cc2", "cr1", "m2", "r3", "d2", "hs1", "i2", "c5", "m5", "t3")
 
@@ -72,7 +74,7 @@ class Init(val context: Context) : ICommand {
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        var config = Configuration(name, context.userConfig.region, context, ami)
+        var config = Configuration(name, context.userConfig.region, context, ami, open)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances
