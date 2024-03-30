@@ -78,5 +78,8 @@ fi
 sudo mkdir -p /mnt/cassandra/artifacts
 sudo chown -R cassandra:cassandra /mnt/cassandra
 
-sudo mkdir /mnt/cassandra/tmp
+sudo mkdir -p /mnt/cassandra/tmp
 sudo chmod 777 /mnt/cassandra/tmp/
+
+# enable cap_perfmon for all JVMs to allow for off-cpu profiling
+sudo find /usr/lib/jvm/ -type f -name 'java' -exec setcap "cap_perfmon,cap_sys_ptrace,cap_syslog=ep" {} \;
