@@ -103,6 +103,18 @@ build {
   }
 
   provisioner "file" {
+    source = "axonops-sudoers"
+    destination = "axonops-sudoers"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "sudo chown root:root axonops-sudoers",
+      "sudo mv axonops-sudoers /etc/sudoers.d/axonops",
+    ]
+  }
+
+  provisioner "file" {
     source = "cassandra.service"
     destination = "cassandra.service"
   }
@@ -135,11 +147,7 @@ build {
   provisioner "file" {
     source = "htoprc"
     destination = "/home/ubuntu/.config/htop/htoprc"
-
   }
-
-
-
 }
 
 
