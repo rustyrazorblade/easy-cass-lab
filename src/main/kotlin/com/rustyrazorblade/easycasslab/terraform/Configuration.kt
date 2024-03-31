@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.io.File
@@ -96,6 +97,7 @@ class Configuration(var name: String,
         setVariable("key_name", context.userConfig.keyName)
         setVariable("key_path", context.userConfig.sshKeyPath)
         setVariable("region", region)
+        setVariable("name", name);
 
         setVariable("zones", Variable(azs))
 
@@ -143,14 +145,24 @@ class Configuration(var name: String,
         build()
         mapper.writeValue(f, config)
     }
+
+    companion object {
+        fun readTerraformConfig(f: File): TerraformConfig {
+            val mapper = ObjectMapper().registerKotlinModule()
+
+            return mapper.readValue(f, TerraformConfig::class.java)
+        }
+    }
 }
 
-class TerraformConfig(@JsonIgnore val region: String,
-                      @JsonIgnore val accessKey: String,
-                      @JsonIgnore val secret: String) {
+class TerraformConfig(@JsonIgnore val region: String?,
+                      @JsonIgnore val accessKey: String?,
+                      @JsonIgnore val secret: String?) {
+
+    constructor() : this("", "", "");
 
     var variable = mutableMapOf<String, Variable>()
-    val provider = mutableMapOf("aws" to Provider(region, accessKey, secret))
+    val provider = mutableMapOf("aws" to Provider(region ?: "", accessKey ?: "", secret ?: ""))
     val resource = AWSResource()
 
 

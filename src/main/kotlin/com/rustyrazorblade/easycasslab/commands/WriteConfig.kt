@@ -4,6 +4,8 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.terraform.Configuration
+import com.rustyrazorblade.easycasslab.terraform.TerraformConfig
 import java.io.File
 
 
@@ -19,8 +21,12 @@ class WriteConfig(val context: Context) : ICommand {
         println("Writing new configuration file to $file.") // create the cassandra.yaml patch file
         println("It can be applied to the lab via easy-cass-lab update-config (or automatically when calling use-cassandra)")
 
+        val tConfig = Configuration.readTerraformConfig(File("terraform.tf.json")) // TODO (jwest): don't hardcode TF config path (also hardcoded in init)
+        val nameVar = tConfig.variable.get("name")
+        val clusterName =  if (nameVar?.default is String) nameVar.default else "Test Cluster"
+
         val data = object {
-            val cluster_name = "Test Cluster" // TODO: put actual cluster name here
+            val cluster_name = clusterName
             val num_tokens = tokens
             val seed_provider = object {
                 val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
