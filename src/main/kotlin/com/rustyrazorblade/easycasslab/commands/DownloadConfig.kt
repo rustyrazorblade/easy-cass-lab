@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
+import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
@@ -31,11 +32,13 @@ class DownloadConfig(val context: Context) : ICommand {
         var file = Path.of(name)
         println(file.toUri())
 
-        if (!file.exists() || overwrite ) {
-            println("Downloading jvm.options configuration file to $file")
-            context.download(host, path, file)
-        } else {
-            println("$file exists and --overwrite is false.")
+        with(TermColors()) {
+            if (!file.exists() || overwrite) {
+                println("Downloading jvm.options configuration file to $file")
+                context.download(host, path, file)
+            } else {
+                println(green("$file exists and --overwrite is false, not overwriting."))
+            }
         }
     }
 }

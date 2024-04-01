@@ -106,13 +106,17 @@ data class Context(val easycasslabUserDirectory: File) {
         client
     }
 
+    val sessions = mutableMapOf<Host, ClientSession>()
+
     private fun getSession(host: Host): ClientSession {
-        val session = sshClient.connect("ubuntu", host.public, 22)
-            .verify(Duration.ofSeconds(10))
-            .session
-        session.addPublicKeyIdentity(keyPairs.first())
-        session.auth().verify()
-        return session
+        return sessions.getOrPut(host) {
+            val session = sshClient.connect("ubuntu", host.public, 22)
+                .verify(Duration.ofSeconds(10))
+                .session
+            session.addPublicKeyIdentity(keyPairs.first())
+            session.auth().verify()
+            session
+        }
     }
 
     fun executeRemotely(host: Host, command: String) {
