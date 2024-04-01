@@ -146,9 +146,7 @@ easy-cass-lab start
 
 ### Log In and Have Fun!
 
-Generate flame graphs with `flamegraph`.
-
-Directories:
+**Important Directories:**
 
 ```shell
 # The ephemeral or EBS disk is automatically formatted as XFS and mounted here.
@@ -166,6 +164,44 @@ Directories:
 # flame graphs
 /mnt/cassandra/artifacts
 ```
+
+Multiple cassandra versions are installed at /usr/local/cassandra.
+
+The current version is symlinked as /usr/local/cassandra/current:
+
+```shell
+ubuntu@cassandra0:~$ readlink /usr/local/cassandra/current
+/usr/local/cassandra/4.1
+```
+
+This allows us to support updating, mixed version clusters, A/B version testing, etc.
+
+
+**Profiling**
+
+Using easy-cass-lab env.sh you can run a profile, which will automatically download after it's complete:
+
+```shell
+c-flame cassandra0
+```
+
+The data will be saved in `artifacts/cassandra0`
+
+Or on a node, generate flame graphs with `flamegraph`.
+
+**Aliases**
+
+| command | action                                |
+| --------|---------------------------------------|
+ | c | cqlsh (auto use the correct hostname) |
+| ts | tail cassandra system log             |
+| nt | nodetool                              | 
+| d | cd to /mnt/cassandra/data directory   | 
+| l | list /mnt/cassandra/logs directory    | 
+| v | ls -lahG (friendly output)            |
+
+
+
 
 ### Shut it Down
 
