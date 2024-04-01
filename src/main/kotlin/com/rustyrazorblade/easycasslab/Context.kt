@@ -111,7 +111,7 @@ data class Context(val easycasslabUserDirectory: File) {
     private fun getSession(host: Host): ClientSession {
         return sessions.getOrPut(host) {
             val session = sshClient.connect("ubuntu", host.public, 22)
-                .verify(Duration.ofSeconds(10))
+                .verify(Duration.ofSeconds(60))
                 .session
             session.addPublicKeyIdentity(keyPairs.first())
             session.auth().verify()

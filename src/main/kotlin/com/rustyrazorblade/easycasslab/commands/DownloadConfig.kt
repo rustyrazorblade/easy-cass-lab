@@ -11,16 +11,16 @@ import kotlin.io.path.exists
  * Downloads configuration.
  */
 class DownloadConfig(val context: Context) : ICommand {
-    @Parameter(names = ["--host"], descriptionKey = "Host to download from, optional")
+    @Parameter(names = ["--host"], description = "Host to download from, optional")
     var host = ""
 
-    @Parameter(names = ["--file", "-f"], descriptionKey = "Name of the file")
+    @Parameter(names = ["--file", "-f"], description = "Name of the file")
     var name = "jvm.options"
 
-    @Parameter(names = ["--overwrite", "-o"], descriptionKey = "Overwrite the file if it exists")
+    @Parameter(names = ["--overwrite", "-o"], description = "Overwrite the file if it exists")
     var overwrite = false
 
-    @Parameter(names = ["--version"], descriptionKey = "Version to download, default is current")
+    @Parameter(names = ["--version"], description = "Version to download, default is current")
     var version = "current"
     override fun execute() {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
