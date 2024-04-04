@@ -68,6 +68,8 @@ class Up(val context: Context) : ICommand {
 
         stressEnvironmentVars.write("export  EASY_CASS_STRESS_CASSANDRA_HOST=$host")
         stressEnvironmentVars.newLine()
+        stressEnvironmentVars.write("export  EASY_CASS_STRESS_PROM_PORT=0")
+        stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
 
