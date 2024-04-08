@@ -8,11 +8,13 @@ export READAHEAD=8
 
 DISK=""
 
-for VOL in nvme1n1 xvdb; do
+for VOL in nvme0n1 nvme1n1 xvdb; do
   export VOL
   echo "Checking $VOL"
-  TMP=$(lsblk -o NAME,MOUNTPOINTS -J | yq '.blockdevices[] | select(.name == env(VOL)) | length')
-  if [ -n "$TMP" ]; then
+  TMP=$(lsblk -o NAME,MOUNTPOINTS -J | yq '.blockdevices[] | select(.name == env(VOL)) | has("children")')
+  echo $TMP
+
+  if [[ "${TMP}" == "false" ]]; then
     DISK="/dev/$VOL"
     break
   fi
