@@ -11,6 +11,8 @@ import  com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import java.io.File
 import  com.rustyrazorblade.easycasslab.terraform.Configuration
 import  com.rustyrazorblade.easycasslab.containers.Terraform
+import com.rustyrazorblade.easycasslab.terraform.EBSConfiguration
+import com.rustyrazorblade.easycasslab.terraform.EBSType
 import org.apache.logging.log4j.kotlin.logger
 import java.time.LocalDate
 
@@ -47,6 +49,12 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Unrestricted SSH access", names = ["--open"])
     var open = false
 
+    @Parameter(description = "EBS Volume Type", names = ["--ebs.type"])
+    var ebs_type = EBSType.NONE
+
+    @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
+    var ebs_size = 256
+
     @Parameter(description = "Cluster name")
     var name = "test"
 
@@ -74,7 +82,8 @@ class Init(val context: Context) : ICommand {
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        var config = Configuration(name, context.userConfig.region, context, ami, open)
+        val ebs = EBSConfiguration(ebs_type, ebs_size)
+        var config = Configuration(name, context.userConfig.region, context, ami, open, ebs)
         println("Directory Initialized Configuring Terraform")
 
         config.numCassandraInstances = cassandraInstances

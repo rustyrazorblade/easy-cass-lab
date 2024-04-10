@@ -13,11 +13,23 @@ import kotlin.random.Random
 
 typealias Ami = String
 
+enum class EBSType(val type: String) {
+    NONE(""),
+    GP2("gp2"),
+    GP3("gp3")
+}
+
+data class EBSConfiguration(
+    val type: EBSType,
+    val size: Int
+)
+
 class Configuration(var name: String,
                     var region: String,
                     var context: Context,
                     val ami: Ami,
-                    val open: Boolean) {
+                    val open: Boolean,
+                    val ebs: EBSConfiguration) {
 
 
     var numCassandraInstances = 3
@@ -75,7 +87,8 @@ class Configuration(var name: String,
                                     count: Int,
                                     securityGroups: List<String>,
                                     tags: Map<String, String>) : Configuration {
-        val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count)
+        val ebsConf = if (ebs.type != EBSType.NONE) createEbsConf(ebs) else null
+        val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count, ebs_block_device = ebsConf)
         config.resource.aws_instance[key] = conf
         return this
     }
@@ -153,6 +166,10 @@ class Configuration(var name: String,
 
             return mapper.readValue(f, TerraformConfig::class.java)
         }
+
+        fun createEbsConf(ebs: EBSConfiguration): InstanceEBSBlockDevice {
+            return InstanceEBSBlockDevice(volume_type = ebs.type.type, volume_size = ebs.size)
+        }
     }
 }
 
@@ -200,7 +217,8 @@ data class InstanceResource(
     val vpc_security_group_ids : List<String> = listOf(),
     val key_name : String = "\${var.key_name}",
     val availability_zone: String = "\${element(var.zones, count.index)}",
-    val count : Int
+    val count : Int,
+    val ebs_block_device: InstanceEBSBlockDevice? = null
 ) {
     init {
         if (ami == "") {
@@ -208,6 +226,16 @@ data class InstanceResource(
         }
     }
 }
+
+data class InstanceEBSBlockDevice(
+    val volume_type: String = "", // TODO (jwest): what default to use?
+    val volume_size: Int = 256,
+    val device_name: String = "/dev/xvdb", // TODO (jwest): probably not the right volume name to use
+    val iops: Int = 0,
+    val throughput: Int = 0,
+    val delete_on_termination: Boolean = true,
+    val encrypted: Boolean = false,
+)
 
 data class SecurityGroupRule(
     val description: String,
