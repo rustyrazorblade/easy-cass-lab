@@ -23,7 +23,8 @@ data class EBSConfiguration(
     val type: EBSType,
     val size: Int,
     val iops: Int,
-    val throughput: Int
+    val throughput: Int,
+    val optimized_instance: Boolean
 )
 
 class Configuration(var name: String,
@@ -90,7 +91,8 @@ class Configuration(var name: String,
                                     securityGroups: List<String>,
                                     tags: Map<String, String>) : Configuration {
         val ebsConf = if (ebs.type != EBSType.NONE && serverType == ServerType.Cassandra) createEbsConf(ebs) else null
-        val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count, ebs_block_device = ebsConf)
+        val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count,
+            ebs_block_device = ebsConf, ebs_optimized = ebs.optimized_instance && serverType == ServerType.Cassandra)
         config.resource.aws_instance[serverType.serverType] = conf
         return this
     }
@@ -222,7 +224,8 @@ data class InstanceResource(
     val key_name : String = "\${var.key_name}",
     val availability_zone: String = "\${element(var.zones, count.index)}",
     val count : Int,
-    val ebs_block_device: InstanceEBSBlockDevice? = null
+    val ebs_block_device: InstanceEBSBlockDevice? = null,
+    val ebs_optimized: Boolean = false,
 ) {
     init {
         if (ami == "") {
