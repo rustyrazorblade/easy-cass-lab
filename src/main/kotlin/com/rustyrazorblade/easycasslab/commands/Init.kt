@@ -55,6 +55,12 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
     var ebs_size = 256
 
+    @Parameter(description = "EBS Volume IOPS", names = ["--ebs.iops"])
+    var ebs_iops = 0
+
+    @Parameter(description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')", names = ["--ebs.throughput"])
+    var ebs_throughput = 0
+
     @Parameter(description = "Cluster name")
     var name = "test"
 
@@ -82,7 +88,7 @@ class Init(val context: Context) : ICommand {
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        val ebs = EBSConfiguration(ebs_type, ebs_size)
+        val ebs = EBSConfiguration(ebs_type, ebs_size, ebs_iops, ebs_throughput)
         var config = Configuration(name, context.userConfig.region, context, ami, open, ebs)
         println("Directory Initialized Configuring Terraform")
 

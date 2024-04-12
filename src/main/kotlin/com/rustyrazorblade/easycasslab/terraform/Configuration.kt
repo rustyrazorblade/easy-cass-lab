@@ -21,7 +21,9 @@ enum class EBSType(val type: String) {
 
 data class EBSConfiguration(
     val type: EBSType,
-    val size: Int
+    val size: Int,
+    val iops: Int,
+    val throughput: Int
 )
 
 class Configuration(var name: String,
@@ -81,15 +83,15 @@ class Configuration(var name: String,
         return URL("http://api.ipify.org/").readText()
     }
 
-    private fun setInstanceResource(key: String,
+    private fun setInstanceResource(serverType: ServerType,
                                     ami: Ami,
                                     instanceType: String,
                                     count: Int,
                                     securityGroups: List<String>,
                                     tags: Map<String, String>) : Configuration {
-        val ebsConf = if (ebs.type != EBSType.NONE) createEbsConf(ebs) else null
+        val ebsConf = if (ebs.type != EBSType.NONE && serverType == ServerType.Cassandra) createEbsConf(ebs) else null
         val conf = InstanceResource(ami, instanceType, tags, vpc_security_group_ids = securityGroups, count = count, ebs_block_device = ebsConf)
-        config.resource.aws_instance[key] = conf
+        config.resource.aws_instance[serverType.serverType] = conf
         return this
     }
 
@@ -133,14 +135,14 @@ class Configuration(var name: String,
         setSecurityGroupResource(instanceSg)
 
         setInstanceResource(
-            "cassandra",
+            ServerType.Cassandra,
             ami,
             cassandraInstanceType,
             numCassandraInstances,
             listOf(instanceSg.name),
             setTagName(tags, ServerType.Cassandra))
         setInstanceResource(
-            "stress",
+            ServerType.Stress,
             ami,
             stressInstanceType,
             numStressInstances,
@@ -168,7 +170,9 @@ class Configuration(var name: String,
         }
 
         fun createEbsConf(ebs: EBSConfiguration): InstanceEBSBlockDevice {
-            return InstanceEBSBlockDevice(volume_type = ebs.type.type, volume_size = ebs.size)
+            val throughput = if (ebs.type != EBSType.GP3) 0 else ebs.throughput
+            return InstanceEBSBlockDevice(volume_type = ebs.type.type, volume_size = ebs.size,
+                iops = ebs.iops, throughput = throughput)
         }
     }
 }
