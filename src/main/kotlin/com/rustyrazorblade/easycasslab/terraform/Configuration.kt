@@ -173,8 +173,9 @@ class Configuration(var name: String,
 
         fun createEbsConf(ebs: EBSConfiguration): InstanceEBSBlockDevice {
             val throughput = if (ebs.type != EBSType.GP3) 0 else ebs.throughput
+            val iops = if (ebs.type != EBSType.GP3) 0 else ebs.iops
             return InstanceEBSBlockDevice(volume_type = ebs.type.type, volume_size = ebs.size,
-                iops = ebs.iops, throughput = throughput)
+                iops = iops, throughput = throughput)
         }
     }
 }

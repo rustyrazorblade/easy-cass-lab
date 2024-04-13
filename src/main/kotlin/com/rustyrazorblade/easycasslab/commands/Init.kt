@@ -55,7 +55,7 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
     var ebs_size = 256
 
-    @Parameter(description = "EBS Volume IOPS", names = ["--ebs.iops"])
+    @Parameter(description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'", names = ["--ebs.iops"])
     var ebs_iops = 0
 
     @Parameter(description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')", names = ["--ebs.throughput"])
