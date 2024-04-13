@@ -34,8 +34,11 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Start instances automatically", names = ["--up"])
     var start = false
 
-    @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance"])
+    @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance", "-i"])
     var instanceType =  System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
+
+    @Parameter(description = "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.", names = ["--stress-instance", "-si"])
+    var stressInstanceType =  System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
 
     @Parameter(description = "Limit to specified availability zones", names = ["--azs", "--az", "-z"], listConverter = AZConverter::class)
     var azs: List<String> = listOf()
@@ -98,6 +101,7 @@ class Init(val context: Context) : ICommand {
         config.numCassandraInstances = cassandraInstances
         config.numStressInstances = stressInstances
         config.cassandraInstanceType = instanceType
+        config.stressInstanceType = stressInstanceType
 
         for ((key, value) in tags) {
             config.setTag(key, value)
