@@ -4,14 +4,14 @@
 # and will be used as the name in /usr/local/cassandra-<version>
 
 - version: "3.0"
-  url: https://dlcdn.apache.org/cassandra/3.0.29/apache-cassandra-3.0.29-bin.tar.gz
+  url: https://dlcdn.apache.org/cassandra/3.0.30/apache-cassandra-3.0.30-bin.tar.gz
   java: "8"
   python: "2.7.18"
   axonops: "3.0"
   jvm_config: jvm.options
 
 - version: "3.11"
-  url: https://dlcdn.apache.org/cassandra/3.11.16/apache-cassandra-3.11.16-bin.tar.gz
+  url: https://dlcdn.apache.org/cassandra/3.11.17/apache-cassandra-3.11.17-bin.tar.gz
   java: "8"
   python: "2.7.18"
   axonops: "3.11"
