@@ -48,8 +48,7 @@ EOF
 
 sudo swapoff --all
 
-sudo sysctl -p
-
+sudo sysctl -p /etc/sysctl.d/60-cassandra.conf
 ########
 
 sudo mkdir -p /mnt/cassandra
