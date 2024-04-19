@@ -22,6 +22,7 @@ alias rsync="rsync -ave 'ssh -F $SSH_CONFIG'"
 c-all () {
     for i in "${SERVERS[@]}"
     do
+        echo "Executing on $i"
         ssh $i $@
     done
 }
@@ -29,6 +30,7 @@ c-all () {
 c-dl () {
     for i in "${SERVERS[@]}"
     do
+        ssh $i "sudo chown -R ubuntu /mnt/cassandra/artifacts/"
         rsync $i:/mnt/cassandra/artifacts/ artifacts/$i
     done
 }
