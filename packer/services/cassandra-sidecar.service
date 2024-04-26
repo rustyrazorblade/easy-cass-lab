@@ -1,0 +1,10 @@
+[Unit]
+Description=Apache Cassandra Sidecar
+
+[Service]
+ExecStart=/usr/local/cassandra-sidecar/bin/cassandra-sidecar
+User=cassandra
+
+[Install]
+WantedBy=multi-user.target
+

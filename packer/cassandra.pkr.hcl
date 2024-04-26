@@ -75,7 +75,7 @@ build {
 
 
   provisioner "shell" {
-    script = "install_easy_cass_stress.sh"
+    script = "install/install_easy_cass_stress.sh"
   }
 
   # the cassandra_versions.yaml file is used to define all the version of cassandra we want
@@ -88,18 +88,23 @@ build {
   }
 
   provisioner "shell" {
+    script = "install/install_sidecar.sh"
+  }
+
+
+  provisioner "shell" {
     inline = [
         "sudo mv cassandra_versions.yaml /etc/cassandra_versions.yaml"
     ]
   }
 
   provisioner "shell" {
-    script = "install_cassandra.sh"
+    script = "install/install_cassandra.sh"
   }
 
   # instal axonops
   provisioner "shell" {
-    script = "install_axon.sh"
+    script = "install/install_axon.sh"
   }
 
   provisioner "file" {
@@ -115,14 +120,15 @@ build {
   }
 
   provisioner "file" {
-    source = "cassandra.service"
-    destination = "cassandra.service"
+    source = "services"
+    destination = "services"
   }
 
   provisioner "shell" {
     inline = [
-       "sudo mv cassandra.service /etc/systemd/system/cassandra.service",
-       "sudo systemctl enable cassandra.service"
+       "sudo mv services/* /etc/systemd/system/",
+       "sudo systemctl enable cassandra.service",
+       "sudo systemctl enable cassandra-sidecar.service"
     ]
   }
 
