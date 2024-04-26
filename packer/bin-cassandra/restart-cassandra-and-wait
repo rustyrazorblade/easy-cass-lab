@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo "Restarting Cassandra..."
+echo "Maybe restarting Cassandra..."
 
-nodetool drain
+nodetool drain || true
 sudo systemctl restart cassandra
 
 # Get the start time in seconds
