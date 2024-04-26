@@ -71,20 +71,9 @@ build {
       "pyenv install 3.10.6"
     ]
   }
-
-  provisioner "shell" {
-    inline = [
-      "mkdir fio",
-      "cd fio",
-      "wget https://github.com/axboe/fio/archive/refs/tags/fio-3.36.zip",
-      "unzip fio-*.zip",
-      "cd fio-fio*",
-      "./configure",
-      "make",
-      "sudo make install",
-      "cd ..",
-      "rm -rf fio"
-    ]
+  provisioner "file" {
+    source = "install_fio.sh"
+    destination = "install_fio.sh"
   }
 
   # install async profiler

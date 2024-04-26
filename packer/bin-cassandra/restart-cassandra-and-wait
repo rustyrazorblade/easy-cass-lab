@@ -1,6 +1,8 @@
 #!/bin/bash
 
 echo "Restarting Cassandra..."
+
+nodetool drain
 sudo systemctl restart cassandra
 
 # Get the start time in seconds
@@ -33,4 +35,7 @@ while true; do
     sleep 2
 done
 
-echo "Cassandra is up"
+echo "Nodetool reporting node as up.  Sleeping for 5"
+sleep 5
+
+

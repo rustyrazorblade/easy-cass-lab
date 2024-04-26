@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/current/bin:/usr/local/cassandra/current/tools/bin:/usr/local/async-profiler/bin:/usr/local/easy-cass-stress/bin"
+export ART="/mnt/cassandra/artifacts"
+export CASSANDRA_YAML="/usr/local/cassandra/current/conf/cassandra.yaml"
+# use ubuntu users's logs directory for nodetool commands
+export CASSANDRA_LOG_DIR=/home/ubuntu/logs
+
 alias nt="nodetool"
 alias v="ls -lahG"
 alias ts="tail -f -n1000 /mnt/cassandra/logs/system.log"
@@ -14,12 +20,4 @@ alias cdd="cd /mnt/cassandra/data"
 alias cdl="cd /mnt/cassandra/logs"
 alias cda="cd /mnt/cassandra/artifacts"
 alias cdc="cd /usr/local/cassandra/current/conf"
-
-export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/current/bin:/usr/local/cassandra/current/tools/bin:/usr/local/async-profiler/bin:/usr/local/easy-cass-stress/bin"
-export ART="/mnt/cassandra/artifacts"
-export CASSANDRA_YAML="/usr/local/cassandra/current/cassandra.yaml"
-# use ubuntu users's logs directory for nodetool commands
-export CASSANDRA_LOG_DIR=/home/ubuntu/logs
-
-
 
