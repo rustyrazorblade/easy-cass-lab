@@ -21,6 +21,7 @@ class Start(val context: Context) : ICommand {
                 context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait")
                 println("Sleeping for $sleep seconds to stagger cluster joins.")
                 Thread.sleep(sleep * 1000)
+                context.executeRemotely(it, "sudo systemctl start cassandra-sidecar")
 
             }
         }

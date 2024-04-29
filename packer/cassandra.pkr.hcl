@@ -54,6 +54,13 @@ build {
     destination = "environment"
   }
 
+  provisioner "file" {
+    source = "config"
+    destination = "config"
+  }
+
+
+
   provisioner "shell" {
     inline = ["sudo mv environment /etc/environment"]
   }
@@ -91,12 +98,16 @@ build {
     script = "install/install_sidecar.sh"
   }
 
+  provisioner "shell" {
+    inline = ["sudo mv config/cassandra-sidecar.yaml /usr/local/cassandra-sidecar/conf/sidecar.yaml"]
+  }
 
   provisioner "shell" {
     inline = [
         "sudo mv cassandra_versions.yaml /etc/cassandra_versions.yaml"
     ]
   }
+
 
   provisioner "shell" {
     script = "install/install_cassandra.sh"

@@ -79,6 +79,8 @@ fi
 sudo mkdir -p /mnt/cassandra/artifacts
 chmod 777 /mnt/cassandra/artifacts
 
+sudo mkdir /mnt/cassandra/import
+
 sudo chown -R cassandra:cassandra /mnt/cassandra
 
 sudo mkdir -p /mnt/cassandra/tmp

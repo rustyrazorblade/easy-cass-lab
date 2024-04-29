@@ -35,7 +35,7 @@ while true; do
     sleep 2
 done
 
-echo "Nodetool reporting node as up.  Sleeping for 5"
-sleep 5
+echo "Nodetool reporting node as up.  Waiting on port 9042."
 
-
+while ! ss -tulwn | grep ':9042' ; do sleep 1; done
+echo "Port 9042 available"
