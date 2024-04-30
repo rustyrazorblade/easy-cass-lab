@@ -71,9 +71,9 @@ build {
       "pyenv install 3.10.6"
     ]
   }
-  provisioner "file" {
-    source = "install_fio.sh"
-    destination = "install_fio.sh"
+
+  provisioner "shell" {
+    script = "install/install_fio.sh"
   }
 
   # install async profiler
@@ -89,7 +89,7 @@ build {
 
 
   provisioner "shell" {
-    script = "install_bcc.sh"
+    script = "install/install_bcc.sh"
   }
 
   provisioner "shell" {
