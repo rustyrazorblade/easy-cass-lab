@@ -98,8 +98,14 @@ class TFState(val context: Context,
 //        }
     }
 
-    fun withHosts(serverType: ServerType, withHost: (h: Host) -> Unit) {
-        getHosts(serverType).forEach(withHost)
+    /**
+     * Host filter is a simple string check for now.
+     */
+    fun withHosts(serverType: ServerType, hostFilter: String, withHost: (h: Host) -> Unit) {
+        val hostSet = hostFilter.split(",").filter{ it.isNotBlank()}.toSet()
+        getHosts(serverType).filter {it
+            hostSet.isEmpty() || it.alias in hostSet
+        }.forEach(withHost)
     }
 
     fun writeSshConfig(config: BufferedWriter) {

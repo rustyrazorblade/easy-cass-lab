@@ -12,8 +12,8 @@ import kotlin.io.path.inputStream
 
 @Parameters(commandDescription = "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml.  Done automatically after use-cassandra.")
 class UpdateConfig(val context: Context) : ICommand {
-    @Parameter(names = ["--host"], descriptionKey = "Host to patch, optional")
-    var host: String = ""
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
 
     @Parameter(descriptionKey = "Patch file to upload")
     var file: String = "cassandra.patch.yaml"
@@ -30,8 +30,7 @@ class UpdateConfig(val context: Context) : ICommand {
     override fun execute() {
         context.requireSshKey()
         // upload the patch file
-        val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-        cassandraHosts.map {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             println("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())
@@ -48,15 +47,16 @@ class UpdateConfig(val context: Context) : ICommand {
             context.executeRemotely(it, "/usr/local/bin/patch-config $file")
 
             // uploading jvm.options
-            context.tfstate.getHosts(ServerType.Cassandra).map { host ->
-                context.upload(host, Path.of(jvm), "jvm.options")
-                context.executeRemotely(host, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
-                context.executeRemotely(host, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
-            }
 
-            if (restart) {
-                Restart(context).execute()
-            }
+            context.upload(it, Path.of(jvm), "jvm.options")
+            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
+            context.executeRemotely(it, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
+
+        }
+        if (restart) {
+            val restart = Restart(context)
+            restart.hosts = hosts
+            restart.execute()
         }
     }
 

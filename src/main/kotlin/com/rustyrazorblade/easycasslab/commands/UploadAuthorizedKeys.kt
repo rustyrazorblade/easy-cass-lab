@@ -16,6 +16,9 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
+
     override fun execute() {
         val path = Paths.get(localDir)
         if (!path.exists()) {
@@ -24,8 +27,8 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
         }
 
         val upload = doUpload(path)
-        context.tfstate.withHosts(ServerType.Cassandra) { upload(it) }
-        context.tfstate.withHosts(ServerType.Stress) { upload(it) }
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
+        context.tfstate.withHosts(ServerType.Stress, "") { upload(it) }
     }
 
     companion object {

@@ -14,6 +14,9 @@ class ConfigureAxonOps(val context: Context) : ICommand {
     @Parameter(description = "AxonOps API Key", names = ["--key"])
     var key = ""
 
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
+
     override fun execute() {
         context.requireSshKey()
 
@@ -24,7 +27,7 @@ class ConfigureAxonOps(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        context.tfstate.withHosts(ServerType.Cassandra) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             println("Configure axonops on $it")
 
             context.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey")

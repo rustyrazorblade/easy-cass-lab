@@ -17,6 +17,9 @@ class Up(val context: Context) : ICommand {
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
 
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
+
     override fun execute() {
         // we have to list both the variable files explicitly here
         // even though we have a terraform.tvars
@@ -95,7 +98,7 @@ class Up(val context: Context) : ICommand {
         do {
 
             try {
-                context.tfstate.withHosts(ServerType.Cassandra) {
+                context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                     context.executeRemotely(it, "echo 1")
                 }
                 done = true

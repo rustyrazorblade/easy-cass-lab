@@ -5,24 +5,27 @@ import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import org.apache.logging.log4j.core.jmx.Server
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
 
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
-    var sleep : Long  = 5
+    var sleep : Long  = 30
+
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
 
     override fun execute() {
         context.requireSshKey()
-        val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-        cassandraHosts.map {
-            with(TermColors()) {
+
+        with(TermColors()) {
+            context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Starting $it"))
-                context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait")
+                context.executeRemotely(it, "sudo systemctl start cassandra")
                 println("Sleeping for $sleep seconds to stagger cluster joins.")
                 Thread.sleep(sleep * 1000)
                 context.executeRemotely(it, "sudo systemctl start cassandra-sidecar")
-
             }
         }
 

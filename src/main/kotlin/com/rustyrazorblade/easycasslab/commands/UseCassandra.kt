@@ -6,6 +6,7 @@ import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.core.YamlDelegate
 import  com.rustyrazorblade.easycasslab.configuration.*
+import org.apache.logging.log4j.core.jmx.Server
 import org.apache.logging.log4j.kotlin.logger
 import java.io.FileNotFoundException
 import java.util.*
@@ -14,6 +15,9 @@ import java.util.*
 class UseCassandra(val context: Context) : ICommand {
     @Parameter
     var version: String = ""
+
+    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
+    var hosts = ""
 
     val log = logger()
 
@@ -32,13 +36,20 @@ class UseCassandra(val context: Context) : ICommand {
         }
 
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-        println("Using version ${version} on ${cassandraHosts.size} hosts")
-        cassandraHosts.map { host ->
-            context.executeRemotely(host, "sudo use-cassandra ${version}")
+        println("Using version ${version} on ${cassandraHosts.size} hosts, filter: $hosts")
+
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+            context.executeRemotely(it, "sudo use-cassandra ${version}")
+
         }
+
         DownloadConfig(context).execute()
 
-        UpdateConfig(context).execute()
+        // make sure we only apply the to the filtered hosts
+        val uc = UpdateConfig(context)
+        uc.hosts = hosts
+        uc.execute()
+
         with (TermColors()) {
             println("You can update the ${green("cassandra.patch.yaml")} and  ${green("jvm.options")} files " +
                     "then run ${green("easy-cass-lab update-config")} to apply the changes.")
