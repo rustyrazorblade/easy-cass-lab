@@ -16,7 +16,7 @@ easy-cass-lab provides tooling to create the AMI and provision the environments.
 
 The following must be set up before using this project:
 
-* AWS Account with API Credentials - TODO links
+* [Setup AWS Account API Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 * [Install Packer](https://developer.hashicorp.com/packer/install?ajs_aid=dc7c0e66-3245-44af-87cd-e692bd64d1df&product_intent=packer)
 * [Install Docker](https://www.docker.com/products/docker-desktop/)
 
