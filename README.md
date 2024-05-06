@@ -24,7 +24,6 @@ The following must be set up before using this project:
 
 Either clone and build the repo or grab a release.
 
-
 ### Download A Release
 
 Download the latest [release](https://github.com/rustyrazorblade/easy-cass-lab/releases) and add the project's bin directory
@@ -34,13 +33,13 @@ to your PATH.
 export PATH="$PATH:/Users/username/path/to/easy-cass-lab/bin"
 ```
 
-You can skip to Create Your AMI.
+You can skip to Build the Universal AMI
 
 ### Optional: Build the Project
 
-If you've downloaded a pre-built release you can skip this step.
+If you've downloaded a pre-built release, you can skip this step.
 
-If you're using the project repo you'll need to build the project. Fortunately, it's straightforward.
+If you're using the project repo, you'll need to build the project. Fortunately, it's straightforward.
 
 The following command should be run from the root directory of the project.
 Docker will need to be running for this step.
@@ -60,7 +59,7 @@ packer build base.pkr.hcl # build the base image
 packer build cassandra.pkr.hcl # extends the base image
 ```
 
-You'll get a bunch of output, at the end you'll see something like this:
+You'll get a bunch of output from Packer. At the end, you'll see something like this:
 
 ```text
 ==> Builds finished. The artifacts of successful builds are:
@@ -68,21 +67,28 @@ You'll get a bunch of output, at the end you'll see something like this:
 us-west-2: ami-abcdeabcde1231231
 ```
 
+That means you're ready!
+
 ### Optional: Set the AMI 
 
 When you create a cluster, you can optionally pass an `--ami`, or set `EASY_CASS_LAB_AMI`. 
 
 If you don't specify an AMI, it'll use the latest AMI you've built.
 
+### Read the Help
+
+Run `easy-cass-lab` without any parameters to view all the commands an options.
 
 ### Create The Environment 
 
 First create a directory for the environment, then initialize it, and start the instances.
 
+This directory is your working space for the cluster.
+
 ```bash
 mkdir cluster
 cd cluster
-easy-cass-lab init 
+easy-cass-lab init -c 3 -s 1 myclustername # 3 node cluster with 1 stress instance
 ```
 
 You can start your instances now.
@@ -177,9 +183,12 @@ ubuntu@cassandra0:~$ readlink /usr/local/cassandra/current
 This allows us to support updating, mixed version clusters, A/B version testing, etc.
 
 
-**Profiling**
+**Profiling with Flame Graphs**
 
-Using easy-cass-lab env.sh you can run a profile, which will automatically download after it's complete:
+https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/
+
+Using easy-cass-lab `env.sh`, you can run a profile and generate a flamegraph, 
+which will automatically download after it's complete by doing the following:
 
 ```shell
 c-flame cassandra0
@@ -189,7 +198,23 @@ The data will be saved in `artifacts/cassandra0`
 
 Or on a node, generate flame graphs with `flamegraph`.
 
+There are several convenient aliases defined in env.sh. 
+You may substitute any cassandra host.  
+You may pass extra parameters, they will be passed along automatically.
+
+
+| Command                 | Description                                                                              |
+|-------------------------|------------------------------------------------------------------------------------------|
+| `c-flame`      | CPU Flame graph                                                                          |
+| `c-flame-wall` | wall clock profiling, picks up I/O, parked threads filtered out                          |
+| `c-flame-compaction` | More specific wall clock profiling to compaction                                         |
+| `c-flame-offcpu ` | Just tracks time spent when cpu is unscheduled, mostly I/O                               |
+| `c-flame-sepworker`       | Request handling, by default this is CPU time. You can add -e wall to make it wall time. |
+
+
 **Aliases**
+
+On each node there are several aliases for commonly run commands:
 
 | command | action                                |
 | --------|---------------------------------------|
@@ -199,8 +224,6 @@ Or on a node, generate flame graphs with `flamegraph`.
 | d | cd to /mnt/cassandra/data directory   | 
 | l | list /mnt/cassandra/logs directory    | 
 | v | ls -lahG (friendly output)            |
-
-
 
 
 ### Shut it Down
@@ -214,6 +237,8 @@ easy-cass-lab down
 ## Tools
 
 bcc-tools is a useful package of tools 
+
+https://rustyrazorblade.com/post/2023/2023-11-14-bcc-tools/
 
 
 Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
