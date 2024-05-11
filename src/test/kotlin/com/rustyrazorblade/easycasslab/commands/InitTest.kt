@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import  com.rustyrazorblade.easycasslab.Context
-import  com.rustyrazorblade.easycasslab.terraform.Configuration
+import  com.rustyrazorblade.easycasslab.terraform.AWSConfiguration
 import io.mockk.every
 import io.mockk.mockkObject
 import org.assertj.core.api.Assertions.assertThat
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 
 internal class InitTest {
     val testContext = Context.testContext()
-    val testConfiguration = Configuration("test", "us-west-2", testContext, "ami-abcd")
+    val testAWSConfiguration = AWSConfiguration("test", "us-west-2", testContext, "ami-abcd")
 
 
     @Test
@@ -29,7 +29,7 @@ internal class InitTest {
         mockkObject(init)
 
         every { init.writeTerraformConfig(any()) } returns Result.success("")
-        every { init.initializeDirectory(any(), any()) } returns testConfiguration
+        every { init.initializeDirectory(any(), any()) } returns testAWSConfiguration
 
         init.execute()
     }

@@ -2,15 +2,16 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import com.rustyrazorblade.easycasslab.terraform.Configuration
-import com.rustyrazorblade.easycasslab.terraform.TerraformConfig
+import com.rustyrazorblade.easycasslab.terraform.AWSConfiguration
 import java.io.File
 
 
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
-class WriteConfig(val context: Context) : ICommand {
+class WriteConfig(@JsonIgnore val context: Context) : ICommand {
     @Parameter(description = "Patch file name")
     var file: String = "cassandra.patch.yaml"
 
@@ -21,12 +22,10 @@ class WriteConfig(val context: Context) : ICommand {
         println("Writing new configuration file to $file.") // create the cassandra.yaml patch file
         println("It can be applied to the lab via easy-cass-lab update-config (or automatically when calling use-cassandra)")
 
-        val tConfig = Configuration.readTerraformConfig(File("terraform.tf.json")) // TODO (jwest): don't hardcode TF config path (also hardcoded in init)
-        val nameVar = tConfig.variable.get("name")
-        val clusterName =  if (nameVar?.default is String) nameVar.default else "Test Cluster"
+        val state = ClusterState.load()
 
         val data = object {
-            val cluster_name = clusterName
+            val cluster_name = state.name
             val num_tokens = tokens
             val seed_provider = object {
                 val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"

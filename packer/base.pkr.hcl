@@ -54,22 +54,7 @@ build {
 
   # install pyenv and python
   provisioner "shell" {
-    inline = [
-      "sudo apt update -y",
-      "sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev",
-      "curl https://pyenv.run | bash",
-      # add to ~/.bash_profile for use on instance
-      "echo 'export PATH=\"$HOME/.pyenv/bin:$PATH\"' >> ~/.bash_profile",
-      "echo 'eval \"$(pyenv init --path)\"' >> ~/.bash_profile",
-      "echo 'eval \"$(pyenv virtualenv-init -)\"' >> ~/.bash_profile",
-      # now load it in for Packer build
-      "export PATH=\"$HOME/.pyenv/bin:$PATH\"",
-      "eval \"$(pyenv init --path)\"",
-      "eval \"$(pyenv virtualenv-init -)\"",
-      # now install python
-      "pyenv install 2.7.18",
-      "pyenv install 3.10.6"
-    ]
+    script = "install/install_python.sh"
   }
 
   provisioner "shell" {

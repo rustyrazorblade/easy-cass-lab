@@ -20,7 +20,8 @@ class Clean : ICommand {
                 "environment.sh",
                 "setup_instance.sh",
                 ".terraform.lock.hcl",
-                "logs"
+                "logs",
+                "state.json"
         )
 
         for(f in toDelete) {

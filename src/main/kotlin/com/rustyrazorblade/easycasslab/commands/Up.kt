@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.Host
@@ -12,7 +13,7 @@ import java.io.File
 import java.nio.file.Path
 
 @Parameters(commandDescription = "Starts instances")
-class Up(val context: Context) : ICommand {
+class Up(@JsonIgnore val context: Context) : ICommand {
 
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false

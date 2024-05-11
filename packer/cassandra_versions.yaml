@@ -60,3 +60,10 @@
   axonops: 5.0
   jvm_options: jvm17-server.options
 
+- version: "5.0-14542"
+  url: https://github.com/jrwest/cassandra.git
+  branch: jwest/15452-5.0
+  java: "11"
+  java_build: "11"
+  python: "3.10.6"
+  jvm_options: jvm11-server.options

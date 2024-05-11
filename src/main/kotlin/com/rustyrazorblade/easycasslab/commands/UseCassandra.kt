@@ -2,32 +2,31 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
-import  com.rustyrazorblade.easycasslab.core.YamlDelegate
 import  com.rustyrazorblade.easycasslab.configuration.*
-import org.apache.logging.log4j.core.jmx.Server
 import org.apache.logging.log4j.kotlin.logger
 import java.io.FileNotFoundException
-import java.util.*
 
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
-class UseCassandra(val context: Context) : ICommand {
+class UseCassandra(@JsonIgnore val context: Context) : ICommand {
     @Parameter
     var version: String = ""
 
     @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
     var hosts = ""
 
+    @JsonIgnore
     val log = logger()
 
 //    @Parameter(description = "Configuration settings to change in the cassandra.yaml file specified in the format key:value,...", names = ["--config", "-c"])
 //    var configSettings = listOf<String>()
 
-    val yaml by YamlDelegate()
 
     override fun execute() {
         check(version.isNotBlank())
+        val state = ClusterState.load()
         try {
             context.tfstate
         } catch (e: FileNotFoundException) {
@@ -38,14 +37,18 @@ class UseCassandra(val context: Context) : ICommand {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
         println("Using version ${version} on ${cassandraHosts.size} hosts, filter: $hosts")
 
+        // save the cluster state
+
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             context.executeRemotely(it, "sudo use-cassandra ${version}")
-
+            state.versions?.put(it.alias, version)
         }
+
+        state.save()
 
         DownloadConfig(context).execute()
 
-        // make sure we only apply the to the filtered hosts
+        // make sure we only apply to the filtered hosts
         val uc = UpdateConfig(context)
         uc.hosts = hosts
         uc.execute()

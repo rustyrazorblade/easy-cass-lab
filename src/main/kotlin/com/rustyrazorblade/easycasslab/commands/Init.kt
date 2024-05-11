@@ -3,27 +3,23 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.DynamicParameter
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Containers
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import  com.rustyrazorblade.easycasslab.commands.converters.AZConverter
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import java.io.File
-import  com.rustyrazorblade.easycasslab.terraform.Configuration
+import  com.rustyrazorblade.easycasslab.terraform.AWSConfiguration
 import  com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.terraform.EBSType
 import org.apache.logging.log4j.kotlin.logger
 import java.time.LocalDate
 
-
-sealed class CopyResourceResult {
-    class Created(val fp: File) : CopyResourceResult()
-    class Existed(val fp: File) : CopyResourceResult()
-}
-
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
-class Init(val context: Context) : ICommand {
+class Init(@JsonIgnore val context: Context) : ICommand {
 
     @Parameter(description = "Number of Cassandra instances", names = ["--cassandra", "-c"])
     var cassandraInstances = 3
@@ -37,7 +33,7 @@ class Init(val context: Context) : ICommand {
     @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance", "-i"])
     var instanceType =  System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
-    @Parameter(description = "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.", names = ["--stress-instance", "-si"])
+    @Parameter(description = "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.", names = ["--stress-instance", "-si", "--si"])
     var stressInstanceType =  System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
 
     @Parameter(description = "Limit to specified availability zones", names = ["--azs", "--az", "-z"], listConverter = AZConverter::class)
@@ -81,14 +77,22 @@ class Init(val context: Context) : ICommand {
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        val ebs = EBSConfiguration(ebs_type, ebs_size, ebs_iops, ebs_throughput, ebs_optimized)
-        var config = Configuration(name, context.userConfig.region, context, ami, open, ebs)
-        println("Directory Initialized Configuring Terraform")
+        val state = ClusterState(name = name, versions = mutableMapOf())
+        state.save()
 
-        config.numCassandraInstances = cassandraInstances
-        config.numStressInstances = stressInstances
-        config.cassandraInstanceType = instanceType
-        config.stressInstanceType = stressInstanceType
+        val ebs = EBSConfiguration(ebs_type, ebs_size, ebs_iops, ebs_throughput, ebs_optimized)
+        val config = AWSConfiguration(name,
+            region=context.userConfig.region,
+            context=context,
+            ami=ami,
+            open=open,
+            ebs=ebs,
+            numCassandraInstances=cassandraInstances,
+            cassandraInstanceType = instanceType,
+            numStressInstances = stressInstances,
+            stressInstanceType = stressInstanceType)
+
+        println("Directory Initialized Configuring Terraform")
 
         for ((key, value) in tags) {
             config.setTag(key, value)
@@ -116,7 +120,7 @@ class Init(val context: Context) : ICommand {
         }
     }
 
-    fun writeTerraformConfig(config: Configuration): Result<String> {
+    fun writeTerraformConfig(config: AWSConfiguration): Result<String> {
         val configOutput = File("terraform.tf.json")
         config.write(configOutput)
 
@@ -128,6 +132,7 @@ class Init(val context: Context) : ICommand {
     companion object {
         fun expand(region: String, azs: List<String>) : List<String> = azs.map { region + it }
 
+        @JsonIgnore
         val log = logger()
     }
 }
