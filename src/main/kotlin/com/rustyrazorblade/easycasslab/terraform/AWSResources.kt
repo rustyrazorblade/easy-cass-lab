@@ -30,8 +30,8 @@ data class EBSConfiguration(
 
 
 data class Provider(val region: String,
-                    val access_key: String,
-                    val secret_key: String)
+                    val shared_credentials_files: List<String>,
+                    val profile: String = "default")
 
 data class InstanceResource(
     var ami: String = "",

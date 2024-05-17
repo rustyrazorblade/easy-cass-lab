@@ -1,27 +1,31 @@
 package com.rustyrazorblade.easycasslab
 
+import com.rustyrazorblade.easycasslab.configuration.TFState
+import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.core.YamlDelegate
+import com.rustyrazorblade.easycasslab.configuration.Host
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import  com.rustyrazorblade.easycasslab.configuration.TFState
-import  com.rustyrazorblade.easycasslab.configuration.User
-import  com.rustyrazorblade.easycasslab.core.YamlDelegate
-import org.apache.logging.log4j.kotlin.logger
-import java.io.File
-import java.nio.file.Files
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
-import com.rustyrazorblade.easycasslab.configuration.Host
+import com.github.dockerjava.core.DefaultDockerClientConfig
+
+import org.apache.logging.log4j.kotlin.logger
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
 import org.apache.sshd.scp.client.CloseableScpClient
-import org.apache.sshd.scp.client.ScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
+
 import java.nio.file.Path
 import java.time.Duration
+import java.io.File
+import java.nio.file.Files
+
 import kotlin.io.path.Path
 
 
@@ -29,11 +33,12 @@ data class Context(val easycasslabUserDirectory: File) {
 
     val cassandraBuildDir = File(easycasslabUserDirectory, "builds")
     var profilesDir = File(easycasslabUserDirectory, "profiles")
+
+    // TODO allow for other profiles
     var profileDir = File(profilesDir, "default")
     val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
 
     var nettyInitialised = false
-    val cassandraRepo = com.rustyrazorblade.easycasslab.Cassandra()
 
     init {
         profileDir.mkdirs()
@@ -86,6 +91,23 @@ data class Context(val easycasslabUserDirectory: File) {
                 .sslConfig(dockerConfig.sslConfig)
                 .build();
         DockerClientImpl.getInstance(dockerConfig, httpClient)
+    }
+
+    val awsCredentialsName = "awscredentials"
+
+    /**
+     * Lazily create the AWS config. We might not need it and in the future we might support
+     * different cloud providers.
+     */
+    val awsConfig by lazy {
+        val fp = File(profileDir, awsCredentialsName)
+        if (!fp.exists()) {
+            fp.writeText("""[default]
+                |aws_access_key_id=${userConfig.awsAccessKey}
+                |aws_secret_access_key=${userConfig.awsSecret}
+            """.trimMargin("|"))
+        }
+        fp
     }
 
     val cwdPath = System.getProperty("user.dir")

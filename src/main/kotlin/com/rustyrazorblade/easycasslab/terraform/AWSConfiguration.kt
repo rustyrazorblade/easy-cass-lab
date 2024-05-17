@@ -48,9 +48,8 @@ class AWSConfiguration(var name: String,
 
     var azs = regions[region]!!
 
-    private val config = TerraformConfig(region, context.userConfig.awsAccessKey,
-        context.userConfig.awsSecret,
-        name, azs=azs, tags=tags)
+    private val config = TerraformConfig(region = region,
+        name=name, azs=azs, tags=tags)
 
     init {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -58,7 +57,6 @@ class AWSConfiguration(var name: String,
 
         setVariable("email", context.userConfig.email)
         setVariable("key_name", context.userConfig.keyName)
-        setVariable("key_path", context.userConfig.sshKeyPath)
         setVariable("region", region)
         setVariable("name", name)
     }
@@ -198,8 +196,6 @@ class AWSConfiguration(var name: String,
  * Top level Terraform config
  */
 class TerraformConfig(@JsonIgnore val region: String = "",
-                      @JsonIgnore val accessKey: String = "",
-                      @JsonIgnore val secret: String = "",
                       @JsonIgnore val name: String = "easy_cass_lab",
                       @JsonIgnore val azs: List<String>,
                       @JsonIgnore val tags: Map<String, String>
@@ -207,7 +203,7 @@ class TerraformConfig(@JsonIgnore val region: String = "",
 
 
     var variable = mutableMapOf<String, Variable>()
-    val provider = mutableMapOf("aws" to Provider(region, accessKey, secret))
+    val provider = mutableMapOf("aws" to Provider(region, listOf("/awscredentials")))
 
     // resource is the container for all the things
     // this is completely driven by Terraform's JSON configuration file
