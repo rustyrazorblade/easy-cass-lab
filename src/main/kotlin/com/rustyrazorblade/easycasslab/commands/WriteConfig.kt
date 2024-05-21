@@ -30,7 +30,7 @@ class WriteConfig(@JsonIgnore val context: Context) : ICommand {
             val seed_provider = object {
                 val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
                 val parameters = object {
-                    val seeds = context.tfstate.getHosts(ServerType.Cassandra).map{ it.private }.take(3).joinToString(",")
+                    val seeds = context.tfstate.getHosts(ServerType.Cassandra).map{ it.private }.take(1).joinToString(",")
                 }
             }
             val hints_directory = "/mnt/cassandra/hints"
