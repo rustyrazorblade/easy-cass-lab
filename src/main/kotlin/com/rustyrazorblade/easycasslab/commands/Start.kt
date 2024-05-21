@@ -11,7 +11,7 @@ import org.apache.logging.log4j.core.jmx.Server
 class Start(val context: Context) : ICommand {
 
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
-    var sleep : Long  = 30
+    var sleep : Long  = 120
 
     @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
     var hosts = ""
