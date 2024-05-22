@@ -6,6 +6,8 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import org.apache.sshd.scp.client.ScpClient
+import java.io.File
+import java.io.FileFilter
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
@@ -19,6 +21,9 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
     @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
     var hosts = ""
 
+    val authorizedKeysExtra = "~/.ssh/authorized_keys_extra"
+    val authorizedKeys = "~/.ssh/authorized_keys"
+
     override fun execute() {
         val path = Paths.get(localDir)
         if (!path.exists()) {
@@ -26,28 +31,32 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        val upload = doUpload(path)
+        // collect all the keys into a single file then upload
+        val keys = File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })!!
+            .joinToString("\n") { it.readText().trim() }
+
+        val authorizedKeys = File("authorized_keys_extra").apply {
+            writeText(keys)
+            writeText("\n")
+        }
+
+        println("Uploading the following keys:")
+        println(authorizedKeys)
+
+        val upload = doUpload(authorizedKeys)
         context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
         context.tfstate.withHosts(ServerType.Stress, "") { upload(it) }
     }
 
-    companion object {
-        val sourceDir = "authorized_keys"
-        val uploadDir = "~/.ssh/easy_cass_lab_authorized_keys"
-    }
-
-    private fun doUpload(path: Path) = { it: Host ->
-        context.executeRemotely(it, "mkdir -p $uploadDir")
-
+    private fun doUpload(authorizedKeys: File) = { it: Host ->
         val scp = context.getScpClient(it)
+
         scp.upload(
-            path,
-            uploadDir,
-            ScpClient.Option.Recursive,
+            authorizedKeys.path,
+            authorizedKeysExtra,
             ScpClient.Option.PreserveAttributes,
-            ScpClient.Option.TargetIsDirectory
         )
 
-        context.executeRemotely(it, "ls $uploadDir/$sourceDir/*.pub | xargs cat >> ~/.ssh/authorized_keys")
+        context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys")
     }
 }
