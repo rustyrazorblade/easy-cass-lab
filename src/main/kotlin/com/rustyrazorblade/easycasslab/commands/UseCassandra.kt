@@ -20,9 +20,8 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
     @JsonIgnore
     val log = logger()
 
-//    @Parameter(description = "Configuration settings to change in the cassandra.yaml file specified in the format key:value,...", names = ["--config", "-c"])
-//    var configSettings = listOf<String>()
-
+    @Parameter(names = ["--java", "-j"], description = "Java Version Override, 8, 11 or 17 accepted")
+    var javaVersion = ""
 
     override fun execute() {
         check(version.isNotBlank())
@@ -37,10 +36,11 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
         println("Using version ${version} on ${cassandraHosts.size} hosts, filter: $hosts")
 
-        // save the cluster state
+        // optionally include the java version if specified
+        val javaString = if (javaVersion.isNotBlank()) " -j $javaVersion " else ""
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            context.executeRemotely(it, "sudo use-cassandra ${version}")
+            context.executeRemotely(it, "sudo use-cassandra $javaString ${version}")
             state.versions?.put(it.alias, version)
         }
 

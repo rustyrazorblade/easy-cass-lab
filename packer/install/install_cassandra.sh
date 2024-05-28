@@ -84,6 +84,7 @@ do
         echo "jvm.options exists, not linking."
       fi
   )
+rm -rf ~/.m2
 done
 )
 
