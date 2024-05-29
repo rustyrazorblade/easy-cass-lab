@@ -9,15 +9,27 @@ packer {
 
 locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  region = "us-west-2"
 }
 
+variable "arch" {
+  type = string
+  default = "amd64"
+}
+
+variable "region" {
+  type = string
+  default = "us-west-2"
+}
+
+
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${var.arch}-${local.timestamp}"
   instance_type = "c3.xlarge"
-  region        = "us-west-2"
+  region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "rustyrazorblade/images/easy-cass-lab-base-*"
+      name                = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }

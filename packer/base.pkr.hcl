@@ -11,13 +11,23 @@ locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
 }
 
+variable "arch" {
+  type = string
+  default = "amd64"
+}
+
+variable "region" {
+  type = string
+  default = "us-west-2"
+}
+
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.timestamp}"
   instance_type = "c3.xlarge"
-  region        = "us-west-2"
+  region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
+      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -45,7 +55,7 @@ build {
       "sudo apt upgrade -y",
       "sudo apt update",
       "sudo apt install -y wget sysstat unzip ripgrep ant ant-optional tree zfsutils-linux", # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
-      "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_amd64 -O /usr/local/bin/yq",
+      "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_${var.arch} -O /usr/local/bin/yq",
       "sudo chmod +x /usr/local/bin/yq",
     ]
   }
@@ -80,7 +90,7 @@ build {
   provisioner "shell" {
     inline = [
       "sudo apt install openjdk-8-jdk openjdk-8-dbg openjdk-11-jdk openjdk-11-dbg openjdk-17-jdk openjdk-17-dbg -y",
-      "sudo update-java-alternatives -s /usr/lib/jvm/java-1.11.0-openjdk-amd64",
+      "sudo update-java-alternatives -s /usr/lib/jvm/java-1.11.0-openjdk-${var.arch}",
       "sudo sed -i '/hl jexec.*/d' /usr/lib/jvm/.java-1.8.0-openjdk-amd64.jinfo"
     ]
   }
