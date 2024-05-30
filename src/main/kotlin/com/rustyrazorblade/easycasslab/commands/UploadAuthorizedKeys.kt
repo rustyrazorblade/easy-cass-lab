@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import org.apache.sshd.scp.client.ScpClient
 import java.io.File
 import java.io.FileFilter
+import java.io.FileWriter
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
@@ -31,19 +32,22 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        // collect all the keys into a single file then upload
-        val keys = File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })!!
-            .joinToString("\n") { it.readText().trim() }
+        var files = File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })!!
+        println("Files: ${files.map { it.name }}")
 
-        val authorizedKeys = File("authorized_keys_extra").apply {
-            writeText(keys)
-            writeText("\n")
+        // collect all the keys into a single file then upload
+        val keys = files.joinToString("\n") { it.readText().trim() }
+
+        val authorizedKeysExtra = File("authorized_keys_extra")
+        FileWriter(authorizedKeysExtra).use {
+            it.write(keys)
+            it.write("\n")
         }
 
         println("Uploading the following keys:")
-        println(authorizedKeys)
+        println(keys)
 
-        val upload = doUpload(authorizedKeys)
+        val upload = doUpload(authorizedKeysExtra)
         context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
         context.tfstate.withHosts(ServerType.Stress, "") { upload(it) }
     }
