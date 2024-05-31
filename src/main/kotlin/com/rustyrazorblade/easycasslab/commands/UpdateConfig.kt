@@ -2,8 +2,10 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,8 +14,8 @@ import kotlin.io.path.inputStream
 
 @Parameters(commandDescription = "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml.  Done automatically after use-cassandra.")
 class UpdateConfig(val context: Context) : ICommand {
-    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
-    var hosts = ""
+    @ParametersDelegate
+    var hosts = Hosts()
 
     @Parameter(descriptionKey = "Patch file to upload")
     var file: String = "cassandra.patch.yaml"
@@ -30,7 +32,7 @@ class UpdateConfig(val context: Context) : ICommand {
     override fun execute() {
         context.requireSshKey()
         // upload the patch file
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
             println("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())

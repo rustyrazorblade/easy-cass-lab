@@ -1,8 +1,10 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
+import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -11,8 +13,8 @@ import kotlin.io.path.exists
  * Downloads configuration.
  */
 class DownloadConfig(val context: Context) : ICommand {
-    @Parameter(names = ["--host"], description = "Host to download from, optional")
-    var host = ""
+    @ParametersDelegate
+    var hosts = Hosts()
 
     @Parameter(names = ["--file", "-f"], description = "Name of the file")
     var name = "jvm.options"

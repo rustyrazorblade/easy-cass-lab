@@ -2,7 +2,9 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import org.apache.sshd.scp.client.ScpClient
@@ -19,8 +21,8 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 
-    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
-    var hosts = ""
+    @ParametersDelegate
+    var hosts = Hosts()
 
     val authorizedKeysExtra = "~/.ssh/authorized_keys_extra"
     val authorizedKeys = "~/.ssh/authorized_keys"
@@ -48,7 +50,7 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
         println(keys)
 
         val upload = doUpload(authorizedKeysExtra)
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
+        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) { upload(it) }
         context.tfstate.withHosts(ServerType.Stress, "") { upload(it) }
     }
 

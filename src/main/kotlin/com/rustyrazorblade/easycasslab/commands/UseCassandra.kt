@@ -2,9 +2,11 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import  com.rustyrazorblade.easycasslab.configuration.*
 import org.apache.logging.log4j.kotlin.logger
 import java.io.FileNotFoundException
@@ -14,8 +16,8 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
     @Parameter
     var version: String = ""
 
-    @Parameter(description = "Hosts to run this on, leave blank for all hosts.", names = ["--hosts"])
-    var hosts = ""
+    @ParametersDelegate
+    var hosts = Hosts()
 
     @JsonIgnore
     val log = logger()
@@ -39,7 +41,7 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
         // optionally include the java version if specified
         val javaString = if (javaVersion.isNotBlank()) " -j $javaVersion " else ""
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
             context.executeRemotely(it, "sudo use-cassandra $javaString ${version}")
             state.versions?.put(it.alias, version)
         }
