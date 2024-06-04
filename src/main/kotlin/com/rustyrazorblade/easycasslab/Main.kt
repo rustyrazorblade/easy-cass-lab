@@ -28,6 +28,9 @@ fun main(arguments: Array<String>) {
     data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
 
     val commands = listOf(
+        Command("build-base", BuildBaseImage(context)),
+        Command("build-cassandra", BuildCassandraImage(context)),
+        Command("build-image", BuildImage(context)),
         Command("clean", Clean()),
         Command("down", Down(context)),
         Command("hosts", Hosts(context)),

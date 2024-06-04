@@ -160,7 +160,7 @@ class Docker(val context: Context) {
 
         env.add("HOST_USER_ID=$userId")
 
-        log.info{ "docker environment variables: $env"}
+        log.info{ "Starting docker container with command $command and environment variables: $env"}
 
         dockerCommandBuilder
                 .withCmd(command)
@@ -243,8 +243,9 @@ class Docker(val context: Context) {
                         super.onError(throwable)
                     }
             })
-
+        log.info("Starting container with command $command")
         println("Starting container ${dockerContainer.id}")
+
         try {
             context.docker.startContainerCmd(dockerContainer.id).exec()
         } catch (e: Exception) {

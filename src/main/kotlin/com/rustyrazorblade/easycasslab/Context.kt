@@ -147,7 +147,7 @@ data class Context(val easycasslabUserDirectory: File) {
         // Create the client.
         // We have to register the keys with the client.
         // Client can be used to connect to multiple hosts
-        println("Connecting to ${host.public}")
+        println("Connecting to ${host.alias} ${host.public}")
         val session = getSession(host)
         println("Executing remote command: $command")
         println(session.executeRemoteCommand(command))
