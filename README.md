@@ -17,7 +17,6 @@ easy-cass-lab provides tooling to create the AMI and provision the environments.
 The following must be set up before using this project:
 
 * [Setup AWS Account API Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
-* [Install Packer](https://developer.hashicorp.com/packer/install?ajs_aid=dc7c0e66-3245-44af-87cd-e692bd64d1df&product_intent=packer)
 * [Install Docker](https://www.docker.com/products/docker-desktop/)
 
 ## Usage
@@ -50,16 +49,20 @@ cd easy-cass-lab
 ./gradlew shadowJar installdist
 ```
 
+
 ### Build the Universal AMI
 
+Using easy-cass-lab requires building an AMI.
+This can be done once, and reused many times.
+The AMI should be rebuilt when updating easy-cass-lab.  
+
+The first time you build an image, easy-cass-lab will ask you for your AWS credentials.
+
 ```shell
-cd packer
-packer init cassandra.pkr.hcl # only needs to be run the first time you setup the project
-packer build base.pkr.hcl # build the base image 
-packer build cassandra.pkr.hcl # extends the base image
+bin/easy-cass-lab build-image
 ```
 
-You'll get a bunch of output from Packer. At the end, you'll see something like this:
+At the end, you'll see something like this:
 
 ```text
 ==> Builds finished. The artifacts of successful builds are:
