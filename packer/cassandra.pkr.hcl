@@ -7,11 +7,6 @@ packer {
   }
 }
 
-locals {
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
-  region = "us-west-2"
-}
-
 variable "arch" {
   type = string
   default = "amd64"
@@ -21,15 +16,25 @@ variable "region" {
   type = string
   default = "us-west-2"
 }
+ variable "release_version" {
+   type    = string
+   default = ""
+}
 
+locals {
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  base_version = var.release_version != "" ? var.release_version : "*"
+  version = var.release_version != "" ? var.release_version : local.timestamp
+  region = "us-west-2"
+}
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${var.arch}-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${var.arch}-${local.version}"
   instance_type = "c3.xlarge"
   region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-*"
+      name                = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.base_version}"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }

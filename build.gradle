@@ -24,8 +24,6 @@ plugins {
 }
 
 group 'com.rustyrazorblade'
-version '0.7-SNAPSHOT'
-
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -45,6 +43,8 @@ ext {
 application {
     applicationName = "easy-cass-lab"
     mainClass.set(" com.rustyrazorblade.easycasslab.MainKt")
+    applicationDefaultJvmArgs= ["-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
+                                "-Deasycasslab.ami.owner=081145431955"]
 }
 
 // In this section you declare where to find the dependencies of your project
@@ -165,6 +165,7 @@ task buildAll {
 task packer(type: Exec) {
     group "Build"
     workingDir "packer"
+    commandLine "packer", "build", "base.pkr.hcl"
     commandLine "packer", "build", "cassandra.pkr.hcl"
 }
 
@@ -177,6 +178,11 @@ distributions {
             }
         }
     }
+}
+
+distTar {
+    compression = Compression.GZIP
+    archiveExtension = "tar.gz"
 }
 
 assemble.mustRunAfter clean

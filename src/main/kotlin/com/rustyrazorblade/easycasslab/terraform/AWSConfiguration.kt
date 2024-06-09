@@ -250,16 +250,21 @@ class TerraformConfig(@JsonIgnore val region: String = "",
                 val filter = listOf(
                     object {
                         val name = "name"
-                        val values = listOf("rustyrazorblade/images/easy-cass-lab-cassandra-amd64-*")
+                        val values = listOf(amiName)
                     },
                     object {
                         val name = "virtualization-type"
                         val values = listOf("hvm")
                     }
                 )
-                val owners = listOf("self")
+                val owners = listOf(amiOwner)
             }
         }
+    }
+
+    companion object {
+        val amiName = System.getProperty("easycasslab.ami.name", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-*")
+        val amiOwner = System.getProperty("easycasslab.ami.owner", "self")
     }
 }
 

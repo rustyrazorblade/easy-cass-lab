@@ -7,10 +7,6 @@ packer {
   }
 }
 
-locals {
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
-}
-
 variable "arch" {
   type = string
   default = "amd64"
@@ -20,9 +16,18 @@ variable "region" {
   type = string
   default = "us-west-2"
 }
+variable "release_version" {
+  type    = string
+  default = ""
+}
+
+locals {
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  version = var.release_version != "" ? var.release_version : local.timestamp
+}
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.timestamp}"
+  ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.version}"
   instance_type = "c3.xlarge"
   region        = "${var.region}"
   source_ami_filter {
