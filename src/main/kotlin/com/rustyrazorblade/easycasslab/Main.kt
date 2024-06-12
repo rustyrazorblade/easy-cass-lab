@@ -33,6 +33,7 @@ fun main(arguments: Array<String>) {
         Command("build-image", BuildImage(context)),
         Command("clean", Clean()),
         Command("down", Down(context)),
+        Command("download-config", DownloadConfig(context), listOf("dc")),
         Command("hosts", Hosts(context)),
         Command("init", Init(context)),
         Command("list", ListVersions(context), listOf("ls")),

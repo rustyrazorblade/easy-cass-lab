@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
+import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
@@ -12,6 +13,7 @@ import kotlin.io.path.exists
 /**
  * Downloads configuration.
  */
+@Parameters(commandDescription = "Download JVM and YAML config files.")
 class DownloadConfig(val context: Context) : ICommand {
     @ParametersDelegate
     var hosts = Hosts()
