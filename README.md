@@ -21,7 +21,14 @@ The following must be set up before using this project:
 
 ## Usage
 
-Either clone and build the repo or grab a release.
+To install `easy-cass-lab`, you can use Homebrew or download a release. Alternatively clone the project and build it.
+
+### Install A Release using Homebrew
+
+```shell
+brew tap rustyrazorblade/rustyrazorblade
+brew install easy-cass-lab
+```
 
 ### Download A Release
 
