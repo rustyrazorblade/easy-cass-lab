@@ -2,9 +2,11 @@
 
 set -x
 
+VERSION="3.37"
+
 mkdir fio
 cd fio
-wget https://github.com/axboe/fio/archive/refs/tags/fio-3.36.zip
+wget "https://github.com/axboe/fio/archive/refs/tags/fio-${VERSION}.zip"
 unzip fio-*.zip
 
 ( # subshell
