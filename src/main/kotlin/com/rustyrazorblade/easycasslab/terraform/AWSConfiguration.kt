@@ -43,7 +43,8 @@ class AWSConfiguration(var name: String,
     private val tags = mutableMapOf(
         "email" to context.userConfig.email,
         "easy_cass_lab" to "1",
-        "cluster_name" to name
+        "cluster_name" to name,
+        "Name" to name
     )
 
     var azs = regions[region]!!
@@ -198,9 +199,8 @@ class AWSConfiguration(var name: String,
 class TerraformConfig(@JsonIgnore val region: String = "",
                       @JsonIgnore val name: String = "easy_cass_lab",
                       @JsonIgnore val azs: List<String>,
-                      @JsonIgnore val tags: Map<String, String>
+                      @JsonIgnore val tags: MutableMap<String, String>
 ) {
-
 
     var variable = mutableMapOf<String, Variable>()
     val provider = mutableMapOf("aws" to Provider(region, listOf("/awscredentials")))
@@ -208,8 +208,8 @@ class TerraformConfig(@JsonIgnore val region: String = "",
     // resource is the container for all the things
     // this is completely driven by Terraform's JSON configuration file
 
-    @JsonIgnore val vpc = VPC(name, tags = tags)
-    @JsonIgnore val ig = IGW(vpc)
+    @JsonIgnore val vpc = VPC(name, tags=tags)
+    @JsonIgnore val ig = IGW(vpc, tags=tags)
     @JsonIgnore val subnets : Map<String, Subnet> = azs.mapIndexed { index, s ->
         "sub${index}" to Subnet(name="sub${index}",
                                 vpc=vpc,
@@ -219,7 +219,9 @@ class TerraformConfig(@JsonIgnore val region: String = "",
     }.toMap()
 
     @JsonIgnore
-    val routeTable: RouteTable = RouteTable(name="default", vpc=vpc, igw = ig)
+    val routeTable: RouteTable = RouteTable(name="default",
+                                            vpc=vpc,
+                                            igw = ig, tags = tags)
 
     @JsonIgnore
     val routes: MutableMap<String, Route> = mutableMapOf("out" to Route("0.0.0.0/0",

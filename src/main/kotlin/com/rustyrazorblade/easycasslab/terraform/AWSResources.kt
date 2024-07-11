@@ -98,7 +98,7 @@ data class SecurityGroupResource(
 // Remove the default name and force it to be passed through
 data class VPC(@JsonIgnore val name: String = "easy_cass_lab",
                var cidr_block : String = "10.0.0.0/16",
-               var tags: Map<String, String>) {
+               var tags: MutableMap<String, String>) {
 
     fun id() : String {
         return "\${aws_vpc.${name}.id}"
@@ -111,15 +111,12 @@ data class VPC(@JsonIgnore val name: String = "easy_cass_lab",
  * https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html
  * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/internet_gateway
  */
-data class IGW(@JsonIgnore val vpc : VPC) {
+data class IGW(@JsonIgnore val vpc : VPC, val tags: MutableMap<String, String>) {
     fun id(): String {
         return "\${aws_internet_gateway.${vpc.name}.id}"
     }
 
     val vpc_id : String = vpc.id()
-    val tags = object {
-        val Name = vpc.name
-    }
 }
 
 /**
@@ -164,6 +161,7 @@ data class RouteTable(
     @JsonIgnore val vpc: VPC,
     @JsonIgnore val name: String = vpc.name,
     @JsonIgnore val igw: IGW,
+    val tags: Map<String, String>,
 ) {
     val vpc_id = vpc.id()
 
