@@ -16,20 +16,24 @@ variable "region" {
   type = string
   default = "us-west-2"
 }
- variable "release_version" {
+
+variable "release_version" {
    type    = string
    default = ""
 }
+
 
 locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
   base_version = var.release_version != "" ? var.release_version : "*"
   version = var.release_version != "" ? var.release_version : local.timestamp
-  region = "us-west-2"
+  ami_groups = var.release_version != "" ? ["all"] : []
+
 }
 
 source "amazon-ebs" "ubuntu" {
   ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${var.arch}-${local.version}"
+  ami_groups    = local.ami_groups
   instance_type = "c3.xlarge"
   region        = "${var.region}"
   source_ami_filter {

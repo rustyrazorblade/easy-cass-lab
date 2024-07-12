@@ -44,7 +44,8 @@ application {
     applicationName = "easy-cass-lab"
     mainClass.set(" com.rustyrazorblade.easycasslab.MainKt")
     applicationDefaultJvmArgs= ["-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
-                                "-Deasycasslab.ami.owner=081145431955"]
+                                "-Deasycasslab.ami.owner=081145431955",
+                                "-Deasycasslab.version=$version"]
 }
 
 // In this section you declare where to find the dependencies of your project
