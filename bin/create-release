@@ -67,6 +67,8 @@ echo "Building..."
 
 gw distTar
 
+bin/easy-cass-lab build-image --release
+
 echo "Current version: $current_version, new version: $new_version.  Enter to continue, control-c to quit."
 
 read
