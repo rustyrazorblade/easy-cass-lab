@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Release script to be used for the main repo.
+# Requires the GitHub client (gh) to be installed.
+
+# Variables
+VERSION_FILE="gradle.properties"
+VERSION_KEY="version"
+DEBUG=false
+GH_RELEASE_DEBUG=""
+
+# Parse command line options
+while getopts "d" opt; do
+    case $opt in
+        d)
+            DEBUG=true
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Functions
+function get_current_version {
+    grep "^$VERSION_KEY" "$VERSION_FILE" | cut -d'=' -f2
+}
+
+function bump_version {
+    echo $(( $1 + 1 ))
+}
+
+function update_version_file {
+    echo "Updating $VERSION_FILE, version=$1"
+    sed -i '' "s/^$VERSION_KEY=.*/$VERSION_KEY=$1/" "$VERSION_FILE"
+    if [[ "$DEBUG" = false ]]; then
+      git add "$VERSION_FILE"
+      git commit -m "Bump version to $1"
+    else
+      echo "Skipping commit"
+    fi
+}
+
+set -x
+
+# Check if gh is installed
+if ! command -v gh &> /dev/null; then
+    echo "gh CLI is not installed. Please install it and try again."
+    exit 1
+fi
+
+# Main script
+if [ "$DEBUG" = false ]; then
+  if ! git diff-index --quiet HEAD --; then
+      echo "You have uncommitted changes. Please commit or stash them before running this script."
+      exit 1
+  fi
+else
+  GH_RELEASE_DEBUG="--draft"
+fi
+
+current_version=$(get_current_version)
+new_version=$(bump_version "$current_version")
+
+echo "Building..."
+
+gw distTar
+
+echo "Current version: $current_version, new version: $new_version.  Enter to continue, control-c to quit."
+
+read
+
+gh release create "v${current_version}" --generate-notes build/distributions/*.tar.gz
+
+update_version_file "$new_version"
+
+echo "Release $new_version created successfully."
+
