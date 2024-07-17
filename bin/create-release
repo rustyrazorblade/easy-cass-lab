@@ -75,6 +75,10 @@ read
 
 gh release create "v${current_version}" --generate-notes build/distributions/*.tar.gz
 
+# update homebrew
+
+# Done with the release, now we increment gradle's version
+
 update_version_file "$new_version"
 
 echo "Release $new_version created successfully."
