@@ -33,23 +33,12 @@
   jvm_options: jvm11-server.options
   ant_flags: "-Duse.jdk11=true"
 
-- version: "5.0-beta1"
-  url: https://dlcdn.apache.org/cassandra/5.0-beta1/apache-cassandra-5.0-beta1-bin.tar.gz
+- version: "5.0-RC1"
+  url: https://dlcdn.apache.org/cassandra/5.0-rc1/apache-cassandra-5.0-rc1-bin.tar.gz
   java: "11"
   python: "3.10.6"
   axonops: "5.0"
   jvm_options: jvm11-server.options
-
-
-- version: "trunk"
-  url: https://github.com/apache/cassandra.git
-  branch: trunk
-  java: "17"
-  java_build: "11"
-  python: "3.10.6"
-  axonops: 5.0
-  jvm_options: jvm17-server.options
-
 
 - version: "5.0-HEAD"
   url: https://github.com/apache/cassandra.git
@@ -57,5 +46,15 @@
   java: "11"
   java_build: "11"
   python: "3.10.6"
-  axonops: 5.0
+  axonops: "5.0"
   jvm_options: jvm11-server.options
+
+- version: "trunk"
+  url: https://github.com/apache/cassandra.git
+  branch: trunk
+  java: "17"
+  java_build: "11"
+  python: "3.10.6"
+  axonops: "5.0"
+  jvm_options: jvm17-server.options
+
