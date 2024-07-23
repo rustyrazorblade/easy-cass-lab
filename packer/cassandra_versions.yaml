@@ -18,7 +18,7 @@
   jvm_options: jvm.options
 
 - version: "4.0"
-  url: https://dlcdn.apache.org/cassandra/4.0.12/apache-cassandra-4.0.12-bin.tar.gz
+  url: https://dlcdn.apache.org/cassandra/4.0.13/apache-cassandra-4.0.13-bin.tar.gz
   java: "11"
   python: "3.10.6"
   axonops: "4.0"

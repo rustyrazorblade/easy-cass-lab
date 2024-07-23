@@ -79,7 +79,7 @@ fi
 sudo mkdir -p /mnt/cassandra/artifacts
 chmod 777 /mnt/cassandra/artifacts
 
-sudo mkdir /mnt/cassandra/import
+sudo mkdir -p /mnt/cassandra/import
 
 sudo chown -R cassandra:cassandra /mnt/cassandra
 
