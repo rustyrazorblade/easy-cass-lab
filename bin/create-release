@@ -111,9 +111,12 @@ read
 
 if [ "$DEBUG" = false ]; then
   bin/easy-cass-lab build-image --release
+  echo "Press enter to continue"
+  read
 else
   echo "In debug mode, skipping image building"
 fi
+
 
 ##### Copy image to other regions #####
 
