@@ -25,12 +25,10 @@ variable "release_version" {
 locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
   version = var.release_version != "" ? var.release_version : local.timestamp
-  ami_groups = var.release_version != "" ? ["all"] : []
 }
 
 source "amazon-ebs" "ubuntu" {
   ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.version}"
-  ami_groups    = local.ami_groups
   instance_type = "c3.xlarge"
   region        = "${var.region}"
   source_ami_filter {
