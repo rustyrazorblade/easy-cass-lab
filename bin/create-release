@@ -2,12 +2,16 @@
 
 # Release script to be used for the main repo.
 # Requires the GitHub client (gh) to be installed.
+# No actions should be taken until the release is confirmed!
 
 # Variables
 VERSION_FILE="gradle.properties"
 VERSION_KEY="version"
 DEBUG=false
 GH_RELEASE_DEBUG=""
+
+HOMEBREW_FORMULA="${RRB_HOMEBREW_REPO}/Formula/easy-cass-lab.rb"
+
 
 # Parse command line options
 while getopts "d" opt; do
@@ -22,7 +26,7 @@ while getopts "d" opt; do
     esac
 done
 
-# Functions
+##### Helper Functions #####
 function get_current_version {
     grep "^$VERSION_KEY" "$VERSION_FILE" | cut -d'=' -f2
 }
@@ -42,15 +46,36 @@ function update_version_file {
     fi
 }
 
-set -x
+##### End Helper Functions #####
 
-# Check if gh is installed
+##### Sanity Checks.  Debug mode outputs all commands. #####
+
+if [ "$DEBUG" = true ]; then
+  set -x
+fi
+
+##### Check if gh is installed ####
 if ! command -v gh &> /dev/null; then
     echo "gh CLI is not installed. Please install it and try again."
     exit 1
 fi
 
-# Main script
+##### ensure the formula exists #####
+if [ ! -f "$HOMEBREW_FORMULA" ]; then
+    echo "Error: File $HOMEBREW_FORMULA does not exist."
+    exit 1
+fi
+
+##### ensure docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo "Error: Docker is not running."
+    exit 1
+fi
+
+##### End Sanity Checks #####
+
+#######  Main script #######
+
 if [ "$DEBUG" = false ]; then
   if ! git diff-index --quiet HEAD --; then
       echo "You have uncommitted changes. Please commit or stash them before running this script."
@@ -63,21 +88,58 @@ fi
 current_version=$(get_current_version)
 new_version=$(bump_version "$current_version")
 
+echo "Current version: $current_version, new version: $new_version"
+
 echo "Building..."
 
 gw distTar
+RELEASE_FILE="build/distributions/easy-cass-lab-${current_version}.tar.gz"
 
-bin/easy-cass-lab build-image --release
+if [ ! -f "$RELEASE_FILE" ]; then
+  echo "Release file $RELEASE_FILE does not exist, exiting."
+  exit 1
+fi
 
-echo "Current version: $current_version, new version: $new_version.  Enter to continue, control-c to quit."
+#### SHA256 and URL for the repo update
+ARTIFACT_SHA=$(sha2 -256 -q $RELEASE_FILE)
+
+echo "SHA: $ARTIFACT_SHA"
+
+echo "Current version: $current_version, next version: $new_version.  Enter to continue, control-c to quit."
 
 read
 
-gh release create "v${current_version}" --generate-notes build/distributions/*.tar.gz
+if [ "$DEBUG" = false ]; then
+  bin/easy-cass-lab build-image --release
+else
+  echo "In debug mode, skipping image building"
+fi
 
-# update homebrew
+##### Copy image to other regions #####
 
-# Done with the release, now we increment gradle's version
+##### Create release in GitHub #####
+if [ "$DEBUG" = false ]; then
+  gh release create "v${current_version}" --generate-notes $RELEASE_FILE
+else
+  echo "Skipping gh create create because we're in debug mode."
+fi
+
+#####  Update Homebrew
+
+# Update the `version` and `sha256` fields.
+sed -i '' "s/^\([[:space:]]*\)version.*/\1version \"${current_version}\"/" $HOMEBREW_FORMULA
+sed -i '' "s/^\([[:space:]]*\)sha256.*/\1sha256 \"${ARTIFACT_SHA}\"/" $HOMEBREW_FORMULA
+
+# commit and push
+if [ "$DEBUG" = false ]; then
+  (
+  cd $RRB_HOMEBREW_REPO
+  git commit -am "Version bump to $current_version"
+  git push
+  )
+fi
+
+##### Done with the release, now we increment gradle's version #####
 
 update_version_file "$new_version"
 
