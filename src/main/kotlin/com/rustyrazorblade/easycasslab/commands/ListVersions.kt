@@ -8,7 +8,10 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 class ListVersions(val context: Context) : ICommand {
     override fun execute() {
         context.tfstate.getHosts(ServerType.Cassandra).first().let {
-            context.executeRemotely(it, "ls /usr/local/cassandra")
+            val response = context.executeRemotely(it, "ls /usr/local/cassandra", output = false)
+            response.split("\n")
+                .filter { !it.equals("current") }
+                .forEach { println(it) }
         }
     }
 }

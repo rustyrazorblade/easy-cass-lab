@@ -147,7 +147,7 @@ data class Context(val easycasslabUserDirectory: File) {
         }
     }
 
-    fun executeRemotely(host: Host, command: String) {
+    fun executeRemotely(host: Host, command: String, output: Boolean = true) : String {
         // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
 
         // Create the client.
@@ -156,7 +156,11 @@ data class Context(val easycasslabUserDirectory: File) {
         println("Connecting to ${host.alias} ${host.public}")
         val session = getSession(host)
         println("Executing remote command: $command")
-        println(session.executeRemoteCommand(command))
+        val tmp = session.executeRemoteCommand(command)
+        if (output) {
+            println(tmp)
+        }
+        return tmp
     }
 
     fun getScpClient(host: Host) : CloseableScpClient {

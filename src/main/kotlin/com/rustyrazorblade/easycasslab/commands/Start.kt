@@ -7,7 +7,6 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import org.apache.logging.log4j.core.jmx.Server
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
