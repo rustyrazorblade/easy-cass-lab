@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo java -jar /usr/local/lib/sjk.jar mx -p $(cassandra-pid) $@ 2>/dev/null

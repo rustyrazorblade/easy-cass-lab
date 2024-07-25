@@ -25,8 +25,8 @@ class Start(val context: Context) : ICommand {
             context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
                 println(green("Starting $it"))
                 context.executeRemotely(it, "sudo systemctl start cassandra")
-                println("Sleeping for $sleep seconds to stagger cluster joins.")
-                Thread.sleep(sleep * 1000)
+                println("Cassandra started, waiting for up/normal")
+                context.executeRemotely(it, "sudo wait-for-up-normal")
                 context.executeRemotely(it, "sudo systemctl start cassandra-sidecar")
             }
         }

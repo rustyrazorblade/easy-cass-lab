@@ -68,8 +68,6 @@ build {
     ]
   }
 
-
-
   # install pyenv and python
   provisioner "shell" {
     script = "install/install_python.sh"
@@ -119,8 +117,6 @@ build {
     ]
   }
 
-
-
   provisioner "shell" {
     inline = [
       "wget https://training.ragozin.info/sjk.jar",
@@ -129,5 +125,4 @@ build {
     ]
   }
 }
-
 
