@@ -1,8 +1,0 @@
-You need JDK 8 with debug symbols:
-
-    apt install openjdk-8-dbg
-
-Ensure you've run:
-
-    echo 1 > /proc/sys/kernel/perf_event_paranoid
-    echo 0 > /proc/sys/kernel/kptr_restrict
