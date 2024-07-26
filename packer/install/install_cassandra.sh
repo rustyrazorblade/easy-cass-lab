@@ -53,7 +53,7 @@ do
     (
       cd $version
 
-      ant -Dno-checkstyle=true $ANT_FLAGS
+      ant realclean && ant -Dno-checkstyle=true $ANT_FLAGS
       rm -rf .git
     )
 
