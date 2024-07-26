@@ -55,6 +55,6 @@
   java: "17"
   java_build: "11"
   python: "3.10.6"
-  axonops: "5.0"
+#  axonops: "5.0"
   jvm_options: jvm17-server.options
 
