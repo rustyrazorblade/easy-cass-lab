@@ -37,7 +37,7 @@ class Packer(val context: Context) {
         docker.pullImage(Containers.PACKER)
 
         val args = commands.toMutableList()
-        var localPackerPath = context.cwdPath + "/packer"
+        var localPackerPath = context.appHome + "/packer"
         if (!File(localPackerPath).exists()) {
             println("packer directory not found: $localPackerPath")
             exitProcess(1)

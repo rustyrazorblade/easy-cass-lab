@@ -48,7 +48,21 @@ application {
         "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
         "-Deasycasslab.ami.owner=081145431955",
         "-Deasycasslab.version=$version"
+
     )
+}
+
+tasks.named<CreateStartScripts>("startScripts") {
+    doLast {
+        // Update the Unix / Mac / Linux start script
+        val replacement = "\$1 \nDEFAULT_JVM_OPTS=\"\\\$DEFAULT_JVM_OPTS -Deasycasslab.apphome=\\\$APP_HOME\""
+        val regex = "^(DEFAULT_JVM_OPTS=.*)".toRegex(RegexOption.MULTILINE)
+        val body = unixScript.readText()
+        val newBody = regex.replace(body, replacement)
+        unixScript.writeText(newBody)
+
+        // This needs to be updated for windows
+    }
 }
 
 // In this section you declare where to find the dependencies of your project
