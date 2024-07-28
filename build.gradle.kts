@@ -78,7 +78,7 @@ dependencies {
     implementation("commons-io:commons-io:2.7")
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    implementation("com.github.docker-java:docker-java:3.3.4")
+    implementation("com.github.docker-java:docker-java:3.4.0")
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java-transport-httpclient5
     implementation("com.github.docker-java:docker-java-transport-httpclient5:3.3.4")
@@ -93,6 +93,8 @@ dependencies {
     // https://mvnrepository.com/artifact/org.apache.sshd/sshd-core
     implementation("org.apache.sshd:sshd-core:2.12.1")
     implementation("org.apache.sshd:sshd-scp:2.12.1")
+
+    implementation("org.jline:jline:3.25.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
 
