@@ -3,11 +3,9 @@ package com.rustyrazorblade.easycasslab
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.*
-import com.github.dockerjava.core.command.AttachContainerResultCallback
-import com.github.dockerjava.core.command.BuildImageResultCallback
 import com.github.dockerjava.core.command.PullImageResultCallback
 import org.apache.logging.log4j.kotlin.logger
-import java.io.Closeable
+import java.io.IOException
 import java.io.PipedOutputStream
 import java.io.PipedInputStream
 import kotlin.concurrent.thread
@@ -89,47 +87,6 @@ class Docker(val context: Context) {
         log.info{"Finished pulling $name"}
     }
 
-    fun buildContainer(dockerfileName : String, imageTag: String) : String {
-        // The java-docker library we use can build an image from only a Dockerfile.
-        // That is, there is no programmatic way to build an image using the API. So, we
-        // need to copy the dockerfile in the JAR resources to a location it can read from.
-        // To do this we will make a temporary file in the working directory that is
-        // removed after the easy-cass-lab command completes.
-
-        val dockerfile = Utils.resourceToTempFile("containers/$dockerfileName", context.cwdPath)
-
-        val dockerBuildCallback = object : BuildImageResultCallback() {
-            override fun onStart(stream: Closeable?) {
-                if(stream != null) {
-                    println("Building container image $imageTag, this may take a minute...")
-                }
-            }
-
-            override fun onComplete() {
-                println("Finished building container image $imageTag")
-                super.onComplete()
-            }
-
-            override fun onNext(item: BuildResponseItem?) {
-                if(item != null) {
-                    print(item.stream)
-                }
-                super.onNext(item)
-            }
-        }
-
-        context.docker.buildImageCmd()
-                .withDockerfile(dockerfile)
-                .withTags(hashSetOf(imageTag))
-                .exec(dockerBuildCallback)
-
-        val imageId = dockerBuildCallback.awaitImageId()
-
-        println("Container image id: ($imageId)")
-
-        return imageId
-    }
-
     fun runContainer(container: Containers, command: MutableList<String>, workingDirectory: String) : Result<String> {
         if(!exists(container.containerName, container.tag)) {
             pullImage(container)
@@ -207,9 +164,13 @@ class Docker(val context: Context) {
         val stdIn = System.`in`.bufferedReader()
 
         val redirectStdInputThread = thread(isDaemon = true) {
-            while(true) {
-                val line = stdIn.readLine() + "\n"
-                stdInputPipe.write(line.toByteArray())
+            try {
+                while (true) {
+                    val line = stdIn.readLine() + "\n"
+                    stdInputPipe.write(line.toByteArray())
+                }
+            } catch(e: IOException) {
+                log.info("Pipe closed.")
             }
         }
         println("Attaching to running container")

@@ -31,7 +31,6 @@ import kotlin.io.path.Path
 
 data class Context(val easycasslabUserDirectory: File) {
 
-    val cassandraBuildDir = File(easycasslabUserDirectory, "builds")
     var profilesDir = File(easycasslabUserDirectory, "profiles")
 
     // TODO allow for other profiles
@@ -52,13 +51,6 @@ data class Context(val easycasslabUserDirectory: File) {
      */
     val version = System.getProperty("easycasslab.version").toInt()
 
-    fun createBuildSkeleton(name: String) {
-
-        val buildLocation = File(cassandraBuildDir, name)
-        buildLocation.mkdirs()
-        File(buildLocation, "conf").mkdirs()
-        File(buildLocation, "deb").mkdirs()
-    }
 
     /**
      * Please use this for reading and writing yaml to objects
@@ -67,7 +59,6 @@ data class Context(val easycasslabUserDirectory: File) {
      *
      * val state = mapper.readValue<MyStateObject>(json)
      */
-    val json = getJsonMapper()
     val yaml : ObjectMapper by YamlDelegate()
 
     // if you need to anything funky with the mapper (settings etc) use this
@@ -179,7 +170,6 @@ data class Context(val easycasslabUserDirectory: File) {
         val client = getScpClient(host)
         client.download(remote, local)
     }
-
 
     fun stop() {
         sshClient.stop()
