@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
@@ -11,8 +12,15 @@ class BuildCassandraImage(val context: Context) : ICommand {
     @ParametersDelegate
     var releaseFlag = ReleaseFlag()
 
+    @Parameter(description = "AWS region to build the image in", names = ["--region", "-r"])
+    var region = ""
+
     override fun execute() {
         val packer = Packer(context)
-        packer.build("cassandra.pkr.hcl", releaseFlag)
+
+        if (region.isBlank())
+            region = context.userConfig.region
+
+        packer.build("cassandra.pkr.hcl", releaseFlag, region)
     }
 }

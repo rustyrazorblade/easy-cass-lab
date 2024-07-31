@@ -35,10 +35,6 @@ class AWSConfiguration(var name: String,
 
     val logger = logger()
     private val mapper = ObjectMapper()
-    private var regions = mapOf(
-        "us-west-2" to listOf("us-west-2a", "us-west-2b", "us-west-2c"),
-        "us-east-1" to listOf("us-east-1a", "us-east-1b", "us-east-1c"),
-    )
 
     private val tags = mutableMapOf(
         "email" to context.userConfig.email,
@@ -47,7 +43,7 @@ class AWSConfiguration(var name: String,
         "Name" to name
     )
 
-    var azs = regions[region]!!
+    var azs = listOf("a", "b", "c").map { "${region}${it}" }
 
     private val config = TerraformConfig(region = region,
         name=name, azs=azs, tags=tags)

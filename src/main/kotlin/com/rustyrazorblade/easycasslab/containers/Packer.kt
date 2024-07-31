@@ -17,8 +17,7 @@ class Packer(val context: Context) {
     private var logger = logger()
 
     // todo include the region defined in the profile
-    fun build(name: String, release: ReleaseFlag) {
-        val region = context.userConfig.region
+    fun build(name: String, release: ReleaseFlag, region: String) {
         val command = mutableListOf("build", "-var", "region=$region")
 
         if (release.release) {
