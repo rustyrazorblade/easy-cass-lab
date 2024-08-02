@@ -6,7 +6,6 @@ import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import java.io.InputStream
-import java.net.URL
 
 /**
  * Creates a temporary file from a resource location

@@ -30,11 +30,12 @@ import kotlin.io.path.Path
 
 
 data class Context(val easycasslabUserDirectory: File) {
-
     var profilesDir = File(easycasslabUserDirectory, "profiles")
 
     // TODO allow for other profiles
-    var profileDir = File(profilesDir, "default")
+    var profile = System.getenv("EASY_CASS_LAB_PROFILE") ?: "default"
+
+    var profileDir = File(profilesDir, profile)
     val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
 
     var nettyInitialised = false
