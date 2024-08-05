@@ -5,6 +5,7 @@
 dir=$(dirname $0)
 
 APP_HOME="$(dirname "$dir")"
+APP_HOME=$(readlink -f $APP_HOME)
 
 EASY_CASS_LAB_USER_DATA=~/.easy-cass-lab/
 
