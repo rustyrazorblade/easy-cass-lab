@@ -9,18 +9,12 @@ extra.apply {
     set("jupiter_version", "5.5.2")
     set("assertj_version", "3.11.1")
     set("jcommander_version", "1.82")
+    set("kotlin_version", "1.9.20")
 }
 
 buildscript {
-    extra.apply {
-        set("kotlin_version", "1.9.20")
-    }
-
     repositories {
         mavenCentral()
-    }
-    dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.extra["kotlin_version"]}")
     }
 }
 
