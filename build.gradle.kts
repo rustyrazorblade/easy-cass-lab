@@ -14,7 +14,6 @@ extra.apply {
 buildscript {
     extra.apply {
         set("kotlin_version", "1.9.20")
-        set("docker_compose_version", "0.9.4")
     }
 
     repositories {
@@ -22,7 +21,6 @@ buildscript {
     }
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.extra["kotlin_version"]}")
-        classpath("com.avast.gradle:gradle-docker-compose-plugin:${rootProject.extra["docker_compose_version"]}")
     }
 }
 
