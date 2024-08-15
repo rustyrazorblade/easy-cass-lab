@@ -2,9 +2,11 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import org.apache.logging.log4j.kotlin.logger
 
+typealias Alias = String
+
 data class Host(val public: String,
                 val private: String,
-                val alias: String,
+                val alias: Alias,
                 val availabilityZone: String) {
 
     companion object {

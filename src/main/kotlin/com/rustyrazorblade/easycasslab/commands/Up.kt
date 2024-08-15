@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.Host
 import  com.rustyrazorblade.easycasslab.configuration.ServerType
 import  com.rustyrazorblade.easycasslab.containers.Terraform
@@ -31,6 +32,7 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         // so we have to explicitly specify the local one to ensure it gets
         // priority over user
         val terraform = Terraform(context)
+        val state = ClusterState.load()
 
         with(TermColors()) {
 
@@ -103,6 +105,10 @@ class Up(@JsonIgnore val context: Context) : ICommand {
             try {
                 context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                     context.executeRemotely(it, "echo 1")
+                    // download /etc/cassandra_versions.yaml if we don't have it yet
+                    if (!File("cassandra_versions.yaml").exists()) {
+                        context.download(it, "/etc/cassandra_versions.yaml", Path.of("cassandra_versions.yaml"))
+                    }
                 }
                 done = true
             } catch (e: SshException) {

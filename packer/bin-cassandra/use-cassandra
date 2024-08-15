@@ -1,6 +1,7 @@
 #!/bin/bash
 
 JAVA_VERSION=""
+YAML="/etc/cassandra_versions.yaml"
 
 while getopts "j:" opt; do
   case ${opt} in
@@ -57,6 +58,15 @@ else
   echo "Unknown java version $JAVA_VERSION"
   exit 1
 fi
+
+#JVM_OPTIONS=$(yq ".[] | select(.version == env(VERSION)) | .jvm_options" $YAML)
+
+## subshell
+#(
+#cd /usr/local/cassandra/current
+#echo "Linking $JVM_OPTIONS to jvm.options"
+#ln -f conf/$JVM_OPTIONS  conf/jvm.options
+#)
 
 # set python version
 # NOTE: a bit hacky but we have to switch back to ubuntu user for this
