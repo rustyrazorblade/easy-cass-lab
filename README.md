@@ -21,7 +21,7 @@ The following must be set up before using this project:
 
 ## Usage
 
-To install `easy-cass-lab`, you can use Homebrew or download a release. Alternatively clone the project and build it.
+To install `easy-cass-lab`, you can use Homebrew, download a release, or clone the project and build it.
 
 ### Install A Release using Homebrew
 
@@ -29,6 +29,10 @@ To install `easy-cass-lab`, you can use Homebrew or download a release. Alternat
 brew tap rustyrazorblade/rustyrazorblade
 brew install easy-cass-lab
 ```
+
+`easy-cass-lab` should now be available for you to use.
+
+Skip ahead to Read The Help.
 
 ### Download A Release
 
@@ -39,13 +43,9 @@ to your PATH.
 export PATH="$PATH:/Users/username/path/to/easy-cass-lab/bin"
 ```
 
-You can skip to Build the Universal AMI
+You can skip ahead to Read The Help.
 
-### Optional: Build the Project
-
-If you've downloaded a pre-built release, you can skip this step.
-
-If you're using the project repo, you'll need to build the project. Fortunately, it's straightforward.
+### Build the Project
 
 The following command should be run from the root directory of the project.
 Docker will need to be running for this step.
@@ -53,13 +53,15 @@ Docker will need to be running for this step.
 ```bash
 git clone https://github.com/rustyrazorblade/easy-cass-lab.git
 cd easy-cass-lab
-./gradlew shadowJar installdist
+./gradlew shadowJar 
 ```
 
 
-### Build the Universal AMI
+#### Build the Universal AMI
 
-Using easy-cass-lab requires building an AMI.
+Using easy-cass-lab requires building an AMI if you're building from source.
+
+You can skip this if you're using us-west-2 
 This can be done once, and reused many times.
 The AMI should be rebuilt when updating easy-cass-lab.  
 
@@ -79,17 +81,16 @@ us-west-2: ami-abcdeabcde1231231
 
 That means you're ready!
 
-### Optional: Set the AMI 
-
-When you create a cluster, you can optionally pass an `--ami`, or set `EASY_CASS_LAB_AMI`. 
-
-If you don't specify an AMI, it'll use the latest AMI you've built.
-
 ### Read the Help
 
-Run `easy-cass-lab` without any parameters to view all the commands an options.
+Run `easy-cass-lab` without any parameters to view all the commands and all options.
 
 ### Create The Environment 
+
+Note: The first time you create an environment, it'll prompt you for your credentials.
+
+Important: If you've installed the project via homebrew or downloaded a release, 
+please use the `us-west-2` region.  This limitation will be lifted soon.
 
 First create a directory for the environment, then initialize it, and start the instances.
 
