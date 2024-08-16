@@ -17,7 +17,7 @@ class Restart(val context: Context) : ICommand {
         // TODO wait for cassandra to become available
         println("Restarting cassandra service on all nodes.")
         with(TermColors()) {
-            context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
+            context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Restarting $it"))
                 context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait")
             }

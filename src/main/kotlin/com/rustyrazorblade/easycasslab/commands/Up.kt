@@ -101,7 +101,7 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         do {
 
             try {
-                context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
+                context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                     context.executeRemotely(it, "echo 1")
                 }
                 done = true

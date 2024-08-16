@@ -22,7 +22,7 @@ class Start(val context: Context) : ICommand {
         context.requireSshKey()
 
         with(TermColors()) {
-            context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
+            context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Starting $it"))
                 context.executeRemotely(it, "sudo systemctl start cassandra")
                 println("Cassandra started, waiting for up/normal")

@@ -30,7 +30,7 @@ class ConfigureAxonOps(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             println("Configure axonops on $it")
 
             context.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey")

@@ -11,7 +11,6 @@ import org.apache.sshd.scp.client.ScpClient
 import java.io.File
 import java.io.FileFilter
 import java.io.FileWriter
-import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.exists
 
@@ -50,8 +49,8 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
         println(keys)
 
         val upload = doUpload(authorizedKeysExtra)
-        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) { upload(it) }
-        context.tfstate.withHosts(ServerType.Stress, "") { upload(it) }
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
+        context.tfstate.withHosts(ServerType.Stress, Hosts.all()) { upload(it) }
     }
 
     private fun doUpload(authorizedKeys: File) = { it: Host ->

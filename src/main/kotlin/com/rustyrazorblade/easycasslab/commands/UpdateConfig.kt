@@ -32,7 +32,7 @@ class UpdateConfig(val context: Context) : ICommand {
     override fun execute() {
         context.requireSshKey()
         // upload the patch file
-        context.tfstate.withHosts(ServerType.Cassandra, hosts.hosts) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             println("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())

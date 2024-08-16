@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
@@ -15,7 +14,7 @@ class StartAxonOps(val context: Context) : ICommand {
 
     override fun execute() {
         context.requireSshKey()
-        context.tfstate.withHosts(ServerType.Cassandra, "") {
+        context.tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
             context.executeRemotely(it, "sudo systemctl start axon-agent")
         }
     }
