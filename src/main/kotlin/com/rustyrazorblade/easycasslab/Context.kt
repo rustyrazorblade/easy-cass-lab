@@ -139,7 +139,7 @@ data class Context(val easycasslabUserDirectory: File) {
         }
     }
 
-    fun executeRemotely(host: Host, command: String, output: Boolean = true) : String {
+    fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : String {
         // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
 
         // Create the client.
@@ -147,7 +147,11 @@ data class Context(val easycasslabUserDirectory: File) {
         // Client can be used to connect to multiple hosts
         println("Connecting to ${host.alias} ${host.public}")
         val session = getSession(host)
-        println("Executing remote command: $command")
+        if (!secret) {
+            println("Executing remote command: $command")
+        } else {
+            println("Executing remote command: [hidden]")
+        }
         val tmp = session.executeRemoteCommand(command)
         if (output) {
             println(tmp)
