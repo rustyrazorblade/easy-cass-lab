@@ -10,6 +10,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import  com.rustyrazorblade.easycasslab.configuration.*
 import org.apache.logging.log4j.kotlin.logger
 import java.io.FileNotFoundException
+import kotlin.system.exitProcess
 
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
 class UseCassandra(@JsonIgnore val context: Context) : ICommand {
@@ -32,7 +33,7 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
             context.tfstate
         } catch (e: FileNotFoundException) {
             println("Error: terraform config file not found.  Please run easy-cass-lab up first to establish IP addresses for seed listing.")
-            System.exit(1)
+            exitProcess(1)
         }
 
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
