@@ -24,6 +24,7 @@ data class User(
     var awsProfile: String,
     // fallback for people who haven't set up the aws cli
 
+    var awsCredentialsFile: String,
     var awsAccessKey: String,
     var awsSecret: String,
 
@@ -91,6 +92,7 @@ data class User(
                 keyName,
                 secret.absolutePath,
                 "", // future compatibility, when we start allowing people to use their existing AWS creds they've already set up.
+                awsCredentialsFilePath,
                 awsAccessKey,
                 awsSecret,
                 axonOpsOrg,
