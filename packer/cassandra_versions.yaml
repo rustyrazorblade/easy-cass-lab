@@ -33,8 +33,8 @@
   jvm_options: jvm11-server.options
   ant_flags: "-Duse.jdk11=true"
 
-- version: "5.0-RC1"
-  url: https://dlcdn.apache.org/cassandra/5.0-rc1/apache-cassandra-5.0-rc1-bin.tar.gz
+- version: "5.0"
+  url: "https://dlcdn.apache.org/cassandra/5.0.0/apache-cassandra-5.0.0-bin.tar.gz"
   java: "11"
   python: "3.10.6"
   axonops: "5.0"

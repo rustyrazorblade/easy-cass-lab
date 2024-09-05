@@ -29,7 +29,17 @@ class Packer(val context: Context) {
 
         command.add(name)
 
-        execute(*command.toTypedArray())
+        // refactor to exit with status 1 if the Result is failure
+        val result = execute(*command.toTypedArray())
+        when {
+            result.isFailure -> {
+                logger.error("Packer build failed: ${result.exceptionOrNull()}")
+                exitProcess(1)
+            }
+            result.isSuccess -> {
+                logger.info("Packer build succeeded")
+            }
+        }
     }
 
     private fun execute(vararg commands: String): Result<String> {
@@ -45,7 +55,6 @@ class Packer(val context: Context) {
         logger.info("Mounting $localPackerPath to $containerWorkingDir, starting with $args")
 
         // mount credentials
-        // todo fix the CWD
         // get the main process and go up a directory
         val packerDir = VolumeMapping(localPackerPath, containerWorkingDir, AccessMode.ro)
         var creds = "/credentials"
