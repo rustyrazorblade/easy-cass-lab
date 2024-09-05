@@ -47,13 +47,14 @@ data class User(
             val regionAnswer = Utils.prompt("What AWS region do you use?", "us-west-2")
             val region = Region.of(regionAnswer)
 
-            val awsAccessKey = Utils.prompt("Please enter your AWS Access Key:", "")
-            val awsSecret = Utils.prompt("Please enter your AWS Secret Access Key:", "", secret = true)
+            val awsCredentialsFilePath = Utils.prompt("Please enter the path to your AWS credentials file (or leave blank to enter credentials directly):", "")
+            val awsAccessKey = Utils.prompt("Please enter your AWS Access Key (leave blank if you provided a credentials file):", "")
+            val awsSecret = Utils.prompt("Please enter your AWS Secret Access Key (leave blank if you provided a credentials file):", "", secret = true)
 
             // create the key pair
 
             println("Attempting to validate credentials and generate easy-cass-lab login keys")
-            val ec2 = EC2(awsAccessKey, awsSecret, region)
+            val ec2 = EC2(awsCredentialsFilePath, awsAccessKey, awsSecret, region)
             val ec2Client = ec2.client
 
             val keyName = "easy-cass-lab-${UUID.randomUUID()}"
