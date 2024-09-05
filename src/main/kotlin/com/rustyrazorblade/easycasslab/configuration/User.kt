@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest
 import java.nio.file.Files
 import java.util.*
 import java.nio.file.attribute.PosixFilePermission
+import java.time.Instant
 import java.util.HashSet
 
 
@@ -49,11 +50,22 @@ data class User(
 
             val awsAccessKey = Utils.prompt("Please enter your AWS Access Key:", "")
             val awsSecret = Utils.prompt("Please enter your AWS Secret Access Key:", "", secret = true)
+            var awsSessionkey: String? = Utils.prompt("Please enter your AWS Session Key (if you have one):", "")
+            var awsSessionExpiry: String? = Utils.prompt("Please enter your AWS Session Expiry (if you have one):", "")
+
+            if (awsSessionkey?.isBlank() ?: true)
+                awsSessionkey = null
+
+            if (awsSessionExpiry?.isBlank() ?: true)
+                awsSessionExpiry = null
+
+            val awsSessionExpiryInstant: Instant? = awsSessionExpiry?.let {
+                Instant.parse(it)
+            }
 
             // create the key pair
-
             println("Attempting to validate credentials and generate easy-cass-lab login keys")
-            val ec2 = EC2(awsAccessKey, awsSecret, region)
+            val ec2 = EC2(awsAccessKey, awsSecret, awsSessionkey, awsSessionExpiryInstant, region)
             val ec2Client = ec2.client
 
             val keyName = "easy-cass-lab-${UUID.randomUUID()}"
