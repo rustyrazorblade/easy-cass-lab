@@ -8,13 +8,13 @@ import software.amazon.awssdk.regions.Region
 import java.time.Instant
 
 
-class EC2(key: String, secret: String, sessionKey: String?, sessionExpiry: Instant?, region: Region) {
+class EC2(key: String, secret: String, sessionKey: String?, region: Region) {
     val client : Ec2Client
 
-    constructor(key: String, secret: String, region: Region) : this(key, secret, null, null, region)
+    constructor(key: String, secret: String, region: Region) : this(key, secret, null, region)
 
     init {
-        val creds = credentials(key, secret, sessionKey, sessionExpiry)
+        val creds = credentials(key, secret, sessionKey)
         // TODO: Abstract the provider out
         // tlp cluster should have its own provider that uses the following order:
         // easy-cass-lab config, AWS config
@@ -23,13 +23,9 @@ class EC2(key: String, secret: String, sessionKey: String?, sessionExpiry: Insta
                 .build()
     }
 
-    fun credentials(key: String, secret: String, sessionKey: String?, sessionExpiry: Instant?) : AwsCredentials {
-        if (sessionKey != null && sessionExpiry != null) {
-            return AwsSessionCredentials.builder().accessKeyId(key)
-                    .secretAccessKey(secret)
-                    .sessionToken(sessionKey)
-                    .expirationTime(sessionExpiry)
-                    .build()
+    fun credentials(key: String, secret: String, sessionKey: String?) : AwsCredentials {
+        if (sessionKey != null) {
+            return AwsSessionCredentials.create(key, secret, sessionKey)
         }
 
         return AwsBasicCredentials.create(key, secret)
