@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-BCC_VERSION=0.30.0
+BCC_VERSION=0.31.0
 
 sudo apt update
 sudo apt purge bpfcc-tools libbpfcc python3-bpfcc
