@@ -129,9 +129,14 @@ build {
     ]
   }
 
-
   provisioner "shell" {
+    environment_vars = [
+      # we need this to be set because install_cassandra checks for it and exits if it's not there
+      # this is so we can source the file and test the functions outside of packer
+      "INSTALL_CASSANDRA=1",
+    ]
     script = "install/install_cassandra.sh"
+
   }
 
   # instal axonops

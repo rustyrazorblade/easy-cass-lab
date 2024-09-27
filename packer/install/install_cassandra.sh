@@ -1,4 +1,67 @@
 #!/bin/bash
+
+####################################################################
+##### THE HEADER OF THIS FILE SHOULD BE SHELL FUNCTIONS ONLY #######
+### THE INTENT IS TO SAFELY SOURCE THE FILE WITHOUT SIDE EFFECTS ###
+####################################################################
+
+## Downloads the latest patch release of a cassandra version
+## This saves us from having to update cassandra_versions.yaml
+## every time a new patch release is made
+download_cassandra_version() {
+    # Check if version prefix is provided
+    if [ -z "$1" ]; then
+        echo "Usage: download_cassandra_version <version-prefix>"
+        return 1
+    fi
+
+    # Assign the version prefix from the first argument
+    version_prefix="$1"
+
+    # Get the list of versions from the Cassandra download page
+    versions=$(curl -s https://dlcdn.apache.org/cassandra/ | grep -o 'href="[0-9]\+\.[0-9]\+\.[0-9]\+/\"' | sed 's/href="//' | sed 's/\/"//')
+
+    # Find the latest version that matches the given prefix
+    full_version=$(echo "$versions" | grep "^$version_prefix" | sort -V | tail -n 1)
+
+    # Check if a version was found
+    if [ -z "$full_version" ]; then
+        echo "No matching version found for prefix $version_prefix"
+        return 1
+    fi
+
+    # Construct the download URL
+    archive="apache-cassandra-$full_version-bin.tar.gz"
+    download_url="https://dlcdn.apache.org/cassandra/$full_version/$archive"
+
+    # Download the file
+    echo "Downloading Cassandra version $full_version from $download_url..."
+    curl -O "$download_url"
+
+    # Verify if download was successful
+    if [ $? -eq 0 ]; then
+        echo "Download completed successfully."
+    else
+        echo "Failed to download Cassandra version $full_version."
+    fi
+
+    tar zxvf $archive
+    mv apache-cassandra-$full_version $version_prefix
+}
+
+####################################################################
+###### DO NOT ADD ANYTHING ABOVE THIS LINE THAT MAKES CHANGES ######
+###### TO THE FILE SYSTEM OR DEPENDS ON EXTERNAL RESOURCES #########
+###### SHELL FUNCTIONS AND ALIASES ARE OK ##########################
+####################################################################
+
+## exit unless INSTALL_CASSANDRA=1
+if [ -z "$INSTALL_CASSANDRA" ]; then
+    echo "INSTALL_CASSANDRA is not set, exiting."
+    return
+    exit 0
+fi
+
 set -x
 # creating cassandra user
 sudo useradd -m cassandra
@@ -26,11 +89,24 @@ for version in $VERSIONS;
 do
   echo "Configuring version: $version"
   export version
-  URL=$(yq ".[] | select(.version == env(version)) | .url" $YAML)
+
+  URL=$(yq '.[] | select(.version == env(version)) | .url // ""' $YAML)
   echo $URL
 
-  # if the URL ends in .tar.gz, download it
-  if [[ $URL == *.tar.gz ]]; then
+  BRANCH=$(yq '.[] | select(.version == env(version)) | .branch // ""' $YAML)
+
+  # if $version is set, $URL is blank, and $BRANCH is blank
+  if [[ $version != "" && $URL == "" && $BRANCH == "" ]]; then
+    download_cassandra_version $version
+    # check if $version exists in the current directory
+    if [ ! -d $version ]; then
+      echo "Failed to download Cassandra version $version"
+      exit 1
+    fi
+    sudo mv $version /usr/local/cassandra/$version
+
+  # if a URL is set and ends in .tar.gz, download it
+  elif [[ $URL == *.tar.gz ]]; then
     echo "Downloading $URL"
     wget $URL
     echo $(basename $URL)
@@ -44,7 +120,6 @@ do
     # as the directory to clone into
     # checkout the branch specified in the yaml file
     # do a build and create the tar.gz
-    BRANCH=$(yq ".[] | select(.version == env(version)) | .branch" $YAML)
     ANT_FLAGS=$(yq '.[] | select(.version == env(version)) | .ant_flags // ""' $YAML)
     # all builds work with JDK 11 for now
 

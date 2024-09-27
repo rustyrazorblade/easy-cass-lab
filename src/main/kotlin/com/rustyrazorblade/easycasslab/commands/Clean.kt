@@ -8,6 +8,7 @@ class Clean : ICommand {
                 "create_provisioning_resources.sh",
                 "cassandra.patch.yaml",
                 "jmx.options",
+                "jvm.options",
                 "seeds.txt",
                 "terraform.tfstate",
                 "terraform.tfstate.backup",
@@ -29,6 +30,15 @@ class Clean : ICommand {
         }
         File(".terraform").deleteRecursively()
         File("provisioning").deleteRecursively()
+        val artifacts = File("artifacts")
+
+        if (artifacts.isDirectory) {
+            if (artifacts.listFiles().isEmpty()) {
+                artifacts.delete()
+            } else {
+                println("Not deleting artifacts directory, it contains artifacts.")
+            }
+        }
     }
 
 }
