@@ -47,7 +47,8 @@ class CommandLineParser(val context: Context) {
             Command("write-config", WriteConfig(context), listOf("wc")),
             Command("configure-axonops", ConfigureAxonOps(context)),
             Command("upload-keys", UploadAuthorizedKeys(context)),
-            Command("repl", Repl(context))
+            Command("repl", Repl(context)),
+            Command("temporal-worker", RunTemporalWorker())
         )
 
         for(c in commands) {

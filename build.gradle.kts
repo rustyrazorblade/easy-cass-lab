@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 
 extra.apply {
@@ -102,6 +103,8 @@ dependencies {
 
     implementation("org.jline:jline:3.25.0")
 
+    implementation("io.temporal:temporal-sdk:1.25.1")
+
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
@@ -185,6 +188,11 @@ tasks.register<Exec>("packer") {
     workingDir = file("packer")
     commandLine("packer", "build", "base.pkr.hcl")
     commandLine("packer", "build", "cassandra.pkr.hcl")
+}
+
+// this is needed to make grpc happy when ECL is run via the shadowJar
+tasks.named("shadowJar", ShadowJar::class) {
+    mergeServiceFiles()
 }
 
 distributions {
