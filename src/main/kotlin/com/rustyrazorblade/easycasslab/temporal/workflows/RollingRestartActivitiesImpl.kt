@@ -26,7 +26,7 @@ class RollingRestartActivitiesImpl : RollingRestartActivities {
         val loader = SecurityUtils.getKeyPairResourceParser()
         val keyPairs = loader.loadKeyPairs(null, Path(sshKeyPath), null)
 
-        // TODO (jwest): we are leaking clients here and should look at not creating an SSH client per call
+        // TODO (jwest): we are leaking clients here and should look at not creating an SSH client per activity call (although we may have to?)
         val sshClient = SshClient.setUpDefaultClient()
         sshClient.keyIdentityProvider = KeyIdentityProvider.wrapKeyPairs(keyPairs)
         sshClient.start()

@@ -1,13 +1,6 @@
 package com.rustyrazorblade.easycasslab.temporal.workflows
 
-import com.fasterxml.jackson.annotation.JsonProperty
+// (jwest): this is a placeholder until we do have params (like filter) for this workflow
+class RollingRestartParamsImpl() : RollingRestartParams {
 
-class RollingRestartParamsImpl(@JsonProperty("ips") private val ips: List<String>, @JsonProperty("ssh_key") private val sshKeyPath: String) : RollingRestartParams {
-    override fun getIps(): List<String> {
-        return ips
-    }
-
-    override fun getSSHKeyPath(): String {
-        return sshKeyPath
-    }
 }

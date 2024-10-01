@@ -7,5 +7,4 @@ import io.temporal.activity.ActivityMethod
 interface RollingRestartActivities {
      @ActivityMethod
      fun restartNode(sshKeyPath: String, ip: String): Boolean
-
 }
