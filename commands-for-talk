@@ -1,0 +1,16 @@
+---------Jordan---------------------
+$ easy-cass-lab init -c 6 -s 1 --up coc
+$ easy-cass-lab use 5.0
+$ easy-cass-lab start
+---------End Jordan--------------------
+
+---------Jon---------------------
+# load tests
+---------End Jon---------------------
+
+---------Jordan---------------------
+$ c-flame cassandra0
+$ c1
+$ sudo su -
+$ biolatency 1 10
+---------End Jordan---------------------
