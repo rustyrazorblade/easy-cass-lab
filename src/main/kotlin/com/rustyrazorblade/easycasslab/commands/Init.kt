@@ -30,6 +30,12 @@ class Init(@JsonIgnore val context: Context) : ICommand {
     @Parameter(description = "Start instances automatically", names = ["--up"])
     var start = false
 
+    @Parameter(description = "Use the given version of cassandra, implies --up", names = ["--use"])
+    var use = ""
+
+    @Parameter(description = "Start Cassandra after starting instances, requires --use, implies --up", names = ["--start"])
+    var startCassandra = false
+
     @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance", "-i"])
     var instanceType =  System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
@@ -110,9 +116,18 @@ class Init(@JsonIgnore val context: Context) : ICommand {
 
         println("Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}")
 
-        if(start) {
+        if(start || use.isNotEmpty()) {
             println("Provisioning instances")
             Up(context).execute()
+            if (use.isNotEmpty()) {
+                val uc = UseCassandra(context)
+                uc.version = use
+                uc.execute()
+                if (startCassandra) {
+                    Start(context).execute()
+                }
+            }
+
         } else {
             with(TermColors()) {
                 println("Next you'll want to run ${green("easy-cass-lab up")} to start your instances.")
