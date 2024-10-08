@@ -44,6 +44,15 @@
   axonops: "5.0"
   jvm_options: jvm11-server.options
 
+- version: "accord"
+  url: https://github.com/apache/cassandra.git
+  branch: cep-15-accord
+  java: "11"
+  java_build: "11"
+  python: "3.10.6"
+  #  axonops: "5.0"
+  jvm_options: jvm11-server.options
+
 - version: "trunk"
   url: https://github.com/apache/cassandra.git
   branch: trunk
