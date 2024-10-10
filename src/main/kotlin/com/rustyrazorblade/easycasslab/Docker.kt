@@ -46,7 +46,11 @@ class Docker(val context: Context) {
     }
 
     internal fun pullImage(container: Containers) {
-        return pullImage(container.containerName, container.tag)
+        try {
+            return pullImage(container.containerName, container.tag)
+        } catch (e: Exception) {
+            throw DockerException("Error pulling image ${container.containerName}:${container.tag}", e)
+        }
     }
 
     /**
@@ -245,4 +249,9 @@ class Docker(val context: Context) {
 
         return if ( returnCode == 0) Result.success(capturedStdOut.toString()) else Result.failure(Exception("Non zero response returned."))
     }
+}
+
+
+class DockerException(s: String, e: Exception) : Throwable() {
+
 }
