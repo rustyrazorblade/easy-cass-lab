@@ -22,7 +22,9 @@ fun main(arguments: Array<String>) {
         with(TermColors()) {
             println(red("An unknown exception has occurred."))
         }
-        println("Please file a bug report at https://github.com/rustyrazorblade/easy-cass-lab/ with the following information:")
+        with(TermColors()) {
+            println(red("Does this look like an error with easy-cass-lab?  If so, please file a bug report at https://github.com/rustyrazorblade/easy-cass-lab/ with the following information:"))
+        }
         println(e.message)
         println(e.stackTraceToString())
 

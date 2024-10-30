@@ -3,7 +3,7 @@ package com.rustyrazorblade.easycasslab
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.*
-import com.github.dockerjava.core.command.PullImageResultCallback
+import com.github.dockerjava.api.command.PullImageResultCallback
 import org.apache.logging.log4j.kotlin.logger
 import java.io.IOException
 import java.io.PipedOutputStream
@@ -68,7 +68,7 @@ class Docker(val context: Context) {
         pullCommand.exec(
                 object : PullImageResultCallback() {
 
-                    override fun awaitStarted(): PullImageResultCallback {
+                    override fun awaitStarted(): ResultCallback.Adapter<PullResponseItem>? {
                         log.info { "Pulling image $name" }
                         return super.awaitStarted()
                     }
