@@ -18,6 +18,7 @@ done
 
 # set cassandra version to $1
 sudo ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
+sudo ln -vfns /usr/local/cassandra/$1/conf /etc/cassandra
 
 # hacky, not really what I want long term but whatever.
 sudo chown -R cassandra:cassandra /usr/local/cassandra
