@@ -16,7 +16,7 @@ class BuildCassandraImage(val context: Context) : ICommand {
     var region = ""
 
     override fun execute() {
-        val packer = Packer(context)
+        val packer = Packer(context, "cassandra")
 
         if (region.isBlank())
             region = context.userConfig.region

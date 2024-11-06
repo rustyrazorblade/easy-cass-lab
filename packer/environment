@@ -1,3 +1,0 @@
-PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/usr/local/cassandra/current/bin:/usr/local/async-profiler/bin/:/usr/local/cassandra-sidecar/bin"
-CASSANDRA_LOG_DIR=/mnt/cassandra/tmp
-EASY_CASS_STRESS_LOG_DIR=/mnt/cassandra/artifacts

@@ -10,7 +10,7 @@ import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import kotlin.system.exitProcess
 
-class Packer(val context: Context) {
+class Packer(val context: Context, var directory: String) {
     private val docker = Docker(context)
 
     private var containerWorkingDir = "/local"
@@ -46,7 +46,7 @@ class Packer(val context: Context) {
         docker.pullImage(Containers.PACKER)
 
         val args = commands.toMutableList()
-        var localPackerPath = context.appHome + "/packer"
+        var localPackerPath = context.appHome + "/packer/" + directory
         if (!File(localPackerPath).exists()) {
             println("packer directory not found: $localPackerPath")
             exitProcess(1)

@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-java -jar /usr/local/lib/sjk.jar gc -p $(cassandra-pid) $@

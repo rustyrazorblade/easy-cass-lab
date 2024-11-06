@@ -1,6 +1,0 @@
--Dcassandra.disable_auth_caches_remote_configuration=true
--XX:+HeapDumpOnOutOfMemoryError
--Xss256k
-
--XX:+UnlockExperimentalVMOptions
--XX:+UseZGC

@@ -16,7 +16,7 @@ class BuildBaseImage(val context: Context) : ICommand {
     var region = ""
 
     override fun execute() {
-        val packer = Packer(context)
+        val packer = Packer(context, "base")
 
         if (region.isBlank())
             region = context.userConfig.region
