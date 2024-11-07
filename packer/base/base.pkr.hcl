@@ -25,15 +25,17 @@ variable "release_version" {
 locals {
   timestamp = regex_replace(timestamp(), "[- TZ:]", "")
   version = var.release_version != "" ? var.release_version : local.timestamp
+  # We need to use a Graviton instance type for arm
+  instance_type = var.arch == "amd64" ? "c3.xlarge" : "c8g.2xlarge"
 }
 
 source "amazon-ebs" "ubuntu" {
   ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.version}"
-  instance_type = "c3.xlarge"
+  instance_type = "${local.instance_type}"
   region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*"
+      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*.1"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -79,13 +81,7 @@ build {
 
   # install async profiler
   provisioner "shell" {
-    inline = [
-      "sudo sysctl kernel.perf_event_paranoid=1",
-      "sudo sysctl kernel.kptr_restrict=0",
-      "wget https://github.com/async-profiler/async-profiler/releases/download/v3.0/async-profiler-3.0-linux-x64.tar.gz",
-      "tar zxvf async-profiler-3.0-linux-x64.tar.gz",
-      "sudo mv async-profiler-3.0-linux-x64 /usr/local/async-profiler"
-    ]
+    script = "install/install_async_profiler.sh"
   }
 
 
@@ -97,7 +93,7 @@ build {
     inline = [
       "sudo apt install openjdk-8-jdk openjdk-8-dbg openjdk-11-jdk openjdk-11-dbg openjdk-17-jdk openjdk-17-dbg -y",
       "sudo update-java-alternatives -s /usr/lib/jvm/java-1.11.0-openjdk-${var.arch}",
-      "sudo sed -i '/hl jexec.*/d' /usr/lib/jvm/.java-1.8.0-openjdk-amd64.jinfo"
+      "sudo sed -i '/hl jexec.*/d' /usr/lib/jvm/.java-1.8.0-openjdk-${var.arch}.jinfo"
     ]
   }
 

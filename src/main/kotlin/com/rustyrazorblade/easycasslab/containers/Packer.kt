@@ -5,7 +5,7 @@ import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
-import com.rustyrazorblade.easycasslab.commands.delegates.ReleaseFlag
+import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import org.apache.logging.log4j.kotlin.logger
 import java.io.File
 import kotlin.system.exitProcess
@@ -17,14 +17,17 @@ class Packer(val context: Context, var directory: String) {
     private var logger = logger()
 
     // todo include the region defined in the profile
-    fun build(name: String, release: ReleaseFlag, region: String) {
-        val command = mutableListOf("build", "-var", "region=$region")
+    fun build(name: String, buildArgs: BuildArgs) {
+        val command = mutableListOf("build",
+            "-var", "region=${buildArgs.region}",
+            "-var", "arch=${buildArgs.arch.type}")
 
-        if (release.release) {
+        if (buildArgs.release) {
             // When passing the release flag,
             // we use the release version as the image version.
             // We also make the AMI public.
-            command.addAll(arrayOf("-var", "release_version=${context.version}"))
+            command.addAll(
+                arrayOf("-var", "release_version=${context.version}"))
         }
 
         command.add(name)
