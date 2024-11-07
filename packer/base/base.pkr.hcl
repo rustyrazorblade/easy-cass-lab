@@ -56,12 +56,13 @@ build {
   sources = [
     "source.amazon-ebs.ubuntu"
   ]
+  
+  provisioner "shell" {
+    script = "install/prepare_instance.sh"
+  }
+
   provisioner "shell" {
     inline = [
-      "sudo umount -l -f /mnt", # needed early on before we do anything with /mnt
-      "sudo apt update",
-      "sudo apt upgrade -y",
-      "sudo apt update",
 
       # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
       "sudo apt install -y wget sysstat unzip ripgrep ant ant-optional tree zfsutils-linux cpuid nicstat",
