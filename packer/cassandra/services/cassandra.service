@@ -1,0 +1,13 @@
+[Unit]
+Description=Apache Cassandra
+
+[Service]
+ExecStart=/usr/local/cassandra/current/bin/cassandra -f
+ExecStop=/usr/local/cassandra/current/bin/nodetool drain
+User=cassandra
+EnvironmentFile=-/usr/local/cassandra/current/conf/axonenv
+Environment=CASSANDRA_LOG_DIR=/mnt/cassandra/logs
+
+[Install]
+WantedBy=multi-user.target
+

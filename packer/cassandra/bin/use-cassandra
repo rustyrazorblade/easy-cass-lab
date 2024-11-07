@@ -1,0 +1,82 @@
+#!/bin/bash
+
+JAVA_VERSION=""
+
+while getopts "j:" opt; do
+  case ${opt} in
+   j)
+     echo "Overriding java version with ${OPTARG}"
+     JAVA_VERSION=$OPTARG
+     shift 2
+     ;;
+   ?)
+     echo "Nope!"
+     exit 1
+     ;;
+   esac
+done
+
+# set cassandra version to $1
+sudo ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
+sudo ln -vfns /usr/local/cassandra/$1/conf /etc/cassandra
+
+# hacky, not really what I want long term but whatever.
+sudo chown -R cassandra:cassandra /usr/local/cassandra
+
+# set the java version
+export VERSION=$1
+
+if [ -z "$JAVA_VERSION" ]; then
+  JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' /etc/cassandra_versions.yaml)
+  echo "Using default java version from cassandra_versions.yaml: $JAVA_VERSION"
+fi
+
+export JAVA_VERSION
+echo "Using Java version $JAVA_VERSION"
+
+export PY_VERSION=$(yq e '.[] | select(.version == env(VERSION)).python' /etc/cassandra_versions.yaml)
+
+if [ -z "$JAVA_VERSION" ]; then
+  echo "No java version found for $VERSION"
+  exit 1
+fi
+
+if [ -z "$PY_VERSION" ]; then
+  echo "No python version found for $VERSION"
+  exit 1
+fi
+
+# Get the architecture using uname
+cpu_arch=$(uname -m)
+
+# Set ARCH based on the CPU architecture
+if [[ "$cpu_arch" == "x86_64" ]]; then
+    ARCH="amd64"
+elif [[ "$cpu_arch" == "aarch64" ]]; then
+    ARCH="arm64"
+else
+    echo "Unsupported architecture: $cpu_arch"
+    exit 1
+fi
+
+
+# if java version = 8 then run update-java-alternatives -s java-1.8.0-openjdk-amd64
+if [ "$JAVA_VERSION" = "8" ]; then
+  sudo update-java-alternatives -s java-1.8.0-openjdk-$ARCH
+# if java version = 11 then run update-java-alternatives -s java-1.11.0-openjdk-amd64
+elif [ "$JAVA_VERSION" = "11" ]; then
+  sudo update-java-alternatives -s java-1.11.0-openjdk-$ARCH
+elif [ "$JAVA_VERSION" = "17" ]; then
+  sudo update-java-alternatives -s java-1.17.0-openjdk-$ARCH
+else
+  echo "Unknown java version $JAVA_VERSION"
+  exit 1
+fi
+
+# set python version
+# NOTE: a bit hacky but we have to switch back to ubuntu user for this
+#       since its expected that this script run as root by pyenv doesn't
+sudo -u ubuntu bash << EOF
+source ~/.bash_profile
+pyenv global $PY_VERSION
+EOF

@@ -120,8 +120,6 @@ cassandra.patch.yaml
 environment.sh
 
 disk_setup.sh
-packer/cassandra/test/test.options
-packer/cassandra/
 
 /jvm.options
 /setup_instance.sh
