@@ -18,7 +18,12 @@ fun main(arguments: Array<String>) {
         with(TermColors()) {
             println(red("There was an error connecting to docker.  Please check if it is running."))
         }
-    } catch (e: Exception) {
+    } catch (e: java.rmi.RemoteException) {
+        with (TermColors()) {
+            println(red("There was an error executing the remote command.  Try rerunning it."))
+        }
+    }
+    catch (e: Exception) {
         with(TermColors()) {
             println(red("An unknown exception has occurred."))
         }
