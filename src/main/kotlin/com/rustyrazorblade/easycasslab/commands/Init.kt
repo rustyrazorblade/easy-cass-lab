@@ -34,6 +34,7 @@ class Init(@JsonIgnore val context: Context) : ICommand {
     @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance", "-i"])
     var instanceType =  System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
+    // update to use the default stress instance type for the arch
     @Parameter(description = "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.", names = ["--stress-instance", "-si", "--si"])
     var stressInstanceType =  System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
 
