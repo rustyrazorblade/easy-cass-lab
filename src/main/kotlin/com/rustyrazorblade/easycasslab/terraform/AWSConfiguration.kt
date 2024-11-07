@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import org.apache.logging.log4j.kotlin.logger
 import software.amazon.awssdk.annotations.Mutable
@@ -30,7 +31,8 @@ class AWSConfiguration(var name: String,
                        var numCassandraInstances : Int = 3,
                        var cassandraInstanceType : String = "m5d.xlarge",
                        var numStressInstances : Int = 0,
-                       var stressInstanceType : String = "c7i.2xlarge"
+                       var stressInstanceType : String = "c7i.2xlarge",
+                       var arch: Arch = Arch.amd64
     ) {
 
     val logger = logger()
@@ -46,7 +48,7 @@ class AWSConfiguration(var name: String,
     var azs = listOf("a", "b", "c").map { "${region}${it}" }
 
     private val config = TerraformConfig(region = region,
-        name=name, azs=azs, tags=tags)
+        name=name, azs=azs, tags=tags, arch=arch)
 
     init {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -195,7 +197,8 @@ class AWSConfiguration(var name: String,
 class TerraformConfig(@JsonIgnore val region: String = "",
                       @JsonIgnore val name: String = "easy_cass_lab",
                       @JsonIgnore val azs: List<String>,
-                      @JsonIgnore val tags: MutableMap<String, String>
+                      @JsonIgnore val tags: MutableMap<String, String>,
+                      @JsonIgnore val arch: Arch
 ) {
 
     var variable = mutableMapOf<String, Variable>()
@@ -248,7 +251,7 @@ class TerraformConfig(@JsonIgnore val region: String = "",
                 val filter = listOf(
                     object {
                         val name = "name"
-                        val values = listOf(amiName)
+                        val values = listOf(getAmi(arch))
                     },
                     object {
                         val name = "virtualization-type"
@@ -260,8 +263,13 @@ class TerraformConfig(@JsonIgnore val region: String = "",
         }
     }
 
+    @JsonIgnore
+    fun getAmi(arch: Arch): String {
+        val defaultAmi = "rustyrazorblade/images/easy-cass-lab-cassandra-${arch}-*"
+        return System.getProperty("easycasslab.ami.name", defaultAmi)
+    }
+
     companion object {
-        val amiName = System.getProperty("easycasslab.ami.name", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-*")
         val amiOwner = System.getProperty("easycasslab.ami.owner", "self")
     }
 }

@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.Containers
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import  com.rustyrazorblade.easycasslab.commands.converters.AZConverter
+import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import java.io.File
 import  com.rustyrazorblade.easycasslab.terraform.AWSConfiguration
@@ -66,6 +67,9 @@ class Init(@JsonIgnore val context: Context) : ICommand {
     @Parameter(description = "Cluster name")
     var name = "test"
 
+    @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
+    var arch = Arch.amd64
+
     @DynamicParameter(names = ["--tag."], description = "Tag instances")
     var tags: Map<String, String> = mutableMapOf()
 
@@ -90,7 +94,8 @@ class Init(@JsonIgnore val context: Context) : ICommand {
             numCassandraInstances=cassandraInstances,
             cassandraInstanceType = instanceType,
             numStressInstances = stressInstances,
-            stressInstanceType = stressInstanceType)
+            stressInstanceType = stressInstanceType,
+            arch = arch)
 
         println("Directory Initialized Configuring Terraform")
 

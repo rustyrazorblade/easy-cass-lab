@@ -31,7 +31,7 @@ locals {
 
 source "amazon-ebs" "ubuntu" {
   ami_name      = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.version}"
-  instance_type = "${local.instance_type}"
+  instance_type = local.instance_type
   region        = "${var.region}"
   source_ami_filter {
     filters = {
