@@ -1,6 +1,7 @@
 #!/bin/bash
 
 JAVA_VERSION=""
+CASSANDRA_VERSIONS="/etc/cassandra_versions.yaml"
 
 while getopts "j:" opt; do
   case ${opt} in
@@ -25,16 +26,20 @@ sudo chown -R cassandra:cassandra /usr/local/cassandra
 
 # set the java version
 export VERSION=$1
+export JAVA_VERSION
 
-if [ -z "$JAVA_VERSION" ]; then
-  JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' /etc/cassandra_versions.yaml)
+
+if [ -n "$JAVA_VERSION" ]; then
+  echo "Updating java version for $VERSION to $JAVA_VERSION"
+  yq eval '(.[] | select(.version == env(VERSION))).java = env(JAVA_VERSION)' -i $CASSANDRA_VERSIONS
+else
+  JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' $CASSANDRA_VERSIONS)
   echo "Using default java version from cassandra_versions.yaml: $JAVA_VERSION"
 fi
 
-export JAVA_VERSION
 echo "Using Java version $JAVA_VERSION"
 
-export PY_VERSION=$(yq e '.[] | select(.version == env(VERSION)).python' /etc/cassandra_versions.yaml)
+export PY_VERSION=$(yq e '.[] | select(.version == env(VERSION)).python' $CASSANDRA_VERSIONS)
 
 if [ -z "$JAVA_VERSION" ]; then
   echo "No java version found for $VERSION"
