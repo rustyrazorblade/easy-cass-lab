@@ -7,6 +7,7 @@ ExecStop=/usr/local/cassandra/current/bin/nodetool drain
 User=cassandra
 EnvironmentFile=-/usr/local/cassandra/current/conf/axonenv
 Environment=CASSANDRA_LOG_DIR=/mnt/cassandra/logs
+Environment=CASSANDRA_HEAPDUMP_DIR=/mnt/cassandra/artifacts
 
 [Install]
 WantedBy=multi-user.target
