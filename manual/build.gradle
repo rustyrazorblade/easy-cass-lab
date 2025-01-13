@@ -14,10 +14,6 @@ plugins {
 
 asciidoctor {
     sourceDir = file("src")
+    outputDir = "${rootProject.projectDir}/docs/"
     attributes "EASY_CASS_LAB_VERSION" : rootProject.version.toString()
-}
-
-tasks.register('publish', Copy) {
-    from "${asciidoctor.outputDir}/html5"
-    into "${rootProject.projectDir}/docs/"
 }

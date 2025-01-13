@@ -5,7 +5,8 @@ Jon Haddad <jon@rustyrazorblade.com>
 
 This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
 
-If you are looking for a tool to aid in benchmarking these clusters please see the companion project http://rustyrazorblade.com/tlp-stress/[tlp-stress].
+If you are looking for a tool to aid in benchmarking these clusters please see the companion project
+https://github.com/rustyrazorblade/easy-cass-stress[easy-cass--stress].
 
 If you're looking for tools to help manage Cassandra in _production_ environments please see the http://cassandra-reaper.io/[Reaper] project and https://github.com/spotify/cstar[cstar]
 
@@ -42,9 +43,10 @@ cd /path/to/easy-cass-lab
 
 We currently have a dependency on shell scripts meaning you'll need a Mac or Linux box to use this tool.
 
-If you've never used to the tool before, the first time you run a command you'll be asked to supply some information, which will generate a configuration file which will be placed in your `$HOME/.easy-cass-lab/profiles/default/settings.yaml`.
+If you've never used to the tool before, the first time you run a command you'll be asked to supply some information,
+which will generate a configuration file which will be placed in your `$HOME/.easy-cass-lab/profiles/default/settings.yaml`.
 
-IMPORTANT: We currently only support the ubuntu 16 ami in us-west-2.  We'd love a pull request to improve this!
+IMPORTANT: We currently only support the Ubuntu 21 ami.
 
 Running the command without any arguments will print out the usage:
 
@@ -61,23 +63,21 @@ include::includes/help.txt[]
 
 == Initialize a Cluster
 
-The tool uses the current working directory as a project, of sorts. To get started, run the following, substituting your customer / project, ticket and purpose.
+The tool uses the current working directory as a working space for all the cluster configs and artifacts.
 
 [source,bash]
 ----
-easy-cass-lab init CLIENT TICKET PURPOSE
+easy-cass-lab init
 ----
 
-Where:
+This will initialize the current directory with a terraform.tf.json. You can open this up in an editor.
+Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want.
+You can also change the instance type.
+Generally speaking though, you shouldn't have to do this.
+If you find yourself doing it often, please submit an https://github.com/rustyrazorblade/easy-cass-lab/issues[issue]
+describing your requirements and we'll work with you to solve the problem.
 
-* `CLIENT` - Name of the customer, client, or project associated with the work you are doing with `easy-cass-lab`.
-* `TICKET` - Jira or github ticket number associated with the work you are doing with `easy-cass-lab`.
-* `PURPOSE` - Reason why you are creating the cluster.
-
-This will initialize the current directory with a terraform.tf.json. You can open this up in an editor. Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want. You can also change the instance type.  Generally speaking though, you shouldn't have to do this.  If you find yourself doing it often, please submit an https://github.com/rustyrazorblade/easy-cass-lab/issues[issue] describing your requirements and we'll work with you to solve the problem.
-
-Certain instances types may not work with the ami that's hard coded at the moment, we're looking to fix / improve this.
-
+If you're using a Graviton AMI, you'll need to supply the `--cpu arm64` flag when running `init`.
 
 == Launch Instances
 
@@ -98,7 +98,6 @@ source env.sh
 ----
 
 This will set up SSH, SCP, SFTP, and rsync to use a local sshConfig file, as well as some other helpful aliases.
-
 
 SSH alises for all Cassandra nodes are automatically created as `c0`-`cN`.  `ssh` is not required.  For example:
 
@@ -128,8 +127,6 @@ easy-cass-lab start
 ----
 
 Simply replace 3.11.4 with the release version.
-
-
 
 
 === The Hard Way - Use a custom Build
@@ -178,42 +175,12 @@ Where:
 This will push the contents of the `provisioning/cassandra` directory up to each of the instances you have created and install Cassandra on them.
 
 
-== Dashboards
-
-WARNING: This documentation is _very_ rough, and needs improvment before the 1.0 release.
-
-The dashboards are built using a tool called jsonnet, with a library called grafonnet.  The jsonnet files are here: `src/dashboards/dashboards`
-
-NOTE: if you want to do anything in the dashboards, you’d need to run `./gradlew buildJsonnet` to build the container
-
-You can regenerate the dashboards using the following:
-
-```
-./gradlew generateDashboards
-```
-
-Optionally you can add the `-t` flag and Gradle will watch for changes, and rebuild the dashboards when it detects changes.
-
-They get output here: `src/main/resources/com/rustyrazorblade/easycasslab/commands/origin/provisioning/monitoring/config/grafana/dashboards`
-
-There's a docker-compose file, `docker-compose-monitoring-dev.yml`, which has all the necessary configuration to start a full environment designed to make editing dashboards easier.  You can start it with:
-
-```
-./gradlew previewDashboards
-```
-
-This will start Cassandra, tlp-stress, Prometheus and Grafana.
-
 The following ports are open:
 
 [options="header"]
 |===
 |Port|Purpose
-|3000|Grafana web interface
-|9090|Prometheus Web Interface
 |9042|Cassandra Native Protocol (cql)
-|9500|tlp-stress prometheus port
-|9501|Cassandra prometheus port
 |===
 
 

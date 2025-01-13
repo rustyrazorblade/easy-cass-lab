@@ -18,4 +18,4 @@ include 'services:webservice'
 rootProject.name = 'easy-cass-lab'
 
 include "core"
-//include "manual"
+include "manual"
