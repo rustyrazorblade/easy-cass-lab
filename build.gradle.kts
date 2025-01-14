@@ -22,7 +22,6 @@ plugins {
     java
     idea
     application
-    id("com.bmuschko.docker-remote-api") version "9.4.0"
     id("org.jetbrains.kotlin.jvm") version "1.9.20"
     id("com.github.johnrengelman.shadow")  version "8.1.1"
 }
@@ -117,18 +116,6 @@ kotlin {
     jvmToolchain(11)
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-Xallow-result-return-type")
-    }
-}
-
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileTestKotlin") {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-Xallow-result-return-type")
-    }
-}
-
 
 sourceSets {
     val main by getting {
@@ -178,13 +165,6 @@ tasks.register("buildAll") {
 //    dependsOn("buildDeb")
 //    dependsOn("buildRpm")
     dependsOn(tasks.named("distTar"))
-}
-
-tasks.register<Exec>("packer") {
-    group = "Build"
-    workingDir = file("packer")
-    commandLine("packer", "build", "base.pkr.hcl")
-    commandLine("packer", "build", "cassandra.pkr.hcl")
 }
 
 distributions {
