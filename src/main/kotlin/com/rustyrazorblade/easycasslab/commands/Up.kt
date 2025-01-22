@@ -81,13 +81,6 @@ class Up(@JsonIgnore val context: Context) : ICommand {
 
         WriteConfig(context).execute()
 
-        this::class.java.getResourceAsStream("setup_instance.sh").use {
-            val diskSetup = File("setup_instance.sh").bufferedWriter()
-            diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
-            diskSetup.flush()
-            diskSetup.close()
-        }
-
         // once the instances are up we can connect and set up
         // the disks, axonops, system settings, etc
         // we can't set up the configs yet though,

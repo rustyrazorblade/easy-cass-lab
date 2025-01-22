@@ -111,11 +111,18 @@ class Init(@JsonIgnore val context: Context) : ICommand {
             config.azs = expand(context.userConfig.region, azs)
         }
 
-        println("Writing Config")
+        println("Writing OpenTofu Config")
         writeTerraformConfig(config)
 
-        println("Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}")
+        println("Writing setup_instance.sh")
+        this::class.java.getResourceAsStream("setup_instance.sh").use {
+            val diskSetup = File("setup_instance.sh").bufferedWriter()
+            diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
+            diskSetup.flush()
+            diskSetup.close()
+        }
 
+        println("Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}")
         if(start) {
             println("Provisioning instances")
             Up(context).execute()
