@@ -1,0 +1,6 @@
+- version: "1.2"
+  java: "8"
+  python: "3.10.6"
+  axonops: "4.1"
+  jvm_options: jvm11-server.options
+  ant_flags: "-Duse.jdk11=true"

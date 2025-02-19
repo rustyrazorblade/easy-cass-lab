@@ -52,6 +52,8 @@ data class Context(val easycasslabUserDirectory: File) {
      */
     val version = System.getProperty("easycasslab.version").toInt()
     val appHome = System.getProperty("easycasslab.apphome")
+    val packerHome = "$appHome/packer/"
+    val cassandraVersionsExtra = File(profileDir, "cassandra_versions")
 
     /**
      * Please use this for reading and writing yaml to objects

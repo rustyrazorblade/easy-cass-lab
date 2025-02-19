@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.commands.*
 import org.apache.logging.log4j.kotlin.logger
 import java.util.regex.Pattern
@@ -16,6 +17,7 @@ class MainArgs {
 class CommandLineParser(val context: Context) {
     val commands: List<Command>
 
+    @JsonIgnore
     private val logger = logger("com.rustyrazorblade.easycasslab.CommandLineParser")
     private val jc: JCommander
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
