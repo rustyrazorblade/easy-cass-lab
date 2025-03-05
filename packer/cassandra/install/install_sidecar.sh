@@ -7,7 +7,7 @@ git clone https://github.com/apache/cassandra-sidecar.git
 (
 cd cassandra-sidecar
 ./gradlew copyJolokia installDist
-sudo cp -r build/install/cassandra-sidecar /usr/local/cassandra-sidecar
+sudo cp -r build/install/apache-cassandra-sidecar /usr/local/cassandra-sidecar
 )
 
 
