@@ -1,5 +1,5 @@
-VERSION="6.2.0-SNAPSHOT"
+VERSION="8"
 
-wget https://github.com/rustyrazorblade/easy-cass-stress/releases/download/v${VERSION}/easy-cass-stress-${VERSION}.zip
-unzip easy-cass-stress-${VERSION}.zip
+wget https://github.com/rustyrazorblade/easy-cass-stress/releases/download/v${VERSION}/easy-cass-stress-${VERSION}.tar.gz
+tar zxvf easy-cass-stress-${VERSION}.tar.gz
 sudo mv easy-cass-stress-${VERSION} /usr/local/easy-cass-stress
