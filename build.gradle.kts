@@ -29,7 +29,7 @@ plugins {
 group = "com.rustyrazorblade"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
 }
 
 application {
@@ -109,11 +109,13 @@ dependencies {
     implementation("com.github.ajalt:mordant:1.2.1")
 
     testImplementation("io.mockk:mockk:1.9.3")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("org.mockito:mockito-core:5.10.0")
 }
 
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 

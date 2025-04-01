@@ -4,6 +4,10 @@ plugins {
     kotlin("jvm")
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     implementation("org.apache.logging.log4j:log4j-api-kotlin:${rootProject.extra["log4j_api_version"]}")
     implementation("org.apache.logging.log4j:log4j-core:${rootProject.extra["log4j_core_version"]}")
