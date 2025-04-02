@@ -22,7 +22,9 @@ class Clean : ICommand {
                 "setup_instance.sh",
                 ".terraform.lock.hcl",
                 "logs",
-                "state.json"
+                "state.json",
+            "axonops-dashboards.json",
+            "cassandra_versions.yaml"
         )
 
         for(f in toDelete) {
