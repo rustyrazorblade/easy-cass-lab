@@ -25,28 +25,69 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
      * Upload a file to a remote host
      */
     override fun uploadFile(local: Path, remote: String) {
-        FileUploader(session, getScpClient()).upload(local, remote)
+        log.debug { "Uploading file ${local.toAbsolutePath()} to ${session}:$remote" }
+        getScpClient().upload(local, remote)
     }
     
     /**
      * Upload a directory to a remote host
      */
     override fun uploadDirectory(localDir: File, remoteDir: String) {
-        DirectoryUploader(session, getScpClient()).upload(localDir, remoteDir)
+        if (!localDir.exists() || !localDir.isDirectory) {
+            log.error { "Local directory $localDir does not exist or is not a directory" }
+            return
+        }
+        
+        log.debug { "Uploading directory ${localDir.absolutePath} to ${session}:$remoteDir" }
+
+        executeRemoteCommand("mkdir -p $remoteDir", false, false)
+
+        // Process each file in the directory
+        localDir.listFiles()?.forEach { file ->
+            val relativePath = file.toRelativeString(localDir)
+            val remotePath = "$remoteDir/$relativePath"
+            
+            if (file.isDirectory) {
+                // Recursively upload subdirectories
+                uploadDirectory(file, remotePath)
+            } else {
+                // Upload individual file
+                uploadFile(file.toPath(), remotePath)
+            }
+        }
     }
     
     /**
      * Download a file from a remote host
      */
     override fun downloadFile(remote: String, local: Path) {
-        FileDownloader(session, getScpClient()).download(remote, local)
+        log.debug { "Downloading file from ${session} ${remote} to ${local.toAbsolutePath()}" }
+        getScpClient().download(remote, local)
     }
     
     /**
      * Download a directory from a remote host
      */
     override fun downloadDirectory(remoteDir: String, localDir: File) {
-        DirectoryDownloader(session, getScpClient()).download(remoteDir, localDir)
+        if (!localDir.exists()) {
+            localDir.mkdirs()
+        }
+        
+        log.debug { "Downloading directory from ${session}:$remoteDir to ${localDir.absolutePath}" }
+        
+        val fileListOutput = executeRemoteCommand("find $remoteDir -type f", false, false)
+        val remoteFiles = fileListOutput.split("\n").filter { it.isNotEmpty() }
+        
+        // Download each file
+        for (remoteFile in remoteFiles) {
+            val relativePath = remoteFile.removePrefix("$remoteDir/")
+            val localFile = File(localDir, relativePath)
+            
+            // Ensure parent directory exists
+            localFile.parentFile.mkdirs()
+            
+            downloadFile(remoteFile, localFile.toPath())
+        }
     }
 
     override fun getScpClient(): CloseableScpClient {
