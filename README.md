@@ -146,8 +146,8 @@ You'll see a file called `cassandra.patch.yaml` in your directory.  You can add 
 and the changes will be applied to your cluster.  The `listen_address` is handled for you, 
 you do not need to supply it.  The data directories are set up for you. 
 
-You can also edit `jvm.options`.  Different versions of Cassandra use different 
-names for jvm.options.  `easy-cass-lab` handles this for you as well.
+You can also edit the JVM options files under the different local version directories. Different versions of Cassandra use different 
+names for jvm.options.  Edit the ones in the directory that corresponds to the version you're using.
 
 ```shell
 easy-cass-lab update-config # uc for short

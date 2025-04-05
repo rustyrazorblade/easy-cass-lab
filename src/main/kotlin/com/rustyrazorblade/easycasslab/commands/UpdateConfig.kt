@@ -20,9 +20,6 @@ class UpdateConfig(val context: Context) : ICommand {
     @Parameter(descriptionKey = "Patch file to upload")
     var file: String = "cassandra.patch.yaml"
 
-    @Parameter(names = ["--jvm"], descriptionKey = "jvm.options file to upload")
-    var jvm = "jvm.options"
-
     @Parameter(names = ["--version"], descriptionKey = "Version to upload, default is current")
     var version = "current"
 
@@ -42,19 +39,37 @@ class UpdateConfig(val context: Context) : ICommand {
             println("Patching $it")
             val tmp = Files.createTempFile("easycasslab", "yaml")
             context.yaml.writeValue(tmp.toFile(), yaml)
+            
             // call the patch command on the server
             context.upload(it, tmp, file)
             tmp.deleteExisting()
-
-            context.executeRemotely(it, "/usr/local/bin/patch-config $file")
-
-            // uploading jvm.options
-
-            context.upload(it, Path.of(jvm), "jvm.options")
-            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
-            context.executeRemotely(it, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
-
+            val resolvedVersion = context.getRemoteVersion(it, version)
+            context.executeRemotely(it, "/usr/local/bin/patch-config $file").text
+            
+            // Create a temporary directory on the remote filesystem using mktemp
+            val tempDir = context.executeRemotely(it, "mktemp -d -t easycasslab.XXXXXX").text.trim()
+            println("Created temporary directory $tempDir on $it")
+            
+            // Upload files to the temporary directory first
+            println("Uploading configuration files to temporary directory $tempDir")
+            context.uploadDirectory(it, resolvedVersion.file, tempDir)
+            
+            // Make sure the destination directory exists
+            context.executeRemotely(it, "sudo mkdir -p ${resolvedVersion.conf}").text
+            
+            // Copy files from temp directory to the final location
+            println("Copying files from temporary directory to ${resolvedVersion.conf}")
+            context.executeRemotely(it, "sudo cp -R $tempDir/* ${resolvedVersion.conf}/").text
+            
+            // Change ownership of all files
+            context.executeRemotely(it, "sudo chown -R cassandra:cassandra ${resolvedVersion.conf}").text
+            
+            // Clean up the temporary directory
+            context.executeRemotely(it, "rm -rf $tempDir").text
+            
+            println("Configuration updated for $it")
         }
+        
         if (restart) {
             val restart = Restart(context)
             restart.hosts = hosts

@@ -7,7 +7,6 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import org.apache.sshd.scp.client.ScpClient
 import java.io.File
 import java.io.FileFilter
 import java.io.FileWriter
@@ -54,14 +53,10 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
     }
 
     private fun doUpload(authorizedKeys: File) = { it: Host ->
-        val scp = context.getScpClient(it)
+        // Upload the file using Context's upload method
+        context.upload(it, authorizedKeys.toPath(), authorizedKeysExtra)
 
-        scp.upload(
-            authorizedKeys.path,
-            authorizedKeysExtra,
-            ScpClient.Option.PreserveAttributes,
-        )
-
-        context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys")
+        // Append to authorized_keys
+        context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
     }
 }
