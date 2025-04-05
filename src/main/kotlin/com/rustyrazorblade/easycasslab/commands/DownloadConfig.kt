@@ -7,6 +7,8 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import org.apache.logging.log4j.kotlin.logger
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.exists
 
@@ -26,6 +28,11 @@ class DownloadConfig(val context: Context) : ICommand {
 
     @Parameter(names = ["--version"], description = "Version to download, default is current")
     var version = "current"
+
+    companion object {
+        val logger = logger()
+    }
+
     override fun execute() {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
 
@@ -42,6 +49,17 @@ class DownloadConfig(val context: Context) : ICommand {
                 context.download(host, path, file)
             } else {
                 println(green("$file exists and --overwrite is false, not overwriting."))
+            }
+
+            val resolvedVersion = if (version == "current") {
+                val tmp = context.executeRemotely(host, "readlink -f /usr/local/cassandra/$version").text.trim()
+                // Download all the JVM related files
+                tmp
+            } else version
+
+            logger.info("Original version: $version.  Resolved version: $resolvedVersion. ")
+            if (File(resolvedVersion).isDirectory) {
+                context.downloadDirectory(host, "/usr/local/cassandra/$resolvedVersion/conf", File(resolvedVersion) )
             }
         }
     }
