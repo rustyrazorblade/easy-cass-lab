@@ -97,7 +97,7 @@ class MockSSHClient : ISSHClient {
         }
     }
     
-    override fun stop() {
+    override fun close() {
         log.debug { "MOCK: Stopping SSH client" }
     }
     

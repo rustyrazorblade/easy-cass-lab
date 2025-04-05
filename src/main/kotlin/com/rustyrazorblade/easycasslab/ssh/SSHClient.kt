@@ -58,7 +58,7 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
     /**
      * Stop the SSH client
      */
-    fun stop() {
+    override fun close() {
         log.debug { "Stopping SSH client" }
         session.close()
     }
