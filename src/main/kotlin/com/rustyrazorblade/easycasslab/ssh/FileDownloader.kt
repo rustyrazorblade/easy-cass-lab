@@ -2,13 +2,15 @@ package com.rustyrazorblade.easycasslab.ssh
 
 import org.apache.logging.log4j.kotlin.logger
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
 import java.nio.file.Path
 
 /**
  * Downloads files from a remote host
  */
-class FileDownloader(private val session: ClientSession) {
+class FileDownloader(private val session: ClientSession,
+                     private val scpClient: CloseableScpClient) {
     private val log = logger()
     
     /**
@@ -20,8 +22,6 @@ class FileDownloader(private val session: ClientSession) {
      */
     fun download(remote: String, local: Path) {
         log.debug { "Downloading file from ${session} ${remote} to ${local.toAbsolutePath()}" }
-        val scpClientCreator = ScpClientCreator.instance()
-        val scpClient = scpClientCreator.createScpClient(session)
         scpClient.download(remote, local)
     }
 }

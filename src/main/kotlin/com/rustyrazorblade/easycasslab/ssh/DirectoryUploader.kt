@@ -1,19 +1,19 @@
 package com.rustyrazorblade.easycasslab.ssh
 
-import com.rustyrazorblade.easycasslab.configuration.Host
 import org.apache.logging.log4j.kotlin.logger
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.scp.client.CloseableScpClient
 import java.io.File
 
 /**
  * Uploads directories to a remote host
  */
 class DirectoryUploader(
-    private val sshClient: ClientSession
+    private val sshClient: ClientSession,
+    private val scpClient: CloseableScpClient
 ) {
     private val log = logger()
-    private val fileUploader = FileUploader(sshClient)
-    
+
     /**
      * Upload a directory to a remote host
      * 
@@ -38,10 +38,10 @@ class DirectoryUploader(
             
             if (file.isDirectory) {
                 // Recursively upload subdirectories
-                DirectoryUploader(sshClient).upload(file, remotePath)
+                DirectoryUploader(sshClient, scpClient).upload(file, remotePath)
             } else {
                 // Upload individual file
-                FileUploader(sshClient).upload(file.toPath(), remotePath)
+                FileUploader(sshClient, scpClient).upload(file.toPath(), remotePath)
             }
         }
     }

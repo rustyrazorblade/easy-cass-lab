@@ -1,15 +1,15 @@
 package com.rustyrazorblade.easycasslab.ssh
 
-import com.rustyrazorblade.easycasslab.configuration.Host
 import org.apache.logging.log4j.kotlin.logger
-import org.apache.sshd.client.SshClient
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.scp.client.CloseableScpClient
 import java.io.File
 
 /**
  * Downloads directories from a remote host
  */
-class DirectoryDownloader(private val session: ClientSession) {
+class DirectoryDownloader(private val session: ClientSession,
+                          private val scpClient: CloseableScpClient) {
     private val log = logger()
     
     /**
@@ -30,7 +30,7 @@ class DirectoryDownloader(private val session: ClientSession) {
         val remoteFiles = fileListOutput.split("\n").filter { it.isNotEmpty() }
         
         // Create file downloader
-        val fileDownloader = FileDownloader(session)
+        val fileDownloader = FileDownloader(session, scpClient)
         
         // Download each file
         for (remoteFile in remoteFiles) {

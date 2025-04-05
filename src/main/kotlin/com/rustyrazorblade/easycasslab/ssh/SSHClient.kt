@@ -25,28 +25,28 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
      * Upload a file to a remote host
      */
     override fun uploadFile(local: Path, remote: String) {
-        FileUploader(session).upload(local, remote)
+        FileUploader(session, getScpClient()).upload(local, remote)
     }
     
     /**
      * Upload a directory to a remote host
      */
     override fun uploadDirectory(localDir: File, remoteDir: String) {
-        DirectoryUploader(session).upload(localDir, remoteDir)
+        DirectoryUploader(session, getScpClient()).upload(localDir, remoteDir)
     }
     
     /**
      * Download a file from a remote host
      */
     override fun downloadFile(remote: String, local: Path) {
-        FileDownloader(session).download(remote, local)
+        FileDownloader(session, getScpClient()).download(remote, local)
     }
     
     /**
      * Download a directory from a remote host
      */
     override fun downloadDirectory(remoteDir: String, localDir: File) {
-        DirectoryDownloader(session).download(remoteDir, localDir)
+        DirectoryDownloader(session, getScpClient()).download(remoteDir, localDir)
     }
 
     override fun getScpClient(): CloseableScpClient {
