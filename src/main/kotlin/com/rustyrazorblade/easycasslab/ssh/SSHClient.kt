@@ -16,9 +16,26 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
 
     /**
      * Execute a command on a remote host
+     * 
+     * @param command The command to execute
+     * @param output Whether to print the command output
+     * @param secret Whether the command contains sensitive information
+     * @return The command output wrapped in a Response object
      */
     override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): Response {
-        val result = RemoteCommandExecutor(session).execute(command, output, secret)
+        // Create connection for this host
+        if (!secret) {
+            println("Executing remote command: $command")
+        } else {
+            println("Executing remote command: [hidden]")
+        }
+        
+        val result = session.executeRemoteCommand(command)
+        
+        if (output) {
+            println(result)
+        }
+        
         return Response(result)
     }
     
