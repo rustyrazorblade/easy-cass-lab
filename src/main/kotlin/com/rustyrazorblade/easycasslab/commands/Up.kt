@@ -95,7 +95,7 @@ class Up(@JsonIgnore val context: Context) : ICommand {
 
             try {
                 context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-                    context.executeRemotely(it, "echo 1")
+                    context.executeRemotely(it, "echo 1").text
                     // download /etc/cassandra_versions.yaml if we don't have it yet
                     if (!File("cassandra_versions.yaml").exists()) {
                         context.download(it, "/etc/cassandra_versions.yaml", Path.of("cassandra_versions.yaml"))

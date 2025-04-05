@@ -57,6 +57,6 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
         context.upload(it, authorizedKeys.toPath(), authorizedKeysExtra)
 
         // Append to authorized_keys
-        context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys")
+        context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
     }
 }

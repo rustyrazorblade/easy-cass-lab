@@ -13,7 +13,7 @@ interface ISSHClient {
     /**
      * Execute a command on a remote host
      */
-    fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): String
+    fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): Response
     
     /**
      * Upload a file to a remote host

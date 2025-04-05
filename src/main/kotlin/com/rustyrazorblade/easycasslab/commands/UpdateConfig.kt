@@ -46,13 +46,13 @@ class UpdateConfig(val context: Context) : ICommand {
             context.upload(it, tmp, file)
             tmp.deleteExisting()
 
-            context.executeRemotely(it, "/usr/local/bin/patch-config $file")
+            context.executeRemotely(it, "/usr/local/bin/patch-config $file").text
 
             // uploading jvm.options
 
             context.upload(it, Path.of(jvm), "jvm.options")
-            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options")
-            context.executeRemotely(it, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf")
+            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options").text
+            context.executeRemotely(it, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf").text
 
         }
         if (restart) {

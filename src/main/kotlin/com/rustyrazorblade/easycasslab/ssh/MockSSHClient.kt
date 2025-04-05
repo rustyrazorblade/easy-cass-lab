@@ -27,10 +27,10 @@ class MockSSHClient : ISSHClient {
      */
     var commandOutput = ""
     
-    override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): String {
+    override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): Response {
         log.debug { "MOCK: Executing command: $command" }
         executedCommands.add(command)
-        return commandOutput
+        return Response(commandOutput)
     }
     
     override fun uploadFile(local: Path, remote: String) {

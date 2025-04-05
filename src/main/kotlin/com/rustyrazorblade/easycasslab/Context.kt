@@ -5,6 +5,7 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.ssh.ConnectionManager
+import com.rustyrazorblade.easycasslab.ssh.Response
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -110,7 +111,7 @@ data class Context(val easycasslabUserDirectory: File) {
 
     fun getConnection(host: Host) = connectionManager.getConnection(host)
 
-    fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : String {
+    fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : Response {
         return getConnection(host).executeRemoteCommand(command, output, secret)
     }
 

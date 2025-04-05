@@ -43,7 +43,7 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
         val javaString = if (javaVersion.isNotBlank()) " -j $javaVersion " else ""
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            context.executeRemotely(it, "sudo use-cassandra $javaString ${version}")
+            context.executeRemotely(it, "sudo use-cassandra $javaString ${version}").text
             state.versions?.put(it.alias, version)
         }
 

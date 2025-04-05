@@ -15,7 +15,7 @@ class StartAxonOps(val context: Context) : ICommand {
     override fun execute() {
         context.requireSshKey()
         context.tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
-            context.executeRemotely(it, "sudo systemctl start axon-agent")
+            context.executeRemotely(it, "sudo systemctl start axon-agent").text
         }
     }
 }

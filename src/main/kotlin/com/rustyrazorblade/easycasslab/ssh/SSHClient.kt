@@ -17,8 +17,9 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
     /**
      * Execute a command on a remote host
      */
-    override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): String {
-        return RemoteCommandExecutor(session).execute(command, output, secret)
+    override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): Response {
+        val result = RemoteCommandExecutor(session).execute(command, output, secret)
+        return Response(result)
     }
     
     /**
@@ -76,7 +77,7 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
         log.debug { "Downloading directory from ${session}:$remoteDir to ${localDir.absolutePath}" }
         
         val fileListOutput = executeRemoteCommand("find $remoteDir -type f", false, false)
-        val remoteFiles = fileListOutput.split("\n").filter { it.isNotEmpty() }
+        val remoteFiles = fileListOutput.text.split("\n").filter { it.isNotEmpty() }
         
         // Download each file
         for (remoteFile in remoteFiles) {
