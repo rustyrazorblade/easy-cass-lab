@@ -4,6 +4,7 @@ import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.ssh.ConnectionManager
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -14,19 +15,9 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.core.DefaultDockerClientConfig
 
 import org.apache.logging.log4j.kotlin.logger
-import org.apache.sshd.client.SshClient
-import org.apache.sshd.client.session.ClientSession
-import org.apache.sshd.common.keyprovider.KeyIdentityProvider
-import org.apache.sshd.common.util.security.SecurityUtils
-import org.apache.sshd.scp.client.CloseableScpClient
-import org.apache.sshd.scp.client.ScpClientCreator
-
-import java.nio.file.Path
-import java.time.Duration
 import java.io.File
 import java.nio.file.Files
-
-import kotlin.io.path.Path
+import java.nio.file.Path
 
 
 data class Context(val easycasslabUserDirectory: File) {
@@ -110,76 +101,50 @@ data class Context(val easycasslabUserDirectory: File) {
         fp
     }
 
+    val connectionManager = ConnectionManager(userConfig.sshKeyPath)
+
     val cwdPath = System.getProperty("user.dir")
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
 
-    val keyPairs by lazy {
-        val loader = SecurityUtils.getKeyPairResourceParser()
-        loader.loadKeyPairs(null, Path( userConfig.sshKeyPath), null)
-
-    }
-
-    val sshClient by lazy {
-        val client = SshClient.setUpDefaultClient()
-        client.setKeyIdentityProvider(KeyIdentityProvider.wrapKeyPairs(keyPairs))
-        client.start()
-        client
-    }
-
-    val sessions = mutableMapOf<Host, ClientSession>()
-
-    private fun getSession(host: Host): ClientSession {
-        return sessions.getOrPut(host) {
-            val session = sshClient.connect("ubuntu", host.public, 22)
-                .verify(Duration.ofSeconds(60))
-                .session
-            session.addPublicKeyIdentity(keyPairs.first())
-            session.auth().verify()
-            session
-        }
-    }
+    fun getConnection(host: Host) = connectionManager.getConnection(host)
 
     fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : String {
-        // Setup guide: https://github.com/apache/mina-sshd/blob/master/docs/client-setup.md
-
-        // Create the client.
-        // We have to register the keys with the client.
-        // Client can be used to connect to multiple hosts
-        println("Connecting to ${host.alias} ${host.public}")
-        val session = getSession(host)
-        if (!secret) {
-            println("Executing remote command: $command")
-        } else {
-            println("Executing remote command: [hidden]")
-        }
-        val tmp = session.executeRemoteCommand(command)
-        if (output) {
-            println(tmp)
-        }
-        return tmp
-    }
-
-    fun getScpClient(host: Host) : CloseableScpClient {
-        val session = getSession(host)
-        val creator = ScpClientCreator.instance()
-        val client = creator.createScpClient(session)
-        return CloseableScpClient.singleSessionInstance(client)
+        return getConnection(host).executeRemoteCommand(command, output, secret)
     }
 
     fun upload(host: Host, local: Path, remote: String) {
-        val client = getScpClient(host)
-        client.upload(local, remote)
+        return connectionManager.getConnection(host).uploadFile(local, remote)
+    }
+
+    /**
+     * Uploads a directory recursively to a remote host.
+     * @param host The target host
+     * @param localDir The local directory to upload
+     * @param remoteDir The remote directory where files will be uploaded
+     */
+    fun uploadDirectory(host: Host, localDir: File, remoteDir: String) {
+        return connectionManager.getConnection(host).uploadDirectory(localDir, remoteDir)
     }
 
     fun download(host: Host, remote: String, local: Path) {
-        val client = getScpClient(host)
-        client.download(remote, local)
+        return connectionManager.getConnection(host).downloadFile(remote, local)
+    }
+
+    /**
+     * Downloads a directory recursively from a remote host.
+     * @param host The source host
+     * @param remoteDir The remote directory to download
+     * @param localDir The local directory where files will be downloaded
+     */
+    fun downloadDirectory(host: Host, remoteDir: String, localDir: File) {
+        return connectionManager.getConnection(host).downloadDirectory(remoteDir, localDir)
+
     }
 
     fun stop() {
-        sshClient.stop()
+        connectionManager.stop()
     }
 
     companion object {
