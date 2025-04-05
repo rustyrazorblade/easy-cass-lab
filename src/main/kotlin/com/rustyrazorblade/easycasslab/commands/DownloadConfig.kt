@@ -51,11 +51,7 @@ class DownloadConfig(val context: Context) : ICommand {
                 println(green("$file exists and --overwrite is false, not overwriting."))
             }
 
-            val resolvedVersion = if (version == "current") {
-                val tmp = context.executeRemotely(host, "readlink -f /usr/local/cassandra/$version").text.trim()
-                // Download all the JVM related files
-                tmp
-            } else version
+            val resolvedVersion = context.getRemoteVersion(host, version)
 
             logger.info("Original version: $version.  Resolved version: $resolvedVersion. ")
             if (File(resolvedVersion).isDirectory) {

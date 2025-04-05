@@ -20,6 +20,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
+typealias Version = String
 
 data class Context(val easycasslabUserDirectory: File) {
     var profilesDir = File(easycasslabUserDirectory, "profiles")
@@ -110,6 +111,15 @@ data class Context(val easycasslabUserDirectory: File) {
     val home = File(System.getProperty("user.home"))
 
     fun getConnection(host: Host) = connectionManager.getConnection(host)
+
+    /**
+     * Returns the version currently set on the remote server.
+     */
+    fun getRemoteVersion(host: Host, inputVersion: String = "current"): Version {
+        return if (inputVersion == "current") {
+            executeRemotely(host, "readlink -f /usr/local/cassandra/$version").text.trim()
+        } else inputVersion
+    }
 
     fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : Response {
         return getConnection(host).executeRemoteCommand(command, output, secret)

@@ -51,7 +51,9 @@ class UpdateConfig(val context: Context) : ICommand {
             // uploading jvm.options
 
             context.upload(it, Path.of(jvm), "jvm.options")
-            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options").text
+
+//            context.executeRemotely(it, "sudo cp jvm.options /usr/local/cassandra/$version/conf/jvm.options").text
+            context.uploadDirectory(it, Path.of(version).toFile(), "/usr/local/cassandra/$version/conf/")
             context.executeRemotely(it, "sudo chown -R cassandra:cassandra /usr/local/cassandra/$version/conf").text
 
         }
