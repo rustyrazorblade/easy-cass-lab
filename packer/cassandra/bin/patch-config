@@ -9,6 +9,6 @@ export PATCH=$1
 VERSION=${2:-current}
 export DEST=/usr/local/cassandra/$VERSION/conf/cassandra.yaml
 
-yq '. *= load(env(PATCH))' /usr/local/cassandra/$VERSION/conf/cassandra.orig.yaml > /tmp/cassandra.yaml
+yq '. *= load(env(PATCH))' /usr/local/cassandra/$VERSION/conf.orig/cassandra.yaml > /tmp/cassandra.yaml
 sudo mv -f /tmp/cassandra.yaml $DEST
 sudo chown cassandra:cassandra $DEST

@@ -121,7 +121,6 @@ environment.sh
 
 disk_setup.sh
 
-/jvm.options
 /setup_instance.sh
 cassandra_versions_extra.yaml
 state.json

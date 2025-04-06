@@ -39,11 +39,11 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
         println("Using version ${version} on ${cassandraHosts.size} hosts, filter: $hosts")
 
-        // optionally include the java version if specified
-        val javaString = if (javaVersion.isNotBlank()) " -j $javaVersion " else ""
-
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            context.executeRemotely(it, "sudo use-cassandra $javaString ${version}")
+            if (javaVersion.isNotBlank()) {
+                context.executeRemotely(it, "set-java-version ${javaVersion} ${version}")
+            }
+            context.executeRemotely(it, "sudo use-cassandra ${version}").text
             state.versions?.put(it.alias, version)
         }
 
@@ -57,7 +57,7 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
         uc.execute()
 
         with (TermColors()) {
-            println("You can update the ${green("cassandra.patch.yaml")} and  ${green("jvm.options")} files " +
+            println("You can update ${green("cassandra.patch.yaml")} and the JVM config files under ${green(version)}, " +
                     "then run ${green("easy-cass-lab update-config")} to apply the changes.")
         }
     }

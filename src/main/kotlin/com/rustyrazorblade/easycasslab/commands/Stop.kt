@@ -20,7 +20,7 @@ class Stop(val context: Context) : ICommand {
         context.requireSshKey()
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            context.executeRemotely(it, "sudo systemctl stop cassandra")
+            context.executeRemotely(it, "sudo systemctl stop cassandra").text
         }
 
     }

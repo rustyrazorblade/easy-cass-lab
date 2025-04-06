@@ -19,7 +19,7 @@ class Restart(val context: Context) : ICommand {
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Restarting $it"))
-                context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait")
+                context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait").text
             }
         }
     }

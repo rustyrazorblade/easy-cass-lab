@@ -1,21 +1,6 @@
 #!/bin/bash
 
-JAVA_VERSION=""
 CASSANDRA_VERSIONS="/etc/cassandra_versions.yaml"
-
-while getopts "j:" opt; do
-  case ${opt} in
-   j)
-     echo "Overriding java version with ${OPTARG}"
-     JAVA_VERSION=$OPTARG
-     shift 2
-     ;;
-   ?)
-     echo "Nope!"
-     exit 1
-     ;;
-   esac
-done
 
 # set cassandra version to $1
 sudo ln -vfns /usr/local/cassandra/$1 /usr/local/cassandra/current
@@ -26,18 +11,9 @@ sudo chown -R cassandra:cassandra /usr/local/cassandra
 
 # set the java version
 export VERSION=$1
-export JAVA_VERSION
 
-
-if [ -n "$JAVA_VERSION" ]; then
-  echo "Updating java version for $VERSION to $JAVA_VERSION"
-  yq eval '(.[] | select(.version == env(VERSION))).java = env(JAVA_VERSION)' -i $CASSANDRA_VERSIONS
-else
-  JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' $CASSANDRA_VERSIONS)
-  echo "Using default java version from cassandra_versions.yaml: $JAVA_VERSION"
-fi
-
-echo "Using Java version $JAVA_VERSION"
+export JAVA_VERSION=$(yq e '.[] | select(.version == env(VERSION)).java' $CASSANDRA_VERSIONS)
+echo "Using java version from cassandra_versions.yaml: $JAVA_VERSION"
 
 export PY_VERSION=$(yq e '.[] | select(.version == env(VERSION)).python' $CASSANDRA_VERSIONS)
 
@@ -63,7 +39,6 @@ else
     echo "Unsupported architecture: $cpu_arch"
     exit 1
 fi
-
 
 # if java version = 8 then run update-java-alternatives -s java-1.8.0-openjdk-amd64
 if [ "$JAVA_VERSION" = "8" ]; then
