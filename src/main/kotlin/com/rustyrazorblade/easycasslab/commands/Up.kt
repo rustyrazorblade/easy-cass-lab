@@ -76,6 +76,9 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.write("export  EASY_CASS_STRESS_PROM_PORT=0")
         stressEnvironmentVars.newLine()
+
+        stressEnvironmentVars.write("export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)")
+        stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
 
