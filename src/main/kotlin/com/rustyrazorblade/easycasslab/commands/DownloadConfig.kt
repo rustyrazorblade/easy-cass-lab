@@ -37,16 +37,22 @@ class DownloadConfig(val context: Context) : ICommand {
 
         logger.info("Original version: $version.  Resolved version: ${resolvedVersion.version}. ")
         val localDir = resolvedVersion.localDir.toFile()
+
+        // Dont' overwrite.
+        // TODO: Add a flag to customize this this later, and make it possible to have node specific settings
         if (!localDir.exists()) {
             localDir.mkdirs()
+
+            context.downloadDirectory(
+                host,
+                remoteDir = "${resolvedVersion.path}/conf",
+                localDir = localDir,
+                excludeFilters = listOf(
+                    "cassandra*.yaml",
+                    "axonenv*",
+                    "cassandra-rackdc.properties"
+                )
+            )
         }
-        // TODO: exclude C* yaml
-        context.downloadDirectory(host,
-            remoteDir = "${resolvedVersion.path}/conf",
-            localDir = localDir,
-            excludeFilters = listOf(
-                "cassandra*.yaml",
-                "axonenv*",
-                "cassandra-rackdc.properties"))
     }
 }
