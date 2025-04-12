@@ -15,19 +15,6 @@ if [ -z "$KEY" ]; then
   exit 1
 fi
 
-# copy axonenv into place for each version
-for v in $(yq '.[].version' /etc/cassandra_versions.yaml);
-do
-  export v
-  av=$(yq '.[] | select(.version == env(v)) | .axonops' /etc/cassandra_versions.yaml);
-  if [[ $av == "null" ]]; then
-    # skip version that doesn't have axonops configure via cassandra_versions.yaml
-    continue
-  fi
-  sudo cp /usr/local/cassandra/$v/conf/axonenv.template /usr/local/cassandra/$v/conf/axonenv
-  sudo chown cassandra:cassandra /usr/local/cassandra/$v/conf/axonenv
-done
-
 # setup axon-agent config
 axonconfig=/etc/axonops/axon-agent.yml
 sudo yq -i '.axon-server.hosts = "agents.axonops.cloud"' $axonconfig

@@ -126,6 +126,14 @@ build {
     ]
   }
 
+  # needs to be in place before install cassandra is run.  At the end of the install,
+  # the installer will append cassandra.in.sh to the end of the included cassandra.in.sh
+
+  provisioner "file" {
+    source = "cassandra.in.sh"
+    destination = "/tmp/cassandra.in.sh"
+  }
+
   provisioner "shell" {
     environment_vars = [
       # we need this to be set because install_cassandra checks for it and exits if it's not there
@@ -133,7 +141,6 @@ build {
       "INSTALL_CASSANDRA=1",
     ]
     script = "install/install_cassandra.sh"
-
   }
 
   # instal axonops

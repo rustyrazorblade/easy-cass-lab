@@ -180,6 +180,9 @@ easy-cass-lab start
 
 # flame graphs
 /mnt/cassandra/artifacts
+
+# axonops agents for different versions of Cassandra
+/usr/local/share/axonops
 ```
 
 Multiple cassandra versions are installed at /usr/local/cassandra.

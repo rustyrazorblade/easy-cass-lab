@@ -134,14 +134,18 @@ do
 
     sudo mv $version /usr/local/cassandra/$version
   fi
+  # at this point the $version is in place, however it was installed
+  # do any general customizations in the below subshell
   (
       cd /usr/local/cassandra/$version
       rm -rf data
       cp -R conf conf.orig
-
+      # create a pristine backup of the original conf
       sudo cp conf/cassandra.yaml conf/cassandra.orig.yaml
+      cat /tmp/cassandra.in.sh >> bin/cassandra.in.sh
   )
 rm -rf ~/.m2
+
 done
 )
 
