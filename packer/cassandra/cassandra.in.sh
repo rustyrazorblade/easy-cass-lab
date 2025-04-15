@@ -51,7 +51,7 @@ case "$ECL_CASSANDRA_VERSION" in
         ;;
     "5.0")
         if [ "$ECL_JAVA_VERSION" = "11" ]; then
-            AXONOPS_AGENT="5.0-agent-jdk11"
+            AXONOPS_AGENT="5.0-agent"
         elif [ "$ECL_JAVA_VERSION" = "17" ]; then
             AXONOPS_AGENT="5.0-agent-jdk17"
         fi
