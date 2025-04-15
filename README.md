@@ -1,6 +1,13 @@
 # easy-cass-lab
 
-This is a tool to create lab environments with Apache Cassandra in AWS.  
+This is a tool to create lab environments with Apache Cassandra in AWS.  Using this tool you can:
+
+* Quickly create an environment using any version of Cassandra from 2.2 up to trunk
+* Build custom AMIs with your own branches
+* Test mixed configurations of Cassandra and java versions
+* Run load tests using easy-cass-stress
+* Profile Cassandra and generate flame graphs
+* Collect kernel metrics with bcc-tools 
 
 We use packer to create a single AMI with the following:
 
@@ -9,8 +16,6 @@ We use packer to create a single AMI with the following:
 * [async-profiler](https://github.com/async-profiler/async-profiler), [learn about it here](https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/)
 * [easy-cass-stress](https://github.com/rustyrazorblade/easy-cass-stress)
 * [AxonOps agent](https://axonops.com/) (free monitoring up to six nodes)
-
-easy-cass-lab provides tooling to create the AMI and provision the environments.
 
 ## Pre-requisites
 
@@ -140,7 +145,29 @@ easy-cass-lab use 4.1
 
 easy-cass-lab will automatically configure the right Python and Java versions on the instances for you.
 
-### Optional: Modify the Configuration
+This will also create a local directory corresponding to the name of the version, and will download most of the files in the conf directory to your local dir.  You can edit them, and upload with:
+
+```shell
+easy-cass-lab update-config
+```
+
+You can override the java version by passing the `-j` flag:
+
+```shell
+easy-cass-lab use 5.0 -j 17
+```
+
+Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.  
+
+You can switch just one host:
+
+```shell
+easy-cass-lab use 5.0 -j 17 --hosts cassandra0
+```
+
+Unlike production tools, easy-cass-lab is designed for testing and breaking things, which I find is the best way to learn.
+
+### Modify the YAML Configuration
 
 You'll see a file called `cassandra.patch.yaml` in your directory.  You can add any valid cassandra.yaml parameters,
 and the changes will be applied to your cluster.  The `listen_address` is handled for you, 
