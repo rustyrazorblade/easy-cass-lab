@@ -32,13 +32,6 @@
   java_build: "11"
   python: "3.10.6"
 
-- version: "accord"
-  url: https://github.com/apache/cassandra.git
-  branch: cep-15-accord
-  java: "11"
-  java_build: "11"
-  python: "3.10.6"
-
 - version: "trunk"
   url: https://github.com/apache/cassandra.git
   branch: trunk
