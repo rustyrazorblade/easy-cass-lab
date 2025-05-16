@@ -26,6 +26,9 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
     @Parameter(names = ["--java", "-j"], description = "Java Version Override, 8, 11 or 17 accepted")
     var javaVersion = ""
 
+//    @Parameter(names = ["--bti"], description = "Enable BTI Storage")
+//    var bti = false
+
     override fun execute() {
         check(version.isNotBlank())
         val state = ClusterState.load()

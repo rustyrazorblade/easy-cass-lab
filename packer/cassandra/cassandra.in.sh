@@ -53,7 +53,7 @@ case "$ECL_CASSANDRA_VERSION" in
         if [ "$ECL_JAVA_VERSION" = "11" ]; then
             AXONOPS_AGENT="5.0-agent"
         elif [ "$ECL_JAVA_VERSION" = "17" ]; then
-            AXONOPS_AGENT="5.0-agent-jdk17"
+            ECL_AGENT_JAR="/usr/share/axonops/5.0-agent-jdk17/lib/axon-cassandra5.0-agent.jar"
         fi
         ;;
     "5.1"|"6.0")
@@ -65,16 +65,16 @@ esac
 # Configure JVM_EXTRA_OPTS with agent if applicable
 if [ -n "$AXONOPS_AGENT" ]; then
     ECL_AGENT_JAR="/usr/share/axonops/${AXONOPS_AGENT}/lib/axon-cassandra${AXONOPS_AGENT}.jar"
-    if [ -f "$ECL_AGENT_JAR" ]; then
-        export JVM_EXTRA_OPTS="-javaagent:${ECL_AGENT_JAR}=/etc/axonops/axon-agent.yml"
-    else
-        echo "WARNING: AxonOps agent jar not found at $ECL_AGENT_JAR" >&2
-    fi
-else
-    export JVM_EXTRA_OPTS=""
 fi
 
+if [ -f "$ECL_AGENT_JAR" ]; then
+    export JVM_EXTRA_OPTS="-javaagent:${ECL_AGENT_JAR}=/etc/axonops/axon-agent.yml"
+else
+    echo "WARNING: AxonOps agent jar not found at $ECL_AGENT_JAR" >&2
+fi
+
+mkdir /mnt/cassandra/logs
 # set logging depending on JVM version
 if [ "$ECL_JAVA_VERSION" = "17" ] || [ "$ECL_JAVA_VERSION" = "21" ]; then
-    export JVM_OPTS="$JVM_OPTS -Xlog:gc+stats,gc=info:file=/mnt/cassandra/logs/gc.log:time,uptime,pid,tid,level:filecount=10,filesize=10485760"
+    export JVM_OPTS="$JVM_OPTS -Xlog:gc=info:file=/mnt/cassandra/logs/gc.log:time,uptime,pid,tid,level,tags:filecount=10,filesize=1M"
 fi
