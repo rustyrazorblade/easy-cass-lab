@@ -2,13 +2,16 @@ package com.rustyrazorblade.easycasslab
 
 import org.apache.commons.io.IOUtils
 import java.io.File
-import java.io.InputStream
 import java.io.FileOutputStream
-
+import java.io.InputStream
 
 class Utils {
     companion object {
-        fun inputstreamToTempFile(inputStream: InputStream, prefix: String, directory: String) : File {
+        fun inputstreamToTempFile(
+            inputStream: InputStream,
+            prefix: String,
+            directory: String,
+        ): File {
             val tempFile = File.createTempFile(prefix, "", File(directory))
             tempFile.deleteOnExit()
 
@@ -22,29 +25,37 @@ class Utils {
         }
 
         @Deprecated(message = "Please use ResourceFile")
-        fun resourceToTempFile(resourcePath: String, directory: String) : File {
+        fun resourceToTempFile(
+            resourcePath: String,
+            directory: String,
+        ): File {
             val resourceName = File(resourcePath).name
             val resourceStream = this::class.java.getResourceAsStream(resourcePath)
             return Utils.inputstreamToTempFile(resourceStream, "${resourceName}_", directory)
         }
 
-        fun prompt(question: String, default: String, secret : Boolean = false) : String {
+        fun prompt(
+            question: String,
+            default: String,
+            secret: Boolean = false,
+        ): String {
             print("$question [$default]: ")
 
-            var line : String = if(secret) {
-                String(System.console()?.readPassword()!!)
-            }
-            else {
-                (readLine() ?: default).trim()
-            }
+            var line: String =
+                if (secret) {
+                    String(System.console()?.readPassword()!!)
+                } else {
+                    (readLine() ?: default).trim()
+                }
 
-            if(line.equals(""))
+            if (line.equals("")) {
                 line = default
+            }
 
             return line
         }
 
-        fun resolveSshKeyPath(keyPath: String) : String {
+        fun resolveSshKeyPath(keyPath: String): String {
             val sshKeyPath: String by lazy {
                 var path = keyPath
 

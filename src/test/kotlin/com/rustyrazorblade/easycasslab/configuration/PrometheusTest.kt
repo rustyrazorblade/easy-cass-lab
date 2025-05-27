@@ -1,46 +1,44 @@
 package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.databind.util.ByteBufferBackedOutputStream
-import  com.rustyrazorblade.easycasslab.core.YamlDelegate
-
+import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.OutputStream
 import java.nio.ByteBuffer
 
 internal class PrometheusTest {
-
     val yaml by YamlDelegate()
 
-    val config = prometheus {
-        global {
-            scrape_interval = "15s"
-        }
-        scrape_config {
-            job_name = "prometheus"
-            scrape_interval = "5s"
-
-            static_config {
-                targets = listOf("127.0.0.1:8000", "192.168.1:8000")
+    val config =
+        prometheus {
+            global {
+                scrape_interval = "15s"
             }
-        }
+            scrape_config {
+                job_name = "prometheus"
+                scrape_interval = "5s"
 
-        scrape_config {
-            job_name = "cassandra"
-            scrape_interval = "5s"
+                static_config {
+                    targets = listOf("127.0.0.1:8000", "192.168.1:8000")
+                }
+            }
 
-            static_config {
-                targets = listOf("127.0.0.1:9501")
-                relabel_config {
-                    source_labels = listOf("__meta_ec2_availability_zone")
-                    regex = "(.+)"
-                    target_label = "rack"
-                    action = "replace"
+            scrape_config {
+                job_name = "cassandra"
+                scrape_interval = "5s"
+
+                static_config {
+                    targets = listOf("127.0.0.1:9501")
+                    relabel_config {
+                        source_labels = listOf("__meta_ec2_availability_zone")
+                        regex = "(.+)"
+                        target_label = "rack"
+                        action = "replace"
+                    }
                 }
             }
         }
-    }
-
 
     @Test
     fun testGlobalConfig() {
@@ -54,7 +52,6 @@ internal class PrometheusTest {
 
         val prom = config.scrape_configs.first()
         assertThat(prom.job_name).isEqualTo("prometheus")
-
     }
 
     @Test
@@ -72,12 +69,11 @@ internal class PrometheusTest {
     fun testRelabel() {
         var data = yaml.writeValueAsString(config)
         println(data)
-
     }
 
     @Test
     fun testFullExecution() {
-        fun stream() : OutputStream {
+        fun stream(): OutputStream {
             return ByteBufferBackedOutputStream(ByteBuffer.allocate(1024))
         }
         val c = listOf(HostInfo("192.168.1.1", name = "test1"), HostInfo("192.168.1.2", name = "test2"))
@@ -89,5 +85,4 @@ internal class PrometheusTest {
 
         Prometheus.writeConfiguration(c, s, "prometheus_labels.yml", out, out2, out3, out4)
     }
-
 }

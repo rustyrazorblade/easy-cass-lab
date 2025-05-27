@@ -6,12 +6,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-
 import java.io.File
 
-
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
-class WriteConfig(@JsonIgnore val context: Context) : ICommand {
+class WriteConfig(
+    @JsonIgnore val context: Context,
+) : ICommand {
     @Parameter(description = "Patch file name")
     var file: String = "cassandra.patch.yaml"
 
@@ -24,25 +24,27 @@ class WriteConfig(@JsonIgnore val context: Context) : ICommand {
 
         val state = ClusterState.load()
 
-        val data = object {
-            val cluster_name = state.name
-            val num_tokens = tokens
-            val seed_provider = object {
-                val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
-                val parameters = object {
-                    val seeds = context.tfstate.getHosts(ServerType.Cassandra).map{ it.private }.take(1).joinToString(",")
-                }
+        val data =
+            object {
+                val cluster_name = state.name
+                val num_tokens = tokens
+                val seed_provider =
+                    object {
+                        val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
+                        val parameters =
+                            object {
+                                val seeds = context.tfstate.getHosts(ServerType.Cassandra).map { it.private }.take(1).joinToString(",")
+                            }
+                    }
+                val hints_directory = "/mnt/cassandra/hints"
+                val data_file_directories = listOf("/mnt/cassandra/data")
+                val commitlog_directory = "/mnt/cassandra/commitlog"
+                val concurrent_reads = 64
+                val concurrent_writes = 64
+                val trickle_fsync = true
+                val endpoint_snitch = "Ec2Snitch"
             }
-            val hints_directory = "/mnt/cassandra/hints"
-            val data_file_directories = listOf("/mnt/cassandra/data")
-            val commitlog_directory = "/mnt/cassandra/commitlog"
-            val concurrent_reads = 64
-            val concurrent_writes = 64
-            val trickle_fsync = true
-            val endpoint_snitch = "Ec2Snitch"
-        }
 
         context.yaml.writeValue(File("cassandra.patch.yaml"), data)
     }
-
 }

@@ -19,7 +19,6 @@ data class CassandraVersion(
     val version: String,
     val java: String,
     val python: String,
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     val axonops: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -33,7 +32,7 @@ data class CassandraVersion(
     @JsonIgnoreProperties(ignoreUnknown = true)
     val java_build: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    val jvm_config: String? = null
+    val jvm_config: String? = null,
 ) {
     companion object {
         private val objectMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
@@ -41,17 +40,23 @@ data class CassandraVersion(
 
         fun loadFromFile(filePath: Path): List<CassandraVersion> {
             val fileContent = Files.readString(filePath)
-            return objectMapper.readValue(fileContent, objectMapper.typeFactory.constructCollectionType(List::class.java, CassandraVersion::class.java))
+            return objectMapper.readValue(
+                fileContent,
+                objectMapper.typeFactory.constructCollectionType(List::class.java, CassandraVersion::class.java),
+            )
         }
 
-        fun loadFromMainAndExtras(mainFilePath: Path, extrasDirectoryPath: Path): List<CassandraVersion> {
+        fun loadFromMainAndExtras(
+            mainFilePath: Path,
+            extrasDirectoryPath: Path,
+        ): List<CassandraVersion> {
             // Load main file
             val mainVersions = loadFromFile(mainFilePath).toMutableList()
 
             // Load each file in the extras directory
             if (extrasDirectoryPath.exists() && extrasDirectoryPath.isDirectory()) {
                 val listDirectoryEntries = extrasDirectoryPath.listDirectoryEntries("*.yaml")
-                logger.info("Loading from  ${listDirectoryEntries.size} extra potential files" )
+                logger.info("Loading from  ${listDirectoryEntries.size} extra potential files")
                 for (file in listDirectoryEntries) {
                     logger.info("Loading additional cassandra_versions file: $file")
                     val extraVersions = loadFromFile(file)
@@ -71,12 +76,18 @@ data class CassandraVersion(
             return mainVersions
         }
 
-        fun write(versions: List<CassandraVersion>, outputStream: OutputStream) {
+        fun write(
+            versions: List<CassandraVersion>,
+            outputStream: OutputStream,
+        ) {
             objectMapper.writeValue(outputStream, versions)
         }
-        fun write(versions: List<CassandraVersion>, outputFile: File) {
+
+        fun write(
+            versions: List<CassandraVersion>,
+            outputFile: File,
+        ) {
             objectMapper.writeValue(outputFile, versions)
         }
     }
-
 }

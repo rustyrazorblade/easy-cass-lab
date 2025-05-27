@@ -1,8 +1,7 @@
 package com.rustyrazorblade.easycasslab.configuration
 
-import org.junit.jupiter.api.Assertions.*
-
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 internal class SeedsTest {
@@ -12,5 +11,4 @@ internal class SeedsTest {
         val seeds = Seeds.open(seedFile)
         assertThat(seeds.seeds).hasSize(3)
     }
-
 }

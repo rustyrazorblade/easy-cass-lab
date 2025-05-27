@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easycasslab.configuration
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -13,37 +12,43 @@ import java.io.InputStream
 
 typealias HostList = List<Host>
 
-class TFState(val context: Context,
-              val file: InputStream) {
-
+class TFState(
+    val context: Context,
+    val file: InputStream,
+) {
     @JsonIgnoreProperties
     data class StateFile(val resources: List<Resource>)
 
     data class Resource(
         val mode: String,
         val name: String,
-        val instances: List<Instance>
-
+        val instances: List<Instance>,
     )
+
     data class Instance(
         val attributes: Attributes,
     ) {
-        fun getName() : String {
+        fun getName(): String {
             return attributes.tags!!["Name"]!!
         }
     }
+
     // security groups don't have an IP.
     // we end up throwing exceptions if we don't make these fields nullable
-    data class Attributes (
-            val private_ip: String?,
-            val public_ip: String?,
-            var availability_zone: String?,
-            var tags: Map<String, String>?
+    data class Attributes(
+        val private_ip: String?,
+        val public_ip: String?,
+        var availability_zone: String?,
+        var tags: Map<String, String>?,
     )
 
     private var log = KotlinLogging.logger {}
+
     companion object {
-        fun parse(context: Context, path: File) : TFState {
+        fun parse(
+            context: Context,
+            path: File,
+        ): TFState {
             return TFState(context, path.inputStream())
         }
     }
@@ -54,21 +59,26 @@ class TFState(val context: Context,
     val state by lazy {
         log.info("Loading tfstate from $file")
         val json = context.getJsonMapper()
-        json.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        val state : StateFile = json.readValue(file)
+        json.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        val state: StateFile = json.readValue(file)
         state
     }
 
-    fun getHosts(serverType: ServerType) : HostList {
-        val instances = state.resources.filter { it.name.startsWith(serverType.serverType) }
-            .flatMap { it.instances }
+    fun getHosts(serverType: ServerType): HostList {
+        val instances =
+            state.resources.filter { it.name.startsWith(serverType.serverType) }
+                .flatMap { it.instances }
         log.info("Matching $serverType to $instances")
 
-        val hosts = instances.mapIndexed { index, instance ->
-            Host(public = instance.attributes.public_ip ?: "",
-                 private = instance.attributes.private_ip ?: "",
-                 alias = instance.getName(),
-                 availabilityZone = instance.attributes.availability_zone ?: "") }  ?: listOf()
+        val hosts =
+            instances.mapIndexed { index, instance ->
+                Host(
+                    public = instance.attributes.public_ip ?: "",
+                    private = instance.attributes.private_ip ?: "",
+                    alias = instance.getName(),
+                    availabilityZone = instance.attributes.availability_zone ?: "",
+                )
+            } ?: listOf()
 
         return hosts
     }
@@ -76,9 +86,14 @@ class TFState(val context: Context,
     /**
      * Host filter is a simple string check for now.
      */
-    fun withHosts(serverType: ServerType, hostFilter: Hosts, withHost: (h: Host) -> Unit) {
-        val hostSet = hostFilter.hosts.split(",").filter{ it.isNotBlank()}.toSet()
-        getHosts(serverType).filter {it
+    fun withHosts(
+        serverType: ServerType,
+        hostFilter: Hosts,
+        withHost: (h: Host) -> Unit,
+    ) {
+        val hostSet = hostFilter.hosts.split(",").filter { it.isNotBlank() }.toSet()
+        getHosts(serverType).filter {
+            it
             hostSet.isEmpty() || it.alias in hostSet
         }.forEach(withHost)
     }
@@ -87,7 +102,10 @@ class TFState(val context: Context,
         writeSshConfig(config, "${context.userConfig.sshKeyPath}")
     }
 
-    fun writeSshConfig(config: BufferedWriter, identityFile: String) {
+    fun writeSshConfig(
+        config: BufferedWriter,
+        identityFile: String,
+    ) {
         // write standard stuff first
         config.appendLine("StrictHostKeyChecking=no")
         config.appendLine("User ubuntu")
@@ -105,7 +123,6 @@ class TFState(val context: Context,
     }
 
     fun writeEnvironmentFile(fp: BufferedWriter) {
-
         // write the initial SSH aliases
         fp.appendLine("#!/bin/bash")
         fp.appendLine()
@@ -118,15 +135,15 @@ class TFState(val context: Context,
         }
         fp.appendLine(")")
 
-        i=0
+        i = 0
         getHosts(ServerType.Cassandra).forEach {
-            fp.appendLine("alias c${i}=\"ssh cassandra${i}\"")
+            fp.appendLine("alias c$i=\"ssh cassandra${i}\"")
             i++
         }
 
-        i=0
+        i = 0
         getHosts(ServerType.Stress).forEach {
-            fp.appendLine("alias s${i}=\"ssh stress${i}\"")
+            fp.appendLine("alias s$i=\"ssh stress${i}\"")
             i++
         }
 
@@ -153,6 +170,4 @@ class TFState(val context: Context,
         fp.appendLine("fi")
         fp.flush()
     }
-
-
 }

@@ -13,12 +13,12 @@ class BuildImage(val context: Context) : ICommand {
     override fun execute() {
         BuildBaseImage(context)
             .apply {
-                this.buildArgs=this@BuildImage.buildArgs
+                this.buildArgs = this@BuildImage.buildArgs
             }
             .execute()
         BuildCassandraImage(context)
             .apply {
-                this.buildArgs=this@BuildImage.buildArgs
+                this.buildArgs = this@BuildImage.buildArgs
             }
             .execute()
     }

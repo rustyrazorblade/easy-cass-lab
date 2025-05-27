@@ -19,3 +19,15 @@ rootProject.name = 'easy-cass-lab'
 
 include "core"
 include "manual"
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+
+    versionCatalogs {
+        create("awssdk") {
+            from("aws.sdk.kotlin:version-catalog:1.4.92")
+        }
+    }
+}

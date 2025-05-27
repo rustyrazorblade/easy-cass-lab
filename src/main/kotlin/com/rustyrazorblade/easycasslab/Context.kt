@@ -1,22 +1,21 @@
 package com.rustyrazorblade.easycasslab
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.dockerjava.core.DefaultDockerClientConfig
+import com.github.dockerjava.core.DockerClientImpl
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.google.common.annotations.VisibleForTesting
+import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
-import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.ssh.ConnectionManager
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
-
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-
-import com.github.dockerjava.core.DockerClientImpl
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.google.common.annotations.VisibleForTesting
-
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.nio.file.Files
@@ -35,7 +34,7 @@ data class Version(val path: String) {
     val conf: String = "$path/conf"
 
     val file = File(version)
-    
+
     companion object {
         /**
          * Create a Version from a version string (e.g. "5.0")
@@ -46,12 +45,13 @@ data class Version(val path: String) {
         fun fromString(version: String): Version {
             return Version("/usr/local/cassandra/$version")
         }
-        fun fromRemotePath(path: String) : Version {
+
+        fun fromRemotePath(path: String): Version {
             return Version(path)
         }
     }
 
-    val localDir : Path get() = Path.of(version)
+    val localDir: Path get() = Path.of(version)
 }
 
 data class Context(val easycasslabUserDirectory: File) {
@@ -87,7 +87,7 @@ data class Context(val easycasslabUserDirectory: File) {
      *
      * val state = mapper.readValue<MyStateObject>(json)
      */
-    val yaml : ObjectMapper by YamlDelegate()
+    val yaml: ObjectMapper by YamlDelegate()
 
     // if you need to anything funky with the mapper (settings etc) use this
     fun getJsonMapper() = jacksonObjectMapper()
@@ -96,7 +96,7 @@ data class Context(val easycasslabUserDirectory: File) {
 
     // this will let us write out the yaml
     val userConfig by lazy {
-        if(!userConfigFile.exists()) {
+        if (!userConfigFile.exists()) {
             log.debug { "$userConfigFile not found, going through interactive setup" }
             profilesDir.mkdirs()
             User.createInteractively(this, userConfigFile)
@@ -108,13 +108,15 @@ data class Context(val easycasslabUserDirectory: File) {
     val docker by lazy {
         nettyInitialised = true
 
-        val dockerConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
+        val dockerConfig =
+            DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .build()
 
-        val httpClient = ApacheDockerHttpClient.Builder()
+        val httpClient =
+            ApacheDockerHttpClient.Builder()
                 .dockerHost(dockerConfig.dockerHost)
                 .sslConfig(dockerConfig.sslConfig)
-                .build();
+                .build()
         DockerClientImpl.getInstance(dockerConfig, httpClient)
     }
 
@@ -127,12 +129,22 @@ data class Context(val easycasslabUserDirectory: File) {
     val awsConfig by lazy {
         val fp = File(profileDir, awsCredentialsName)
         if (!fp.exists()) {
-            fp.writeText("""[default]
+            fp.writeText(
+                """[default]
                 |aws_access_key_id=${userConfig.awsAccessKey}
                 |aws_secret_access_key=${userConfig.awsSecret}
-            """.trimMargin("|"))
+            """.trimMargin("|"),
+            )
         }
         fp
+    }
+
+    /**
+     * Setting the codebase up to be able to support other cloud providers
+     */
+    val cloudProvider by lazy {
+        val clients = Clients(userConfig)
+        AWS(clients)
     }
 
     val connectionManager by lazy { ConnectionManager(userConfig.sshKeyPath) }
@@ -152,7 +164,10 @@ data class Context(val easycasslabUserDirectory: File) {
      * @param inputVersion The version to use, or "current" to check the symlink
      * @return A Version object containing the path and version component
      */
-    fun getRemoteVersion(host: Host, inputVersion: String = "current"): Version {
+    fun getRemoteVersion(
+        host: Host,
+        inputVersion: String = "current",
+    ): Version {
         return if (inputVersion == "current") {
             val path = executeRemotely(host, "readlink -f /usr/local/cassandra/current").text.trim()
             Version(path)
@@ -161,11 +176,20 @@ data class Context(val easycasslabUserDirectory: File) {
         }
     }
 
-    fun executeRemotely(host: Host, command: String, output: Boolean = true, secret: Boolean = false) : Response {
+    fun executeRemotely(
+        host: Host,
+        command: String,
+        output: Boolean = true,
+        secret: Boolean = false,
+    ): Response {
         return getConnection(host).executeRemoteCommand(command, output, secret)
     }
 
-    fun upload(host: Host, local: Path, remote: String) {
+    fun upload(
+        host: Host,
+        local: Path,
+        remote: String,
+    ) {
         return getConnection(host).uploadFile(local, remote)
     }
 
@@ -175,7 +199,11 @@ data class Context(val easycasslabUserDirectory: File) {
      * @param localDir The local directory to upload
      * @param remoteDir The remote directory where files will be uploaded
      */
-    fun uploadDirectory(host: Host, localDir: File, remoteDir: String) {
+    fun uploadDirectory(
+        host: Host,
+        localDir: File,
+        remoteDir: String,
+    ) {
         println("Uploading directory $localDir to $remoteDir")
         return getConnection(host).uploadDirectory(localDir, remoteDir)
     }
@@ -183,12 +211,18 @@ data class Context(val easycasslabUserDirectory: File) {
     /**
      * Convenience that uses the file and conf dir of Version to upload
      */
-    fun uploadDirectory(host: Host, version: Version) {
+    fun uploadDirectory(
+        host: Host,
+        version: Version,
+    ) {
         return uploadDirectory(host, version.file, version.conf)
     }
 
-
-    fun download(host: Host, remote: String, local: Path) {
+    fun download(
+        host: Host,
+        remote: String,
+        local: Path,
+    ) {
         return getConnection(host).downloadFile(remote, local)
     }
 
@@ -200,7 +234,13 @@ data class Context(val easycasslabUserDirectory: File) {
      * @param includeFilters Optional list of patterns to filter files for download (e.g. "jvm*")
      * @param excludeFilters Optional list of patterns to exclude files from download (e.g. "*.bak")
      */
-    fun downloadDirectory(host: Host, remoteDir: String, localDir: File, includeFilters: List<String> = listOf(), excludeFilters: List<String> = listOf()) {
+    fun downloadDirectory(
+        host: Host,
+        remoteDir: String,
+        localDir: File,
+        includeFilters: List<String> = listOf(),
+        excludeFilters: List<String> = listOf(),
+    ) {
         return getConnection(host).downloadDirectory(remoteDir, localDir, includeFilters, excludeFilters)
     }
 
@@ -213,7 +253,7 @@ data class Context(val easycasslabUserDirectory: File) {
          * Used only for testing
          */
         @VisibleForTesting
-        fun testContext() : Context {
+        fun testContext(): Context {
             val tmpContentParent = File("test/contexts")
             tmpContentParent.mkdirs()
 
@@ -230,10 +270,9 @@ data class Context(val easycasslabUserDirectory: File) {
     }
 
     fun requireSshKey() {
-        if(!File(userConfig.sshKeyPath).exists()) {
+        if (!File(userConfig.sshKeyPath).exists()) {
             log.error { "SSH key not found at ${userConfig.sshKeyPath}" }
             System.exit(1)
         }
     }
-
 }

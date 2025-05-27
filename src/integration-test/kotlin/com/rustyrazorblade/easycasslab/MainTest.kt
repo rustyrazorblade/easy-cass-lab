@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab
 import org.junit.jupiter.api.Test
 
 class MainTest {
-
     @Test
     fun basicTest() {
         com.rustyrazorblade.easycasslab.main(
@@ -13,8 +12,8 @@ class MainTest {
                 "no ticket",
                 "automated test suite",
                 "-s",
-                "1"
-            )
+                "1",
+            ),
         )
         com.rustyrazorblade.easycasslab.main(arrayOf("up", "--yes"))
         com.rustyrazorblade.easycasslab.main(arrayOf("use", "3.11.4"))
@@ -24,8 +23,6 @@ class MainTest {
         com.rustyrazorblade.easycasslab.main(arrayOf("clean"))
     }
 
-
     fun init() {
-
     }
 }

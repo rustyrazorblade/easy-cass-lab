@@ -18,10 +18,8 @@ import com.beust.jcommander.IStringConverter
  */
 class AZConverter : IStringConverter<List<String>> {
     override fun convert(value: String?): List<String> {
-
-        if(value == null) return listOf()
+        if (value == null) return listOf()
 
         return value.split("").filter { it.matches("[a-z]".toRegex()) }
     }
-
 }

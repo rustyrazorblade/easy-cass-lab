@@ -10,13 +10,11 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
-
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
-    var sleep : Long  = 120
+    var sleep: Long = 120
 
     @ParametersDelegate
     var hosts = Hosts()
-
 
     override fun execute() {
         context.requireSshKey()

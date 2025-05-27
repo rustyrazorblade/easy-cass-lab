@@ -3,15 +3,11 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
-import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.io.File
-import java.nio.file.Path
 import kotlin.io.path.exists
-import kotlin.io.path.isDirectory
 
 /**
  * Downloads configuration.
@@ -47,11 +43,12 @@ class DownloadConfig(val context: Context) : ICommand {
                 host,
                 remoteDir = "${resolvedVersion.path}/conf",
                 localDir = localDir,
-                excludeFilters = listOf(
-                    "cassandra*.yaml",
-                    "axonenv*",
-                    "cassandra-rackdc.properties"
-                )
+                excludeFilters =
+                    listOf(
+                        "cassandra*.yaml",
+                        "axonenv*",
+                        "cassandra-rackdc.properties",
+                    ),
             )
         }
     }

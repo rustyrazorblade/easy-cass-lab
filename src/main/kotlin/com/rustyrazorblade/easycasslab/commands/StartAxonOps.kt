@@ -6,9 +6,8 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
-@Parameters(commandDescription =  "Start axon-agent on all nodes via service command")
+@Parameters(commandDescription = "Start axon-agent on all nodes via service command")
 class StartAxonOps(val context: Context) : ICommand {
-
     @ParametersDelegate
     var hosts = Hosts()
 

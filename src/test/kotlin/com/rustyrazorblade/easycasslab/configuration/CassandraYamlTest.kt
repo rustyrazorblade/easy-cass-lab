@@ -3,7 +3,8 @@ package com.rustyrazorblade.easycasslab.configuration
 import org.junit.jupiter.api.Test
 
 internal class CassandraYamlTest {
-    val yaml : CassandraYaml
+    val yaml: CassandraYaml
+
     init {
         val tmp = this.javaClass.getResourceAsStream("cassandra.yaml")
         yaml = CassandraYaml.create(tmp)

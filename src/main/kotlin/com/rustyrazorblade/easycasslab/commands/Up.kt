@@ -5,18 +5,18 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
-import  com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
-import com.rustyrazorblade.easycasslab.configuration.Host
-import  com.rustyrazorblade.easycasslab.configuration.ServerType
-import  com.rustyrazorblade.easycasslab.containers.Terraform
+import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.containers.Terraform
 import org.apache.sshd.common.SshException
 import java.io.File
 import java.nio.file.Path
 
 @Parameters(commandDescription = "Starts instances")
-class Up(@JsonIgnore val context: Context) : ICommand {
-
+class Up(
+    @JsonIgnore val context: Context,
+) : ICommand {
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
 
@@ -30,35 +30,50 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         // specifying the user one makes it take priority over the local one
         // so we have to explicitly specify the local one to ensure it gets
         // priority over user
+        // slowly migrating code from Terraform to Java.
+
+        context.cloudProvider.createLabEnvironment()
+
         val terraform = Terraform(context)
 
         with(TermColors()) {
-
             terraform.up().onFailure {
                 println(it.message)
                 println(it.printStackTrace())
-                println("${red("Some resources may have been unsuccessfully provisioned.")}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.")
+                println(
+                    "${red(
+                        "Some resources may have been unsuccessfully provisioned.",
+                    )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
+                )
             }.onSuccess {
-
-                println("""Instances have been provisioned.
+                println(
+                    """Instances have been provisioned.
                 
                 Use ${green("easy-cass-lab list")} to see all available versions
                 
                 Then use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
                 
-                """.trimMargin())
+                    """.trimMargin(),
+                )
 
                 println("Writing ssh config file to sshConfig.")
 
-                println("""The following alias will allow you to easily work with the cluster:
+                println(
+                    """The following alias will allow you to easily work with the cluster:
                 |
                 |${green("source env.sh")}
                 |
-                |""".trimMargin())
-                println("You can edit ${green("cassandra.patch.yaml")} with any changes you'd like to see merge in into the remote cassandra.yaml file.")
+                |
+                    """.trimMargin(),
+                )
+                println(
+                    "You can edit ${green(
+                        "cassandra.patch.yaml",
+                    )} with any changes you'd like to see merge in into the remote cassandra.yaml file.",
+                )
             }
         }
-        
+
         val config = File("sshConfig").bufferedWriter()
         context.tfstate.writeSshConfig(config)
 
@@ -77,7 +92,9 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         stressEnvironmentVars.write("export  EASY_CASS_STRESS_PROM_PORT=0")
         stressEnvironmentVars.newLine()
 
-        stressEnvironmentVars.write("export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)")
+        stressEnvironmentVars.write(
+            "export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
+        )
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
@@ -95,7 +112,6 @@ class Up(@JsonIgnore val context: Context) : ICommand {
         // write to profile.d/stress.sh
         var done = false
         do {
-
             try {
                 context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                     context.executeRemotely(it, "echo 1").text
@@ -109,16 +125,13 @@ class Up(@JsonIgnore val context: Context) : ICommand {
                 println("SSH still not up yet, waiting..")
                 Thread.sleep(1000)
             }
-
         } while (!done)
 
         if (noSetup) {
-            with (TermColors()) {
+            with(TermColors()) {
                 println("Skipping node setup.  You will need to run ${green("easy-cass-lab setup-instance")} to complete setup")
-
             }
         } else {
-
             SetupInstance(context).execute()
 
             if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
@@ -128,5 +141,4 @@ class Up(@JsonIgnore val context: Context) : ICommand {
             }
         }
     }
-
 }

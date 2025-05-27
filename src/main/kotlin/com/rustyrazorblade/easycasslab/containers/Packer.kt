@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.containers
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.github.dockerjava.api.model.AccessMode
 import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
@@ -10,12 +8,11 @@ import com.rustyrazorblade.easycasslab.VolumeMapping
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.io.File
-import kotlin.system.exitProcess
-import kotlin.io.path.createTempDirectory
 import org.apache.commons.io.FileUtils
+import java.io.File
 import java.nio.file.Path
-
+import kotlin.io.path.createTempDirectory
+import kotlin.system.exitProcess
 
 class Packer(val context: Context, var directory: String) {
     private val docker = Docker(context)
@@ -25,10 +22,18 @@ class Packer(val context: Context, var directory: String) {
     private var release = false
 
     // todo include the region defined in the profile
-    fun build(name: String, buildArgs: BuildArgs) {
-        val command = mutableListOf("build",
-            "-var", "region=${buildArgs.region}",
-            "-var", "arch=${buildArgs.arch.type}")
+    fun build(
+        name: String,
+        buildArgs: BuildArgs,
+    ) {
+        val command =
+            mutableListOf(
+                "build",
+                "-var",
+                "region=${buildArgs.region}",
+                "-var",
+                "arch=${buildArgs.arch.type}",
+            )
 
         if (buildArgs.release) {
             // When passing the release flag,
@@ -36,7 +41,8 @@ class Packer(val context: Context, var directory: String) {
             // We also make the AMI public.
             release = true
             command.addAll(
-                arrayOf("-var", "release_version=${context.version}"))
+                arrayOf("-var", "release_version=${context.version}"),
+            )
         }
 
         command.add(name)
@@ -95,5 +101,4 @@ class Packer(val context: Context, var directory: String) {
             .addEnv("AWS_SHARED_CREDENTIALS_FILE=$creds")
             .runContainer(Containers.PACKER, args, containerWorkingDir)
     }
-
 }

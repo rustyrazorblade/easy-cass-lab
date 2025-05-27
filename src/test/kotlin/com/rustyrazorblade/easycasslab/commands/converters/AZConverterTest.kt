@@ -1,12 +1,10 @@
 package com.rustyrazorblade.easycasslab.commands.converters
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-import org.junit.jupiter.api.Assertions.*
-
 internal class AZConverterTest {
-
     val converter = AZConverter()
 
     val abc = listOf("a", "b", "c")

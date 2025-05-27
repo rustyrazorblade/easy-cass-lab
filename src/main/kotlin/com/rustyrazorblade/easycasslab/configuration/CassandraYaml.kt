@@ -8,25 +8,27 @@ import java.io.File
 import java.io.InputStream
 
 class CassandraYaml(val parser: JsonNode) {
-
     companion object {
         val mapper = ObjectMapper(YAMLFactory())
 
-        fun create(fp: File) : CassandraYaml {
+        fun create(fp: File): CassandraYaml {
             val tmp = mapper.readTree(fp)
             return CassandraYaml(tmp)
         }
 
-        fun create(inputStream: InputStream) : CassandraYaml {
+        fun create(inputStream: InputStream): CassandraYaml {
             val tmp = mapper.readTree(inputStream)
             return CassandraYaml(tmp)
         }
     }
-    fun setProperty(name: String, value: String) {
+
+    fun setProperty(
+        name: String,
+        value: String,
+    ) {
         val tmp = parser as ObjectNode
         tmp.put(name, value)
     }
-
 
     fun setSeeds(seeds: List<String>) {
         val seedNode = parser.get("seed_provider").first().get("parameters").first()
@@ -45,5 +47,4 @@ class CassandraYaml(val parser: JsonNode) {
     fun write(path: String) {
         mapper.writeValue(File(path), parser)
     }
-
 }

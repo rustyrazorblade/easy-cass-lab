@@ -4,7 +4,8 @@ import java.io.File
 
 class Clean : ICommand {
     override fun execute() {
-        val toDelete = listOf(
+        val toDelete =
+            listOf(
                 "create_provisioning_resources.sh",
                 "cassandra.patch.yaml",
                 "jmx.options",
@@ -22,11 +23,11 @@ class Clean : ICommand {
                 ".terraform.lock.hcl",
                 "logs",
                 "state.json",
-            "axonops-dashboards.json",
-            "cassandra_versions.yaml"
-        )
+                "axonops-dashboards.json",
+                "cassandra_versions.yaml",
+            )
 
-        for(f in toDelete) {
+        for (f in toDelete) {
             File(f).deleteRecursively()
         }
         File(".terraform").deleteRecursively()
@@ -41,5 +42,4 @@ class Clean : ICommand {
             }
         }
     }
-
 }

@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameters
-import  com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "List available versions", commandNames = ["list", "ls"])

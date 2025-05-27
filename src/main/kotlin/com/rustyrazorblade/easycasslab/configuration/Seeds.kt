@@ -6,7 +6,7 @@ import java.io.StringWriter
 
 data class Seeds(val seeds: List<String>) {
     companion object {
-        fun open(stream: InputStream) : Seeds {
+        fun open(stream: InputStream): Seeds {
             val buf = StringWriter()
             IOUtils.copy(stream, buf)
             val seeds = buf.toString().split("\n")
@@ -17,6 +17,4 @@ data class Seeds(val seeds: List<String>) {
     override fun toString(): String {
         return seeds.joinToString(",")
     }
-
-
 }

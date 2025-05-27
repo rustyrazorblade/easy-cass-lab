@@ -2,11 +2,10 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.CommandLineParser
 import com.rustyrazorblade.easycasslab.Context
-
-import org.jline.reader.*;
-import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import org.jline.reader.*
+import org.jline.reader.impl.completer.StringsCompleter
+import org.jline.terminal.Terminal
+import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
 class Repl(val context: Context) : ICommand {
@@ -22,10 +21,11 @@ class Repl(val context: Context) : ICommand {
             val commands = parser.commands.map { it.name }
 
             // Set up the line reader
-            val reader: LineReader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(StringsCompleter(commands))
-                .build()
+            val reader: LineReader =
+                LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .completer(StringsCompleter(commands))
+                    .build()
 
             var line: String?
             while (true) {
@@ -60,9 +60,7 @@ class Repl(val context: Context) : ICommand {
         }
     }
 
-    fun getPrompt() : String {
+    fun getPrompt(): String {
         return "> "
     }
-
-
 }

@@ -7,7 +7,6 @@ import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
 class CassandraVersionTest {
-
     private val mainFilePath = Paths.get("packer/cassandra/cassandra_versions.yaml")
     private val extrasDirectoryPath = Paths.get("src/test/resources/com/rustyrazorblade/easycasslab/configuration/extra_versions")
 
@@ -20,7 +19,6 @@ class CassandraVersionTest {
         assertTrue(cassandraVersions.any { it.version == "4.0" })
         assertTrue(cassandraVersions.any { it.version == "1.2" })
     }
-
 
     @Test
     fun testYamlDoesNotHaveNulls() {

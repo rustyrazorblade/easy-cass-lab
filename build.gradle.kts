@@ -22,9 +22,9 @@ plugins {
     idea
     application
     id("org.jetbrains.kotlin.jvm") version "2.1.21"
-    id("com.github.johnrengelman.shadow")  version "8.1.1"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
     id("com.github.ben-manes.versions") version "0.52.0"
-
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 }
 
 group = "com.rustyrazorblade"
@@ -36,12 +36,12 @@ java {
 application {
     applicationName = "easy-cass-lab"
     mainClass.set("com.rustyrazorblade.easycasslab.MainKt")
-    applicationDefaultJvmArgs = listOf(
-        "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
-        "-Deasycasslab.ami.owner=081145431955",
-        "-Deasycasslab.version=$version"
-
-    )
+    applicationDefaultJvmArgs =
+        listOf(
+            "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
+            "-Deasycasslab.ami.owner=081145431955",
+            "-Deasycasslab.version=$version",
+        )
 }
 
 tasks.named<CreateStartScripts>("startScripts") {
@@ -74,6 +74,7 @@ dependencies {
 
     implementation("com.beust:jcommander:${project.extra["jcommander_version"]}")
     implementation("com.google.guava:guava:33.4.8-jre")
+    implementation(awssdk.services.s3) // Add dependency on the AWS SDK for Kotlin's S3 client.
 
     // for finding resources
     // https://mvnrepository.com/artifact/org.reflections/reflections
@@ -91,6 +92,8 @@ dependencies {
     implementation(project(":core"))
 
     implementation("software.amazon.awssdk:ec2:2.20.145")
+    implementation("software.amazon.awssdk:iam:2.20.145")
+    implementation("software.amazon.awssdk:emr:2.20.145")
 
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${project.extra["jackson_dataformat_version"]}")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${project.extra["jackson_kotlin_version"]}")
@@ -114,11 +117,9 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }
 
-
 kotlin {
     jvmToolchain(17)
 }
-
 
 sourceSets {
     val main by getting {
@@ -189,4 +190,3 @@ tasks.distTar {
 tasks.assemble {
     mustRunAfter(tasks.clean)
 }
-

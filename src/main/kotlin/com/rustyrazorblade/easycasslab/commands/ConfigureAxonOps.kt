@@ -9,7 +9,6 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
 class ConfigureAxonOps(val context: Context) : ICommand {
-
     @Parameter(description = "AxonOps Organization Name", names = ["--org"])
     var org = ""
 
@@ -18,7 +17,6 @@ class ConfigureAxonOps(val context: Context) : ICommand {
 
     @ParametersDelegate
     var hosts = Hosts()
-
 
     override fun execute() {
         context.requireSshKey()

@@ -35,7 +35,7 @@ source "amazon-ebs" "ubuntu" {
   region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*.1"
+      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
