@@ -68,7 +68,7 @@ sudo useradd -m cassandra
 mkdir cassandra
 
 sudo mkdir -p /usr/local/cassandra
-sudo mkdir -p /mnt/cassandra/
+sudo mkdir -p /mnt/cassandra/logs
 sudo chown -R cassandra:cassandra /mnt/cassandra
 
 # used to skip the expensive checkstyle checks

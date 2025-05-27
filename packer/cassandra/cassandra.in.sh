@@ -73,8 +73,16 @@ else
     echo "WARNING: AxonOps agent jar not found at $ECL_AGENT_JAR" >&2
 fi
 
-mkdir /mnt/cassandra/logs
+# Set log directory based on user
+if [ "$(whoami)" = "cassandra" ]; then
+    CASSANDRA_LOG_DIR="/mnt/cassandra/logs"
+else
+    CASSANDRA_LOG_DIR="$HOME/logs"
+fi
+
+mkdir -p "$CASSANDRA_LOG_DIR"
+
 # set logging depending on JVM version
 if [ "$ECL_JAVA_VERSION" = "17" ] || [ "$ECL_JAVA_VERSION" = "21" ]; then
-    export JVM_OPTS="$JVM_OPTS -Xlog:gc=info:file=/mnt/cassandra/logs/gc.log:time,uptime,pid,tid,level,tags:filecount=10,filesize=1M"
+    export JVM_OPTS="$JVM_OPTS -Xlog:gc=info:file=${CASSANDRA_LOG_DIR}/gc.log:time,uptime,pid,tid,level,tags:filecount=10,filesize=1M"
 fi
