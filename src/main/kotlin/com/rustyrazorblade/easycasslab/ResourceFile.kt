@@ -3,7 +3,7 @@ package com.rustyrazorblade.easycasslab
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.io.IOUtils
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.io.InputStream
 
@@ -13,7 +13,7 @@ import java.io.InputStream
 class ResourceFile(val resource: InputStream) {
 
     val fp: File
-    val log = logger()
+    val log = KotlinLogging.logger {}
 
     init {
         checkNotNull(resource)

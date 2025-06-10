@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.BufferedWriter
 import java.io.File
 import java.io.InputStream
@@ -41,7 +41,7 @@ class TFState(val context: Context,
             var tags: Map<String, String>?
     )
 
-    private var log = logger()
+    private var log = KotlinLogging.logger {}
     companion object {
         fun parse(context: Context, path: File) : TFState {
             return TFState(context, path.inputStream())

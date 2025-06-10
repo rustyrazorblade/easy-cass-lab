@@ -8,7 +8,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import software.amazon.awssdk.annotations.Mutable
 import java.io.File
 import java.net.URL
@@ -35,7 +35,7 @@ class AWSConfiguration(var name: String,
                        var arch: Arch = Arch.amd64
     ) {
 
-    val logger = logger()
+    val logger = KotlinLogging.logger {}
     private val mapper = ObjectMapper()
 
     private val tags = mutableMapOf(

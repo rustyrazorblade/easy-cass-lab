@@ -7,7 +7,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.exists
@@ -25,7 +25,7 @@ class DownloadConfig(val context: Context) : ICommand {
     var version = "current"
 
     companion object {
-        val logger = logger()
+        val logger = KotlinLogging.logger {}
     }
 
     override fun execute() {

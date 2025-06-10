@@ -3,7 +3,7 @@ package com.rustyrazorblade.easycasslab.configuration
 import  com.rustyrazorblade.easycasslab.Context
 import  com.rustyrazorblade.easycasslab.EC2
 import  com.rustyrazorblade.easycasslab.Utils
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import software.amazon.awssdk.regions.Region
 import java.io.File
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest
@@ -32,7 +32,7 @@ data class User(
 ) {
     companion object {
 
-        val log = logger()
+        val log = KotlinLogging.logger {}
 
         /**
          * Asks a bunch of questions and generates the user file

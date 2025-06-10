@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 typealias Alias = String
 
@@ -11,7 +11,7 @@ data class Host(val public: String,
 
     companion object {
         val hostRegex = """aws_instance\.(\w+)(.(\d+))?""".toRegex()
-        val log = logger()
+        val log = KotlinLogging.logger {}
 
         fun fromTerraformString(str: String, public: String, private: String, availabilityZone: String) : Host {
             val tmp = hostRegex.find(str)!!.groups

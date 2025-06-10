@@ -9,7 +9,7 @@ import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import kotlin.system.exitProcess
 import kotlin.io.path.createTempDirectory
@@ -21,7 +21,7 @@ class Packer(val context: Context, var directory: String) {
     private val docker = Docker(context)
 
     private var containerWorkingDir = "/local"
-    private var logger = logger()
+    private var logger = KotlinLogging.logger {}
     private var release = false
 
     // todo include the region defined in the profile

@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.ssh
 
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
@@ -12,7 +12,7 @@ import java.nio.file.Path
  * Acts as a facade for all SSH-related functionality
  */
 class SSHClient(private val session: ClientSession) : ISSHClient {
-    private val log = logger()
+    private val log = KotlinLogging.logger {}
 
     /**
      * Execute a command on a remote host

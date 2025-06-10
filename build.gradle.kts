@@ -1,15 +1,14 @@
 
 
 extra.apply {
-    set("log4j_api_version", "1.2.0")
-    set("log4j_core_version", "2.20.0")
-    set("slf4j_version", "2.11.2")
+    set("logback_version", "1.5.18")
     set("jackson_dataformat_version", "2.15.2")
     set("jackson_kotlin_version", "2.9.+")
     set("jupiter_version", "5.5.2")
     set("assertj_version", "3.11.1")
     set("jcommander_version", "1.82")
-    set("kotlin_version", "1.9.20")
+    set("kotlin_version", "2.1.21")
+    set("ktor_version", "3.1.3")
 }
 
 buildscript {
@@ -22,8 +21,10 @@ plugins {
     java
     idea
     application
-    id("org.jetbrains.kotlin.jvm") version "1.9.20"
+    id("org.jetbrains.kotlin.jvm") version "2.1.21"
     id("com.github.johnrengelman.shadow")  version "8.1.1"
+    id("com.github.ben-manes.versions") version "0.52.0"
+
 }
 
 group = "com.rustyrazorblade"
@@ -66,27 +67,26 @@ allprojects {
 // In this section you declare the dependencies for your production and test code
 dependencies {
 
-    implementation("org.apache.logging.log4j:log4j-api-kotlin:${project.extra["log4j_api_version"]}")
-    implementation("org.apache.logging.log4j:log4j-core:${project.extra["log4j_core_version"]}")
-    implementation("org.apache.logging.log4j:log4j-slf4j18-impl:${project.extra["slf4j_version"]}")
+    implementation("ch.qos.logback:logback-classic:${project.extra["logback_version"]}")
+    implementation("io.github.oshai:kotlin-logging-jvm:7.0.7")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${project.extra["kotlin_version"]}")
 
     implementation("com.beust:jcommander:${project.extra["jcommander_version"]}")
-    implementation("com.google.guava:guava:30.0-jre")
+    implementation("com.google.guava:guava:33.4.8-jre")
 
     // for finding resources
     // https://mvnrepository.com/artifact/org.reflections/reflections
-    implementation("org.reflections:reflections:0.9.11")
+    implementation("org.reflections:reflections:0.10.2")
 
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation("commons-io:commons-io:2.7")
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    implementation("com.github.docker-java:docker-java:3.4.0")
+    implementation("com.github.docker-java:docker-java:3.5.1")
 
     // https://mvnrepository.com/artifact/com.github.docker-java/docker-java-transport-httpclient5
-    implementation("com.github.docker-java:docker-java-transport-httpclient5:3.3.4")
+    implementation("com.github.docker-java:docker-java-transport-httpclient5:3.5.1")
 
     implementation(project(":core"))
 
@@ -100,17 +100,18 @@ dependencies {
     implementation("org.apache.sshd:sshd-scp:2.12.1")
 
     implementation("org.jline:jline:3.25.0")
+    implementation("com.github.ajalt:mordant:1.2.1")
+
+    implementation("io.ktor:ktor-server-core:${project.extra["ktor_version"]}")
+    implementation("io.ktor:ktor-server-netty:${project.extra["ktor_version"]}")
+    implementation("io.ktor:ktor-server-content-negotiation:${project.extra["ktor_version"]}")
+    implementation("io.ktor:ktor-serialization-jackson:${project.extra["ktor_version"]}")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
     testImplementation("org.assertj:assertj-core:${project.extra["assertj_version"]}")
-
-    implementation("com.github.ajalt:mordant:1.2.1")
-
-    testImplementation("io.mockk:mockk:1.9.3")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
-    testImplementation("org.mockito:mockito-core:5.10.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }
 
 

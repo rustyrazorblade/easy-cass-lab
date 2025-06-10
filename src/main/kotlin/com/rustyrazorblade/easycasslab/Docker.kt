@@ -5,7 +5,7 @@ import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.*
 import com.github.dockerjava.api.command.PullImageResultCallback
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedOutputStream
 import java.io.PipedInputStream
@@ -118,7 +118,7 @@ class DefaultUserIdProvider : UserIdProvider {
 
 data class VolumeMapping(val source: String, val destination: String, val mode: AccessMode) {
     companion object {
-        val log = logger()
+        val log = KotlinLogging.logger {}
     }
     init {
         log.info { "Creating volume mapping $source to $destination, mode: $mode" }
@@ -132,7 +132,7 @@ class Docker(
 ) {
 
     companion object {
-        val log = logger()
+        val log = KotlinLogging.logger {}
     }
 
     private val volumes = mutableListOf<VolumeMapping>()

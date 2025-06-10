@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.io.OutputStream
 import java.nio.file.Files
@@ -37,7 +37,7 @@ data class CassandraVersion(
 ) {
     companion object {
         private val objectMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
-        private var logger = logger()
+        private var logger = KotlinLogging.logger {}
 
         fun loadFromFile(filePath: Path): List<CassandraVersion> {
             val fileContent = Files.readString(filePath)

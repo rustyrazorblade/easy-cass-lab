@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.ssh
 
 import com.rustyrazorblade.easycasslab.configuration.Host
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
@@ -13,7 +13,7 @@ import java.time.Duration
  * Manages SSH connections to multiple hosts
  */
 open class ConnectionManager(val keyPath: String) {
-    private val log = logger()
+    private val log = KotlinLogging.logger {}
     private val keyPairs: List<KeyPair>
     private val sshClient: SshClient
     private val connections = mutableMapOf<Host, ISSHClient>()

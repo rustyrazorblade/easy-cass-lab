@@ -16,7 +16,7 @@ import  com.rustyrazorblade.easycasslab.terraform.AWSConfiguration
 import  com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.terraform.EBSType
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.LocalDate
 
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
@@ -153,6 +153,6 @@ class Init(@JsonIgnore val context: Context) : ICommand {
         fun expand(region: String, azs: List<String>) : List<String> = azs.map { region + it }
 
         @JsonIgnore
-        val log = logger()
+        val log = KotlinLogging.logger {}
     }
 }

@@ -5,7 +5,7 @@ import  com.rustyrazorblade.easycasslab.Docker
 import com.github.dockerjava.api.model.AccessMode
 import  com.rustyrazorblade.easycasslab.Containers
 import  com.rustyrazorblade.easycasslab.VolumeMapping
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 
 class Terraform(val context: Context) {
@@ -13,7 +13,7 @@ class Terraform(val context: Context) {
     private val docker = Docker(context)
 
     private var localDirectory = "/local"
-    private var logger = logger()
+    private var logger = KotlinLogging.logger {}
 
     fun init() : Result<String> {
         return execute("init")

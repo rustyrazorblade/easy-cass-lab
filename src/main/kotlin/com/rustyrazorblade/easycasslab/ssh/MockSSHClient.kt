@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.ssh
 
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClient
@@ -15,7 +15,7 @@ import java.nio.file.attribute.PosixFilePermission
  * Mock implementation of ISSHClient for testing
  */
 class MockSSHClient : ISSHClient {
-    private val log = logger()
+    private val log = KotlinLogging.logger {}
     val executedCommands = mutableListOf<String>()
     val uploadedFiles = mutableListOf<Pair<Path, String>>()
     val uploadedDirectories = mutableListOf<Pair<File, String>>()

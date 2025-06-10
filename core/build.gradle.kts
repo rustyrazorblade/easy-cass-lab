@@ -9,9 +9,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("org.apache.logging.log4j:log4j-api-kotlin:${rootProject.extra["log4j_api_version"]}")
-    implementation("org.apache.logging.log4j:log4j-core:${rootProject.extra["log4j_core_version"]}")
-    implementation("org.apache.logging.log4j:log4j-slf4j18-impl:${rootProject.extra["slf4j_version"]}")
+    implementation("ch.qos.logback:logback-classic:${rootProject.extra["logback_version"]}")
+    implementation("io.github.oshai:kotlin-logging-jvm:7.0.7")
 
     // https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${rootProject.extra["kotlin_version"]}")

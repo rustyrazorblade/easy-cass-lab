@@ -17,7 +17,7 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.google.common.annotations.VisibleForTesting
 
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -69,7 +69,7 @@ data class Context(val easycasslabUserDirectory: File) {
         profileDir.mkdirs()
     }
 
-    val log = logger()
+    val log = KotlinLogging.logger {}
 
     /**
      * Version is either supplied by the in-repo script,

@@ -4,7 +4,7 @@ import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.commands.*
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.util.regex.Pattern
 
 data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
@@ -18,7 +18,7 @@ class CommandLineParser(val context: Context) {
     val commands: List<Command>
 
     @JsonIgnore
-    private val logger = logger("com.rustyrazorblade.easycasslab.CommandLineParser")
+    private val logger = KotlinLogging.logger {}
     private val jc: JCommander
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
 
@@ -50,6 +50,7 @@ class CommandLineParser(val context: Context) {
             Command("configure-axonops", ConfigureAxonOps(context)),
             Command("upload-keys", UploadAuthorizedKeys(context)),
             Command("repl", Repl(context)),
+            Command("server", Server(context)),
             Command("version", Version(context))
         )
 

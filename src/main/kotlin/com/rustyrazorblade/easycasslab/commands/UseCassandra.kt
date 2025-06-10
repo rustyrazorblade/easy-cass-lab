@@ -8,7 +8,7 @@ import com.github.ajalt.mordant.TermColors
 import  com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import  com.rustyrazorblade.easycasslab.configuration.*
-import org.apache.logging.log4j.kotlin.logger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
@@ -21,7 +21,7 @@ class UseCassandra(@JsonIgnore val context: Context) : ICommand {
     var hosts = Hosts()
 
     @JsonIgnore
-    val log = logger()
+    val log = KotlinLogging.logger {}
 
     @Parameter(names = ["--java", "-j"], description = "Java Version Override, 8, 11 or 17 accepted")
     var javaVersion = ""
