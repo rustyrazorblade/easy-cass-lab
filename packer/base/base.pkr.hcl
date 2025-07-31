@@ -93,6 +93,11 @@ build {
     script = "install/install_otel_collector.sh"
   }
 
+  # install Docker
+  provisioner "shell" {
+    script = "install/install_docker.sh"
+  }
+
   provisioner "shell" {
     inline = [
       "sudo apt install openjdk-8-jdk openjdk-8-dbg openjdk-11-jdk openjdk-11-dbg openjdk-17-jdk openjdk-17-dbg -y",

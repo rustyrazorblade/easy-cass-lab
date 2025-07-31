@@ -10,7 +10,7 @@ class Hosts(val context: Context) : ICommand {
     @Parameter(names = ["-c"], description = "Show Cassandra as a comma delimited list")
     var cassandra: Boolean = false
 
-    data class HostOutput(val cassandra: HostList, val stress: HostList, val monitoring: HostList)
+    data class HostOutput(val cassandra: HostList, val stress: HostList, val control: HostList)
 
     override fun execute() {
         try {
@@ -19,7 +19,7 @@ class Hosts(val context: Context) : ICommand {
                     HostOutput(
                         getHosts(ServerType.Cassandra),
                         getHosts(ServerType.Stress),
-                        getHosts(ServerType.Monitoring),
+                        getHosts(ServerType.Control),
                     )
                 }
 

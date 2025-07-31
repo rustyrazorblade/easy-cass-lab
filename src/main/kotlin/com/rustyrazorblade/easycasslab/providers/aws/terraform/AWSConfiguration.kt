@@ -205,6 +205,22 @@ class AWSConfiguration(
             logger.info("Creating resource $instanceName as $stress")
         }
 
+        // Always create a single control node
+        val controlInstanceName = ServerType.Control.serverType + "0"
+        val control =
+            InstanceResource(
+                ami = ami,
+                instance_type = "t3.xlarge", // 4 vCPUs, 16 GiB RAM
+                tags = tags + Pair("Name", controlInstanceName),
+                vpc_security_group_ids = listOf(instanceSg.id()),
+                count = 1,
+                ebs_block_device = null,
+                ebs_optimized = false,
+                subnet = subnets[0],
+            )
+        terraformConfig.resource.aws_instance[controlInstanceName] = control
+        logger.info("Creating resource $controlInstanceName as $control")
+
         terraformConfig.setSpark(
             getEmr(
                 subnet = subnets[0],
