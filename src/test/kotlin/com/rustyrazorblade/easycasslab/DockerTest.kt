@@ -3,13 +3,19 @@ package com.rustyrazorblade.easycasslab
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.command.PullImageResultCallback
 import com.github.dockerjava.api.model.AccessMode
+import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.Image
+import com.github.dockerjava.api.model.StreamType
+import com.rustyrazorblade.easycasslab.docker.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.docker.ConsoleOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
@@ -20,6 +26,7 @@ class DockerTest {
     private lateinit var mockContext: Context
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var mockUserIdProvider: UserIdProvider
+    private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var docker: Docker
     private lateinit var mockContainerCreationCommand: ContainerCreationCommand
     private lateinit var mockContainerResponse: com.github.dockerjava.api.command.CreateContainerResponse
@@ -31,6 +38,7 @@ class DockerTest {
         mockContext = mock()
         mockDockerClient = mock()
         mockUserIdProvider = mock()
+        bufferedOutputHandler = BufferedOutputHandler()
         mockContainerCreationCommand = mock()
         mockContainerResponse = mock()
         mockContainerState = mock()
@@ -51,7 +59,7 @@ class DockerTest {
 
         whenever(mockUserIdProvider.getUserId()).thenReturn(1000)
 
-        docker = Docker(mockContext, mockDockerClient, mockUserIdProvider)
+        docker = Docker(mockContext, mockDockerClient, mockUserIdProvider, bufferedOutputHandler)
     }
 
     @Test
@@ -121,7 +129,7 @@ class DockerTest {
 
         // First set running to true, then to false on second call to simulate container stopping
         whenever(mockContainerState.running).thenReturn(true).thenReturn(false)
-        whenever(mockContainerState.exitCode).thenReturn(0)
+        whenever(mockContainerState.exitCodeLong).thenReturn(0L)
 
         docker.addVolume(mockVolume)
 
@@ -131,5 +139,47 @@ class DockerTest {
         // Then
         verify(mockContainerCreationCommand).withVolumes(any())
         verify(mockContainerCreationCommand).withHostConfig(any())
+    }
+    
+    @Test
+    fun `runContainer captures output correctly with BufferedOutputHandler`() {
+        // Given
+        whenever(mockContainerState.running).thenReturn(true).thenReturn(false)
+        whenever(mockContainerState.exitCodeLong).thenReturn(0L)
+        
+        // Mock the attach container to simulate output
+        val callbackCaptor = argumentCaptor<com.github.dockerjava.api.async.ResultCallback.Adapter<Frame>>()
+        doAnswer { invocation ->
+            val callback = invocation.arguments[2] as com.github.dockerjava.api.async.ResultCallback.Adapter<Frame>
+            // Simulate some output
+            callback.onNext(Frame(StreamType.STDOUT, "Hello from container\n".toByteArray()))
+            callback.onNext(Frame(StreamType.STDERR, "Warning message\n".toByteArray()))
+            null
+        }.whenever(mockDockerClient).attachContainer(any(), any(), any())
+        
+        // When
+        val result = docker.runContainer("test:latest", mutableListOf("echo", "hello"), "")
+        
+        // Then
+        assertTrue(result.isSuccess)
+        // The buffered handler should have captured the output
+        assertTrue(bufferedOutputHandler.messages.any { it.contains("Starting") })
+        assertTrue(bufferedOutputHandler.messages.any { it.contains("Container exited") })
+    }
+    
+    @Test
+    fun `runContainer handles non-zero exit code correctly`() {
+        // Given
+        whenever(mockContainerState.running).thenReturn(true).thenReturn(false)
+        whenever(mockContainerState.exitCodeLong).thenReturn(1L)
+        whenever(mockContainerState.error).thenReturn("Command failed")
+        
+        // When
+        val result = docker.runContainer("test:latest", mutableListOf("false"), "")
+        
+        // Then
+        assertTrue(result.isFailure)
+        assertEquals("Non zero response returned.", result.exceptionOrNull()?.message)
+        assertTrue(bufferedOutputHandler.messages.any { it.contains("Container exited with exit code 1") })
     }
 }

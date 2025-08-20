@@ -11,6 +11,12 @@ import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Image
 import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.Volume
+import com.rustyrazorblade.easycasslab.docker.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.docker.ConsoleOutputHandler
+import com.rustyrazorblade.easycasslab.docker.ContainerExecutor
+import com.rustyrazorblade.easycasslab.docker.ContainerIOManager
+import com.rustyrazorblade.easycasslab.docker.ContainerStateMonitor
+import com.rustyrazorblade.easycasslab.docker.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
@@ -173,10 +179,51 @@ data class VolumeMapping(val source: String, val destination: String, val mode: 
     }
 }
 
+/**
+ * Main class for Docker container operations.
+ * 
+ * This class provides a high-level interface for running Docker containers with
+ * support for volumes, environment variables, and flexible output handling.
+ * 
+ * The class has been refactored to support:
+ * - Modular output handling (console, logger, buffer, custom)
+ * - Better testability through dependency injection
+ * - Background execution with proper output management
+ * - Cleaner separation of concerns
+ * 
+ * Example usage:
+ * ```kotlin
+ * // Create a Docker instance with console output
+ * val docker = Docker(context, dockerClient)
+ * 
+ * // Add volumes and environment variables
+ * docker.addVolume(VolumeMapping("/host/path", "/container/path", AccessMode.rw))
+ *       .addEnv("MY_VAR=value")
+ * 
+ * // Run a container
+ * val result = docker.runContainer(
+ *     Containers.UBUNTU,
+ *     mutableListOf("echo", "Hello World"),
+ *     "/workspace"
+ * )
+ * ```
+ * 
+ * For background execution with logger output:
+ * ```kotlin
+ * val docker = DockerFactory.createLoggerDocker(context, dockerClient)
+ * // Container output will go to the logger instead of console
+ * ```
+ * 
+ * @param context The execution context
+ * @param dockerClient The Docker client interface for container operations
+ * @param userIdProvider Provider for getting the current user ID (for permissions)
+ * @param outputHandler Handler for container output (default: console)
+ */
 class Docker(
     val context: Context,
     private val dockerClient: DockerClientInterface,
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
+    private val outputHandler: OutputHandler = ConsoleOutputHandler()
 ) {
     companion object {
         private const val CONTAINER_ID_DISPLAY_LENGTH = 12
@@ -243,7 +290,7 @@ class Docker(
                     if (item != null) {
                         item.progressDetail?.let {
                             if (it.current != null && it.total != null) {
-                                println("Pulling: ${it.current} / ${it.total}")
+                                outputHandler.handleMessage("Pulling: ${it.current} / ${it.total}")
                             }
                         }
                     }
@@ -269,6 +316,24 @@ class Docker(
         return runContainer(container.imageWithTag, command, workingDirectory)
     }
 
+    /**
+     * Run a Docker container with the specified configuration.
+     * 
+     * This method executes a container with the given image, command, and working directory.
+     * It handles the complete lifecycle: creation, attachment, execution, and cleanup.
+     * 
+     * The output is handled through the configured OutputHandler, allowing for:
+     * - Console output (default)
+     * - Logger output (for background execution)
+     * - Buffered output (for testing)
+     * - Custom output handling
+     * 
+     * @param imageTag The Docker image tag to use (e.g., "ubuntu:latest")
+     * @param command The command to execute in the container
+     * @param workingDirectory The working directory inside the container
+     * @return Result containing the stdout output on success, or an exception on failure
+     * @throws IllegalArgumentException if imageTag is blank or command is empty
+     */
     internal fun runContainer(
         imageTag: String,
         command: MutableList<String>,
@@ -277,7 +342,13 @@ class Docker(
         require(imageTag.isNotBlank()) { "Image tag cannot be blank" }
         require(command.isNotEmpty()) { "Command list cannot be empty" }
         
-        val capturedStdOut = StringBuilder()
+        // Use a buffered handler to capture output while also displaying it
+        val bufferedHandler = BufferedOutputHandler()
+        val compositeHandler = com.rustyrazorblade.easycasslab.docker.CompositeOutputHandler(
+            outputHandler,
+            bufferedHandler
+        )
+        
         val dockerCommandBuilder = dockerClient.createContainer(imageTag)
 
         // Get user ID using the injected provider for testability
@@ -299,47 +370,36 @@ class Docker(
         }
 
         if (workingDirectory.isNotEmpty()) {
-            println("Setting working directory inside container to $workingDirectory")
+            compositeHandler.handleMessage("Setting working directory inside container to $workingDirectory")
             dockerCommandBuilder.withWorkingDir(workingDirectory)
         }
 
         val dockerContainer = dockerCommandBuilder.exec()
-        println("Starting $imageTag container (${dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)})")
+        compositeHandler.handleMessage("Starting $imageTag container (${dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)})")
 
-        // Prepare container with stdin/stdout and attach
-        val stdInputPipe = PipedOutputStream()
-        val stdIn = System.`in`.bufferedReader()
-        val framesRead = setupContainerIO(dockerContainer.id, stdInputPipe, stdIn, capturedStdOut)
-
+        // Use the new modular components
+        val ioManager = ContainerIOManager(dockerClient, compositeHandler)
+        val executor = ContainerExecutor(dockerClient, compositeHandler)
+        val stateMonitor = ContainerStateMonitor(dockerClient, compositeHandler)
+        
+        // Attach to container and set up IO
+        val framesRead = ioManager.attachToContainer(dockerContainer.id, true)
+        
         log.info { "Starting container with command $command" }
-        println("Starting container ${dockerContainer.id}")
-
-        try {
-            dockerClient.startContainer(dockerContainer.id)
-        } catch (e: com.github.dockerjava.api.exception.DockerException) {
-            log.error(e) { "Docker error starting container: ${dockerContainer.id}" }
-            println("Error starting container: ${e.message}")
-            throw DockerException("Failed to start container ${dockerContainer.id}", e)
-        } catch (e: IOException) {
-            log.error(e) { "IO error starting container: ${dockerContainer.id}" }
-            println("Error starting container: ${e.message}")
-            throw DockerException("IO error starting container ${dockerContainer.id}", e)
-        }
-
-        // Wait for container to finish and get state
-        val containerState = waitForContainerToComplete(dockerContainer.id)
-
-        // Build and log return message
-        val returnMessage = buildReturnMessage(containerState, framesRead)
-        println(returnMessage)
-
+        
+        // Start container and wait for completion
+        val containerState = executor.startAndWaitForCompletion(dockerContainer.id)
+        
+        // Report final state
+        stateMonitor.reportFinalState(containerState, framesRead)
+        
         // Clean up
-        stdInputPipe.close()
-        dockerClient.removeContainer(dockerContainer.id, true)
-
+        ioManager.close()
+        executor.removeContainer(dockerContainer.id)
+        
         val returnCode = containerState.exitCodeLong?.toInt() ?: -1
         return if (returnCode == 0) {
-            Result.success(capturedStdOut.toString())
+            Result.success(bufferedHandler.stdout)
         } else {
             Result.failure(Exception("Non zero response returned."))
         }
@@ -362,84 +422,6 @@ class Docker(
             // This api changed a little when docker-java was upgraded, they stopped proxying this call
             // now we have to explicitly set a host config and add the binds there
             .withHostConfig(HostConfig().withBinds(bindesList))
-    }
-
-    private fun setupContainerIO(
-        containerId: String,
-        stdInputPipe: PipedOutputStream,
-        stdIn: java.io.BufferedReader,
-        capturedStdOut: StringBuilder,
-    ): Int {
-        var framesRead = 0
-
-        // Create a daemon thread to redirect stdin to the container
-        thread(isDaemon = true) {
-            try {
-                while (true) {
-                    val line = stdIn.readLine() + "\n"
-                    stdInputPipe.write(line.toByteArray())
-                }
-            } catch (ignored: IOException) {
-                log.info { "Pipe closed." }
-            }
-        }
-
-        println("Attaching to running container")
-
-        // Create callback to capture stdout and stderr
-        val frameCallback =
-            object : ResultCallback.Adapter<Frame>() {
-                override fun onNext(item: Frame?) {
-                    if (item == null) return
-
-                    framesRead++
-                    val payloadStr = String(item.payload)
-
-                    if (item.streamType.name.equals("STDOUT")) {
-                        // no need to use println - payloadStr already has carriage returns
-                        print(payloadStr)
-                        capturedStdOut.append(payloadStr)
-                    } else if (item.streamType.name.equals("STDERR")) {
-                        print(payloadStr)
-                        log.error { payloadStr }
-                    }
-                }
-
-                override fun onError(throwable: Throwable) {
-                    log.error(throwable) { "Container attachment error" }
-                    println(throwable.toString())
-                    super.onError(throwable)
-                }
-            }
-
-        // Attach to the container with our callback
-        dockerClient.attachContainer(containerId, PipedInputStream(stdInputPipe), frameCallback)
-
-        return framesRead
-    }
-
-    private fun waitForContainerToComplete(containerId: String): InspectContainerResponse.ContainerState {
-        var containerState: InspectContainerResponse.ContainerState
-
-        do {
-            Thread.sleep(CONTAINER_POLLING_INTERVAL_MS)
-            containerState = dockerClient.inspectContainer(containerId).state
-        } while (containerState.running == true)
-
-        return containerState
-    }
-
-    private fun buildReturnMessage(
-        containerState: InspectContainerResponse.ContainerState,
-        framesRead: Int,
-    ): String {
-        var errorMessage = ""
-
-        if (!containerState.error.isNullOrEmpty()) {
-            errorMessage = ", ${containerState.error}"
-        }
-
-        return "Container exited with exit code ${containerState.exitCodeLong}$errorMessage, frames read: $framesRead"
     }
 }
 

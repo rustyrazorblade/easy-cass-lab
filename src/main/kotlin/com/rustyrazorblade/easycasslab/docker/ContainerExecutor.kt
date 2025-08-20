@@ -1,0 +1,225 @@
+package com.rustyrazorblade.easycasslab.docker
+
+import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.command.InspectContainerResponse
+import com.github.dockerjava.api.model.Frame
+import com.rustyrazorblade.easycasslab.DockerClientInterface
+import com.rustyrazorblade.easycasslab.DockerException
+import io.github.oshai.kotlinlogging.KotlinLogging
+import java.io.IOException
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
+import kotlin.concurrent.thread
+
+/**
+ * Manages the execution lifecycle of a Docker container.
+ */
+class ContainerExecutor(
+    private val dockerClient: DockerClientInterface,
+    private val outputHandler: OutputHandler = ConsoleOutputHandler()
+) {
+    companion object {
+        private val log = KotlinLogging.logger {}
+        private const val CONTAINER_POLLING_INTERVAL_MS = 1000L
+    }
+    
+    /**
+     * Start a container and wait for it to complete.
+     * 
+     * @param containerId The ID of the container to start
+     * @return The container state after completion
+     */
+    fun startAndWaitForCompletion(containerId: String): InspectContainerResponse.ContainerState {
+        try {
+            dockerClient.startContainer(containerId)
+            outputHandler.handleMessage("Starting container $containerId")
+        } catch (e: com.github.dockerjava.api.exception.DockerException) {
+            val errorMsg = "Docker error starting container: $containerId"
+            log.error(e) { errorMsg }
+            outputHandler.handleError("Error starting container: ${e.message}", e)
+            throw DockerException("Failed to start container $containerId", e)
+        } catch (e: IOException) {
+            val errorMsg = "IO error starting container: $containerId"
+            log.error(e) { errorMsg }
+            outputHandler.handleError("Error starting container: ${e.message}", e)
+            throw DockerException("IO error starting container $containerId", e)
+        }
+        
+        return waitForContainerToComplete(containerId)
+    }
+    
+    /**
+     * Wait for a container to complete execution.
+     * 
+     * @param containerId The ID of the container to monitor
+     * @param maxWaitTime Maximum time to wait in milliseconds (default: 10 minutes)
+     * @return The final container state
+     * @throws IllegalStateException if timeout is reached
+     */
+    private fun waitForContainerToComplete(
+        containerId: String,
+        maxWaitTime: Long = 600_000L
+    ): InspectContainerResponse.ContainerState {
+        val startTime = System.currentTimeMillis()
+        var containerState: InspectContainerResponse.ContainerState
+        
+        do {
+            if (System.currentTimeMillis() - startTime > maxWaitTime) {
+                throw IllegalStateException("Container $containerId did not complete within ${maxWaitTime}ms")
+            }
+            
+            Thread.sleep(CONTAINER_POLLING_INTERVAL_MS)
+            containerState = dockerClient.inspectContainer(containerId).state
+        } while (containerState.running == true)
+        
+        return containerState
+    }
+    
+    /**
+     * Remove a container and its volumes.
+     * 
+     * @param containerId The ID of the container to remove
+     */
+    fun removeContainer(containerId: String) {
+        try {
+            dockerClient.removeContainer(containerId, true)
+        } catch (e: Exception) {
+            log.error(e) { "Failed to remove container $containerId" }
+            outputHandler.handleError("Failed to remove container: ${e.message}", e)
+        }
+    }
+}
+
+/**
+ * Manages input/output streams for a Docker container.
+ */
+class ContainerIOManager(
+    private val dockerClient: DockerClientInterface,
+    private val outputHandler: OutputHandler = ConsoleOutputHandler()
+) {
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
+    
+    private var inputPipe: PipedOutputStream? = null
+    private var inputThread: Thread? = null
+    
+    /**
+     * Attach to a container and set up IO streams.
+     * 
+     * @param containerId The ID of the container to attach to
+     * @param enableStdin Whether to enable stdin redirection
+     * @return The number of frames read (for tracking purposes)
+     */
+    fun attachToContainer(
+        containerId: String,
+        enableStdin: Boolean = true
+    ): Int {
+        var framesRead = 0
+        require(containerId.isNotBlank()) { "Container ID cannot be blank" }
+        
+        if (enableStdin) {
+            setupStdinRedirection()
+        }
+        
+        outputHandler.handleMessage("Attaching to running container")
+        
+        val frameCallback = object : ResultCallback.Adapter<Frame>() {
+            override fun onNext(item: Frame?) {
+                if (item == null) return
+                
+                framesRead++
+                outputHandler.handleFrame(item)
+            }
+            
+            override fun onError(throwable: Throwable) {
+                log.error(throwable) { "Container attachment error" }
+                outputHandler.handleError("Container attachment error", throwable)
+                super.onError(throwable)
+            }
+        }
+        
+        val stdinStream = inputPipe?.let { PipedInputStream(it) }
+        dockerClient.attachContainer(containerId, stdinStream ?: PipedInputStream(), frameCallback)
+        
+        return framesRead
+    }
+    
+    /**
+     * Set up stdin redirection from the host to the container.
+     */
+    private fun setupStdinRedirection() {
+        inputPipe = PipedOutputStream()
+        val stdIn = System.`in`.bufferedReader()
+        
+        inputThread = thread(isDaemon = true, name = "Docker-stdin-redirect") {
+            try {
+                while (!Thread.currentThread().isInterrupted) {
+                    val line = stdIn.readLine() ?: break
+                    inputPipe?.write((line + "\n").toByteArray())
+                }
+            } catch (ignored: IOException) {
+                log.debug { "Stdin redirection stopped: ${ignored.message}" }
+            } catch (ignored: InterruptedException) {
+                log.debug { "Stdin redirection interrupted" }
+            }
+        }
+    }
+    
+    /**
+     * Close IO streams and clean up resources.
+     */
+    fun close() {
+        try {
+            inputPipe?.close()
+            inputThread?.interrupt()
+            outputHandler.close()
+        } catch (e: Exception) {
+            log.error(e) { "Error closing IO manager" }
+        }
+    }
+}
+
+/**
+ * Monitors and reports on container state.
+ */
+class ContainerStateMonitor(
+    private val dockerClient: DockerClientInterface,
+    private val outputHandler: OutputHandler = ConsoleOutputHandler()
+) {
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
+    
+    /**
+     * Build a return message based on container state.
+     * 
+     * @param containerState The final container state
+     * @param framesRead The number of frames read from the container
+     * @return A formatted message describing the container exit status
+     */
+    fun buildReturnMessage(
+        containerState: InspectContainerResponse.ContainerState,
+        framesRead: Int
+    ): String {
+        val errorMessage = containerState.error?.let { ", $it" } ?: ""
+        val exitCode = containerState.exitCodeLong ?: -1L
+        
+        return "Container exited with exit code $exitCode$errorMessage, frames read: $framesRead"
+    }
+    
+    /**
+     * Report the final container state.
+     * 
+     * @param containerState The final container state
+     * @param framesRead The number of frames read
+     */
+    fun reportFinalState(
+        containerState: InspectContainerResponse.ContainerState,
+        framesRead: Int
+    ) {
+        val message = buildReturnMessage(containerState, framesRead)
+        outputHandler.handleMessage(message)
+        log.info { message }
+    }
+}
