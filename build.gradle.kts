@@ -26,6 +26,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.52.0"
     id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
     id("io.gitlab.arturbosch.detekt") version "1.23.7"
+    id("org.jetbrains.kotlinx.kover") version "0.8.3"
 }
 
 group = "com.rustyrazorblade"
@@ -190,4 +191,56 @@ tasks.distTar {
 
 tasks.assemble {
     mustRunAfter(tasks.clean)
+}
+
+// Kover code coverage configuration
+kover {
+    reports {
+        filters {
+            excludes {
+                // Exclude test classes
+                classes(
+                    "*Test",
+                    "*Test\$*",
+                    "*.test.*",
+                    "*Mock*",
+                    "*\$\$*", // Generated classes
+                    "*_Factory",
+                    "*_Impl",
+                    "*.BuildConfig"
+                )
+                
+                // Exclude test packages
+                packages(
+                    "*.test",
+                    "*.mock"
+                )
+            }
+        }
+        
+        // Configure verification rules
+        // Current coverage: Line 34.08%, Branch 16.54%
+        // TODO: Gradually increase these thresholds as more tests are added
+        verify {
+            rule("Minimal line coverage") {
+                disabled = false
+                
+                bound {
+                    minValue = 30  // Start at 30%, gradually increase
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+                    aggregationForGroup = kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
+                }
+            }
+            
+            rule("Minimal branch coverage") {
+                disabled = false
+                
+                bound {
+                    minValue = 15  // Start at 15%, gradually increase
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
+                    aggregationForGroup = kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
+                }
+            }
+        }
+    }
 }
