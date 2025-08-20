@@ -1,14 +1,16 @@
 package com.rustyrazorblade.easycasslab.configuration
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
 class CassandraVersionTest {
     private val mainFilePath = Paths.get("packer/cassandra/cassandra_versions.yaml")
-    private val extrasDirectoryPath = Paths.get("src/test/resources/com/rustyrazorblade/easycasslab/configuration/extra_versions")
+    private val extrasDirectoryPath = Paths.get(
+        "src/test/resources/com/rustyrazorblade/easycasslab/configuration/extra_versions"
+    )
 
     @Test
     fun testLoadFromMainAndExtras_ValidYaml() {

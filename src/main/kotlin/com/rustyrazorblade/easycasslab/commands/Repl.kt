@@ -2,13 +2,20 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.CommandLineParser
 import com.rustyrazorblade.easycasslab.Context
-import org.jline.reader.*
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.jline.reader.EndOfFileException
+import org.jline.reader.LineReader
+import org.jline.reader.LineReaderBuilder
+import org.jline.reader.UserInterruptException
 import org.jline.reader.impl.completer.StringsCompleter
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
 class Repl(val context: Context) : ICommand {
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
     override fun execute() {
         try {
             // Set up the terminal
@@ -32,7 +39,7 @@ class Repl(val context: Context) : ICommand {
                 // Read user input with prompt
                 try {
                     // TODO enhance this with a better status line about the cluster
-                    line = reader.readLine(getPrompt())
+                    line = reader.readLine(prompt)
                     if (line.equals("exit", ignoreCase = true)) {
                         break
                     }
@@ -47,20 +54,18 @@ class Repl(val context: Context) : ICommand {
                     // See https://github.com/cbeust/jcommander/issues/271
                     parser = CommandLineParser(context)
                     parser.eval(line)
-                } catch (e: UserInterruptException) {
+                } catch (ignored: UserInterruptException) {
                     // Handle CTRL+C
                     break
-                } catch (e: EndOfFileException) {
+                } catch (ignored: EndOfFileException) {
                     // Handle CTRL+D
                     break
                 }
             }
         } catch (e: IOException) {
-            e.printStackTrace()
+            log.error(e) { "IO error in REPL terminal setup" }
         }
     }
 
-    fun getPrompt(): String {
-        return "> "
-    }
+    private val prompt = "> "
 }

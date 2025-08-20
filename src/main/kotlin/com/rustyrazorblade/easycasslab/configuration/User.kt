@@ -49,12 +49,11 @@ data class User(
             val awsSecret = Utils.prompt("Please enter your AWS Secret Access Key:", "", secret = true)
 
             // create the key pair
-            val ok =
-                Utils.prompt(
-                    "easy-cass-lab will now validate your credentials, generate login keys, and " +
-                        "create an AIM user.",
-                    "",
-                )
+            Utils.prompt(
+                "easy-cass-lab will now validate your credentials, generate login keys, and " +
+                    "create an AIM user.",
+                "",
+            )
 
             val ec2 = EC2(awsAccessKey, awsSecret, region)
             val ec2Client = ec2.client
@@ -75,7 +74,10 @@ data class User(
 
             fun getAxonOps(inputName: String) = Utils.prompt("AxonOps $inputName: ", "")
 
-            val axonOpsChoice = Utils.prompt("Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]", default = "N")
+            val axonOpsChoice = Utils.prompt(
+                "Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]",
+                default = "N"
+            )
             val useAxonOps = axonOpsChoice.equals("y", true)
             val axonOpsOrg = if (useAxonOps) getAxonOps("Org") else ""
             val axonOpsKey = if (useAxonOps) getAxonOps("Key") else ""
@@ -94,7 +96,8 @@ data class User(
                     region.toString(),
                     keyName,
                     secret.absolutePath,
-                    "", // future compatibility, when we start allowing people to use their existing AWS creds they've already set up.
+                    "", // future compatibility, when we start allowing people to use their
+                    // existing AWS creds they've already set up.
                     awsAccessKey,
                     awsSecret,
                     axonOpsOrg,

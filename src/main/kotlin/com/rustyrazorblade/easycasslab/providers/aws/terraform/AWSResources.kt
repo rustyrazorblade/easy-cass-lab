@@ -1,3 +1,5 @@
+@file:Suppress("ConstructorParameterNaming", "VariableNaming")
+
 package com.rustyrazorblade.easycasslab.providers.aws.terraform
 
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -214,7 +216,7 @@ data class EMRCluster(
     val name: String = "cluster",
     val applications: List<String> = listOf("Spark"),
     @JsonProperty("service_role")
-    val serviceRole: String = AWS.serviceRole,
+    val serviceRole: String = AWS.SERVICE_ROLE,
     @JsonProperty("release_label")
     val releaseLabel: String = "emr-7.9.0",
     @JsonProperty("master_instance_group")
@@ -231,7 +233,7 @@ data class EMRCluster(
             securityGroup: SecurityGroupResource,
         ): EMRCluster {
             return EMRCluster(
-                serviceRole = AWS.serviceRole,
+                serviceRole = AWS.SERVICE_ROLE,
                 masterInstanceGroup =
                     MasterInstanceGroup(
                         instance_type = sparkInitParams.masterInstanceType,
@@ -245,7 +247,7 @@ data class EMRCluster(
                     Ec2Attributes(
                         subnetId = subnet.id(),
                         securityGroup = securityGroup,
-                        instanceProfile = AWS.serviceRole,
+                        instanceProfile = AWS.SERVICE_ROLE,
                     ),
             )
         }

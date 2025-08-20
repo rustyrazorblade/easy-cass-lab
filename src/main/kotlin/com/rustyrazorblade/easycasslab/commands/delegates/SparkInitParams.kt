@@ -4,6 +4,9 @@ import com.beust.jcommander.Parameter
 
 // https://github.com/rustyrazorblade/easy-cass-lab/issues/232
 class SparkInitParams {
+    companion object {
+        private const val DEFAULT_SPARK_WORKER_COUNT = 3
+    }
     @Parameter(names = ["--spark.enable"], description = "Enable Spark EMR Cluster")
     var enable = false
 
@@ -14,5 +17,5 @@ class SparkInitParams {
     var workerInstanceType: String = "c4.large"
 
     @Parameter(names = ["--spark.worker.instance.count"], description = "Worker Instance Count")
-    var workerCount: Int = 3
+    var workerCount: Int = DEFAULT_SPARK_WORKER_COUNT
 }

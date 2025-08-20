@@ -68,7 +68,8 @@ class MockSSHClient : ISSHClient {
         excludeFilters: List<String>,
     ) {
         log.debug {
-            "MOCK: Downloading directory from $remoteDir to ${localDir.absolutePath} with includeFilters: $includeFilters, excludeFilters: $excludeFilters"
+            "MOCK: Downloading directory from $remoteDir to ${localDir.absolutePath} with " +
+                "includeFilters: $includeFilters, excludeFilters: $excludeFilters"
         }
         downloadedDirectories.add(Pair(remoteDir, localDir))
     }
@@ -79,13 +80,17 @@ class MockSSHClient : ISSHClient {
                 local: Path,
                 remote: String,
                 vararg options: ScpClient.Option,
-            ) {}
+            ) {
+                // No-op for mock implementation
+            }
 
             override fun upload(
                 locals: Array<out Path>,
                 remote: String,
                 options: Collection<ScpClient.Option>,
-            ) {}
+            ) {
+                // No-op for mock implementation
+            }
 
             override fun upload(
                 p0: InputStream?,
@@ -101,7 +106,9 @@ class MockSSHClient : ISSHClient {
                 locals: Array<out String>,
                 remote: String,
                 options: Collection<ScpClient.Option>,
-            ) {}
+            ) {
+                // No-op for mock implementation
+            }
 
             override fun getClientSession(): ClientSession {
                 TODO("Not yet implemented")
@@ -119,7 +126,9 @@ class MockSSHClient : ISSHClient {
                 remote: String,
                 local: Path,
                 vararg options: ScpClient.Option,
-            ) {}
+            ) {
+                // No-op for mock implementation
+            }
 
             override fun download(
                 p0: String?,
@@ -148,9 +157,13 @@ class MockSSHClient : ISSHClient {
                 remotes: Array<out String>,
                 local: Path,
                 options: Collection<ScpClient.Option>,
-            ) {}
+            ) {
+                // No-op for mock implementation
+            }
 
-            override fun close() {}
+            override fun close() {
+                // No-op for mock implementation
+            }
 
             override fun isOpen(): Boolean {
                 TODO("Not yet implemented")

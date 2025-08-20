@@ -4,7 +4,13 @@ import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.command.PullImageResultCallback
-import com.github.dockerjava.api.model.*
+import com.github.dockerjava.api.model.AccessMode
+import com.github.dockerjava.api.model.Bind
+import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.HostConfig
+import com.github.dockerjava.api.model.Image
+import com.github.dockerjava.api.model.PullResponseItem
+import com.github.dockerjava.api.model.Volume
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
@@ -108,6 +114,8 @@ class ContainerCreationCommand(private val command: com.github.dockerjava.api.co
     }
 
     fun withEnv(env: Array<String>): ContainerCreationCommand {
+        // Spread operator is required to pass array to vararg parameter
+        @Suppress("SpreadOperator")
         command.withEnv(*env)
         return this
     }
@@ -144,7 +152,8 @@ interface UserIdProvider {
 
 class DefaultUserIdProvider : UserIdProvider {
     override fun getUserId(): Int {
-        val idQuery = ProcessBuilder("id", System.getProperty("user.name")).start().inputStream.bufferedReader().readLine()
+        val idQuery = ProcessBuilder("id", System.getProperty("user.name"))
+            .start().inputStream.bufferedReader().readLine()
         val matches = "uid=(\\d*)".toRegex().find(idQuery)
 
         return matches?.groupValues?.get(1)?.toInt() ?: 0
@@ -167,6 +176,9 @@ class Docker(
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
 ) {
     companion object {
+        private const val CONTAINER_ID_DISPLAY_LENGTH = 12
+        private const val CONTAINER_POLLING_INTERVAL_MS = 1000L
+        
         val log = KotlinLogging.logger {}
     }
 
@@ -279,7 +291,7 @@ class Docker(
         }
 
         val dockerContainer = dockerCommandBuilder.exec()
-        println("Starting $imageTag container (${dockerContainer.id.substring(0,12)})")
+        println("Starting $imageTag container (${dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)})")
 
         // Prepare container with stdin/stdout and attach
         val stdInputPipe = PipedOutputStream()
@@ -292,7 +304,8 @@ class Docker(
         try {
             dockerClient.startContainer(dockerContainer.id)
         } catch (e: Exception) {
-            println("Error starting container: ${e.printStackTrace()}")
+            log.error(e) { "Error starting container: ${dockerContainer.id}" }
+            println("Error starting container: ${e.message}")
             throw e
         }
 
@@ -308,7 +321,11 @@ class Docker(
         dockerClient.removeContainer(dockerContainer.id, true)
 
         val returnCode = containerState.exitCode ?: -1
-        return if (returnCode == 0) Result.success(capturedStdOut.toString()) else Result.failure(Exception("Non zero response returned."))
+        return if (returnCode == 0) {
+            Result.success(capturedStdOut.toString())
+        } else {
+            Result.failure(Exception("Non zero response returned."))
+        }
     }
 
     // Extracted methods for better testability
@@ -345,7 +362,7 @@ class Docker(
                     val line = stdIn.readLine() + "\n"
                     stdInputPipe.write(line.toByteArray())
                 }
-            } catch (e: IOException) {
+            } catch (ignored: IOException) {
                 log.info("Pipe closed.")
             }
         }
@@ -372,8 +389,8 @@ class Docker(
                 }
 
                 override fun onError(throwable: Throwable) {
+                    log.error(throwable) { "Container attachment error" }
                     println(throwable.toString())
-                    println(throwable.printStackTrace())
                     super.onError(throwable)
                 }
             }
@@ -388,7 +405,7 @@ class Docker(
         var containerState: InspectContainerResponse.ContainerState
 
         do {
-            Thread.sleep(1000)
+            Thread.sleep(CONTAINER_POLLING_INTERVAL_MS)
             containerState = dockerClient.inspectContainer(containerId).state
         } while (containerState.running == true)
 
@@ -409,4 +426,4 @@ class Docker(
     }
 }
 
-class DockerException(s: String, e: Exception) : Throwable()
+class DockerException(message: String, cause: Exception) : Throwable(message, cause)

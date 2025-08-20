@@ -1,3 +1,5 @@
+@file:Suppress("ConstructorParameterNaming", "FunctionNaming")
+
 package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -20,7 +22,8 @@ class Prometheus(
 ) {
     /**
      * You will never need to call this directly
-     * @see <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config">Prometheus Scrape Config</a>
+     * @see <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config">
+     *     Prometheus Scrape Config</a>
      */
     class ScrapeConfig(
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -57,7 +60,8 @@ class Prometheus(
      * belongs to scrape config.  We're only using the targets list for now, so I haven't included anything else here
      * The only other thing we could use is labels, and that doesn't appear to be applicable here
      *
-     * @see <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#static_config">Static Config</a>
+     * @see <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#static_config">
+     *     Static Config</a>
      *
      */
     class StaticConfig(var targets: List<String> = listOf())

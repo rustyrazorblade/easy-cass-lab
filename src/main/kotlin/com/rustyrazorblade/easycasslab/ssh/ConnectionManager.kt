@@ -13,6 +13,11 @@ import kotlin.io.path.Path
  * Manages SSH connections to multiple hosts
  */
 open class ConnectionManager(val keyPath: String) {
+    companion object {
+        private const val SSH_PORT = 22
+        private const val CONNECTION_TIMEOUT_SECONDS = 60L
+    }
+    
     private val log = KotlinLogging.logger {}
     private val keyPairs: List<KeyPair>
     private val sshClient: SshClient
@@ -35,8 +40,8 @@ open class ConnectionManager(val keyPath: String) {
     open fun getConnection(host: Host): ISSHClient {
         return connections.getOrPut(host) {
             val session =
-                sshClient.connect("ubuntu", host.public, 22)
-                    .verify(Duration.ofSeconds(60))
+                sshClient.connect("ubuntu", host.public, SSH_PORT)
+                    .verify(Duration.ofSeconds(CONNECTION_TIMEOUT_SECONDS))
                     .session
             session.addPublicKeyIdentity(keyPairs.first())
             session.auth().verify()

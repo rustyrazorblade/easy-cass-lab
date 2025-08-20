@@ -7,7 +7,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
-import com.rustyrazorblade.easycasslab.configuration.*
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
@@ -36,9 +37,10 @@ class UseCassandra(
         val state = ClusterState.load()
         try {
             context.tfstate
-        } catch (e: FileNotFoundException) {
+        } catch (ignored: FileNotFoundException) {
             println(
-                "Error: terraform config file not found.  Please run easy-cass-lab up first to establish IP addresses for seed listing.",
+                "Error: terraform config file not found.  Please run easy-cass-lab up first to " +
+                    "establish IP addresses for seed listing.",
             )
             exitProcess(1)
         }

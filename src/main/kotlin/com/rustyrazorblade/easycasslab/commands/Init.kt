@@ -1,3 +1,5 @@
+@file:Suppress("VariableNaming")
+
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.DynamicParameter
@@ -25,8 +27,20 @@ import java.time.LocalDate
 class Init(
     @JsonIgnore val context: Context,
 ) : ICommand {
+    companion object {
+        private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
+        private const val DEFAULT_EBS_SIZE_GB = 256
+        
+        @JsonIgnore
+        val log = KotlinLogging.logger {}
+        
+        fun expand(
+            region: String,
+            azs: List<String>,
+        ): List<String> = azs.map { region + it }
+    }
     @Parameter(description = "Number of Cassandra instances", names = ["--cassandra", "-c"])
-    var cassandraInstances = 3
+    var cassandraInstances = DEFAULT_CASSANDRA_INSTANCE_COUNT
 
     @Parameter(description = "Number of stress instances", names = ["--stress", "-s"])
     var stressInstances = 0
@@ -34,7 +48,10 @@ class Init(
     @Parameter(description = "Start instances automatically", names = ["--up"])
     var start = false
 
-    @Parameter(description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.", names = ["--instance", "-i"])
+    @Parameter(
+        description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.",
+        names = ["--instance", "-i"]
+    )
     var instanceType = System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
     // update to use the default stress instance type for the arch
@@ -44,13 +61,20 @@ class Init(
     )
     var stressInstanceType = System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
 
-    @Parameter(description = "Limit to specified availability zones", names = ["--azs", "--az", "-z"], listConverter = AZConverter::class)
+    @Parameter(
+        description = "Limit to specified availability zones",
+        names = ["--azs", "--az", "-z"],
+        listConverter = AZConverter::class
+    )
     var azs: List<String> = listOf()
 
     @Parameter(description = "Specify when the instances can be deleted", names = ["--until"])
     var until = LocalDate.now().plusDays(1).toString()
 
-    @Parameter(description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.", names = ["--ami"])
+    @Parameter(
+        description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.",
+        names = ["--ami"]
+    )
     var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
 
     @Parameter(description = "Unrestricted SSH access", names = ["--open"])
@@ -60,15 +84,24 @@ class Init(
     var ebs_type = EBSType.NONE
 
     @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
-    var ebs_size = 256
+    var ebs_size = DEFAULT_EBS_SIZE_GB
 
-    @Parameter(description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'", names = ["--ebs.iops"])
+    @Parameter(
+        description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'",
+        names = ["--ebs.iops"]
+    )
     var ebs_iops = 0
 
-    @Parameter(description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')", names = ["--ebs.throughput"])
+    @Parameter(
+        description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')",
+        names = ["--ebs.throughput"]
+    )
     var ebs_throughput = 0
 
-    @Parameter(description = "Set EBS-Optimized instance (only supported for EBS-optimized instance types", names = ["--ebs.optimized"])
+    @Parameter(
+        description = "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
+        names = ["--ebs.optimized"]
+    )
     var ebs_optimized = false
 
     @Parameter(description = "Cluster name")
@@ -143,7 +176,9 @@ class Init(
         }
 
         println(
-            "Your workspace has been initialized with $cassandraInstances Cassandra instances (${config.cassandraInstanceType}) and $stressInstances stress instances in ${context.userConfig.region}",
+            "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
+                "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
+                "in ${context.userConfig.region}",
         )
         if (start) {
             println("Provisioning instances")
@@ -164,13 +199,4 @@ class Init(
         return terraform.init()
     }
 
-    companion object {
-        fun expand(
-            region: String,
-            azs: List<String>,
-        ): List<String> = azs.map { region + it }
-
-        @JsonIgnore
-        val log = KotlinLogging.logger {}
-    }
 }

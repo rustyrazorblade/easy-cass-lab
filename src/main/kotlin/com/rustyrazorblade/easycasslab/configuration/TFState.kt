@@ -1,3 +1,5 @@
+@file:Suppress("ConstructorParameterNaming")
+
 package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
@@ -91,7 +93,7 @@ class TFState(
         hostFilter: Hosts,
         withHost: (h: Host) -> Unit,
     ) {
-        val hostSet = hostFilter.hosts.split(",").filter { it.isNotBlank() }.toSet()
+        val hostSet = hostFilter.hostList.split(",").filter { it.isNotBlank() }.toSet()
         getHosts(serverType).filter {
             it
             hostSet.isEmpty() || it.alias in hostSet
@@ -161,7 +163,10 @@ class TFState(
         fp.appendLine("  if [ -z \$identity_file ]; then")
         fp.appendLine("    echo -n 'Path to Private key: '")
         fp.appendLine("    read -r identity_file")
-        fp.appendLine("    echo \"add \${YELLOW}'export EASY_CASS_LAB_SSH_KEY=\$identity_file'\${NC} to .bash_profile, .zsh, or similar\"")
+        fp.appendLine(
+            "    echo \"add \${YELLOW}'export EASY_CASS_LAB_SSH_KEY=\$identity_file'\${NC} " +
+                "to .bash_profile, .zsh, or similar\""
+        )
         fp.appendLine("  fi")
         fp.appendLine("  echo \"Writing \$SSH_CONFIG\"")
         fp.appendLine("  tee \$SSH_CONFIG <<- EOF")

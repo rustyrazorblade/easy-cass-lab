@@ -17,6 +17,10 @@ import java.nio.file.Path
 class Up(
     @JsonIgnore val context: Context,
 ) : ICommand {
+    companion object {
+        private const val SSH_STARTUP_DELAY_MS = 5000L
+        private const val SSH_RETRY_DELAY_MS = 1000L
+    }
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
 
@@ -93,7 +97,8 @@ class Up(
         stressEnvironmentVars.newLine()
 
         stressEnvironmentVars.write(
-            "export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
+            "export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s " +
+                "http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
         )
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
@@ -106,7 +111,7 @@ class Up(
         // we can't set up the configs yet though,
         // because those are dependent on the C* version in use.
         println("Waiting for SSH to come up..")
-        Thread.sleep(5000)
+        Thread.sleep(SSH_STARTUP_DELAY_MS)
 
         // probably need to loop and wait
         // write to profile.d/stress.sh
@@ -121,15 +126,18 @@ class Up(
                     }
                 }
                 done = true
-            } catch (e: SshException) {
+            } catch (ignored: SshException) {
                 println("SSH still not up yet, waiting..")
-                Thread.sleep(1000)
+                Thread.sleep(SSH_RETRY_DELAY_MS)
             }
         } while (!done)
 
         if (noSetup) {
             with(TermColors()) {
-                println("Skipping node setup.  You will need to run ${green("easy-cass-lab setup-instance")} to complete setup")
+                println(
+                    "Skipping node setup.  You will need to run " +
+                        "${green("easy-cass-lab setup-instance")} to complete setup"
+                )
             }
         } else {
             SetupInstance(context).execute()

@@ -48,6 +48,8 @@ class Packer(val context: Context, var directory: String) {
         command.add(name)
 
         // refactor to exit with status 1 if the Result is failure
+        // Spread operator is required to pass array to vararg parameter
+        @Suppress("SpreadOperator")
         val result = execute(*command.toTypedArray())
         when {
             result.isFailure -> {

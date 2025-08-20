@@ -10,8 +10,11 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(val context: Context) : ICommand {
+    companion object {
+        private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
+    }
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
-    var sleep: Long = 120
+    var sleep: Long = DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS
 
     @ParametersDelegate
     var hosts = Hosts()

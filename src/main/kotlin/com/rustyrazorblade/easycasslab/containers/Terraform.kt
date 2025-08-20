@@ -19,6 +19,8 @@ class Terraform(val context: Context) {
 
     fun up(): Result<String> {
         val commands = mutableListOf("apply", "-auto-approve").toTypedArray()
+        // Spread operator is required to pass array to vararg parameter
+        @Suppress("SpreadOperator")
         return execute(*commands)
     }
 
@@ -27,6 +29,8 @@ class Terraform(val context: Context) {
         if (autoApprove) {
             commands.add("-auto-approve")
         }
+        // Spread operator is required to pass array to vararg parameter
+        @Suppress("SpreadOperator")
         return execute(*commands.toTypedArray())
     }
 

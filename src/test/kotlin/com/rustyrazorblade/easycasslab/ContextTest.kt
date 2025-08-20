@@ -4,7 +4,8 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -30,8 +31,8 @@ class ContextTest {
     fun testGetRemoteVersionWithInputVersion() {
         // Given a specific version "5.0"
         // Replace the function with a lambda that always returns our mock client
-        doReturn(Response("/usr/local/cassandra/5.0")).whenever(context).executeRemotely(eq(host), any(), any(), any())
-//        whenever(context.executeRemotely(eq(host), any(), any(), any())).thenReturn(Response("/usr/local/cassandra/5.0"))
+        doReturn(Response("/usr/local/cassandra/5.0"))
+            .whenever(context).executeRemotely(eq(host), any(), any(), any())
 
         val expectedVersion = "5.0"
         // When getting the version with the input version
@@ -39,7 +40,7 @@ class ContextTest {
 
         assertThat(result).isNotNull()
         // Then verify the version component is correct and path is formed properly
-        assertEquals(expectedVersion, result.version)
+        assertEquals(expectedVersion, result.versionString)
         assertEquals("/usr/local/cassandra/5.0", result.path)
         // No SSH command should be executed since we provided a specific version
         assertTrue(mockSSHClient.executedCommands.isEmpty())
@@ -50,13 +51,14 @@ class ContextTest {
         // Given the remote command will return a path to version 5.0
         mockSSHClient.commandOutput = "/usr/local/cassandra/5.0"
 
-        doReturn(Response("/usr/local/cassandra/5.0")).whenever(context).executeRemotely(eq(host), any(), any(), any())
+        doReturn(Response("/usr/local/cassandra/5.0"))
+            .whenever(context).executeRemotely(eq(host), any(), any(), any())
 
         // When getting the current version
         val result = context.getRemoteVersion(host, "current")
 
         // Then verify the version is extracted correctly
-        assertEquals("5.0", result.version)
+        assertEquals("5.0", result.versionString)
         assertEquals("/usr/local/cassandra/5.0", result.path)
     }
 }

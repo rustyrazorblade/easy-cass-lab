@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
@@ -22,17 +23,21 @@ data class CassandraVersion(
     @JsonIgnoreProperties(ignoreUnknown = true)
     val axonops: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    val jvm_options: String?,
+    @JsonProperty("jvm_options")
+    val jvmOptions: String?,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    val ant_flags: String? = null,
+    @JsonProperty("ant_flags")
+    val antFlags: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
     val url: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
     val branch: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    val java_build: String? = null,
+    @JsonProperty("java_build")
+    val javaBuild: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    val jvm_config: String? = null,
+    @JsonProperty("jvm_config")
+    val jvmConfig: String? = null,
 ) {
     companion object {
         private val objectMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
@@ -68,10 +73,15 @@ data class CassandraVersion(
             }
 
             // Remove duplicates based on the version field
-            // TODO: improve the error message here
             val tmp = mainVersions.distinctBy { it.version }
             if (tmp.size != mainVersions.size) {
-                throw RuntimeException("version conflict found")
+                val duplicates = mainVersions.groupBy { it.version }
+                    .filter { it.value.size > 1 }
+                    .keys
+                throw RuntimeException(
+                    "Duplicate Cassandra version(s) found: ${duplicates.joinToString(", ")}. " +
+                        "Please ensure each version is unique."
+                )
             }
             return mainVersions
         }

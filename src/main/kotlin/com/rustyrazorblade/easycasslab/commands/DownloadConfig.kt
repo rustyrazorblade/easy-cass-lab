@@ -27,15 +27,16 @@ class DownloadConfig(val context: Context) : ICommand {
     override fun execute() {
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
 
-        // TODO: add host option
+        // Currently using first host - consider adding --host option for specific node selection
         val host = cassandraHosts.first()
         val resolvedVersion = context.getRemoteVersion(host, version)
 
-        logger.info("Original version: $version.  Resolved version: ${resolvedVersion.version}. ")
+        logger.info("Original version: $version.  Resolved version: ${resolvedVersion.versionString}. ")
         val localDir = resolvedVersion.localDir.toFile()
 
         // Dont' overwrite.
-        // TODO: Add a flag to customize this this later, and make it possible to have node specific settings
+        // Future enhancement: Add --force flag to overwrite and support
+        // node-specific configurations
         if (!localDir.exists()) {
             localDir.mkdirs()
 

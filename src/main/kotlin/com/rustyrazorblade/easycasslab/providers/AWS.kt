@@ -1,11 +1,15 @@
 package com.rustyrazorblade.easycasslab.providers
 
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
-import software.amazon.awssdk.services.iam.model.*
+import software.amazon.awssdk.services.iam.model.AddRoleToInstanceProfileRequest
+import software.amazon.awssdk.services.iam.model.AttachRolePolicyRequest
+import software.amazon.awssdk.services.iam.model.CreateInstanceProfileRequest
+import software.amazon.awssdk.services.iam.model.CreateRoleRequest
+import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 
 class AWS(val clients: Clients) {
     companion object {
-        val serviceRole = "EasyCassLabServiceRole"
+        const val SERVICE_ROLE = "EasyCassLabServiceRole"
     }
 
     fun createLabEnvironment() {
@@ -40,7 +44,7 @@ class AWS(val clients: Clients) {
             // Create the IAM role
             val createRoleRequest =
                 CreateRoleRequest.builder()
-                    .roleName(serviceRole)
+                    .roleName(SERVICE_ROLE)
                     .assumeRolePolicyDocument(assumeRolePolicy)
                     .description("IAM role for EMR service")
                     .build()
@@ -48,17 +52,17 @@ class AWS(val clients: Clients) {
             clients.iam.createRole(createRoleRequest)
 
             attachEMRRole()
-        } catch (e: EntityAlreadyExistsException) {
+        } catch (ignored: EntityAlreadyExistsException) {
             // Role already exists, continue
         }
 
-        return serviceRole
+        return SERVICE_ROLE
     }
 
     private fun attachPolicy(policy: String) {
         val attachPolicyRequest =
             AttachRolePolicyRequest.builder()
-                .roleName(serviceRole)
+                .roleName(SERVICE_ROLE)
                 .policyArn(policy)
                 .build()
         clients.iam.attachRolePolicy(attachPolicyRequest)
@@ -81,7 +85,7 @@ class AWS(val clients: Clients) {
             // Create the instance profile
             val createProfileRequest =
                 CreateInstanceProfileRequest.builder()
-                    .instanceProfileName(serviceRole)
+                    .instanceProfileName(SERVICE_ROLE)
                     .build()
 
             clients.iam.createInstanceProfile(createProfileRequest)
@@ -89,15 +93,15 @@ class AWS(val clients: Clients) {
             // Add role to instance profile
             val addRoleRequest =
                 AddRoleToInstanceProfileRequest.builder()
-                    .instanceProfileName(serviceRole)
-                    .roleName(serviceRole)
+                    .instanceProfileName(SERVICE_ROLE)
+                    .roleName(SERVICE_ROLE)
                     .build()
 
             clients.iam.addRoleToInstanceProfile(addRoleRequest)
-        } catch (e: EntityAlreadyExistsException) {
+        } catch (ignored: EntityAlreadyExistsException) {
             // Instance profile already exists, continue
         }
 
-        return serviceRole
+        return SERVICE_ROLE
     }
 }

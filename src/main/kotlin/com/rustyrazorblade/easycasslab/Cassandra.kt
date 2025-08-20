@@ -6,7 +6,7 @@ import java.io.File
  * Manages a the Cassandra build process
  */
 class Cassandra {
-    // FIXME: un-hardcode
+    // Build directory location - consider making this configurable via environment variable
     val buildDir = File(System.getProperty("user.home"), "/.easy-cass-lab/builds")
 
     fun listBuilds(): List<String> {

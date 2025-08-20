@@ -52,11 +52,11 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
     }
 
     private fun doUpload(authorizedKeys: File) =
-        { it: Host ->
+        { host: Host ->
             // Upload the file using Context's upload method
-            context.upload(it, authorizedKeys.toPath(), authorizedKeysExtra)
+            context.upload(host, authorizedKeys.toPath(), authorizedKeysExtra)
 
             // Append to authorized_keys
-            context.executeRemotely(it, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
+            context.executeRemotely(host, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
         }
 }

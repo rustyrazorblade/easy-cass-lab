@@ -30,7 +30,7 @@ class Hosts(val context: Context) : ICommand {
             } else {
                 context.yaml.writeValue(System.out, output)
             }
-        } catch (e: FileNotFoundException) {
+        } catch (ignored: FileNotFoundException) {
             println("terraform.tfstate does not exist yet, most likely easy-cass-lab up has not been run.")
         }
     }

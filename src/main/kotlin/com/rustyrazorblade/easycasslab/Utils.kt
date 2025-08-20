@@ -5,8 +5,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
-class Utils {
-    companion object {
+object Utils {
         fun inputstreamToTempFile(
             inputStream: InputStream,
             prefix: String,
@@ -68,5 +67,4 @@ class Utils {
 
             return File(sshKeyPath).absolutePath
         }
-    }
 }

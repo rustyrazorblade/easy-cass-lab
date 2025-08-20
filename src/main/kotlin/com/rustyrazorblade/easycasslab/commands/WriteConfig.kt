@@ -12,15 +12,24 @@ import java.io.File
 class WriteConfig(
     @JsonIgnore val context: Context,
 ) : ICommand {
+    companion object {
+        private const val DEFAULT_TOKEN_COUNT = 4
+        private const val DEFAULT_CONCURRENT_READS = 64
+        private const val DEFAULT_CONCURRENT_WRITES = 64
+    }
     @Parameter(description = "Patch file name")
     var file: String = "cassandra.patch.yaml"
 
     @Parameter(names = ["-t", "--tokens"])
-    var tokens: Int = 4
+    var tokens: Int = DEFAULT_TOKEN_COUNT
 
     override fun execute() {
-        println("Writing new configuration file to $file.") // create the cassandra.yaml patch file
-        println("It can be applied to the lab via easy-cass-lab update-config (or automatically when calling use-cassandra)")
+        // create the cassandra.yaml patch file
+        println("Writing new configuration file to $file.")
+        println(
+            "It can be applied to the lab via easy-cass-lab update-config " +
+                "(or automatically when calling use-cassandra)"
+        )
 
         val state = ClusterState.load()
 
@@ -33,14 +42,17 @@ class WriteConfig(
                         val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
                         val parameters =
                             object {
-                                val seeds = context.tfstate.getHosts(ServerType.Cassandra).map { it.private }.take(1).joinToString(",")
+                                val seeds = context.tfstate.getHosts(ServerType.Cassandra)
+                                    .map { it.private }
+                                    .take(1)
+                                    .joinToString(",")
                             }
                     }
                 val hints_directory = "/mnt/cassandra/hints"
                 val data_file_directories = listOf("/mnt/cassandra/data")
                 val commitlog_directory = "/mnt/cassandra/commitlog"
-                val concurrent_reads = 64
-                val concurrent_writes = 64
+                val concurrent_reads = DEFAULT_CONCURRENT_READS
+                val concurrent_writes = DEFAULT_CONCURRENT_WRITES
                 val trickle_fsync = true
                 val endpoint_snitch = "Ec2Snitch"
             }

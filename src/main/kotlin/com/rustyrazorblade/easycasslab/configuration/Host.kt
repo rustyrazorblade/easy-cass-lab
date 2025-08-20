@@ -11,6 +11,10 @@ data class Host(
     val availabilityZone: String,
 ) {
     companion object {
+        private const val DEFAULT_SERVER_NUMBER = 0
+        private const val SERVER_TYPE_GROUP_INDEX = 1
+        private const val SERVER_NUM_GROUP_INDEX = 3
+        
         val hostRegex = """aws_instance\.(\w+)(.(\d+))?""".toRegex()
         val log = KotlinLogging.logger {}
 
@@ -22,8 +26,8 @@ data class Host(
         ): Host {
             val tmp = hostRegex.find(str)!!.groups
 
-            val serverType = tmp[1]?.value.toString()
-            val serverNum = (tmp[3]?.value ?: 0).toString()
+            val serverType = tmp[SERVER_TYPE_GROUP_INDEX]?.value.toString()
+            val serverNum = (tmp[SERVER_NUM_GROUP_INDEX]?.value ?: DEFAULT_SERVER_NUMBER).toString()
 
             log.debug { "Regex find: $tmp" }
             return Host(public, private, serverType + serverNum, availabilityZone)

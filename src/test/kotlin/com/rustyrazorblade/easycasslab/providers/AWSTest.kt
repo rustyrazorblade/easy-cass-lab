@@ -9,6 +9,6 @@ internal class AWSTest {
 
     @Test
     fun createEMRServiceRoleSuccess() {
-        val roleName = aws.createServiceRole()
+        aws.createServiceRole()
     }
 }

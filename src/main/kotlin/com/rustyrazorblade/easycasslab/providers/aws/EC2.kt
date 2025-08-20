@@ -11,9 +11,8 @@ class EC2(val key: String, val secret: String, val region: Region) : AwsCredenti
 
     init {
         val creds = AwsBasicCredentials.create(key, secret)
-        // TODO: Abstract the provider out
-        // tlp cluster should have its own provider that uses the following order:
-        // easy-cass-lab config, AWS config
+        // Future enhancement: Abstract the credential provider
+        // to support multiple configuration sources with fallback chain
         client =
             Ec2Client.builder().region(region)
                 .credentialsProvider { creds }

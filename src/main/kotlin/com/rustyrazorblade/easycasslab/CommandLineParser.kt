@@ -3,7 +3,29 @@ package com.rustyrazorblade.easycasslab
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.rustyrazorblade.easycasslab.commands.*
+import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
+import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
+import com.rustyrazorblade.easycasslab.commands.BuildImage
+import com.rustyrazorblade.easycasslab.commands.Clean
+import com.rustyrazorblade.easycasslab.commands.ConfigureAxonOps
+import com.rustyrazorblade.easycasslab.commands.Down
+import com.rustyrazorblade.easycasslab.commands.DownloadConfig
+import com.rustyrazorblade.easycasslab.commands.Hosts
+import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.commands.Init
+import com.rustyrazorblade.easycasslab.commands.ListVersions
+import com.rustyrazorblade.easycasslab.commands.Repl
+import com.rustyrazorblade.easycasslab.commands.Restart
+import com.rustyrazorblade.easycasslab.commands.Server
+import com.rustyrazorblade.easycasslab.commands.SetupInstance
+import com.rustyrazorblade.easycasslab.commands.Start
+import com.rustyrazorblade.easycasslab.commands.Stop
+import com.rustyrazorblade.easycasslab.commands.Up
+import com.rustyrazorblade.easycasslab.commands.UpdateConfig
+import com.rustyrazorblade.easycasslab.commands.UploadAuthorizedKeys
+import com.rustyrazorblade.easycasslab.commands.UseCassandra
+import com.rustyrazorblade.easycasslab.commands.Version
+import com.rustyrazorblade.easycasslab.commands.WriteConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
@@ -55,6 +77,7 @@ class CommandLineParser(val context: Context) {
 
         for (c in commands) {
             logger.debug { "Adding command: ${c.name}" }
+            @Suppress("SpreadOperator") // Required for varargs, used during initialization only
             jcommander.addCommand(c.name, c.command, *c.aliases.toTypedArray())
         }
 
@@ -74,6 +97,7 @@ class CommandLineParser(val context: Context) {
     }
 
     fun eval(input: Array<String>) {
+        @Suppress("SpreadOperator") // Required for varargs
         jc.parse(*input)
         commands.filter { it.name == jc.parsedCommand }.firstOrNull()?.run {
             this.command.execute()

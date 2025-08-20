@@ -30,10 +30,10 @@ data class Version(val path: String) {
     /**
      * Gets just the version component from the path
      */
-    val version: String = path.substringAfterLast("/")
+    val versionString: String = path.substringAfterLast("/")
     val conf: String = "$path/conf"
 
-    val file = File(version)
+    val file = File(versionString)
 
     companion object {
         /**
@@ -51,7 +51,7 @@ data class Version(val path: String) {
         }
     }
 
-    val localDir: Path get() = Path.of(version)
+    val localDir: Path get() = Path.of(versionString)
 }
 
 data class Context(val easycasslabUserDirectory: File) {

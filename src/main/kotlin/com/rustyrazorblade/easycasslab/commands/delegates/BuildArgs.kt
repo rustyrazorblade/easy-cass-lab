@@ -1,3 +1,5 @@
+@file:Suppress("EnumNaming")
+
 package com.rustyrazorblade.easycasslab.commands.delegates
 
 import com.beust.jcommander.Parameter
