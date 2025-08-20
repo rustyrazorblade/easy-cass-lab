@@ -154,7 +154,7 @@ class AWSConfiguration(
 
         // tags should be standard across all resources
         val subnets = terraformConfig.subnets.values.toList()
-        logger.info("Using subnets: $subnets")
+        logger.info { "Using subnets: $subnets" }
         var subnetPos = 0
 
         for (i in 0..<numCassandraInstances) {
@@ -177,7 +177,7 @@ class AWSConfiguration(
             if (subnetPos == subnets.size) {
                 subnetPos = 0
             }
-            logger.info("Creating resource $instanceName as $cass")
+            logger.info { "Creating resource $instanceName as $cass" }
         }
 
         subnetPos = 0
@@ -202,7 +202,7 @@ class AWSConfiguration(
             if (subnetPos == subnets.size) {
                 subnetPos = 0
             }
-            logger.info("Creating resource $instanceName as $stress")
+            logger.info { "Creating resource $instanceName as $stress" }
         }
 
         // Always create a single control node
@@ -219,7 +219,7 @@ class AWSConfiguration(
                 subnet = subnets[0],
             )
         terraformConfig.resource.aws_instance[controlInstanceName] = control
-        logger.info("Creating resource $controlInstanceName as $control")
+        logger.info { "Creating resource $controlInstanceName as $control" }
 
         terraformConfig.setSpark(
             getEmr(

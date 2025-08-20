@@ -31,7 +31,7 @@ class DownloadConfig(val context: Context) : ICommand {
         val host = cassandraHosts.first()
         val resolvedVersion = context.getRemoteVersion(host, version)
 
-        logger.info("Original version: $version.  Resolved version: ${resolvedVersion.versionString}. ")
+        logger.info { "Original version: $version.  Resolved version: ${resolvedVersion.versionString}. " }
         val localDir = resolvedVersion.localDir.toFile()
 
         // Dont' overwrite.

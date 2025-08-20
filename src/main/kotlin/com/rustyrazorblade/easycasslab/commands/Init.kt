@@ -161,16 +161,18 @@ class Init(
         writeTerraformConfig(config)
 
         println("Writing setup_instance.sh")
-        this::class.java.getResourceAsStream("setup_instance.sh").use {
+        this::class.java.getResourceAsStream("setup_instance.sh").use { stream ->
+            requireNotNull(stream) { "Resource setup_instance.sh not found" }
             val diskSetup = File("setup_instance.sh").bufferedWriter()
-            diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
+            diskSetup.write(stream.readBytes().toString(Charsets.US_ASCII))
             diskSetup.flush()
             diskSetup.close()
         }
 
-        this::class.java.getResourceAsStream("axonops-dashboards.json").use {
+        this::class.java.getResourceAsStream("axonops-dashboards.json").use { stream ->
+            requireNotNull(stream) { "Resource axonops-dashboards.json not found" }
             val diskSetup = File("axonops-dashboards.json").bufferedWriter()
-            diskSetup.write(it!!.readBytes().toString(Charsets.US_ASCII))
+            diskSetup.write(stream.readBytes().toString(Charsets.US_ASCII))
             diskSetup.flush()
             diskSetup.close()
         }

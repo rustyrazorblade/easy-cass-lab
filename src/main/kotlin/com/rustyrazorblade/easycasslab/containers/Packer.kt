@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.containers
 
 import com.github.dockerjava.api.model.AccessMode
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
@@ -17,7 +18,7 @@ import kotlin.system.exitProcess
 class Packer(val context: Context, var directory: String) {
     private val docker = Docker(context)
 
-    private var containerWorkingDir = "/local"
+    private var containerWorkingDir = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
     private var release = false
 
@@ -26,6 +27,9 @@ class Packer(val context: Context, var directory: String) {
         name: String,
         buildArgs: BuildArgs,
     ) {
+        require(name.isNotBlank()) { "Build name cannot be blank" }
+        require(buildArgs.region.isNotBlank()) { "Build region cannot be blank" }
+        
         val command =
             mutableListOf(
                 "build",
@@ -53,21 +57,25 @@ class Packer(val context: Context, var directory: String) {
         val result = execute(*command.toTypedArray())
         when {
             result.isFailure -> {
-                logger.error("Packer build failed: ${result.exceptionOrNull()}")
+                logger.error { "Packer build failed: ${result.exceptionOrNull()}" }
                 exitProcess(1)
             }
             result.isSuccess -> {
-                logger.info("Packer build succeeded")
+                logger.info { "Packer build succeeded" }
             }
         }
     }
 
     private fun execute(vararg commands: String): Result<String> {
+        require(commands.isNotEmpty()) { "Commands cannot be empty" }
+        
         docker.pullImage(Containers.PACKER)
 
         val args = commands.toMutableList()
 
         var localPackerPath = context.packerHome + directory
+        
+        require(directory.isNotBlank()) { "Directory cannot be blank" }
 
         if (!File(localPackerPath).exists()) {
             println("packer directory not found: $localPackerPath")
@@ -76,31 +84,31 @@ class Packer(val context: Context, var directory: String) {
 
         val tempDir = createTempDirectory().toFile()
         FileUtils.copyDirectory(File(localPackerPath), tempDir)
-        logger.info("Copied packer files from $localPackerPath to $tempDir")
+        logger.info { "Copied packer files from $localPackerPath to $tempDir" }
 
-        if (!release && directory == "cassandra") {
+        if (!release && directory == Constants.Servers.CASSANDRA) {
             // if we're doing a C* image, we
-            val initial = Path.of(localPackerPath, "cassandra_versions.yaml")
+            val initial = Path.of(localPackerPath, Constants.Packer.CASSANDRA_VERSIONS_FILE)
             val extras = context.cassandraVersionsExtra.toPath()
-            logger.info("Loading files in $extras")
+            logger.info { "Loading files in $extras" }
 
             val versions = CassandraVersion.loadFromMainAndExtras(initial, extras)
-            val outputFile = File(tempDir, "cassandra_versions.yaml")
+            val outputFile = File(tempDir, Constants.Packer.CASSANDRA_VERSIONS_FILE)
             CassandraVersion.write(versions, outputFile)
-            logger.info("Written updated versions to $outputFile")
+            logger.info { "Written updated versions to $outputFile" }
         }
 
-        logger.info("Mounting $tempDir to $containerWorkingDir, starting with $args")
+        logger.info { "Mounting $tempDir to $containerWorkingDir, starting with $args" }
 
         // mount credentials
         // get the main process and go up a directory
         val packerDir = VolumeMapping(tempDir.absolutePath, containerWorkingDir, AccessMode.ro)
-        var creds = "/credentials"
+        var creds = Constants.Paths.CREDENTIALS_MOUNT
 
         return docker
             .addVolume(packerDir)
             .addVolume(VolumeMapping(context.awsConfig.absolutePath, creds, AccessMode.ro))
-            .addEnv("AWS_SHARED_CREDENTIALS_FILE=$creds")
+            .addEnv("${Constants.Packer.AWS_CREDENTIALS_ENV}=$creds")
             .runContainer(Containers.PACKER, args, containerWorkingDir)
     }
 }

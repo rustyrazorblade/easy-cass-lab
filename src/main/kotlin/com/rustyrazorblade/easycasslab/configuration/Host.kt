@@ -24,7 +24,8 @@ data class Host(
             private: String,
             availabilityZone: String,
         ): Host {
-            val tmp = hostRegex.find(str)!!.groups
+            val tmp = hostRegex.find(str)?.groups
+                ?: throw IllegalArgumentException("Invalid host string format: $str")
 
             val serverType = tmp[SERVER_TYPE_GROUP_INDEX]?.value.toString()
             val serverNum = (tmp[SERVER_NUM_GROUP_INDEX]?.value ?: DEFAULT_SERVER_NUMBER).toString()

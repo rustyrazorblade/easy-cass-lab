@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.rustyrazorblade.easycasslab.exceptions.DuplicateVersionException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.io.OutputStream
@@ -61,15 +62,15 @@ data class CassandraVersion(
             // Load each file in the extras directory
             if (extrasDirectoryPath.exists() && extrasDirectoryPath.isDirectory()) {
                 val listDirectoryEntries = extrasDirectoryPath.listDirectoryEntries("*.yaml")
-                logger.info("Loading from  ${listDirectoryEntries.size} extra potential files")
+                logger.info { "Loading from  ${listDirectoryEntries.size} extra potential files" }
                 for (file in listDirectoryEntries) {
-                    logger.info("Loading additional cassandra_versions file: $file")
+                    logger.info { "Loading additional cassandra_versions file: $file" }
                     val extraVersions = loadFromFile(file)
-                    logger.info("Adding ${extraVersions.size} versions")
+                    logger.info { "Adding ${extraVersions.size} versions" }
                     mainVersions.addAll(extraVersions)
                 }
             } else {
-                logger.info("Nothing to load")
+                logger.info { "Nothing to load" }
             }
 
             // Remove duplicates based on the version field
@@ -78,10 +79,7 @@ data class CassandraVersion(
                 val duplicates = mainVersions.groupBy { it.version }
                     .filter { it.value.size > 1 }
                     .keys
-                throw RuntimeException(
-                    "Duplicate Cassandra version(s) found: ${duplicates.joinToString(", ")}. " +
-                        "Please ensure each version is unique."
-                )
+                throw DuplicateVersionException(duplicates)
             }
             return mainVersions
         }

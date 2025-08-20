@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab
 
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.command.PullImageResultCallback
+import com.github.dockerjava.api.model.AccessMode
 import com.github.dockerjava.api.model.Image
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -76,7 +77,7 @@ class DockerTest {
 
     @Test
     fun `addVolume adds volume to list and returns docker instance`() {
-        val volumeMapping = mock<VolumeMapping>()
+        val volumeMapping = VolumeMapping("/source", "/dest", AccessMode.rw)
 
         val result = docker.addVolume(volumeMapping)
 

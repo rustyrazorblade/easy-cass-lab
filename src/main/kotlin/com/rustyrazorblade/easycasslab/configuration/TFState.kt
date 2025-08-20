@@ -31,7 +31,8 @@ class TFState(
         val attributes: Attributes,
     ) {
         fun getName(): String {
-            return attributes.tags!!["Name"]!!
+            return attributes.tags?.get("Name")
+                ?: throw IllegalStateException("Instance has no 'Name' tag")
         }
     }
 
@@ -59,7 +60,7 @@ class TFState(
     // the first is we don't want to process it more than once
     // the second is we don't want to process if we don't read the state
     val state by lazy {
-        log.info("Loading tfstate from $file")
+        log.info { "Loading tfstate from $file" }
         val json = context.getJsonMapper()
         json.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         val state: StateFile = json.readValue(file)
@@ -70,7 +71,7 @@ class TFState(
         val instances =
             state.resources.filter { it.name.startsWith(serverType.serverType) }
                 .flatMap { it.instances }
-        log.info("Matching $serverType to $instances")
+        log.info { "Matching $serverType to $instances" }
 
         val hosts =
             instances.mapIndexed { index, instance ->

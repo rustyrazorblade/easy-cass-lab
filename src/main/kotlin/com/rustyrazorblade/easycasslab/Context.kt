@@ -120,7 +120,7 @@ data class Context(val easycasslabUserDirectory: File) {
         DockerClientImpl.getInstance(dockerConfig, httpClient)
     }
 
-    val awsCredentialsName = "awscredentials"
+    val awsCredentialsName = Constants.AWS.DEFAULT_CREDENTIALS_NAME
 
     /**
      * Lazily create the AWS config. We might not need it and in the future we might support

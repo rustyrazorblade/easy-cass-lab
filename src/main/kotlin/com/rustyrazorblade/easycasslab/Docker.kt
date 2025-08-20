@@ -136,6 +136,7 @@ class ContainerCreationCommand(private val command: com.github.dockerjava.api.co
     }
 
     fun withWorkingDir(dir: String): ContainerCreationCommand {
+        require(dir.isNotBlank()) { "Working directory cannot be blank" }
         command.withWorkingDir(dir)
         return this
     }
@@ -166,6 +167,8 @@ data class VolumeMapping(val source: String, val destination: String, val mode: 
     }
 
     init {
+        require(source.isNotBlank()) { "Volume source path cannot be blank" }
+        require(destination.isNotBlank()) { "Volume destination path cannot be blank" }
         log.info { "Creating volume mapping $source to $destination, mode: $mode" }
     }
 }
@@ -186,12 +189,15 @@ class Docker(
     private val env = mutableListOf<String>()
 
     fun addVolume(vol: VolumeMapping): Docker {
+        require(vol.source.isNotBlank()) { "Volume source path cannot be blank" }
+        require(vol.destination.isNotBlank()) { "Volume destination path cannot be blank" }
         log.info { "adding volume: $vol" }
         volumes.add(vol)
         return this
     }
 
     fun addEnv(envList: String): Docker {
+        require(envList.isNotBlank()) { "Environment variable cannot be blank" }
         env.add(envList)
         return this
     }
@@ -207,8 +213,10 @@ class Docker(
     internal fun pullImage(container: Containers) {
         try {
             return pullImage(container.containerName, container.tag)
-        } catch (e: Exception) {
+        } catch (e: com.github.dockerjava.api.exception.DockerException) {
             throw DockerException("Error pulling image ${container.containerName}:${container.tag}", e)
+        } catch (e: IOException) {
+            throw DockerException("IO error pulling image ${container.containerName}:${container.tag}", e)
         }
     }
 
@@ -220,6 +228,8 @@ class Docker(
         name: String,
         tag: String,
     ) {
+        require(name.isNotBlank()) { "Image name cannot be blank" }
+        require(tag.isNotBlank()) { "Image tag cannot be blank" }
         log.debug { "Creating pull object" }
 
         val callback =
@@ -264,13 +274,16 @@ class Docker(
         command: MutableList<String>,
         workingDirectory: String,
     ): Result<String> {
+        require(imageTag.isNotBlank()) { "Image tag cannot be blank" }
+        require(command.isNotEmpty()) { "Command list cannot be empty" }
+        
         val capturedStdOut = StringBuilder()
         val dockerCommandBuilder = dockerClient.createContainer(imageTag)
 
         // Get user ID using the injected provider for testability
         val userId = userIdProvider.getUserId()
         log.debug { "user id: $userId" }
-        check(userId > 0)
+        check(userId > 0) { "User ID must be positive, got: $userId" }
 
         env.add("HOST_USER_ID=$userId")
 
@@ -298,15 +311,19 @@ class Docker(
         val stdIn = System.`in`.bufferedReader()
         val framesRead = setupContainerIO(dockerContainer.id, stdInputPipe, stdIn, capturedStdOut)
 
-        log.info("Starting container with command $command")
+        log.info { "Starting container with command $command" }
         println("Starting container ${dockerContainer.id}")
 
         try {
             dockerClient.startContainer(dockerContainer.id)
-        } catch (e: Exception) {
-            log.error(e) { "Error starting container: ${dockerContainer.id}" }
+        } catch (e: com.github.dockerjava.api.exception.DockerException) {
+            log.error(e) { "Docker error starting container: ${dockerContainer.id}" }
             println("Error starting container: ${e.message}")
-            throw e
+            throw DockerException("Failed to start container ${dockerContainer.id}", e)
+        } catch (e: IOException) {
+            log.error(e) { "IO error starting container: ${dockerContainer.id}" }
+            println("Error starting container: ${e.message}")
+            throw DockerException("IO error starting container ${dockerContainer.id}", e)
         }
 
         // Wait for container to finish and get state
@@ -320,7 +337,7 @@ class Docker(
         stdInputPipe.close()
         dockerClient.removeContainer(dockerContainer.id, true)
 
-        val returnCode = containerState.exitCode ?: -1
+        val returnCode = containerState.exitCodeLong?.toInt() ?: -1
         return if (returnCode == 0) {
             Result.success(capturedStdOut.toString())
         } else {
@@ -363,7 +380,7 @@ class Docker(
                     stdInputPipe.write(line.toByteArray())
                 }
             } catch (ignored: IOException) {
-                log.info("Pipe closed.")
+                log.info { "Pipe closed." }
             }
         }
 
@@ -384,7 +401,7 @@ class Docker(
                         capturedStdOut.append(payloadStr)
                     } else if (item.streamType.name.equals("STDERR")) {
                         print(payloadStr)
-                        log.error(payloadStr)
+                        log.error { payloadStr }
                     }
                 }
 
@@ -426,4 +443,4 @@ class Docker(
     }
 }
 
-class DockerException(message: String, cause: Exception) : Throwable(message, cause)
+class DockerException(message: String, cause: Throwable) : Exception(message, cause)

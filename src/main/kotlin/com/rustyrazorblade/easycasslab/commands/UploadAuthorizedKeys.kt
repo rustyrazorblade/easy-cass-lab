@@ -31,7 +31,8 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
             System.exit(1)
         }
 
-        var files = File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })!!
+        var files = File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })
+            ?: throw IllegalStateException("Failed to list files in $localDir")
         println("Files: ${files.map { it.name }}")
 
         // collect all the keys into a single file then upload

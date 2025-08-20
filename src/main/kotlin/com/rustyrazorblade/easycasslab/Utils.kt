@@ -42,7 +42,8 @@ object Utils {
 
             var line: String =
                 if (secret) {
-                    String(System.console()?.readPassword()!!)
+                    System.console()?.readPassword()?.let { String(it) }
+                        ?: throw IllegalStateException("Unable to read password from console")
                 } else {
                     (readLine() ?: default).trim()
                 }
