@@ -8,7 +8,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "Restart cassandra", commandNames = ["restart"])
-class Restart(val context: Context) : ICommand {
+class Restart(context: Context) : BaseCommand(context) {
     @ParametersDelegate
     var hosts = Hosts()
 
@@ -18,7 +18,7 @@ class Restart(val context: Context) : ICommand {
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Restarting $it"))
-                context.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait").text
+                remoteOps.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait").text
             }
         }
     }

@@ -1,13 +1,18 @@
 package com.rustyrazorblade.easycasslab
 
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.di.KoinModules
+import com.rustyrazorblade.easycasslab.di.contextModule
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
@@ -23,8 +28,25 @@ class ContextTest {
     fun setup() {
         // Create test context
         context = spy(Context.testContext())
+        
+        // Initialize Koin for testing with test modules
+        startKoin {
+            modules(
+                listOf(
+                    com.rustyrazorblade.easycasslab.providers.docker.dockerModule,
+                    TestModules.testSSHModule(),
+                    contextModule(context)
+                )
+            )
+        }
+        
         mockSSHClient = MockSSHClient()
         host = Host("test-host", "10.0.0.1", "", "seed")
+    }
+    
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
     }
 
     @Test

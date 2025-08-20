@@ -20,13 +20,16 @@ import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.time.LocalDate
 
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
 class Init(
     @JsonIgnore val context: Context,
-) : ICommand {
+) : ICommand, KoinComponent {
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
         private const val DEFAULT_EBS_SIZE_GB = 256
@@ -118,7 +121,7 @@ class Init(
 
     override fun execute() {
         println("Initializing directory")
-        val docker = Docker(context)
+        val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
 
         // Added because if we're reusing a directory, we don't want any of the previous state

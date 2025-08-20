@@ -9,7 +9,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
-class Start(val context: Context) : ICommand {
+class Start(context: Context) : BaseCommand(context) {
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
     }
@@ -25,10 +25,10 @@ class Start(val context: Context) : ICommand {
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
                 println(green("Starting $it"))
-                context.executeRemotely(it, "sudo systemctl start cassandra").text
+                remoteOps.executeRemotely(it, "sudo systemctl start cassandra").text
                 println("Cassandra started, waiting for up/normal")
-                context.executeRemotely(it, "sudo wait-for-up-normal").text
-                context.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
+                remoteOps.executeRemotely(it, "sudo wait-for-up-normal").text
+                remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
             }
         }
 

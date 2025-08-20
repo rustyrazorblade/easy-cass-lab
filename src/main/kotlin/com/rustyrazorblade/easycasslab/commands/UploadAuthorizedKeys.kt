@@ -14,7 +14,7 @@ import java.nio.file.Paths
 import kotlin.io.path.exists
 
 @Parameters(commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory")
-class UploadAuthorizedKeys(val context: Context) : ICommand {
+class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 
@@ -54,10 +54,10 @@ class UploadAuthorizedKeys(val context: Context) : ICommand {
 
     private fun doUpload(authorizedKeys: File) =
         { host: Host ->
-            // Upload the file using Context's upload method
-            context.upload(host, authorizedKeys.toPath(), authorizedKeysExtra)
+            // Upload the file using RemoteOperationsService
+            remoteOps.upload(host, authorizedKeys.toPath(), authorizedKeysExtra)
 
             // Append to authorized_keys
-            context.executeRemotely(host, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
+            remoteOps.executeRemotely(host, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
         }
 }

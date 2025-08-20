@@ -175,7 +175,7 @@ data class VolumeMapping(val source: String, val destination: String, val mode: 
 
 class Docker(
     val context: Context,
-    private val dockerClient: DockerClientInterface = DefaultDockerClient(context.docker),
+    private val dockerClient: DockerClientInterface,
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
 ) {
     companion object {

@@ -1,7 +1,10 @@
 package com.rustyrazorblade.easycasslab
 
 import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.di.KoinModules
+import com.rustyrazorblade.easycasslab.di.contextModule
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.context.startKoin
 import java.io.File
 
 private val log = KotlinLogging.logger {}
@@ -10,6 +13,13 @@ fun main(arguments: Array<String>) {
     val easycasslabUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
 
     val context = Context(easycasslabUserDirectory)
+    
+    // Initialize Koin dependency injection with context-specific configuration
+    startKoin {
+        modules(
+            KoinModules.getAllModules() + contextModule(context)
+        )
+    }
     val parser = CommandLineParser(context)
     try {
         parser.eval(arguments)

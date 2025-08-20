@@ -112,11 +112,17 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:${project.extra["ktor_version"]}")
     implementation("io.ktor:ktor-serialization-jackson:${project.extra["ktor_version"]}")
 
+    // Koin Dependency Injection
+    implementation(platform("io.insert-koin:koin-bom:3.5.3"))
+    implementation("io.insert-koin:koin-core")
+    
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
     testImplementation("org.assertj:assertj-core:${project.extra["assertj_version"]}")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("io.insert-koin:koin-test")
+    testImplementation("io.insert-koin:koin-test-junit5")
 }
 
 kotlin {

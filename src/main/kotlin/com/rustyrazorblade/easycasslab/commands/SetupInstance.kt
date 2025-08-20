@@ -9,27 +9,27 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 
 @Parameters(commandDescription = "Runs setup_instance.sh on all Cassandra instances")
-class SetupInstance(val context: Context) : ICommand {
+class SetupInstance(context: Context) : BaseCommand(context) {
     @ParametersDelegate
     var hosts = Hosts()
 
     override fun execute() {
         fun setup(host: Host) {
-            context.upload(host, Path.of("environment.sh"), "environment.sh")
-            context.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh").text
+            remoteOps.upload(host, Path.of("environment.sh"), "environment.sh")
+            remoteOps.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh").text
         }
 
         context.tfstate.withHosts(ServerType.Stress, hosts) {
             setup(it)
-            context.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
-            context.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
-            context.executeRemotely(it, "sudo bash setup_instance.sh").text
+            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
+            remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
+            remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
         }
         context.tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
             setup(it)
-            context.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
-            context.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
-            context.executeRemotely(it, "sudo bash setup_instance.sh").text
+            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
+            remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
+            remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
         }
     }
 }

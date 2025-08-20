@@ -3,9 +3,6 @@ package com.rustyrazorblade.easycasslab
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientImpl
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.google.common.annotations.VisibleForTesting
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.TFState
@@ -13,10 +10,13 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
-import com.rustyrazorblade.easycasslab.ssh.ConnectionManager
+import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
+import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,7 +54,7 @@ data class Version(val path: String) {
     val localDir: Path get() = Path.of(versionString)
 }
 
-data class Context(val easycasslabUserDirectory: File) {
+data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     var profilesDir = File(easycasslabUserDirectory, "profiles")
 
     // TODO allow for other profiles
@@ -62,8 +62,6 @@ data class Context(val easycasslabUserDirectory: File) {
 
     var profileDir = File(profilesDir, profile)
     val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
-
-    var nettyInitialised = false
 
     init {
         profileDir.mkdirs()
@@ -105,20 +103,8 @@ data class Context(val easycasslabUserDirectory: File) {
         yaml.readValue<User>(userConfigFile)
     }
 
-    val docker by lazy {
-        nettyInitialised = true
-
-        val dockerConfig =
-            DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .build()
-
-        val httpClient =
-            ApacheDockerHttpClient.Builder()
-                .dockerHost(dockerConfig.dockerHost)
-                .sslConfig(dockerConfig.sslConfig)
-                .build()
-        DockerClientImpl.getInstance(dockerConfig, httpClient)
-    }
+    // Docker client has been moved to dependency injection via Koin
+    // See DockerClientProvider and DockerModule for the new implementation
 
     val awsCredentialsName = Constants.AWS.DEFAULT_CREDENTIALS_NAME
 
@@ -147,18 +133,21 @@ data class Context(val easycasslabUserDirectory: File) {
         AWS(clients)
     }
 
-    val connectionManager by lazy { ConnectionManager(userConfig.sshKeyPath) }
+    // SSH services are now injected via Koin
+    private val sshConnectionProvider: SSHConnectionProvider by inject()
+    private val remoteOperationsService: RemoteOperationsService by inject()
 
     val cwdPath = System.getProperty("user.dir")
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
 
-    // Made overridable for testing
-    var getConnection: (Host) -> ISSHClient = { host -> connectionManager.getConnection(host) }
+    // Made overridable for testing - delegates to injected service
+    var getConnection: (Host) -> ISSHClient = { host -> sshConnectionProvider.getConnection(host) }
 
     /**
      * Returns the version currently set on the remote server.
+     * Delegates to RemoteOperationsService.
      *
      * @param host The host to check
      * @param inputVersion The version to use, or "current" to check the symlink
@@ -168,33 +157,37 @@ data class Context(val easycasslabUserDirectory: File) {
         host: Host,
         inputVersion: String = "current",
     ): Version {
-        return if (inputVersion == "current") {
-            val path = executeRemotely(host, "readlink -f /usr/local/cassandra/current").text.trim()
-            Version(path)
-        } else {
-            Version.fromString(inputVersion)
-        }
+        return remoteOperationsService.getRemoteVersion(host, inputVersion)
     }
 
+    /**
+     * Execute a command on a remote host.
+     * Delegates to RemoteOperationsService for backward compatibility.
+     */
     fun executeRemotely(
         host: Host,
         command: String,
         output: Boolean = true,
         secret: Boolean = false,
     ): Response {
-        return getConnection(host).executeRemoteCommand(command, output, secret)
+        return remoteOperationsService.executeRemotely(host, command, output, secret)
     }
 
+    /**
+     * Upload a file to a remote host.
+     * Delegates to RemoteOperationsService for backward compatibility.
+     */
     fun upload(
         host: Host,
         local: Path,
         remote: String,
     ) {
-        return getConnection(host).uploadFile(local, remote)
+        return remoteOperationsService.upload(host, local, remote)
     }
 
     /**
      * Uploads a directory recursively to a remote host.
+     * Delegates to RemoteOperationsService for backward compatibility.
      * @param host The target host
      * @param localDir The local directory to upload
      * @param remoteDir The remote directory where files will be uploaded
@@ -204,30 +197,35 @@ data class Context(val easycasslabUserDirectory: File) {
         localDir: File,
         remoteDir: String,
     ) {
-        println("Uploading directory $localDir to $remoteDir")
-        return getConnection(host).uploadDirectory(localDir, remoteDir)
+        return remoteOperationsService.uploadDirectory(host, localDir, remoteDir)
     }
 
     /**
-     * Convenience that uses the file and conf dir of Version to upload
+     * Convenience that uses the file and conf dir of Version to upload.
+     * Delegates to RemoteOperationsService for backward compatibility.
      */
     fun uploadDirectory(
         host: Host,
         version: Version,
     ) {
-        return uploadDirectory(host, version.file, version.conf)
+        return remoteOperationsService.uploadDirectory(host, version)
     }
 
+    /**
+     * Download a file from a remote host.
+     * Delegates to RemoteOperationsService for backward compatibility.
+     */
     fun download(
         host: Host,
         remote: String,
         local: Path,
     ) {
-        return getConnection(host).downloadFile(remote, local)
+        return remoteOperationsService.download(host, remote, local)
     }
 
     /**
      * Downloads a directory recursively from a remote host.
+     * Delegates to RemoteOperationsService for backward compatibility.
      * @param host The source host
      * @param remoteDir The remote directory to download
      * @param localDir The local directory where files will be downloaded
@@ -241,11 +239,15 @@ data class Context(val easycasslabUserDirectory: File) {
         includeFilters: List<String> = listOf(),
         excludeFilters: List<String> = listOf(),
     ) {
-        return getConnection(host).downloadDirectory(remoteDir, localDir, includeFilters, excludeFilters)
+        return remoteOperationsService.downloadDirectory(host, remoteDir, localDir, includeFilters, excludeFilters)
     }
 
+    /**
+     * Stop all SSH connections.
+     * Delegates to SSHConnectionProvider.
+     */
     fun stop() {
-        connectionManager.stop()
+        sshConnectionProvider.stop()
     }
 
     companion object {

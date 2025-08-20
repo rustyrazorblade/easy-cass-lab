@@ -10,13 +10,16 @@ import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.io.FileUtils
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.system.exitProcess
 
-class Packer(val context: Context, var directory: String) {
-    private val docker = Docker(context)
+class Packer(val context: Context, var directory: String) : KoinComponent {
+    private val docker: Docker by inject { parametersOf(context) }
 
     private var containerWorkingDir = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}

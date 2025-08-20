@@ -8,7 +8,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
-class ConfigureAxonOps(val context: Context) : ICommand {
+class ConfigureAxonOps(context: Context) : BaseCommand(context) {
     @Parameter(description = "AxonOps Organization Name", names = ["--org"])
     var org = ""
 
@@ -31,7 +31,7 @@ class ConfigureAxonOps(val context: Context) : ICommand {
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             println("Configure axonops on $it")
 
-            context.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey", secret = true).text
+            remoteOps.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey", secret = true).text
         }
     }
 }

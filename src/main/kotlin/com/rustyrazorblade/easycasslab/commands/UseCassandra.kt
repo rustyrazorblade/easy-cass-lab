@@ -15,8 +15,8 @@ import kotlin.system.exitProcess
 
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
 class UseCassandra(
-    @JsonIgnore val context: Context,
-) : ICommand {
+    context: Context,
+) : BaseCommand(context) {
     @Parameter
     var version: String = ""
 
@@ -50,9 +50,9 @@ class UseCassandra(
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             if (javaVersion.isNotBlank()) {
-                context.executeRemotely(it, "set-java-version $javaVersion $version")
+                remoteOps.executeRemotely(it, "set-java-version $javaVersion $version")
             }
-            context.executeRemotely(it, "sudo use-cassandra $version").text
+            remoteOps.executeRemotely(it, "sudo use-cassandra $version").text
             state.versions?.put(it.alias, version)
         }
 

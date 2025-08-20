@@ -13,7 +13,7 @@ import kotlin.io.path.exists
  * Downloads configuration.
  */
 @Parameters(commandDescription = "Download JVM and YAML config files.")
-class DownloadConfig(val context: Context) : ICommand {
+class DownloadConfig(context: Context) : BaseCommand(context) {
     @ParametersDelegate
     var hosts = Hosts()
 
@@ -29,7 +29,7 @@ class DownloadConfig(val context: Context) : ICommand {
 
         // Currently using first host - consider adding --host option for specific node selection
         val host = cassandraHosts.first()
-        val resolvedVersion = context.getRemoteVersion(host, version)
+        val resolvedVersion = remoteOps.getRemoteVersion(host, version)
 
         logger.info { "Original version: $version.  Resolved version: ${resolvedVersion.versionString}. " }
         val localDir = resolvedVersion.localDir.toFile()
@@ -40,7 +40,7 @@ class DownloadConfig(val context: Context) : ICommand {
         if (!localDir.exists()) {
             localDir.mkdirs()
 
-            context.downloadDirectory(
+            remoteOps.downloadDirectory(
                 host,
                 remoteDir = "${resolvedVersion.path}/conf",
                 localDir = localDir,

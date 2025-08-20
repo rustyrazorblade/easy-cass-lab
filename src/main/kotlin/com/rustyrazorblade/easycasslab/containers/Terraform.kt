@@ -7,9 +7,12 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.parameter.parametersOf
 
-class Terraform(val context: Context) {
-    private val docker = Docker(context)
+class Terraform(val context: Context) : KoinComponent {
+    private val docker: Docker by inject { parametersOf(context) }
 
     private var localDirectory = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
