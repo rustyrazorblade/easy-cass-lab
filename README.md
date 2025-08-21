@@ -5,7 +5,7 @@ This is a tool to create lab environments with Apache Cassandra in AWS.  Using t
 * Quickly create an environment using any version of Cassandra from 2.2 up to trunk
 * Build custom AMIs with your own branches
 * Test mixed configurations of Cassandra and java versions
-* Run load tests using easy-cass-stress
+* Run load tests using cassandra-easy-stress
 * Profile Cassandra and generate flame graphs
 * Collect kernel metrics with bcc-tools 
 
@@ -14,7 +14,7 @@ We use packer to create a single AMI with the following:
 * Multiple versions of Cassandra
 * [bcc tools](https://github.com/iovisor/bcc), [learn about these tools here](https://rustyrazorblade.com/post/2023/2023-11-14-bcc-tools/)
 * [async-profiler](https://github.com/async-profiler/async-profiler), [learn about it here](https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/)
-* [easy-cass-stress](https://github.com/rustyrazorblade/easy-cass-stress)
+* [cassandra-easy-stress](https://github.com/apache/cassandra-easy-stress) (Apache project, formerly easy-cass-stress)
 * [AxonOps agent](https://axonops.com/) (free monitoring up to six nodes)
 
 ## Pre-requisites

@@ -6,7 +6,7 @@ Jon Haddad <jon@rustyrazorblade.com>
 This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
 
 If you are looking for a tool to aid in benchmarking these clusters please see the companion project
-https://github.com/rustyrazorblade/easy-cass-stress[easy-cass--stress].
+https://github.com/apache/cassandra-easy-stress[cassandra-easy-stress].
 
 If you're looking for tools to help manage Cassandra in _production_ environments please see the http://cassandra-reaper.io/[Reaper] project and https://github.com/spotify/cstar[cstar]
 
