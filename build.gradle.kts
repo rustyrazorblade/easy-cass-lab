@@ -147,13 +147,10 @@ sourceSets {
     }
 }
 
-val integrationTestCompile by configurations.creating {
-    extendsFrom(configurations["testImplementation"])
-}
-
-val integrationTestRuntime by configurations.creating {
-    extendsFrom(configurations["testRuntimeOnly"])
-}
+// The integrationTest source set creates these configurations automatically
+// We just need to make them extend from the test configurations
+configurations["integrationTestImplementation"].extendsFrom(configurations["testImplementation"])
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations["testRuntimeOnly"])
 
 tasks.register<Test>("integrationTest") {
     testClassesDirs = sourceSets["integrationTest"].output.classesDirs
