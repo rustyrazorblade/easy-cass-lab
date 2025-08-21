@@ -22,16 +22,16 @@ echo "Building cassandra-easy-stress with Gradle..."
 ./gradlew installDist
 
 # Create installation directory
-echo "Installing cassandra-easy-stress to /usr/local/easy-cass-stress..."
-sudo rm -rf /usr/local/easy-cass-stress
-sudo mkdir -p /usr/local/easy-cass-stress
+echo "Installing cassandra-easy-stress to /usr/local/cassandra-easy-stress..."
+sudo rm -rf /usr/local/cassandra-easy-stress
+sudo mkdir -p /usr/local/cassandra-easy-stress
 
 # Copy the built distribution
 # The installDist task creates the distribution in build/install/cassandra-easy-stress
-sudo cp -r build/install/cassandra-easy-stress/* /usr/local/easy-cass-stress/
+sudo cp -r build/install/cassandra-easy-stress/* /usr/local/cassandra-easy-stress/
 
 # Ensure scripts are executable
-sudo chmod +x /usr/local/easy-cass-stress/bin/*
+sudo chmod +x /usr/local/cassandra-easy-stress/bin/*
 
 # Clean up the source directory to save space
 echo "Cleaning up build artifacts..."
@@ -39,4 +39,4 @@ cd ..
 rm -rf cassandra-easy-stress
 
 echo "cassandra-easy-stress installation from source complete!"
-echo "Binary available at: /usr/local/easy-cass-stress/bin/cassandra-easy-stress"
+echo "Binary available at: /usr/local/cassandra-easy-stress/bin/cassandra-easy-stress"

@@ -91,13 +91,13 @@ class Up(
 
         val host = context.tfstate.getHosts(ServerType.Cassandra).first().private
 
-        stressEnvironmentVars.write("export  EASY_CASS_STRESS_CASSANDRA_HOST=$host")
+        stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$host")
         stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write("export  EASY_CASS_STRESS_PROM_PORT=0")
+        stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_PROM_PORT=0")
         stressEnvironmentVars.newLine()
 
         stressEnvironmentVars.write(
-            "export EASY_CASS_STRESS_DEFAULT_DC=\$(curl -s " +
+            "export CASSANDRA_EASY_STRESS_DEFAULT_DC=\$(curl -s " +
                 "http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
         )
         stressEnvironmentVars.newLine()
