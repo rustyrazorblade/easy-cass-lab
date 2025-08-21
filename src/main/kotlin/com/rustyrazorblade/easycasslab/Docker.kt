@@ -21,6 +21,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.time.Duration
 import kotlin.concurrent.thread
 
 // Interface for Docker client operations to improve testability
@@ -227,7 +228,7 @@ class Docker(
 ) {
     companion object {
         private const val CONTAINER_ID_DISPLAY_LENGTH = 12
-        private const val CONTAINER_POLLING_INTERVAL_MS = 1000L
+        private val DEFAULT_MAX_WAIT_TIME = Duration.ofMinutes(10)
         
         val log = KotlinLogging.logger {}
     }
@@ -308,12 +309,13 @@ class Docker(
         container: Containers,
         command: MutableList<String>,
         workingDirectory: String,
+        maxWaitTime: Duration = DEFAULT_MAX_WAIT_TIME,
     ): Result<String> {
         if (!exists(container.containerName, container.tag)) {
             pullImage(container)
         }
 
-        return runContainer(container.imageWithTag, command, workingDirectory)
+        return runContainer(container.imageWithTag, command, workingDirectory, maxWaitTime)
     }
 
     /**
@@ -338,6 +340,7 @@ class Docker(
         imageTag: String,
         command: MutableList<String>,
         workingDirectory: String,
+        maxWaitTime: Duration = DEFAULT_MAX_WAIT_TIME,
     ): Result<String> {
         require(imageTag.isNotBlank()) { "Image tag cannot be blank" }
         require(command.isNotEmpty()) { "Command list cannot be empty" }
@@ -388,7 +391,7 @@ class Docker(
         log.info { "Starting container with command $command" }
         
         // Start container and wait for completion
-        val containerState = executor.startAndWaitForCompletion(dockerContainer.id)
+        val containerState = executor.startAndWaitForCompletion(dockerContainer.id, maxWaitTime)
         
         // Report final state
         stateMonitor.reportFinalState(containerState, framesRead)

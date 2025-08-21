@@ -15,6 +15,7 @@ import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.nio.file.Path
+import java.time.Duration
 import kotlin.io.path.createTempDirectory
 import kotlin.system.exitProcess
 
@@ -108,10 +109,13 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
         val packerDir = VolumeMapping(tempDir.absolutePath, containerWorkingDir, AccessMode.ro)
         var creds = Constants.Paths.CREDENTIALS_MOUNT
 
+        // Packer builds can take 30+ minutes, especially when building from source
+        val packerTimeout = Duration.ofMinutes(60)
+        
         return docker
             .addVolume(packerDir)
             .addVolume(VolumeMapping(context.awsConfig.absolutePath, creds, AccessMode.ro))
             .addEnv("${Constants.Packer.AWS_CREDENTIALS_ENV}=$creds")
-            .runContainer(Containers.PACKER, args, containerWorkingDir)
+            .runContainer(Containers.PACKER, args, containerWorkingDir, packerTimeout)
     }
 }

@@ -12,14 +12,15 @@ import com.rustyrazorblade.easycasslab.containers.Terraform
 import org.apache.sshd.common.SshException
 import java.io.File
 import java.nio.file.Path
+import java.time.Duration
 
 @Parameters(commandDescription = "Starts instances")
 class Up(
     context: Context,
 ) : BaseCommand(context) {
     companion object {
-        private const val SSH_STARTUP_DELAY_MS = 5000L
-        private const val SSH_RETRY_DELAY_MS = 1000L
+        private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
+        private val SSH_RETRY_DELAY = Duration.ofSeconds(1)
     }
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
@@ -111,7 +112,7 @@ class Up(
         // we can't set up the configs yet though,
         // because those are dependent on the C* version in use.
         println("Waiting for SSH to come up..")
-        Thread.sleep(SSH_STARTUP_DELAY_MS)
+        Thread.sleep(SSH_STARTUP_DELAY.toMillis())
 
         // probably need to loop and wait
         // write to profile.d/stress.sh
@@ -128,7 +129,7 @@ class Up(
                 done = true
             } catch (ignored: SshException) {
                 println("SSH still not up yet, waiting..")
-                Thread.sleep(SSH_RETRY_DELAY_MS)
+                Thread.sleep(SSH_RETRY_DELAY.toMillis())
             }
         } while (!done)
 

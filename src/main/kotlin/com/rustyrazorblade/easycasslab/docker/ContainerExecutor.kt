@@ -9,6 +9,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.time.Duration
 import kotlin.concurrent.thread
 
 /**
@@ -20,16 +21,21 @@ class ContainerExecutor(
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
-        private const val CONTAINER_POLLING_INTERVAL_MS = 1000L
+        private val CONTAINER_POLLING_INTERVAL = Duration.ofSeconds(1)
+        private val DEFAULT_MAX_WAIT_TIME = Duration.ofMinutes(10)
     }
     
     /**
      * Start a container and wait for it to complete.
      * 
      * @param containerId The ID of the container to start
+     * @param maxWaitTime Maximum time to wait (default: 10 minutes)
      * @return The container state after completion
      */
-    fun startAndWaitForCompletion(containerId: String): InspectContainerResponse.ContainerState {
+    fun startAndWaitForCompletion(
+        containerId: String,
+        maxWaitTime: Duration = DEFAULT_MAX_WAIT_TIME
+    ): InspectContainerResponse.ContainerState {
         try {
             dockerClient.startContainer(containerId)
             outputHandler.handleMessage("Starting container $containerId")
@@ -45,30 +51,31 @@ class ContainerExecutor(
             throw DockerException("IO error starting container $containerId", e)
         }
         
-        return waitForContainerToComplete(containerId)
+        return waitForContainerToComplete(containerId, maxWaitTime)
     }
     
     /**
      * Wait for a container to complete execution.
      * 
      * @param containerId The ID of the container to monitor
-     * @param maxWaitTime Maximum time to wait in milliseconds (default: 10 minutes)
+     * @param maxWaitTime Maximum time to wait (default: 10 minutes)
      * @return The final container state
      * @throws IllegalStateException if timeout is reached
      */
     private fun waitForContainerToComplete(
         containerId: String,
-        maxWaitTime: Long = 600_000L
+        maxWaitTime: Duration = DEFAULT_MAX_WAIT_TIME
     ): InspectContainerResponse.ContainerState {
         val startTime = System.currentTimeMillis()
+        val maxWaitTimeMs = maxWaitTime.toMillis()
         var containerState: InspectContainerResponse.ContainerState
         
         do {
-            if (System.currentTimeMillis() - startTime > maxWaitTime) {
-                throw IllegalStateException("Container $containerId did not complete within ${maxWaitTime}ms")
+            if (System.currentTimeMillis() - startTime > maxWaitTimeMs) {
+                throw IllegalStateException("Container $containerId did not complete within $maxWaitTime")
             }
             
-            Thread.sleep(CONTAINER_POLLING_INTERVAL_MS)
+            Thread.sleep(CONTAINER_POLLING_INTERVAL.toMillis())
             containerState = dockerClient.inspectContainer(containerId).state
         } while (containerState.running == true)
         
