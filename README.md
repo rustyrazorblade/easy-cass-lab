@@ -282,4 +282,15 @@ bcc-tools is a useful package of tools
 https://rustyrazorblade.com/post/2023/2023-11-14-bcc-tools/
 
 
+## Sanity Check Test
+
+This initializes then shuts down a cluster.  Useful after major refactors and before a release.
+
+```bash
+gw clean test shadowjar installdist  && easy-cass-lab init test --up && source env.sh && ecl use 5.0 && ecl start && ecl down --yes
+```
+
+## Contributing
+
 Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
+

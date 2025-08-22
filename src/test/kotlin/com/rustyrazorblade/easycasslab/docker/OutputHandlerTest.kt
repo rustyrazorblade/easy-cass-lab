@@ -2,6 +2,10 @@ package com.rustyrazorblade.easycasslab.docker
 
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
+import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
+import com.rustyrazorblade.easycasslab.output.LoggerOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

@@ -11,12 +11,12 @@ import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.Image
 import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.Volume
-import com.rustyrazorblade.easycasslab.docker.BufferedOutputHandler
-import com.rustyrazorblade.easycasslab.docker.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.docker.ContainerExecutor
 import com.rustyrazorblade.easycasslab.docker.ContainerIOManager
 import com.rustyrazorblade.easycasslab.docker.ContainerStateMonitor
-import com.rustyrazorblade.easycasslab.docker.OutputHandler
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
@@ -347,7 +347,7 @@ class Docker(
         // Use a buffered handler to capture output while also displaying it
         val bufferedHandler = BufferedOutputHandler()
         val compositeHandler =
-            com.rustyrazorblade.easycasslab.docker.CompositeOutputHandler(
+            com.rustyrazorblade.easycasslab.output.CompositeOutputHandler(
                 outputHandler,
                 bufferedHandler,
             )

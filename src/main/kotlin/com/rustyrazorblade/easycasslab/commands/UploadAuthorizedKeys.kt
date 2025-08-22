@@ -27,14 +27,14 @@ class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
     override fun execute() {
         val path = Paths.get(localDir)
         if (!path.exists()) {
-            println("$localDir does not exist")
+            outputHandler.handleMessage("$localDir does not exist")
             System.exit(1)
         }
 
         var files =
             File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })
                 ?: error("Failed to list files in $localDir")
-        println("Files: ${files.map { it.name }}")
+        outputHandler.handleMessage("Files: ${files.map { it.name }}")
 
         // collect all the keys into a single file then upload
         val keys = files.joinToString("\n") { it.readText().trim() }
@@ -45,8 +45,8 @@ class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
             it.write("\n")
         }
 
-        println("Uploading the following keys:")
-        println(keys)
+        outputHandler.handleMessage("Uploading the following keys:")
+        outputHandler.handleMessage(keys)
 
         val upload = doUpload(authorizedKeysExtra)
         context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }

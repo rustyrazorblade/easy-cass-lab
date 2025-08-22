@@ -14,7 +14,7 @@ class Stop(context: Context) : BaseCommand(context) {
     override fun execute() {
         context.requireSshKey()
 
-        println("Stopping cassandra service on all nodes.")
+        outputHandler.handleMessage("Stopping cassandra service on all nodes.")
         context.requireSshKey()
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {

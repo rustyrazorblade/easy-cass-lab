@@ -24,12 +24,12 @@ class ConfigureAxonOps(context: Context) : BaseCommand(context) {
         val axonOrg = if (org.isNotBlank()) org else context.userConfig.axonOpsOrg
         val axonKey = if (key.isNotBlank()) key else context.userConfig.axonOpsKey
         if ((axonOrg.isBlank() || axonKey.isBlank())) {
-            println("--org and --key are required")
+            outputHandler.handleMessage("--org and --key are required")
             System.exit(1)
         }
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            println("Configure axonops on $it")
+            outputHandler.handleMessage("Configure axonops on $it")
 
             remoteOps.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey", secret = true).text
         }

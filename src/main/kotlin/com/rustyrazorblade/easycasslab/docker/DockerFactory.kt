@@ -5,6 +5,11 @@ import com.rustyrazorblade.easycasslab.DefaultUserIdProvider
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.DockerClientInterface
 import com.rustyrazorblade.easycasslab.UserIdProvider
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
+import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
+import com.rustyrazorblade.easycasslab.output.LoggerOutputHandler
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 
 /**
  * Factory for creating Docker instances with different configurations.

@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.koin.core.component.KoinComponent
@@ -21,6 +22,7 @@ import kotlin.system.exitProcess
 
 class Packer(val context: Context, var directory: String) : KoinComponent {
     private val docker: Docker by inject { parametersOf(context) }
+    private val outputHandler: OutputHandler by inject()
 
     private var containerWorkingDir = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
@@ -82,7 +84,7 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
         require(directory.isNotBlank()) { "Directory cannot be blank" }
 
         if (!File(localPackerPath).exists()) {
-            println("packer directory not found: $localPackerPath")
+            outputHandler.handleError("packer directory not found: $localPackerPath")
             exitProcess(1)
         }
 

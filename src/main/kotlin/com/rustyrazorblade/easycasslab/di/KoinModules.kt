@@ -14,6 +14,7 @@ object KoinModules {
      */
     fun getAllModules(): List<Module> =
         listOf(
+            outputModule,
             dockerModule,
             sshModule,
             // Add more modules here as the refactoring progresses

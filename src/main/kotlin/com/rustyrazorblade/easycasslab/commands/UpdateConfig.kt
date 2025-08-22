@@ -34,13 +34,13 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
         context.requireSshKey()
         // upload the patch file
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-            println("Uploading $file to $it")
+            outputHandler.handleMessage("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())
             (yaml as ObjectNode).put("listen_address", it.private)
                 .put("rpc_address", it.private)
 
-            println("Patching $it")
+            outputHandler.handleMessage("Patching $it")
             val tmp = Files.createTempFile("easycasslab", "yaml")
             context.yaml.writeValue(tmp.toFile(), yaml)
 
@@ -52,17 +52,17 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
 
             // Create a temporary directory on the remote filesystem using mktemp
             val tempDir = remoteOps.executeRemotely(it, "mktemp -d -t easycasslab.XXXXXX").text.trim()
-            println("Created temporary directory $tempDir on $it")
+            outputHandler.handleMessage("Created temporary directory $tempDir on $it")
 
             // Upload files to the temporary directory first
-            println("Uploading configuration files to temporary directory $tempDir")
+            outputHandler.handleMessage("Uploading configuration files to temporary directory $tempDir")
             remoteOps.uploadDirectory(it, resolvedVersion.file, tempDir)
 
             // Make sure the destination directory exists
             remoteOps.executeRemotely(it, "sudo mkdir -p ${resolvedVersion.conf}").text
 
             // Copy files from temp directory to the final location
-            println("Copying files from temporary directory to ${resolvedVersion.conf}")
+            outputHandler.handleMessage("Copying files from temporary directory to ${resolvedVersion.conf}")
             remoteOps.executeRemotely(it, "sudo cp -R $tempDir/* ${resolvedVersion.conf}/").text
 
             // Change ownership of all files
@@ -71,7 +71,7 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
             // Clean up the temporary directory
             remoteOps.executeRemotely(it, "rm -rf $tempDir").text
 
-            println("Configuration updated for $it")
+            outputHandler.handleMessage("Configuration updated for $it")
         }
 
         if (restart) {

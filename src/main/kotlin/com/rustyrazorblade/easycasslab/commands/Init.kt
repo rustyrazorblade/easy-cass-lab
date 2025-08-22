@@ -20,6 +20,7 @@ import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -30,6 +31,7 @@ import java.time.LocalDate
 class Init(
     @JsonIgnore val context: Context,
 ) : ICommand, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
         private const val DEFAULT_EBS_SIZE_GB = 256
@@ -121,7 +123,7 @@ class Init(
     var tags: Map<String, String> = mutableMapOf()
 
     override fun execute() {
-        println("Initializing directory")
+        outputHandler.handleMessage("Initializing directory")
         val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
 
@@ -148,7 +150,7 @@ class Init(
                 sparkParams = spark,
             )
 
-        println("Directory Initialized Configuring Terraform")
+        outputHandler.handleMessage("Directory Initialized Configuring Terraform")
 
         for ((key, value) in tags) {
             config.setTag(key, value)
@@ -157,14 +159,14 @@ class Init(
         config.setVariable("NeededUntil", until)
 
         if (azs.isNotEmpty()) {
-            println("Overriding default az list with $azs")
+            outputHandler.handleMessage("Overriding default az list with $azs")
             config.azs = expand(context.userConfig.region, azs)
         }
 
-        println("Writing OpenTofu Config")
+        outputHandler.handleMessage("Writing OpenTofu Config")
         writeTerraformConfig(config)
 
-        println("Writing setup_instance.sh")
+        outputHandler.handleMessage("Writing setup_instance.sh")
         this::class.java.getResourceAsStream("setup_instance.sh").use { stream ->
             requireNotNull(stream) { "Resource setup_instance.sh not found" }
             val diskSetup = File("setup_instance.sh").bufferedWriter()
@@ -181,17 +183,17 @@ class Init(
             diskSetup.close()
         }
 
-        println(
+        outputHandler.handleMessage(
             "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
                 "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
                 "in ${context.userConfig.region}",
         )
         if (start) {
-            println("Provisioning instances")
+            outputHandler.handleMessage("Provisioning instances")
             Up(context).execute()
         } else {
             with(TermColors()) {
-                println("Next you'll want to run ${green("easy-cass-lab up")} to start your instances.")
+                outputHandler.handleMessage("Next you'll want to run ${green("easy-cass-lab up")} to start your instances.")
             }
         }
     }
@@ -201,7 +203,7 @@ class Init(
         config.write(configOutput)
 
         val terraform = Terraform(context)
-        println("Calling init")
+        outputHandler.handleMessage("Calling init")
         return terraform.init()
     }
 }

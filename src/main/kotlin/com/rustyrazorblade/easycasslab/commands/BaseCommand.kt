@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -15,4 +16,10 @@ abstract class BaseCommand(val context: Context) : ICommand, KoinComponent {
      * Command classes should use this instead of context.executeRemotely(), etc.
      */
     protected val remoteOps: RemoteOperationsService by inject()
+
+    /**
+     * Injected OutputHandler for console output.
+     * Command classes should use this instead of println().
+     */
+    protected val outputHandler: OutputHandler by inject()
 }

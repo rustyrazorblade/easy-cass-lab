@@ -6,6 +6,7 @@ import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import com.rustyrazorblade.easycasslab.DockerClientInterface
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach

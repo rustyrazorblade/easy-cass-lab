@@ -5,7 +5,7 @@ import com.github.dockerjava.api.model.AccessMode
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.Image
 import com.github.dockerjava.api.model.StreamType
-import com.rustyrazorblade.easycasslab.docker.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

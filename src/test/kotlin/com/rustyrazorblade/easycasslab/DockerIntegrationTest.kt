@@ -2,7 +2,7 @@ package com.rustyrazorblade.easycasslab
 
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.AccessMode
-import com.rustyrazorblade.easycasslab.docker.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

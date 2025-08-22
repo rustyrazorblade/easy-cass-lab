@@ -38,7 +38,7 @@ class UseCassandra(
         try {
             context.tfstate
         } catch (ignored: FileNotFoundException) {
-            println(
+            outputHandler.handleMessage(
                 "Error: terraform config file not found.  Please run easy-cass-lab up first to " +
                     "establish IP addresses for seed listing.",
             )
@@ -46,7 +46,7 @@ class UseCassandra(
         }
 
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
-        println("Using version $version on ${cassandraHosts.size} hosts, filter: $hosts")
+        outputHandler.handleMessage("Using version $version on ${cassandraHosts.size} hosts, filter: $hosts")
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) {
             if (javaVersion.isNotBlank()) {
@@ -66,7 +66,7 @@ class UseCassandra(
         uc.execute()
 
         with(TermColors()) {
-            println(
+            outputHandler.handleMessage(
                 "You can update ${green("cassandra.patch.yaml")} and the JVM config files under ${green(version)}, " +
                     "then run ${green("easy-cass-lab update-config")} to apply the changes.",
             )

@@ -6,12 +6,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.output.OutputHandler
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
 class WriteConfig(
     @JsonIgnore val context: Context,
-) : ICommand {
+) : ICommand, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private const val DEFAULT_TOKEN_COUNT = 4
         private const val DEFAULT_CONCURRENT_READS = 64
@@ -26,8 +30,8 @@ class WriteConfig(
 
     override fun execute() {
         // create the cassandra.yaml patch file
-        println("Writing new configuration file to $file.")
-        println(
+        outputHandler.handleMessage("Writing new configuration file to $file.")
+        outputHandler.handleMessage(
             "It can be applied to the lab via easy-cass-lab update-config " +
                 "(or automatically when calling use-cassandra)",
         )

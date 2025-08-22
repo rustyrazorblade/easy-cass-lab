@@ -5,6 +5,8 @@ import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.Frame
 import com.rustyrazorblade.easycasslab.DockerClientInterface
 import com.rustyrazorblade.easycasslab.DockerException
+import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream

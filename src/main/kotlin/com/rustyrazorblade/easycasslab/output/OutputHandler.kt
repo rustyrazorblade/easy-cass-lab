@@ -1,10 +1,10 @@
-package com.rustyrazorblade.easycasslab.docker
+package com.rustyrazorblade.easycasslab.output
 
 import com.github.dockerjava.api.model.Frame
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
- * Interface for handling Docker container output.
+ * Interface for handling output from the application.
  * Allows different implementations for console, logger, buffer, etc.
  */
 interface OutputHandler {

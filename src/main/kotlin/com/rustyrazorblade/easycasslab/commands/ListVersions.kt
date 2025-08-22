@@ -11,7 +11,7 @@ class ListVersions(context: Context) : BaseCommand(context) {
             val response = remoteOps.executeRemotely(it, "ls /usr/local/cassandra", output = false)
             response.text.split("\n")
                 .filter { !it.equals("current") }
-                .forEach { println(it) }
+                .forEach { outputHandler.handleMessage(it) }
         }
     }
 }

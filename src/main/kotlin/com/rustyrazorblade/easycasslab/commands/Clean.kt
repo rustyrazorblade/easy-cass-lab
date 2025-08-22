@@ -1,8 +1,12 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.rustyrazorblade.easycasslab.output.OutputHandler
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 
-class Clean : ICommand {
+class Clean : ICommand, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     override fun execute() {
         val toDelete =
             listOf(
@@ -38,7 +42,7 @@ class Clean : ICommand {
             if (artifacts.listFiles().isEmpty()) {
                 artifacts.delete()
             } else {
-                println("Not deleting artifacts directory, it contains artifacts.")
+                outputHandler.handleMessage("Not deleting artifacts directory, it contains artifacts.")
             }
         }
     }

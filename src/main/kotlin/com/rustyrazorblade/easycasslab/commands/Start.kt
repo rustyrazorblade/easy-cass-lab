@@ -25,9 +25,9 @@ class Start(context: Context) : BaseCommand(context) {
 
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-                println(green("Starting $it"))
+                outputHandler.handleMessage(green("Starting $it"))
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra").text
-                println("Cassandra started, waiting for up/normal")
+                outputHandler.handleMessage("Cassandra started, waiting for up/normal")
                 remoteOps.executeRemotely(it, "sudo wait-for-up-normal").text
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
             }
