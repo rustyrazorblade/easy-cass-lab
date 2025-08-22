@@ -13,6 +13,7 @@ class Server(val context: Context) : ICommand {
     companion object {
         private const val DEFAULT_SERVER_PORT = 6100
     }
+
     override fun execute() {
         val port = DEFAULT_SERVER_PORT
         println("Starting Ktor server on port $port...")

@@ -115,7 +115,7 @@ dependencies {
     // Koin Dependency Injection
     implementation(platform("io.insert-koin:koin-bom:3.5.3"))
     implementation("io.insert-koin:koin-core")
-    
+
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
 
     // https://mvnrepository.com/artifact/org.assertj/assertj-core
@@ -210,36 +210,36 @@ kover {
                     "*\$\$*", // Generated classes
                     "*_Factory",
                     "*_Impl",
-                    "*.BuildConfig"
+                    "*.BuildConfig",
                 )
-                
+
                 // Exclude test packages
                 packages(
                     "*.test",
-                    "*.mock"
+                    "*.mock",
                 )
             }
         }
-        
+
         // Configure verification rules
         // Current coverage: Line 34.08%, Branch 16.54%
         // TODO: Gradually increase these thresholds as more tests are added
         verify {
             rule("Minimal line coverage") {
                 disabled = false
-                
+
                 bound {
-                    minValue = 30  // Start at 30%, gradually increase
+                    minValue = 30 // Start at 30%, gradually increase
                     coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
                     aggregationForGroup = kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
                 }
             }
-            
+
             rule("Minimal branch coverage") {
                 disabled = false
-                
+
                 bound {
-                    minValue = 15  // Start at 15%, gradually increase
+                    minValue = 15 // Start at 15%, gradually increase
                     coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
                     aggregationForGroup = kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
                 }

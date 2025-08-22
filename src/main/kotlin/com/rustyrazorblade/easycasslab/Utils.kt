@@ -6,66 +6,66 @@ import java.io.FileOutputStream
 import java.io.InputStream
 
 object Utils {
-        fun inputstreamToTempFile(
-            inputStream: InputStream,
-            prefix: String,
-            directory: String,
-        ): File {
-            val tempFile = File.createTempFile(prefix, "", File(directory))
-            tempFile.deleteOnExit()
+    fun inputstreamToTempFile(
+        inputStream: InputStream,
+        prefix: String,
+        directory: String,
+    ): File {
+        val tempFile = File.createTempFile(prefix, "", File(directory))
+        tempFile.deleteOnExit()
 
-            val outputStream = FileOutputStream(tempFile)
+        val outputStream = FileOutputStream(tempFile)
 
-            IOUtils.copy(inputStream, outputStream)
-            outputStream.flush()
-            outputStream.close()
+        IOUtils.copy(inputStream, outputStream)
+        outputStream.flush()
+        outputStream.close()
 
-            return tempFile
-        }
+        return tempFile
+    }
 
-        @Deprecated(message = "Please use ResourceFile")
-        fun resourceToTempFile(
-            resourcePath: String,
-            directory: String,
-        ): File {
-            val resourceName = File(resourcePath).name
-            val resourceStream = this::class.java.getResourceAsStream(resourcePath)
-            return Utils.inputstreamToTempFile(resourceStream, "${resourceName}_", directory)
-        }
+    @Deprecated(message = "Please use ResourceFile")
+    fun resourceToTempFile(
+        resourcePath: String,
+        directory: String,
+    ): File {
+        val resourceName = File(resourcePath).name
+        val resourceStream = this::class.java.getResourceAsStream(resourcePath)
+        return Utils.inputstreamToTempFile(resourceStream, "${resourceName}_", directory)
+    }
 
-        fun prompt(
-            question: String,
-            default: String,
-            secret: Boolean = false,
-        ): String {
-            print("$question [$default]: ")
+    fun prompt(
+        question: String,
+        default: String,
+        secret: Boolean = false,
+    ): String {
+        print("$question [$default]: ")
 
-            var line: String =
-                if (secret) {
-                    System.console()?.readPassword()?.let { String(it) }
-                        ?: throw IllegalStateException("Unable to read password from console")
-                } else {
-                    (readLine() ?: default).trim()
-                }
-
-            if (line.equals("")) {
-                line = default
+        var line: String =
+            if (secret) {
+                System.console()?.readPassword()?.let { String(it) }
+                    ?: error("Unable to read password from console")
+            } else {
+                (readLine() ?: default).trim()
             }
 
-            return line
+        if (line.equals("")) {
+            line = default
         }
 
-        fun resolveSshKeyPath(keyPath: String): String {
-            val sshKeyPath: String by lazy {
-                var path = keyPath
+        return line
+    }
 
-                if (path.startsWith("~/")) {
-                    path = path.replaceFirst("~/", "${System.getProperty("user.home")}/")
-                }
+    fun resolveSshKeyPath(keyPath: String): String {
+        val sshKeyPath: String by lazy {
+            var path = keyPath
 
-                path
+            if (path.startsWith("~/")) {
+                path = path.replaceFirst("~/", "${System.getProperty("user.home")}/")
             }
 
-            return File(sshKeyPath).absolutePath
+            path
         }
+
+        return File(sshKeyPath).absolutePath
+    }
 }

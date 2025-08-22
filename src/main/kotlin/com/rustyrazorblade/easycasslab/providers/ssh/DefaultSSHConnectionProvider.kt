@@ -14,59 +14,59 @@ import kotlin.io.path.Path
 /**
  * Default implementation of SSHConnectionProvider.
  * Manages a pool of SSH connections to multiple hosts.
- * 
+ *
  * @param config SSH configuration settings
  */
 class DefaultSSHConnectionProvider(
-    private val config: SSHConfiguration
+    private val config: SSHConfiguration,
 ) : SSHConnectionProvider {
-    
     companion object {
         private val log = KotlinLogging.logger {}
     }
-    
+
     private val connections = mutableMapOf<Host, ISSHClient>()
     private val keyPairs: List<KeyPair>
     private val sshClient: SshClient
-    
+
     init {
         log.info { "Initializing SSH connection provider with key: ${config.keyPath}" }
-        
+
         // Load key pairs
         val loader = SecurityUtils.getKeyPairResourceParser()
         keyPairs = loader.loadKeyPairs(null, Path(config.keyPath), null).toList()
-        
+
         // Set up SSH client
         sshClient = SshClient.setUpDefaultClient()
         sshClient.setKeyIdentityProvider(KeyIdentityProvider.wrapKeyPairs(keyPairs))
         sshClient.start()
-        
+
         log.info { "SSH client initialized successfully" }
     }
-    
+
     override fun getConnection(host: Host): ISSHClient {
         return connections.getOrPut(host) {
             log.info { "Creating new SSH connection to ${host.alias} (${host.public})" }
-            
-            val session = sshClient.connect(
-                config.sshUsername,
-                host.public,
-                config.sshPort
-            )
-                .verify(Duration.ofSeconds(config.connectionTimeoutSeconds))
-                .session
-            
+
+            val session =
+                sshClient.connect(
+                    config.sshUsername,
+                    host.public,
+                    config.sshPort,
+                )
+                    .verify(Duration.ofSeconds(config.connectionTimeoutSeconds))
+                    .session
+
             session.addPublicKeyIdentity(keyPairs.first())
             session.auth().verify()
-            
+
             log.info { "SSH connection established to ${host.alias}" }
             SSHClient(session)
         }
     }
-    
+
     override fun stop() {
         log.info { "Stopping SSH client and closing ${connections.size} connections" }
-        
+
         connections.values.forEach { connection ->
             try {
                 connection.close()
@@ -75,13 +75,13 @@ class DefaultSSHConnectionProvider(
             }
         }
         connections.clear()
-        
+
         try {
             sshClient.stop()
         } catch (e: Exception) {
             log.error(e) { "Error stopping SSH client" }
         }
-        
+
         log.info { "SSH client stopped successfully" }
     }
 }

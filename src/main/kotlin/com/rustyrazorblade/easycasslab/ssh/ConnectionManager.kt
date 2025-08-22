@@ -17,7 +17,7 @@ open class ConnectionManager(val keyPath: String) {
         private const val SSH_PORT = 22
         private const val CONNECTION_TIMEOUT_SECONDS = 60L
     }
-    
+
     private val log = KotlinLogging.logger {}
     private val keyPairs: List<KeyPair>
     private val sshClient: SshClient

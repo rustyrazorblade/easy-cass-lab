@@ -12,10 +12,11 @@ object KoinModules {
     /**
      * Get all application modules for Koin initialization.
      */
-    fun getAllModules(): List<Module> = listOf(
-        dockerModule,
-        sshModule
-        // Add more modules here as the refactoring progresses
-        // e.g., awsModule, configurationModule
-    )
+    fun getAllModules(): List<Module> =
+        listOf(
+            dockerModule,
+            sshModule,
+            // Add more modules here as the refactoring progresses
+            // e.g., awsModule, configurationModule
+        )
 }

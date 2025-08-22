@@ -17,6 +17,7 @@ class WriteConfig(
         private const val DEFAULT_CONCURRENT_READS = 64
         private const val DEFAULT_CONCURRENT_WRITES = 64
     }
+
     @Parameter(description = "Patch file name")
     var file: String = "cassandra.patch.yaml"
 
@@ -28,7 +29,7 @@ class WriteConfig(
         println("Writing new configuration file to $file.")
         println(
             "It can be applied to the lab via easy-cass-lab update-config " +
-                "(or automatically when calling use-cassandra)"
+                "(or automatically when calling use-cassandra)",
         )
 
         val state = ClusterState.load()
@@ -42,10 +43,11 @@ class WriteConfig(
                         val class_name = "org.apache.cassandra.locator.SimpleSeedProvider"
                         val parameters =
                             object {
-                                val seeds = context.tfstate.getHosts(ServerType.Cassandra)
-                                    .map { it.private }
-                                    .take(1)
-                                    .joinToString(",")
+                                val seeds =
+                                    context.tfstate.getHosts(ServerType.Cassandra)
+                                        .map { it.private }
+                                        .take(1)
+                                        .joinToString(",")
                             }
                     }
                 val hints_directory = "/mnt/cassandra/hints"

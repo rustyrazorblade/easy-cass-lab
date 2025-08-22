@@ -10,7 +10,7 @@ open class EasyCassLabException(message: String, cause: Throwable? = null) : Exc
  */
 class DuplicateVersionException(versions: Set<String>) : EasyCassLabException(
     "Duplicate Cassandra version(s) found: ${versions.joinToString(", ")}. " +
-        "Please ensure each version is unique."
+        "Please ensure each version is unique.",
 )
 
 /**

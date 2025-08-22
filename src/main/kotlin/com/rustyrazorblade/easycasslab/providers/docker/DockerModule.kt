@@ -7,7 +7,6 @@ import com.rustyrazorblade.easycasslab.UserIdProvider
 import com.rustyrazorblade.easycasslab.docker.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.docker.LoggerOutputHandler
 import com.rustyrazorblade.easycasslab.docker.OutputHandler
-import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
@@ -15,42 +14,43 @@ import org.koin.dsl.module
 
 /**
  * Koin module for Docker-related dependency injection.
- * 
+ *
  * Provides:
  * - DockerClientProvider as a singleton (expensive to create)
  * - UserIdProvider as a singleton (stateless utility)
  * - OutputHandler implementations for different use cases
  * - Docker instances as factory (new instance per injection with state)
  */
-val dockerModule = module {
-    // Docker client provider - singleton because Docker client is expensive to create
-    singleOf(::DefaultDockerClientProvider) bind DockerClientProvider::class
-    
-    // User ID provider - singleton because it's a stateless utility
-    singleOf(::DefaultUserIdProvider) bind UserIdProvider::class
-    
-    // Output handlers - factory because they can maintain state
-    factory<OutputHandler> { ConsoleOutputHandler() }
-    factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
-    factory<OutputHandler>(named("logger")) { LoggerOutputHandler() }
-    
-    // Docker instances - factory because each instance maintains its own state (volumes, env)
-    factory { (context: Context) ->
-        Docker(
-            context = context,
-            dockerClient = get<DockerClientProvider>().getDockerClient(),
-            userIdProvider = get(),
-            outputHandler = get()
-        )
+val dockerModule =
+    module {
+        // Docker client provider - singleton because Docker client is expensive to create
+        singleOf(::DefaultDockerClientProvider) bind DockerClientProvider::class
+
+        // User ID provider - singleton because it's a stateless utility
+        singleOf(::DefaultUserIdProvider) bind UserIdProvider::class
+
+        // Output handlers - factory because they can maintain state
+        factory<OutputHandler> { ConsoleOutputHandler() }
+        factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
+        factory<OutputHandler>(named("logger")) { LoggerOutputHandler() }
+
+        // Docker instances - factory because each instance maintains its own state (volumes, env)
+        factory { (context: Context) ->
+            Docker(
+                context = context,
+                dockerClient = get<DockerClientProvider>().getDockerClient(),
+                userIdProvider = get(),
+                outputHandler = get(),
+            )
+        }
+
+        // Docker instances with specific output handlers
+        factory(named("dockerWithLogger")) { (context: Context) ->
+            Docker(
+                context = context,
+                dockerClient = get<DockerClientProvider>().getDockerClient(),
+                userIdProvider = get(),
+                outputHandler = get(named("logger")),
+            )
+        }
     }
-    
-    // Docker instances with specific output handlers
-    factory(named("dockerWithLogger")) { (context: Context) ->
-        Docker(
-            context = context,
-            dockerClient = get<DockerClientProvider>().getDockerClient(),
-            userIdProvider = get(),
-            outputHandler = get(named("logger"))
-        )
-    }
-}

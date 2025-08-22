@@ -76,9 +76,10 @@ data class CassandraVersion(
             // Remove duplicates based on the version field
             val tmp = mainVersions.distinctBy { it.version }
             if (tmp.size != mainVersions.size) {
-                val duplicates = mainVersions.groupBy { it.version }
-                    .filter { it.value.size > 1 }
-                    .keys
+                val duplicates =
+                    mainVersions.groupBy { it.version }
+                        .filter { it.value.size > 1 }
+                        .keys
                 throw DuplicateVersionException(duplicates)
             }
             return mainVersions

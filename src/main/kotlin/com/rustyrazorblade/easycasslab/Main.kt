@@ -13,11 +13,11 @@ fun main(arguments: Array<String>) {
     val easycasslabUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
 
     val context = Context(easycasslabUserDirectory)
-    
+
     // Initialize Koin dependency injection with context-specific configuration
     startKoin {
         modules(
-            KoinModules.getAllModules() + contextModule(context)
+            KoinModules.getAllModules() + contextModule(context),
         )
     }
     val parser = CommandLineParser(context)

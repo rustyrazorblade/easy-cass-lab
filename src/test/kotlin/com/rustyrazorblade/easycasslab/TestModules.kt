@@ -16,56 +16,91 @@ import java.nio.file.Path
  * Test modules for Koin dependency injection in tests.
  */
 object TestModules {
-    
     /**
      * Creates a test SSH module with mock implementations.
      */
-    fun testSSHModule() = module {
-        // Mock SSH configuration
-        single<SSHConfiguration> {
-            DefaultSSHConfiguration(keyPath = "test")
-        }
-        
-        // Mock SSH connection provider
-        single<SSHConnectionProvider> {
-            object : SSHConnectionProvider {
-                private val mockClient = MockSSHClient()
-                
-                override fun getConnection(host: Host): ISSHClient = mockClient
-                override fun stop() {}
+    fun testSSHModule() =
+        module {
+            // Mock SSH configuration
+            single<SSHConfiguration> {
+                DefaultSSHConfiguration(keyPath = "test")
             }
-        }
-        
-        // Mock remote operations service
-        factory<RemoteOperationsService> {
-            object : RemoteOperationsService {
-                override fun executeRemotely(
-                    host: Host,
-                    command: String,
-                    output: Boolean,
-                    secret: Boolean
-                ): Response = Response("")
-                
-                override fun upload(host: Host, local: Path, remote: String) {}
-                override fun uploadDirectory(host: Host, localDir: File, remoteDir: String) {}
-                override fun uploadDirectory(host: Host, version: Version) {}
-                override fun download(host: Host, remote: String, local: Path) {}
-                override fun downloadDirectory(
-                    host: Host,
-                    remoteDir: String,
-                    localDir: File,
-                    includeFilters: List<String>,
-                    excludeFilters: List<String>
-                ) {}
-                
-                override fun getRemoteVersion(host: Host, inputVersion: String): Version {
-                    return if (inputVersion == "current") {
-                        Version("/usr/local/cassandra/5.0")
-                    } else {
-                        Version.fromString(inputVersion)
+
+            // Mock SSH connection provider
+            single<SSHConnectionProvider> {
+                object : SSHConnectionProvider {
+                    private val mockClient = MockSSHClient()
+
+                    override fun getConnection(host: Host): ISSHClient = mockClient
+
+                    override fun stop() {
+                        // No-op for mock implementation
+                    }
+                }
+            }
+
+            // Mock remote operations service
+            factory<RemoteOperationsService> {
+                object : RemoteOperationsService {
+                    override fun executeRemotely(
+                        host: Host,
+                        command: String,
+                        output: Boolean,
+                        secret: Boolean,
+                    ): Response = Response("")
+
+                    override fun upload(
+                        host: Host,
+                        local: Path,
+                        remote: String,
+                    ) {
+                        // No-op for mock implementation
+                    }
+
+                    override fun uploadDirectory(
+                        host: Host,
+                        localDir: File,
+                        remoteDir: String,
+                    ) {
+                        // No-op for mock implementation
+                    }
+
+                    override fun uploadDirectory(
+                        host: Host,
+                        version: Version,
+                    ) {
+                        // No-op for mock implementation
+                    }
+
+                    override fun download(
+                        host: Host,
+                        remote: String,
+                        local: Path,
+                    ) {
+                        // No-op for mock implementation
+                    }
+
+                    override fun downloadDirectory(
+                        host: Host,
+                        remoteDir: String,
+                        localDir: File,
+                        includeFilters: List<String>,
+                        excludeFilters: List<String>,
+                    ) {
+                        // No-op for mock implementation
+                    }
+
+                    override fun getRemoteVersion(
+                        host: Host,
+                        inputVersion: String,
+                    ): Version {
+                        return if (inputVersion == "current") {
+                            Version("/usr/local/cassandra/5.0")
+                        } else {
+                            Version.fromString(inputVersion)
+                        }
                     }
                 }
             }
         }
-    }
 }

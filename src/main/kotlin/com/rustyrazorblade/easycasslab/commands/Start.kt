@@ -13,6 +13,7 @@ class Start(context: Context) : BaseCommand(context) {
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
     }
+
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
     var sleep: Long = DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS
 

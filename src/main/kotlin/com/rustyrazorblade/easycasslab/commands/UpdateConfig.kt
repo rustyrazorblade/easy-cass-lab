@@ -13,8 +13,9 @@ import kotlin.io.path.deleteExisting
 import kotlin.io.path.inputStream
 
 @Parameters(
-    commandDescription = "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +
-        " Done automatically after use-cassandra.",
+    commandDescription =
+        "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +
+            " Done automatically after use-cassandra.",
 )
 class UpdateConfig(context: Context) : BaseCommand(context) {
     @ParametersDelegate

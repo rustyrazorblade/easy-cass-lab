@@ -16,6 +16,7 @@ class Repl(val context: Context) : ICommand {
     companion object {
         private val log = KotlinLogging.logger {}
     }
+
     override fun execute() {
         try {
             // Set up the terminal

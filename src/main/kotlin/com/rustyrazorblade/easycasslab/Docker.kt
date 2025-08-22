@@ -20,9 +20,7 @@ import com.rustyrazorblade.easycasslab.docker.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.io.PipedInputStream
-import java.io.PipedOutputStream
 import java.time.Duration
-import kotlin.concurrent.thread
 
 // Interface for Docker client operations to improve testability
 interface DockerClientInterface {
@@ -160,8 +158,9 @@ interface UserIdProvider {
 
 class DefaultUserIdProvider : UserIdProvider {
     override fun getUserId(): Int {
-        val idQuery = ProcessBuilder("id", System.getProperty("user.name"))
-            .start().inputStream.bufferedReader().readLine()
+        val idQuery =
+            ProcessBuilder("id", System.getProperty("user.name"))
+                .start().inputStream.bufferedReader().readLine()
         val matches = "uid=(\\d*)".toRegex().find(idQuery)
 
         return matches?.groupValues?.get(1)?.toInt() ?: 0
@@ -182,25 +181,25 @@ data class VolumeMapping(val source: String, val destination: String, val mode: 
 
 /**
  * Main class for Docker container operations.
- * 
+ *
  * This class provides a high-level interface for running Docker containers with
  * support for volumes, environment variables, and flexible output handling.
- * 
+ *
  * The class has been refactored to support:
  * - Modular output handling (console, logger, buffer, custom)
  * - Better testability through dependency injection
  * - Background execution with proper output management
  * - Cleaner separation of concerns
- * 
+ *
  * Example usage:
  * ```kotlin
  * // Create a Docker instance with console output
  * val docker = Docker(context, dockerClient)
- * 
+ *
  * // Add volumes and environment variables
  * docker.addVolume(VolumeMapping("/host/path", "/container/path", AccessMode.rw))
  *       .addEnv("MY_VAR=value")
- * 
+ *
  * // Run a container
  * val result = docker.runContainer(
  *     Containers.UBUNTU,
@@ -208,13 +207,13 @@ data class VolumeMapping(val source: String, val destination: String, val mode: 
  *     "/workspace"
  * )
  * ```
- * 
+ *
  * For background execution with logger output:
  * ```kotlin
  * val docker = DockerFactory.createLoggerDocker(context, dockerClient)
  * // Container output will go to the logger instead of console
  * ```
- * 
+ *
  * @param context The execution context
  * @param dockerClient The Docker client interface for container operations
  * @param userIdProvider Provider for getting the current user ID (for permissions)
@@ -224,12 +223,12 @@ class Docker(
     val context: Context,
     private val dockerClient: DockerClientInterface,
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    private val outputHandler: OutputHandler = ConsoleOutputHandler()
+    private val outputHandler: OutputHandler = ConsoleOutputHandler(),
 ) {
     companion object {
         private const val CONTAINER_ID_DISPLAY_LENGTH = 12
         private val DEFAULT_MAX_WAIT_TIME = Duration.ofMinutes(10)
-        
+
         val log = KotlinLogging.logger {}
     }
 
@@ -320,16 +319,16 @@ class Docker(
 
     /**
      * Run a Docker container with the specified configuration.
-     * 
+     *
      * This method executes a container with the given image, command, and working directory.
      * It handles the complete lifecycle: creation, attachment, execution, and cleanup.
-     * 
+     *
      * The output is handled through the configured OutputHandler, allowing for:
      * - Console output (default)
      * - Logger output (for background execution)
      * - Buffered output (for testing)
      * - Custom output handling
-     * 
+     *
      * @param imageTag The Docker image tag to use (e.g., "ubuntu:latest")
      * @param command The command to execute in the container
      * @param workingDirectory The working directory inside the container
@@ -344,14 +343,15 @@ class Docker(
     ): Result<String> {
         require(imageTag.isNotBlank()) { "Image tag cannot be blank" }
         require(command.isNotEmpty()) { "Command list cannot be empty" }
-        
+
         // Use a buffered handler to capture output while also displaying it
         val bufferedHandler = BufferedOutputHandler()
-        val compositeHandler = com.rustyrazorblade.easycasslab.docker.CompositeOutputHandler(
-            outputHandler,
-            bufferedHandler
-        )
-        
+        val compositeHandler =
+            com.rustyrazorblade.easycasslab.docker.CompositeOutputHandler(
+                outputHandler,
+                bufferedHandler,
+            )
+
         val dockerCommandBuilder = dockerClient.createContainer(imageTag)
 
         // Get user ID using the injected provider for testability
@@ -384,22 +384,22 @@ class Docker(
         val ioManager = ContainerIOManager(dockerClient, compositeHandler)
         val executor = ContainerExecutor(dockerClient, compositeHandler)
         val stateMonitor = ContainerStateMonitor(dockerClient, compositeHandler)
-        
+
         // Attach to container and set up IO
         val framesRead = ioManager.attachToContainer(dockerContainer.id, true)
-        
+
         log.info { "Starting container with command $command" }
-        
+
         // Start container and wait for completion
         val containerState = executor.startAndWaitForCompletion(dockerContainer.id, maxWaitTime)
-        
+
         // Report final state
         stateMonitor.reportFinalState(containerState, framesRead)
-        
+
         // Clean up
         ioManager.close()
         executor.removeContainer(dockerContainer.id)
-        
+
         val returnCode = containerState.exitCodeLong?.toInt() ?: -1
         return if (returnCode == 0) {
             Result.success(bufferedHandler.stdout)

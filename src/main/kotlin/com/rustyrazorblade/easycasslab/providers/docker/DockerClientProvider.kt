@@ -9,7 +9,7 @@ import com.rustyrazorblade.easycasslab.DockerClientInterface
 interface DockerClientProvider {
     /**
      * Get a configured Docker client instance.
-     * 
+     *
      * @return A configured DockerClientInterface ready for use
      */
     fun getDockerClient(): DockerClientInterface

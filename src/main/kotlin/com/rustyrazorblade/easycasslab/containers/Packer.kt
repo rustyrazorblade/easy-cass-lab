@@ -33,7 +33,7 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
     ) {
         require(name.isNotBlank()) { "Build name cannot be blank" }
         require(buildArgs.region.isNotBlank()) { "Build region cannot be blank" }
-        
+
         val command =
             mutableListOf(
                 "build",
@@ -72,13 +72,13 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
 
     private fun execute(vararg commands: String): Result<String> {
         require(commands.isNotEmpty()) { "Commands cannot be empty" }
-        
+
         docker.pullImage(Containers.PACKER)
 
         val args = commands.toMutableList()
 
         var localPackerPath = context.packerHome + directory
-        
+
         require(directory.isNotBlank()) { "Directory cannot be blank" }
 
         if (!File(localPackerPath).exists()) {
@@ -111,7 +111,7 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
 
         // Packer builds can take 30+ minutes, especially when building from source
         val packerTimeout = Duration.ofMinutes(60)
-        
+
         return docker
             .addVolume(packerDir)
             .addVolume(VolumeMapping(context.awsConfig.absolutePath, creds, AccessMode.ro))

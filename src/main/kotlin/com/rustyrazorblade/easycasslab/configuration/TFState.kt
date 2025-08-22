@@ -32,7 +32,7 @@ class TFState(
     ) {
         fun getName(): String {
             return attributes.tags?.get("Name")
-                ?: throw IllegalStateException("Instance has no 'Name' tag")
+                ?: error("Instance has no 'Name' tag")
         }
     }
 
@@ -166,7 +166,7 @@ class TFState(
         fp.appendLine("    read -r identity_file")
         fp.appendLine(
             "    echo \"add \${YELLOW}'export EASY_CASS_LAB_SSH_KEY=\$identity_file'\${NC} " +
-                "to .bash_profile, .zsh, or similar\""
+                "to .bash_profile, .zsh, or similar\"",
         )
         fp.appendLine("  fi")
         fp.appendLine("  echo \"Writing \$SSH_CONFIG\"")

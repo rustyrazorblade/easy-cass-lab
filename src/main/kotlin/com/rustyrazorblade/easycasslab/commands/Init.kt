@@ -33,15 +33,16 @@ class Init(
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
         private const val DEFAULT_EBS_SIZE_GB = 256
-        
+
         @JsonIgnore
         val log = KotlinLogging.logger {}
-        
+
         fun expand(
             region: String,
             azs: List<String>,
         ): List<String> = azs.map { region + it }
     }
+
     @Parameter(description = "Number of Cassandra instances", names = ["--cassandra", "-c"])
     var cassandraInstances = DEFAULT_CASSANDRA_INSTANCE_COUNT
 
@@ -53,7 +54,7 @@ class Init(
 
     @Parameter(
         description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.",
-        names = ["--instance", "-i"]
+        names = ["--instance", "-i"],
     )
     var instanceType = System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
@@ -67,7 +68,7 @@ class Init(
     @Parameter(
         description = "Limit to specified availability zones",
         names = ["--azs", "--az", "-z"],
-        listConverter = AZConverter::class
+        listConverter = AZConverter::class,
     )
     var azs: List<String> = listOf()
 
@@ -76,7 +77,7 @@ class Init(
 
     @Parameter(
         description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.",
-        names = ["--ami"]
+        names = ["--ami"],
     )
     var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
 
@@ -91,19 +92,19 @@ class Init(
 
     @Parameter(
         description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'",
-        names = ["--ebs.iops"]
+        names = ["--ebs.iops"],
     )
     var ebs_iops = 0
 
     @Parameter(
         description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')",
-        names = ["--ebs.throughput"]
+        names = ["--ebs.throughput"],
     )
     var ebs_throughput = 0
 
     @Parameter(
         description = "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
-        names = ["--ebs.optimized"]
+        names = ["--ebs.optimized"],
     )
     var ebs_optimized = false
 
@@ -203,5 +204,4 @@ class Init(
         println("Calling init")
         return terraform.init()
     }
-
 }

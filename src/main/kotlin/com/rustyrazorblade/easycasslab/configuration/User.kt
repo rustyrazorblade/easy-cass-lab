@@ -74,10 +74,11 @@ data class User(
 
             fun getAxonOps(inputName: String) = Utils.prompt("AxonOps $inputName: ", "")
 
-            val axonOpsChoice = Utils.prompt(
-                "Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]",
-                default = "N"
-            )
+            val axonOpsChoice =
+                Utils.prompt(
+                    "Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]",
+                    default = "N",
+                )
             val useAxonOps = axonOpsChoice.equals("y", true)
             val axonOpsOrg = if (useAxonOps) getAxonOps("Org") else ""
             val axonOpsKey = if (useAxonOps) getAxonOps("Key") else ""

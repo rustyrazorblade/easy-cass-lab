@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
@@ -22,6 +21,7 @@ class Up(
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
         private val SSH_RETRY_DELAY = Duration.ofSeconds(1)
     }
+
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
 
@@ -137,7 +137,7 @@ class Up(
             with(TermColors()) {
                 println(
                     "Skipping node setup.  You will need to run " +
-                        "${green("easy-cass-lab setup-instance")} to complete setup"
+                        "${green("easy-cass-lab setup-instance")} to complete setup",
                 )
             }
         } else {

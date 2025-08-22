@@ -7,6 +7,7 @@ class SparkInitParams {
     companion object {
         private const val DEFAULT_SPARK_WORKER_COUNT = 3
     }
+
     @Parameter(names = ["--spark.enable"], description = "Enable Spark EMR Cluster")
     var enable = false
 

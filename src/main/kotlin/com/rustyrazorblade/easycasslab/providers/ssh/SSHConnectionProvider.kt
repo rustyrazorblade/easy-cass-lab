@@ -11,12 +11,12 @@ interface SSHConnectionProvider {
     /**
      * Get an SSH connection for the given host.
      * Creates a new connection if one doesn't exist, or returns an existing one from the pool.
-     * 
+     *
      * @param host The host to connect to
      * @return An SSH client connected to the host
      */
     fun getConnection(host: Host): ISSHClient
-    
+
     /**
      * Stop all SSH connections and clean up resources.
      * This should be called when the application is shutting down.
