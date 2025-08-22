@@ -96,11 +96,9 @@ data class Context(val easycasslabUserDirectory: File) {
 
     // this will let us write out the yaml
     val userConfig by lazy {
-        if (!userConfigFile.exists()) {
-            log.debug { "$userConfigFile not found, going through interactive setup" }
-            profilesDir.mkdirs()
-            User.createInteractively(this, userConfigFile)
-        }
+        log.debug { "Loading user config from $userConfigFile" }
+        profilesDir.mkdirs()
+        User.createInteractively(this, userConfigFile)
 
         yaml.readValue<User>(userConfigFile)
     }
