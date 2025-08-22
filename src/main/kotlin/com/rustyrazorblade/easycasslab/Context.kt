@@ -12,7 +12,6 @@ import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
-import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
@@ -20,39 +19,6 @@ import org.koin.core.component.inject
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-
-/**
- * Represents a Cassandra version
- *
- * @param path The full path to the Cassandra installation
- */
-data class Version(val path: String) {
-    /**
-     * Gets just the version component from the path
-     */
-    val versionString: String = path.substringAfterLast("/")
-    val conf: String = "$path/conf"
-
-    val file = File(versionString)
-
-    companion object {
-        /**
-         * Create a Version from a version string (e.g. "5.0")
-         *
-         * @param version The version string (e.g. "5.0")
-         * @return A Version instance with the appropriate path
-         */
-        fun fromString(version: String): Version {
-            return Version("/usr/local/cassandra/$version")
-        }
-
-        fun fromRemotePath(path: String): Version {
-            return Version(path)
-        }
-    }
-
-    val localDir: Path get() = Path.of(versionString)
-}
 
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     var profilesDir = File(easycasslabUserDirectory, "profiles")
@@ -141,9 +107,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
-
-    // Made overridable for testing - delegates to injected service
-    var getConnection: (Host) -> ISSHClient = { host -> sshConnectionProvider.getConnection(host) }
 
     /**
      * Returns the version currently set on the remote server.
