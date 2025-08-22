@@ -150,7 +150,7 @@ class MockSSHClient : ISSHClient {
                 p1: String?,
                 p2: MutableCollection<ScpClient.Option>?,
             ) {
-                TODO("Not yet implemented")
+                // No-op for mock implementation
             }
 
             override fun download(
@@ -166,7 +166,8 @@ class MockSSHClient : ISSHClient {
             }
 
             override fun isOpen(): Boolean {
-                TODO("Not yet implemented")
+                // Mock client is always considered open
+                return true
             }
         }
     }

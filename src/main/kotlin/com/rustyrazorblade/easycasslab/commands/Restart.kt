@@ -14,10 +14,10 @@ class Restart(context: Context) : BaseCommand(context) {
 
     override fun execute() {
         // TODO wait for cassandra to become available
-        println("Restarting cassandra service on all nodes.")
+        outputHandler.handleMessage("Restarting cassandra service on all nodes.")
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
-                println(green("Restarting $it"))
+                outputHandler.handleMessage(green("Restarting $it"))
                 remoteOps.executeRemotely(it, "/usr/local/bin/restart-cassandra-and-wait").text
             }
         }
