@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.ssh
 
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.scp.client.CloseableScpClient
@@ -11,7 +12,10 @@ import java.nio.file.Path
  * Main class for SSH operations
  * Acts as a facade for all SSH-related functionality
  */
-class SSHClient(private val session: ClientSession) : ISSHClient {
+class SSHClient(
+    private val session: ClientSession,
+    private val outputHandler: OutputHandler,
+) : ISSHClient {
     private val log = KotlinLogging.logger {}
 
     /**
@@ -29,15 +33,15 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
     ): Response {
         // Create connection for this host
         if (!secret) {
-            println("Executing remote command: $command")
+            outputHandler.handleMessage("Executing remote command: $command")
         } else {
-            println("Executing remote command: [hidden]")
+            outputHandler.handleMessage("Executing remote command: [hidden]")
         }
 
         val result = session.executeRemoteCommand(command)
 
         if (output) {
-            println(result)
+            outputHandler.handleMessage(result)
         }
 
         return Response(result)
@@ -50,7 +54,7 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
         local: Path,
         remote: String,
     ) {
-        println("Uploading file ${local.toAbsolutePath()} to $session:$remote")
+        outputHandler.handleMessage("Uploading file ${local.toAbsolutePath()} to $session:$remote")
         getScpClient().upload(local, remote)
     }
 
@@ -66,7 +70,7 @@ class SSHClient(private val session: ClientSession) : ISSHClient {
             return
         }
 
-        println("Uploading directory ${localDir.absolutePath} to $session:$remoteDir")
+        outputHandler.handleMessage("Uploading directory ${localDir.absolutePath} to $session:$remoteDir")
 
         executeRemoteCommand("mkdir -p $remoteDir", false, false)
 

@@ -17,8 +17,8 @@ import org.koin.dsl.module
 val sshModule =
     module {
         // SSH connection provider - singleton because it manages a connection pool
-        singleOf(::DefaultSSHConnectionProvider) bind SSHConnectionProvider::class
+        single<SSHConnectionProvider> { DefaultSSHConnectionProvider(get(), get()) }
 
         // Remote operations service - factory because it's stateless
-        factoryOf(::DefaultRemoteOperationsService) bind RemoteOperationsService::class
+        factory<RemoteOperationsService> { DefaultRemoteOperationsService(get(), get()) }
     }

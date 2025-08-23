@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.apache.commons.io.FileUtils
 import org.reflections.Reflections
 import org.reflections.scanners.ResourcesScanner
@@ -8,7 +9,10 @@ import java.io.File
 /**
  * simple class to manage copying dashboards to the right directory
  */
-class Dashboards(private val dashboardLocation: File) {
+class Dashboards(
+    private val dashboardLocation: File,
+    private val outputHandler: OutputHandler,
+) {
     fun copyDashboards() {
         val reflections = Reflections("com.rustyrazorblade.dashboards", ResourcesScanner())
         val resources = reflections.getResources(".*".toPattern())
@@ -16,7 +20,7 @@ class Dashboards(private val dashboardLocation: File) {
             val input = this.javaClass.getResourceAsStream("/" + f)
             val outputFile = f.replace("com/rustyrazorblade/dashboards", "")
             val output = File(dashboardLocation, outputFile)
-            println("Writing ${output.absolutePath}")
+            outputHandler.handleMessage("Writing ${output.absolutePath}")
             FileUtils.copyInputStreamToFile(input, output)
         }
     }

@@ -99,11 +99,9 @@ class LoggerOutputHandler(
         message: String,
         throwable: Throwable?,
     ) {
-        if (throwable != null) {
-            log.error(throwable) { message }
-        } else {
-            log.error { message }
-        }
+        throwable?.let {
+            log.error(it) { message }
+        } ?: log.error { message }
     }
 
     override fun close() {

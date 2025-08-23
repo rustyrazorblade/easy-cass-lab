@@ -99,7 +99,8 @@ class MockSSHClient : ISSHClient {
                 p3: MutableCollection<PosixFilePermission>?,
                 p4: ScpTimestampCommandDetails?,
             ) {
-                TODO("Not yet implemented")
+                // No-op for mock implementation
+                log.debug { "MOCK: upload called with stream to $p1" }
             }
 
             override fun upload(
@@ -111,7 +112,8 @@ class MockSSHClient : ISSHClient {
             }
 
             override fun getClientSession(): ClientSession {
-                TODO("Not yet implemented")
+                // Return a mock ClientSession
+                throw UnsupportedOperationException("Mock implementation does not support getClientSession")
             }
 
             override fun download(
@@ -119,7 +121,8 @@ class MockSSHClient : ISSHClient {
                 p1: String?,
                 p2: MutableCollection<ScpClient.Option>?,
             ) {
-                TODO("Not yet implemented")
+                // No-op for mock implementation
+                log.debug { "MOCK: download called from $p0 to $p1" }
             }
 
             override fun download(
@@ -135,14 +138,16 @@ class MockSSHClient : ISSHClient {
                 p1: Path?,
                 p2: MutableCollection<ScpClient.Option>?,
             ) {
-                TODO("Not yet implemented")
+                // No-op for mock implementation
+                log.debug { "MOCK: download called from $p0 to $p1" }
             }
 
             override fun download(
                 p0: String?,
                 p1: OutputStream?,
             ) {
-                TODO("Not yet implemented")
+                // No-op for mock implementation
+                log.debug { "MOCK: download called from $p0 to stream" }
             }
 
             override fun download(

@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.providers.ssh
 
 import com.rustyrazorblade.easycasslab.Version
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
@@ -15,6 +16,7 @@ import java.nio.file.Path
  */
 class DefaultRemoteOperationsService(
     private val connectionProvider: SSHConnectionProvider,
+    private val outputHandler: OutputHandler,
 ) : RemoteOperationsService {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -45,7 +47,7 @@ class DefaultRemoteOperationsService(
         remoteDir: String,
     ) {
         log.info { "Uploading directory $localDir to ${host.alias}:$remoteDir" }
-        println("Uploading directory $localDir to $remoteDir")
+        outputHandler.handleMessage("Uploading directory $localDir to $remoteDir")
         connectionProvider.getConnection(host).uploadDirectory(localDir, remoteDir)
     }
 

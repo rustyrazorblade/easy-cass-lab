@@ -309,8 +309,8 @@ class TerraformConfig(
         }.toMap()
 
     fun setSpark(spark: EMRCluster?) {
-        if (spark != null) {
-            resource.aws_emr_cluster = mapOf("cluster" to spark)
+        spark?.let {
+            resource.aws_emr_cluster = mapOf("cluster" to it)
         }
     }
 

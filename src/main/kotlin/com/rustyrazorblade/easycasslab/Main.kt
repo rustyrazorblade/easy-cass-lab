@@ -25,19 +25,18 @@ fun main(arguments: Array<String>) {
         parser.eval(arguments)
     } catch (e: DockerException) {
         log.error(e) { "Docker connection error" }
-
         with(TermColors()) {
             println(red("There was an error connecting to docker.  Please check if it is running."))
         }
-    } catch (ignored: java.rmi.RemoteException) {
+    } catch (e: java.rmi.RemoteException) {
+        log.error(e) { "Remote execution error" }
         with(TermColors()) {
             println(red("There was an error executing the remote command.  Try rerunning it."))
         }
     } catch (e: Exception) {
+        log.error(e) { "An unknown exception has occurred" }
         with(TermColors()) {
             println(red("An unknown exception has occurred."))
-        }
-        with(TermColors()) {
             println(
                 red(
                     "Does this look like an error with easy-cass-lab?  If so, please file a bug report at " +

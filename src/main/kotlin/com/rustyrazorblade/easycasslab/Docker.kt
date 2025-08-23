@@ -287,11 +287,11 @@ class Docker(
                 }
 
                 override fun onNext(item: PullResponseItem?) {
-                    if (item != null) {
-                        item.progressDetail?.let {
-                            if (it.current != null && it.total != null) {
-                                outputHandler.handleMessage("Pulling: ${it.current} / ${it.total}")
-                            }
+                    item?.progressDetail?.let { detail ->
+                        val current = detail.current
+                        val total = detail.total
+                        if (current != null && total != null) {
+                            outputHandler.handleMessage("Pulling: $current / $total")
                         }
                     }
                     return super.onNext(item)

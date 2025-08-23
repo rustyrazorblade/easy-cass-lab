@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.providers.ssh
 
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.SSHClient
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -19,6 +20,7 @@ import kotlin.io.path.Path
  */
 class DefaultSSHConnectionProvider(
     private val config: SSHConfiguration,
+    private val outputHandler: OutputHandler,
 ) : SSHConnectionProvider {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -60,7 +62,7 @@ class DefaultSSHConnectionProvider(
             session.auth().verify()
 
             log.info { "SSH connection established to ${host.alias}" }
-            SSHClient(session)
+            SSHClient(session, outputHandler)
         }
     }
 

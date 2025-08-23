@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Utils
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.EC2
 import io.github.oshai.kotlinlogging.KotlinLogging
 import software.amazon.awssdk.regions.Region
@@ -35,9 +36,10 @@ data class User(
         fun createInteractively(
             context: Context,
             location: File,
+            outputHandler: OutputHandler,
         ) {
-            println("Welcome to the easy-cass-lab interactive setup.")
-            println("We just need to know a few things before we get started.")
+            outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
+            outputHandler.handleMessage("We just need to know a few things before we get started.")
 
             val email = Utils.prompt("What's your email?", "")
 

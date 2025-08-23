@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.containers.Terraform
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.common.SshException
 import java.io.File
 import java.nio.file.Path
@@ -18,6 +19,7 @@ class Up(
     context: Context,
 ) : BaseCommand(context) {
     companion object {
+        private val log = KotlinLogging.logger {}
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
         private val SSH_RETRY_DELAY = Duration.ofSeconds(1)
     }
@@ -43,15 +45,15 @@ class Up(
 
         with(TermColors()) {
             terraform.up().onFailure {
-                println(it.message)
-                println(it.printStackTrace())
-                println(
+                log.error(it) { "Terraform provisioning failed" }
+                outputHandler.handleError(it.message ?: "Unknown error")
+                outputHandler.handleMessage(
                     "${red(
                         "Some resources may have been unsuccessfully provisioned.",
                     )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
                 )
             }.onSuccess {
-                println(
+                outputHandler.handleMessage(
                     """Instances have been provisioned.
                 
                 Use ${green("easy-cass-lab list")} to see all available versions
@@ -61,9 +63,9 @@ class Up(
                     """.trimMargin(),
                 )
 
-                println("Writing ssh config file to sshConfig.")
+                outputHandler.handleMessage("Writing ssh config file to sshConfig.")
 
-                println(
+                outputHandler.handleMessage(
                     """The following alias will allow you to easily work with the cluster:
                 |
                 |${green("source env.sh")}
@@ -71,7 +73,7 @@ class Up(
                 |
                     """.trimMargin(),
                 )
-                println(
+                outputHandler.handleMessage(
                     "You can edit ${green(
                         "cassandra.patch.yaml",
                     )} with any changes you'd like to see merge in into the remote cassandra.yaml file.",
@@ -111,7 +113,7 @@ class Up(
         // the disks, axonops, system settings, etc
         // we can't set up the configs yet though,
         // because those are dependent on the C* version in use.
-        println("Waiting for SSH to come up..")
+        outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
 
         // probably need to loop and wait
@@ -128,14 +130,14 @@ class Up(
                 }
                 done = true
             } catch (ignored: SshException) {
-                println("SSH still not up yet, waiting..")
+                outputHandler.handleMessage("SSH still not up yet, waiting..")
                 Thread.sleep(SSH_RETRY_DELAY.toMillis())
             }
         } while (!done)
 
         if (noSetup) {
             with(TermColors()) {
-                println(
+                outputHandler.handleMessage(
                     "Skipping node setup.  You will need to run " +
                         "${green("easy-cass-lab setup-instance")} to complete setup",
                 )
@@ -144,7 +146,7 @@ class Up(
             SetupInstance(context).execute()
 
             if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
-                println("Setting up axonops for ${context.userConfig.axonOpsOrg}")
+                outputHandler.handleMessage("Setting up axonops for ${context.userConfig.axonOpsOrg}")
 
                 ConfigureAxonOps(context).execute()
             }

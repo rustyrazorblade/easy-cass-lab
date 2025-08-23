@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
@@ -63,7 +64,7 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         if (!userConfigFile.exists()) {
             log.debug { "$userConfigFile not found, going through interactive setup" }
             profilesDir.mkdirs()
-            User.createInteractively(this, userConfigFile)
+            User.createInteractively(this, userConfigFile, outputHandler)
         }
 
         yaml.readValue<User>(userConfigFile)
@@ -102,6 +103,7 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     // SSH services are now injected via Koin
     private val sshConnectionProvider: SSHConnectionProvider by inject()
     private val remoteOperationsService: RemoteOperationsService by inject()
+    private val outputHandler: OutputHandler by inject()
 
     val cwdPath = System.getProperty("user.dir")
 
