@@ -21,6 +21,7 @@ data class Variable(val default: Any?, val type: String? = null)
 /**
  * Top level configuration class. Holds the TerraformConfig that's actually written out.
  */
+@Suppress("LongParameterList")
 class AWSConfiguration(
     var name: String,
     var region: String,

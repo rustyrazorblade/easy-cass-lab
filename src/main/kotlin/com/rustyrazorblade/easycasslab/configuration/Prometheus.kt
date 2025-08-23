@@ -90,6 +90,7 @@ class Prometheus(
     companion object {
         val yaml by YamlDelegate()
 
+        @Suppress("LongParameterList")
         fun writeConfiguration(
             cassandra: List<HostInfo>,
             stress: List<HostInfo>,
