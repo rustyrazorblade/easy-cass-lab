@@ -87,28 +87,28 @@ class Init(
     var open = false
 
     @Parameter(description = "EBS Volume Type", names = ["--ebs.type"])
-    var ebs_type = EBSType.NONE
+    var ebsType = EBSType.NONE
 
     @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
-    var ebs_size = DEFAULT_EBS_SIZE_GB
+    var ebsSize = DEFAULT_EBS_SIZE_GB
 
     @Parameter(
         description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'",
         names = ["--ebs.iops"],
     )
-    var ebs_iops = 0
+    var ebsIops = 0
 
     @Parameter(
         description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')",
         names = ["--ebs.throughput"],
     )
-    var ebs_throughput = 0
+    var ebsThroughput = 0
 
     @Parameter(
         description = "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
         names = ["--ebs.optimized"],
     )
-    var ebs_optimized = false
+    var ebsOptimized = false
 
     @Parameter(description = "Cluster name")
     var name = "test"
@@ -123,82 +123,112 @@ class Init(
     var tags: Map<String, String> = mutableMapOf()
 
     override fun execute() {
+        validateParameters()
+        
         outputHandler.handleMessage("Initializing directory")
-        val docker: Docker by inject { parametersOf(context) }
-        docker.pullImage(Containers.TERRAFORM)
-
-        // Added because if we're reusing a directory, we don't want any of the previous state
-        Clean().execute()
-
-        val state = ClusterState(name = name, versions = mutableMapOf())
-        state.save()
-
-        val ebs = EBSConfiguration(ebs_type, ebs_size, ebs_iops, ebs_throughput, ebs_optimized)
-        val config =
-            AWSConfiguration(
-                name,
-                region = context.userConfig.region,
-                context = context,
-                ami = ami,
-                open = open,
-                ebs = ebs,
-                numCassandraInstances = cassandraInstances,
-                cassandraInstanceType = instanceType,
-                numStressInstances = stressInstances,
-                stressInstanceType = stressInstanceType,
-                arch = arch,
-                sparkParams = spark,
-            )
-
-        outputHandler.handleMessage("Directory Initialized Configuring Terraform")
-
-        for ((key, value) in tags) {
-            config.setTag(key, value)
-        }
-
-        config.setVariable("NeededUntil", until)
-
-        if (azs.isNotEmpty()) {
-            outputHandler.handleMessage("Overriding default az list with $azs")
-            config.azs = expand(context.userConfig.region, azs)
-        }
-
-        outputHandler.handleMessage("Writing OpenTofu Config")
-        writeTerraformConfig(config)
-
-        outputHandler.handleMessage("Writing setup_instance.sh")
-        this::class.java.getResourceAsStream("setup_instance.sh").use { stream ->
-            requireNotNull(stream) { "Resource setup_instance.sh not found" }
-            val diskSetup = File("setup_instance.sh").bufferedWriter()
-            diskSetup.write(stream.readBytes().toString(Charsets.US_ASCII))
-            diskSetup.flush()
-            diskSetup.close()
-        }
-
-        this::class.java.getResourceAsStream("axonops-dashboards.json").use { stream ->
-            requireNotNull(stream) { "Resource axonops-dashboards.json not found" }
-            val diskSetup = File("axonops-dashboards.json").bufferedWriter()
-            diskSetup.write(stream.readBytes().toString(Charsets.US_ASCII))
-            diskSetup.flush()
-            diskSetup.close()
-        }
-
-        outputHandler.handleMessage(
-            "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
-                "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
-                "in ${context.userConfig.region}",
-        )
+        prepareEnvironment()
+        
+        val config = buildAWSConfiguration()
+        configureAWSSettings(config)
+        
+        initializeTerraform(config)
+        extractResourceFiles()
+        
+        displayCompletionMessage(config)
+        
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
             Up(context).execute()
         } else {
             with(TermColors()) {
-                outputHandler.handleMessage("Next you'll want to run ${green("easy-cass-lab up")} to start your instances.")
+                outputHandler.handleMessage(
+                    "Next you'll want to run ${green("easy-cass-lab up")} to start your instances."
+                )
             }
         }
     }
+    
+    private fun validateParameters() {
+        require(cassandraInstances > 0) { "Number of Cassandra instances must be positive" }
+        require(stressInstances >= 0) { "Number of stress instances cannot be negative" }
+        require(ebsSize > 0) { "EBS size must be positive" }
+        require(ebsIops >= 0) { "EBS IOPS cannot be negative" }
+        require(ebsThroughput >= 0) { "EBS throughput cannot be negative" }
+    }
+    
+    private fun prepareEnvironment() {
+        val docker: Docker by inject { parametersOf(context) }
+        docker.pullImage(Containers.TERRAFORM)
+        
+        // Added because if we're reusing a directory, we don't want any of the previous state
+        Clean().execute()
+        
+        val state = ClusterState(name = name, versions = mutableMapOf())
+        state.save()
+    }
+    
+    private fun buildAWSConfiguration(): AWSConfiguration {
+        val ebs = EBSConfiguration(ebsType, ebsSize, ebsIops, ebsThroughput, ebsOptimized)
+        return AWSConfiguration(
+            name,
+            region = context.userConfig.region,
+            context = context,
+            ami = ami,
+            open = open,
+            ebs = ebs,
+            numCassandraInstances = cassandraInstances,
+            cassandraInstanceType = instanceType,
+            numStressInstances = stressInstances,
+            stressInstanceType = stressInstanceType,
+            arch = arch,
+            sparkParams = spark,
+        )
+    }
+    
+    private fun configureAWSSettings(config: AWSConfiguration) {
+        outputHandler.handleMessage("Directory Initialized Configuring Terraform")
+        
+        for ((key, value) in tags) {
+            config.setTag(key, value)
+        }
+        
+        config.setVariable("NeededUntil", until)
+        
+        if (azs.isNotEmpty()) {
+            outputHandler.handleMessage("Overriding default az list with $azs")
+            config.azs = expand(context.userConfig.region, azs)
+        }
+    }
+    
+    private fun initializeTerraform(config: AWSConfiguration) {
+        outputHandler.handleMessage("Writing OpenTofu Config")
+        writeTerraformConfig(config)
+    }
+    
+    private fun extractResourceFiles() {
+        outputHandler.handleMessage("Writing setup_instance.sh")
+        extractResourceFile("setup_instance.sh", "setup_instance.sh")
+        extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
+    }
+    
+    private fun extractResourceFile(resourceName: String, targetFileName: String) {
+        this::class.java.getResourceAsStream(resourceName).use { stream ->
+            requireNotNull(stream) { "Resource $resourceName not found" }
+            File(targetFileName).outputStream().use { output ->
+                stream.copyTo(output)
+            }
+        }
+    }
+    
+    private fun displayCompletionMessage(config: AWSConfiguration) {
+        outputHandler.handleMessage(
+            "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
+                "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
+                "in ${context.userConfig.region}",
+        )
+    }
 
-    fun writeTerraformConfig(config: AWSConfiguration): Result<String> {
+    private fun writeTerraformConfig(config: AWSConfiguration): Result<String> {
         val configOutput = File("terraform.tf.json")
         config.write(configOutput)
 
