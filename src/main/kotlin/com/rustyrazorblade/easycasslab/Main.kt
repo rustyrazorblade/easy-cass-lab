@@ -9,6 +9,7 @@ import java.io.File
 
 private val log = KotlinLogging.logger {}
 
+@Suppress("TooGenericExceptionCaught")
 fun main(arguments: Array<String>) {
     val easycasslabUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
 
@@ -33,10 +34,20 @@ fun main(arguments: Array<String>) {
         with(TermColors()) {
             println(red("There was an error executing the remote command.  Try rerunning it."))
         }
-    } catch (e: Exception) {
-        log.error(e) { "An unknown exception has occurred" }
+    } catch (e: IllegalArgumentException) {
+        log.error(e) { "Invalid argument provided" }
         with(TermColors()) {
-            println(red("An unknown exception has occurred."))
+            println(red("Invalid argument: ${e.message}"))
+        }
+    } catch (e: IllegalStateException) {
+        log.error(e) { "Invalid state encountered" }
+        with(TermColors()) {
+            println(red("Invalid state: ${e.message}"))
+        }
+    } catch (e: RuntimeException) {
+        log.error(e) { "A runtime exception has occurred" }
+        with(TermColors()) {
+            println(red("An unexpected error has occurred."))
             println(
                 red(
                     "Does this look like an error with easy-cass-lab?  If so, please file a bug report at " +

@@ -89,11 +89,15 @@ class ContainerExecutor(
      *
      * @param containerId The ID of the container to remove
      */
+    @Suppress("TooGenericExceptionCaught")
     fun removeContainer(containerId: String) {
         try {
             dockerClient.removeContainer(containerId, true)
-        } catch (e: Exception) {
-            log.error(e) { "Failed to remove container $containerId" }
+        } catch (e: DockerException) {
+            log.error(e) { "Docker error while removing container $containerId" }
+            outputHandler.handleError("Failed to remove container: ${e.message}", e)
+        } catch (e: RuntimeException) {
+            log.error(e) { "Runtime error while removing container $containerId" }
             outputHandler.handleError("Failed to remove container: ${e.message}", e)
         }
     }
@@ -185,8 +189,11 @@ class ContainerIOManager(
             inputPipe?.close()
             inputThread?.interrupt()
             outputHandler.close()
-        } catch (e: Exception) {
-            log.error(e) { "Error closing IO manager" }
+        } catch (e: IOException) {
+            log.error(e) { "IO error while closing IO manager" }
+        } catch (e: InterruptedException) {
+            log.error(e) { "Thread interrupted while closing IO manager" }
+            Thread.currentThread().interrupt()
         }
     }
 }

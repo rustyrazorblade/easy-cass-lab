@@ -8,6 +8,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
+import java.io.IOException
 import java.security.KeyPair
 import java.time.Duration
 import kotlin.io.path.Path
@@ -66,22 +67,27 @@ class DefaultSSHConnectionProvider(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
     override fun stop() {
         log.info { "Stopping SSH client and closing ${connections.size} connections" }
 
         connections.values.forEach { connection ->
             try {
                 connection.close()
-            } catch (e: Exception) {
-                log.error(e) { "Error closing SSH connection" }
+            } catch (e: IOException) {
+                log.error(e) { "IO error while closing SSH connection" }
+            } catch (e: RuntimeException) {
+                log.error(e) { "Runtime error while closing SSH connection" }
             }
         }
         connections.clear()
 
         try {
             sshClient.stop()
-        } catch (e: Exception) {
-            log.error(e) { "Error stopping SSH client" }
+        } catch (e: IOException) {
+            log.error(e) { "IO error while stopping SSH client" }
+        } catch (e: RuntimeException) {
+            log.error(e) { "Runtime error while stopping SSH client" }
         }
 
         log.info { "SSH client stopped successfully" }
