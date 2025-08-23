@@ -361,7 +361,9 @@ class Docker(
 
         env.add("HOST_USER_ID=$userId")
 
-        log.info { "Starting docker container with command $command and environment variables: $env" }
+        log.info {
+            "Starting docker container with command $command and environment variables: $env"
+        }
 
         dockerCommandBuilder
             .withCmd(command)
@@ -378,7 +380,8 @@ class Docker(
         }
 
         val dockerContainer = dockerCommandBuilder.exec()
-        compositeHandler.handleMessage("Starting $imageTag container (${dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)})")
+        val containerId = dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)
+        compositeHandler.handleMessage("Starting $imageTag container ($containerId)")
 
         // Use the new modular components
         val ioManager = ContainerIOManager(dockerClient, compositeHandler)

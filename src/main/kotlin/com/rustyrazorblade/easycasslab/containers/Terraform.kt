@@ -46,7 +46,13 @@ class Terraform(val context: Context) : KoinComponent {
 
         return docker
             .addVolume(VolumeMapping(context.cwdPath, Constants.Paths.LOCAL_MOUNT, AccessMode.rw))
-            .addVolume(VolumeMapping(context.terraformCacheDir.absolutePath, Constants.Paths.TERRAFORM_CACHE, AccessMode.rw))
+            .addVolume(
+                VolumeMapping(
+                    context.terraformCacheDir.absolutePath,
+                    Constants.Paths.TERRAFORM_CACHE,
+                    AccessMode.rw,
+                ),
+            )
             .addVolume(VolumeMapping(context.awsConfig.absolutePath, mount, AccessMode.ro))
             .addEnv("${Constants.Terraform.PLUGIN_CACHE_DIR_ENV}=${Constants.Paths.TERRAFORM_CACHE}")
             .runContainer(Containers.TERRAFORM, args, localDirectory)

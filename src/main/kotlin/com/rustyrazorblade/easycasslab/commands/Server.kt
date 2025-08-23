@@ -14,6 +14,7 @@ import org.koin.core.component.inject
 @Parameters(commandDescription = "Start server mode")
 class Server(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private const val DEFAULT_SERVER_PORT = 6100
     }

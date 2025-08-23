@@ -16,11 +16,11 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.containers.Terraform
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -32,6 +32,7 @@ class Init(
     @JsonIgnore val context: Context,
 ) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
         private const val DEFAULT_EBS_SIZE_GB = 256
@@ -124,30 +125,30 @@ class Init(
 
     override fun execute() {
         validateParameters()
-        
+
         outputHandler.handleMessage("Initializing directory")
         prepareEnvironment()
-        
+
         val config = buildAWSConfiguration()
         configureAWSSettings(config)
-        
+
         initializeTerraform(config)
         extractResourceFiles()
-        
+
         displayCompletionMessage(config)
-        
+
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
             Up(context).execute()
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(
-                    "Next you'll want to run ${green("easy-cass-lab up")} to start your instances."
+                    "Next you'll want to run ${green("easy-cass-lab up")} to start your instances.",
                 )
             }
         }
     }
-    
+
     private fun validateParameters() {
         require(cassandraInstances > 0) { "Number of Cassandra instances must be positive" }
         require(stressInstances >= 0) { "Number of stress instances cannot be negative" }
@@ -155,18 +156,18 @@ class Init(
         require(ebsIops >= 0) { "EBS IOPS cannot be negative" }
         require(ebsThroughput >= 0) { "EBS throughput cannot be negative" }
     }
-    
+
     private fun prepareEnvironment() {
         val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
-        
+
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
-        
+
         val state = ClusterState(name = name, versions = mutableMapOf())
         state.save()
     }
-    
+
     private fun buildAWSConfiguration(): AWSConfiguration {
         val ebs = EBSConfiguration(ebsType, ebsSize, ebsIops, ebsThroughput, ebsOptimized)
         return AWSConfiguration(
@@ -184,34 +185,37 @@ class Init(
             sparkParams = spark,
         )
     }
-    
+
     private fun configureAWSSettings(config: AWSConfiguration) {
         outputHandler.handleMessage("Directory Initialized Configuring Terraform")
-        
+
         for ((key, value) in tags) {
             config.setTag(key, value)
         }
-        
+
         config.setVariable("NeededUntil", until)
-        
+
         if (azs.isNotEmpty()) {
             outputHandler.handleMessage("Overriding default az list with $azs")
             config.azs = expand(context.userConfig.region, azs)
         }
     }
-    
+
     private fun initializeTerraform(config: AWSConfiguration) {
         outputHandler.handleMessage("Writing OpenTofu Config")
         writeTerraformConfig(config)
     }
-    
+
     private fun extractResourceFiles() {
         outputHandler.handleMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
         extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
     }
-    
-    private fun extractResourceFile(resourceName: String, targetFileName: String) {
+
+    private fun extractResourceFile(
+        resourceName: String,
+        targetFileName: String,
+    ) {
         this::class.java.getResourceAsStream(resourceName).use { stream ->
             requireNotNull(stream) { "Resource $resourceName not found" }
             File(targetFileName).outputStream().use { output ->
@@ -219,7 +223,7 @@ class Init(
             }
         }
     }
-    
+
     private fun displayCompletionMessage(config: AWSConfiguration) {
         outputHandler.handleMessage(
             "Your workspace has been initialized with $cassandraInstances Cassandra instances " +

@@ -16,6 +16,7 @@ class WriteConfig(
     @JsonIgnore val context: Context,
 ) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private const val DEFAULT_TOKEN_COUNT = 4
         private const val DEFAULT_CONCURRENT_READS = 64

@@ -21,7 +21,7 @@ data class Variable(val default: Any?, val type: String? = null)
 /**
  * Top level configuration class. Holds the TerraformConfig that's actually written out.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 class AWSConfiguration(
     var name: String,
     var region: String,
@@ -114,41 +114,7 @@ class AWSConfiguration(
         val sshRule = listOf(if (open) "0.0.0.0/0" else "${getExternalIpAddress()}/32")
 
         val name = "easy_cass_lab_$name"
-        val instanceSg =
-            SecurityGroupResource(
-                name,
-                description = "easy-cass-lab security group",
-                tags = tags,
-                vpc = terraformConfig.vpc,
-                ingress =
-                    listOf(
-                        SecurityGroupRule(
-                            description = "ssh",
-                            from_port = 22,
-                            to_port = 22,
-                            protocol = TCP,
-                            cidr_blocks = sshRule,
-                        ),
-                        SecurityGroupRule(
-                            description = "Intra node",
-                            from_port = 0,
-                            to_port = 65535,
-                            protocol = TCP,
-                            cidr_blocks = listOf("10.0.0.0/16"),
-                        ),
-                    ),
-                egress =
-                    listOf(
-                        SecurityGroupRule(
-                            description = "Outbound All Traffic",
-                            from_port = 0,
-                            to_port = 0,
-                            protocol = "-1",
-                            cidr_blocks = listOf("0.0.0.0/0"),
-                        ),
-                    ),
-            )
-
+        val instanceSg = createSecurityGroup(name, sshRule)
         terraformConfig.resource.aws_security_group[instanceSg.name] = instanceSg
 
         val ebsConf = if (ebs.type != EBSType.NONE) ebs.createEbsConf() else null
@@ -156,11 +122,68 @@ class AWSConfiguration(
         // tags should be standard across all resources
         val subnets = terraformConfig.subnets.values.toList()
         logger.info { "Using subnets: $subnets" }
-        var subnetPos = 0
 
+        createCassandraInstances(instanceSg, ebsConf, subnets)
+        createStressInstances(instanceSg, subnets)
+        createControlNode(instanceSg, subnets)
+
+        terraformConfig.setSpark(
+            getEmr(
+                subnet = subnets[0],
+                securityGroupResource = instanceSg,
+            ),
+        )
+
+        return this
+    }
+
+    private fun createSecurityGroup(
+        name: String,
+        sshRule: List<String>,
+    ): SecurityGroupResource {
+        return SecurityGroupResource(
+            name,
+            description = "easy-cass-lab security group",
+            tags = tags,
+            vpc = terraformConfig.vpc,
+            ingress =
+                listOf(
+                    SecurityGroupRule(
+                        description = "ssh",
+                        from_port = 22,
+                        to_port = 22,
+                        protocol = TCP,
+                        cidr_blocks = sshRule,
+                    ),
+                    SecurityGroupRule(
+                        description = "Intra node",
+                        from_port = 0,
+                        to_port = 65535,
+                        protocol = TCP,
+                        cidr_blocks = listOf("10.0.0.0/16"),
+                    ),
+                ),
+            egress =
+                listOf(
+                    SecurityGroupRule(
+                        description = "Outbound All Traffic",
+                        from_port = 0,
+                        to_port = 0,
+                        protocol = "-1",
+                        cidr_blocks = listOf("0.0.0.0/0"),
+                    ),
+                ),
+        )
+    }
+
+    private fun createCassandraInstances(
+        instanceSg: SecurityGroupResource,
+        ebsConf: InstanceEBSBlockDevice?,
+        subnets: List<Subnet>,
+    ) {
+        var subnetPos = 0
         for (i in 0..<numCassandraInstances) {
             val instanceName = ServerType.Cassandra.serverType + i
-
             val cass =
                 InstanceResource(
                     ami = ami,
@@ -180,9 +203,13 @@ class AWSConfiguration(
             }
             logger.info { "Creating resource $instanceName as $cass" }
         }
+    }
 
-        subnetPos = 0
-
+    private fun createStressInstances(
+        instanceSg: SecurityGroupResource,
+        subnets: List<Subnet>,
+    ) {
+        var subnetPos = 0
         for (i in 0..<numStressInstances) {
             val instanceName = ServerType.Stress.serverType + i
             val stress =
@@ -196,22 +223,26 @@ class AWSConfiguration(
                     ebs_optimized = false,
                     subnet = subnets[subnetPos],
                 )
-
             terraformConfig.resource.aws_instance[instanceName] = stress
-            subnetPos++
 
+            subnetPos++
             if (subnetPos == subnets.size) {
                 subnetPos = 0
             }
             logger.info { "Creating resource $instanceName as $stress" }
         }
+    }
 
-        // Always create a single control node
+    private fun createControlNode(
+        instanceSg: SecurityGroupResource,
+        subnets: List<Subnet>,
+    ) {
         val controlInstanceName = ServerType.Control.serverType + "0"
         val control =
             InstanceResource(
                 ami = ami,
-                instance_type = "t3.xlarge", // 4 vCPUs, 16 GiB RAM
+                // 4 vCPUs, 16 GiB RAM
+                instance_type = "t3.xlarge",
                 tags = tags + Pair("Name", controlInstanceName),
                 vpc_security_group_ids = listOf(instanceSg.id()),
                 count = 1,
@@ -221,15 +252,6 @@ class AWSConfiguration(
             )
         terraformConfig.resource.aws_instance[controlInstanceName] = control
         logger.info { "Creating resource $controlInstanceName as $control" }
-
-        terraformConfig.setSpark(
-            getEmr(
-                subnet = subnets[0],
-                securityGroupResource = instanceSg,
-            ),
-        )
-
-        return this
     }
 
     fun toJSON(): String {

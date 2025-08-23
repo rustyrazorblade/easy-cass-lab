@@ -28,6 +28,10 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
     private var logger = KotlinLogging.logger {}
     private var release = false
 
+    companion object {
+        private const val PACKER_TIMEOUT_MINUTES = 60L
+    }
+
     // todo include the region defined in the profile
     fun build(
         name: String,
@@ -112,7 +116,7 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
         var creds = Constants.Paths.CREDENTIALS_MOUNT
 
         // Packer builds can take 30+ minutes, especially when building from source
-        val packerTimeout = Duration.ofMinutes(60)
+        val packerTimeout = Duration.ofMinutes(PACKER_TIMEOUT_MINUTES)
 
         return docker
             .addVolume(packerDir)

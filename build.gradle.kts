@@ -183,7 +183,8 @@ kover {
                     "*Test\$*",
                     "*.test.*",
                     "*Mock*",
-                    "*\$\$*", // Generated classes
+                    // Generated classes
+                    "*\$\$*",
                     "*_Factory",
                     "*_Impl",
                     "*.BuildConfig",
@@ -205,7 +206,7 @@ kover {
                 disabled = false
 
                 bound {
-                    minValue = 30 // Start at 30%, gradually increase
+                    minValue = 40 // Start at 30%, gradually increase
                     coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
                     aggregationForGroup = kotlinx.kover.gradle.plugin.dsl.AggregationType.COVERED_PERCENTAGE
                 }

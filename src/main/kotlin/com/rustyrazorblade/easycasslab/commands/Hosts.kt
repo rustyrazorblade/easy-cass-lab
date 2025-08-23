@@ -11,6 +11,7 @@ import java.io.FileNotFoundException
 
 class Hosts(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     @Parameter(names = ["-c"], description = "Show Cassandra as a comma delimited list")
     var cassandra: Boolean = false
 
@@ -35,7 +36,9 @@ class Hosts(val context: Context) : ICommand, KoinComponent {
                 context.yaml.writeValue(System.out, output)
             }
         } catch (ignored: FileNotFoundException) {
-            outputHandler.handleMessage("terraform.tfstate does not exist yet, most likely easy-cass-lab up has not been run.")
+            outputHandler.handleMessage(
+                "terraform.tfstate does not exist yet, most likely easy-cass-lab up has not been run.",
+            )
         }
     }
 }

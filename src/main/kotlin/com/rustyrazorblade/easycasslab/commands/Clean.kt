@@ -7,6 +7,7 @@ import java.io.File
 
 class Clean : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     override fun execute() {
         val toDelete =
             listOf(

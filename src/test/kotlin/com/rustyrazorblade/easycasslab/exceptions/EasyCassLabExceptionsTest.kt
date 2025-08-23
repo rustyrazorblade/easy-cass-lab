@@ -91,27 +91,42 @@ class EasyCassLabExceptionsTest {
     }
 
     @Test
-    fun `All custom exceptions can be thrown and caught`() {
+    fun `DuplicateVersionException can be thrown and caught`() {
         assertThatThrownBy { throw DuplicateVersionException(setOf("1.0")) }
             .isInstanceOf(DuplicateVersionException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)
+    }
 
+    @Test
+    fun `ConfigurationException can be thrown and caught`() {
         assertThatThrownBy { throw ConfigurationException("error") }
             .isInstanceOf(ConfigurationException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)
+    }
 
+    @Test
+    fun `DockerOperationException can be thrown and caught`() {
         assertThatThrownBy { throw DockerOperationException("error") }
             .isInstanceOf(DockerOperationException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)
+    }
 
+    @Test
+    fun `CommandExecutionException can be thrown and caught`() {
         assertThatThrownBy { throw CommandExecutionException("error") }
             .isInstanceOf(CommandExecutionException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)
+    }
 
+    @Test
+    fun `SSHException can be thrown and caught`() {
         assertThatThrownBy { throw SSHException("error") }
             .isInstanceOf(SSHException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)
+    }
 
+    @Test
+    fun `TerraformException can be thrown and caught`() {
         assertThatThrownBy { throw TerraformException("error") }
             .isInstanceOf(TerraformException::class.java)
             .isInstanceOf(EasyCassLabException::class.java)

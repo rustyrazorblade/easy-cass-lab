@@ -38,11 +38,16 @@ class Up(
         // so we have to explicitly specify the local one to ensure it gets
         // priority over user
         // slowly migrating code from Terraform to Java.
-
         context.cloudProvider.createLabEnvironment()
+        provisionInfrastructure()
+        writeConfigurationFiles()
+        WriteConfig(context).execute()
+        waitForSshAndDownloadVersions()
+        setupInstancesIfNeeded()
+    }
 
+    private fun provisionInfrastructure() {
         val terraform = Terraform(context)
-
         with(TermColors()) {
             terraform.up().onFailure {
                 log.error(it) { "Terraform provisioning failed" }
@@ -62,9 +67,7 @@ class Up(
                 
                     """.trimMargin(),
                 )
-
                 outputHandler.handleMessage("Writing ssh config file to sshConfig.")
-
                 outputHandler.handleMessage(
                     """The following alias will allow you to easily work with the cluster:
                 |
@@ -80,25 +83,25 @@ class Up(
                 )
             }
         }
+    }
 
+    private fun writeConfigurationFiles() {
         val config = File("sshConfig").bufferedWriter()
         context.tfstate.writeSshConfig(config)
-
         val envFile = File("env.sh").bufferedWriter()
         context.tfstate.writeEnvironmentFile(envFile)
+        writeStressEnvironmentVariables()
+    }
 
-        // sets up any environment variables we need for the stress tool
+    private fun writeStressEnvironmentVariables() {
         val stressEnvironmentVars = File("environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
         stressEnvironmentVars.newLine()
-
         val host = context.tfstate.getHosts(ServerType.Cassandra).first().private
-
         stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$host")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_PROM_PORT=0")
         stressEnvironmentVars.newLine()
-
         stressEnvironmentVars.write(
             "export CASSANDRA_EASY_STRESS_DEFAULT_DC=\$(curl -s " +
                 "http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
@@ -106,18 +109,12 @@ class Up(
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
+    }
 
-        WriteConfig(context).execute()
-
-        // once the instances are up we can connect and set up
-        // the disks, axonops, system settings, etc
-        // we can't set up the configs yet though,
-        // because those are dependent on the C* version in use.
+    private fun waitForSshAndDownloadVersions() {
         outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
 
-        // probably need to loop and wait
-        // write to profile.d/stress.sh
         var done = false
         do {
             try {
@@ -134,7 +131,9 @@ class Up(
                 Thread.sleep(SSH_RETRY_DELAY.toMillis())
             }
         } while (!done)
+    }
 
+    private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -147,7 +146,6 @@ class Up(
 
             if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${context.userConfig.axonOpsOrg}")
-
                 ConfigureAxonOps(context).execute()
             }
         }

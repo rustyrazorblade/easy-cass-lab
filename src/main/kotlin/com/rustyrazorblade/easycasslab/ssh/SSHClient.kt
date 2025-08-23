@@ -126,33 +126,38 @@ class SSHClient(
         // Download each file
         for (remoteFile in remoteFiles) {
             val relativePath = remoteFile.removePrefix("$remoteDir/")
-            val fileName = relativePath.substringAfterLast("/")
 
-            // Skip if file matches exclude filter
-            if (excludeFilters.isNotEmpty()) {
-                val matchesExcludeFilter =
-                    excludeFilters.any { pattern ->
-                        fileName.matches(pattern.replace("*", ".*").toRegex())
-                    }
-                if (matchesExcludeFilter) continue
+            if (shouldDownloadFile(relativePath, includeFilters, excludeFilters)) {
+                val localFile = File(localDir, relativePath)
+                // Ensure parent directory exists
+                localFile.parentFile.mkdirs()
+                downloadFile(remoteFile, localFile.toPath())
             }
-
-            // Skip if include filters are specified and file doesn't match
-            if (includeFilters.isNotEmpty()) {
-                val matchesIncludeFilter =
-                    includeFilters.any { pattern ->
-                        fileName.matches(pattern.replace("*", ".*").toRegex())
-                    }
-                if (!matchesIncludeFilter) continue
-            }
-
-            val localFile = File(localDir, relativePath)
-
-            // Ensure parent directory exists
-            localFile.parentFile.mkdirs()
-
-            downloadFile(remoteFile, localFile.toPath())
         }
+    }
+
+    private fun shouldDownloadFile(
+        relativePath: String,
+        includeFilters: List<String>,
+        excludeFilters: List<String>,
+    ): Boolean {
+        val fileName = relativePath.substringAfterLast("/")
+
+        // Check exclude filters
+        val isExcluded =
+            excludeFilters.isNotEmpty() &&
+                excludeFilters.any { pattern ->
+                    fileName.matches(pattern.replace("*", ".*").toRegex())
+                }
+
+        // Check include filters
+        val isNotIncluded =
+            includeFilters.isNotEmpty() &&
+                !includeFilters.any { pattern ->
+                    fileName.matches(pattern.replace("*", ".*").toRegex())
+                }
+
+        return !isExcluded && !isNotIncluded
     }
 
     override fun getScpClient(): CloseableScpClient {
