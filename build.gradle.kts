@@ -1,16 +1,5 @@
 
 
-extra.apply {
-    set("logback_version", "1.5.18")
-    set("jackson_dataformat_version", "2.15.2")
-    set("jackson_kotlin_version", "2.9.+")
-    set("jupiter_version", "5.5.2")
-    set("assertj_version", "3.11.1")
-    set("jcommander_version", "1.82")
-    set("kotlin_version", "2.1.21")
-    set("ktor_version", "3.1.3")
-}
-
 buildscript {
     repositories {
         mavenCentral()
@@ -21,12 +10,12 @@ plugins {
     java
     idea
     application
-    id("org.jetbrains.kotlin.jvm") version "2.1.21"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("com.github.ben-manes.versions") version "0.52.0"
-    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
-    id("io.gitlab.arturbosch.detekt") version "1.23.7"
-    id("org.jetbrains.kotlinx.kover") version "0.8.3"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.versions)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.kover)
 }
 
 group = "com.rustyrazorblade"
@@ -68,61 +57,48 @@ allprojects {
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
+    // Logging
+    implementation(libs.bundles.logging)
 
-    implementation("ch.qos.logback:logback-classic:${project.extra["logback_version"]}")
-    implementation("io.github.oshai:kotlin-logging-jvm:7.0.7")
+    // Kotlin
+    implementation(libs.kotlin.stdlib)
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:${project.extra["kotlin_version"]}")
+    // CLI and UI
+    implementation(libs.jcommander)
+    implementation(libs.guava)
+    implementation(libs.jline)
+    implementation(libs.mordant)
 
-    implementation("com.beust:jcommander:${project.extra["jcommander_version"]}")
-    implementation("com.google.guava:guava:33.4.8-jre")
+    // AWS SDK
     implementation(awssdk.services.s3) // Add dependency on the AWS SDK for Kotlin's S3 client.
+    implementation(libs.bundles.awssdk)
 
-    // for finding resources
-    // https://mvnrepository.com/artifact/org.reflections/reflections
-    implementation("org.reflections:reflections:0.10.2")
+    // Utilities
+    implementation(libs.reflections)
+    implementation(libs.commons.io)
 
-    // https://mvnrepository.com/artifact/commons-io/commons-io
-    implementation("commons-io:commons-io:2.7")
+    // Docker
+    implementation(libs.bundles.docker)
 
-    // https://mvnrepository.com/artifact/com.github.docker-java/docker-java
-    implementation("com.github.docker-java:docker-java:3.5.1")
-
-    // https://mvnrepository.com/artifact/com.github.docker-java/docker-java-transport-httpclient5
-    implementation("com.github.docker-java:docker-java-transport-httpclient5:3.5.1")
-
+    // Project dependencies
     implementation(project(":core"))
 
-    implementation("software.amazon.awssdk:ec2:2.20.145")
-    implementation("software.amazon.awssdk:iam:2.20.145")
-    implementation("software.amazon.awssdk:emr:2.20.145")
+    // Jackson
+    implementation(libs.bundles.jackson)
 
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${project.extra["jackson_dataformat_version"]}")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${project.extra["jackson_kotlin_version"]}")
+    // SSH
+    implementation(libs.bundles.sshd)
 
-    // https://mvnrepository.com/artifact/org.apache.sshd/sshd-core
-    implementation("org.apache.sshd:sshd-core:2.12.1")
-    implementation("org.apache.sshd:sshd-scp:2.12.1")
-
-    implementation("org.jline:jline:3.25.0")
-    implementation("com.github.ajalt:mordant:1.2.1")
-
-    implementation("io.ktor:ktor-server-core:${project.extra["ktor_version"]}")
-    implementation("io.ktor:ktor-server-netty:${project.extra["ktor_version"]}")
-    implementation("io.ktor:ktor-server-content-negotiation:${project.extra["ktor_version"]}")
-    implementation("io.ktor:ktor-serialization-jackson:${project.extra["ktor_version"]}")
+    // Ktor
+    implementation(libs.bundles.ktor)
 
     // Koin Dependency Injection
-    implementation(platform("io.insert-koin:koin-bom:3.5.3"))
-    implementation("io.insert-koin:koin-core")
+    implementation(platform(libs.koin.bom))
+    implementation(libs.bundles.koin)
 
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:${project.extra["jupiter_version"]}")
-
-    // https://mvnrepository.com/artifact/org.assertj/assertj-core
-    testImplementation("org.assertj:assertj-core:${project.extra["assertj_version"]}")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testImplementation("io.insert-koin:koin-test")
-    testImplementation("io.insert-koin:koin-test-junit5")
+    // Testing
+    testImplementation(libs.bundles.testing)
+    testImplementation(libs.bundles.koin.test)
 }
 
 kotlin {
