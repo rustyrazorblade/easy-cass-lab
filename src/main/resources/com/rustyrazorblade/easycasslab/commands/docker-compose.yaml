@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     network_mode: host
     healthcheck:
-      test: [ "CMD", "curl", "http://localhost:8000/health" ]
+      test: ["CMD", "bash", "-c", "exec 6<> /dev/tcp/localhost/8000"]
       interval: 30s
       timeout: 10s
       retries: 3
