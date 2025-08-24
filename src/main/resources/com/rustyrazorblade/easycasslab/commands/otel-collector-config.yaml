@@ -90,14 +90,7 @@ exporters:
   # File exporter for logs (simplified without rotation options)
   file/logs:
     path: /var/log/otel-collector/logs.json
-  
-  # Prometheus exporter for metrics (can be scraped by other tools)
-  prometheus:
-    endpoint: 0.0.0.0:8889
-    namespace: otel
-    send_timestamps: true
-    enable_open_metrics: true
-  
+
   # Debug exporter for troubleshooting (replaces deprecated logging exporter)
   debug:
     verbosity: detailed
@@ -129,9 +122,9 @@ service:
     
     # Metrics pipeline - expose via Prometheus endpoint
     metrics:
-      receivers: [otlp, prometheus, hostmetrics]
+      receivers: [otlp, hostmetrics]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [prometheus, debug]
+      exporters: [debug]
     
     # Logs pipeline - send to file and debug
     logs:
@@ -143,6 +136,4 @@ service:
     logs:
       level: info
     metrics:
-      level: detailed
-      # Remove the address field - it's not valid at this level
-      # Metrics telemetry is configured differently in newer versions
+      level: none  # Disable internal metrics since we're not using Prometheus

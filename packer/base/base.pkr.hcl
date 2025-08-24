@@ -88,11 +88,6 @@ build {
     script = "install/install_bcc.sh"
   }
 
-  # install OpenTelemetry Collector
-  provisioner "shell" {
-    script = "install/install_otel_collector.sh"
-  }
-
   # install Docker
   provisioner "shell" {
     script = "install/install_docker.sh"
