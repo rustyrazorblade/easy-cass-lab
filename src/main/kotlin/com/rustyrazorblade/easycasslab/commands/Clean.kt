@@ -8,8 +8,8 @@ import java.io.File
 class Clean : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
-    override fun execute() {
-        val toDelete =
+    companion object {
+        val filesToClean =
             listOf(
                 "create_provisioning_resources.sh",
                 "cassandra.patch.yaml",
@@ -32,11 +32,22 @@ class Clean : ICommand, KoinComponent {
                 "cassandra_versions.yaml",
             )
 
-        for (f in toDelete) {
+        val directoriesToClean =
+            listOf(
+                ".terraform",
+                "provisioning",
+                "control",
+            )
+    }
+
+    override fun execute() {
+        for (f in filesToClean) {
             File(f).deleteRecursively()
         }
-        File(".terraform").deleteRecursively()
-        File("provisioning").deleteRecursively()
+        
+        for (d in directoriesToClean) {
+            File(d).deleteRecursively()
+        }
         val artifacts = File("artifacts")
 
         if (artifacts.isDirectory) {

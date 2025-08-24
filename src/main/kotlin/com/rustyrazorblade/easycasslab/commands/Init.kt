@@ -126,11 +126,20 @@ class Init(
     @DynamicParameter(names = ["--tag."], description = "Tag instances")
     var tags: Map<String, String> = mutableMapOf()
 
+    @Parameter(description = "Clean existing configuration before initializing", names = ["--clean"])
+    var clean = false
+
     override fun execute() {
         validateParameters()
+        
+        // Check for existing files unless --clean is specified
+        if (!clean) {
+            checkExistingFiles()
+        }
+        
+        prepareEnvironment()
 
         outputHandler.handleMessage("Initializing directory")
-        prepareEnvironment()
 
         val config = buildAWSConfiguration()
         configureAWSSettings(config)
@@ -160,12 +169,44 @@ class Init(
         require(ebsThroughput >= 0) { "EBS throughput cannot be negative" }
     }
 
+    private fun checkExistingFiles() {
+        val existingFiles = mutableListOf<String>()
+        
+        // Check files from Clean.filesToClean
+        Clean.filesToClean.forEach { file ->
+            if (File(file).exists()) {
+                existingFiles.add(file)
+            }
+        }
+        
+        // Check directories from Clean.directoriesToClean
+        Clean.directoriesToClean.forEach { dir ->
+            if (File(dir).exists()) {
+                existingFiles.add("$dir/")
+            }
+        }
+        
+        if (existingFiles.isNotEmpty()) {
+            val message = buildString {
+                appendLine("Error: Directory already contains configuration files:")
+                existingFiles.forEach { appendLine("  - $it") }
+                appendLine()
+                appendLine("Please use --clean flag to remove existing configuration, or run 'easy-cass-lab clean' first.")
+            }
+            outputHandler.handleMessage(message)
+            System.exit(1)
+        }
+    }
+
     private fun prepareEnvironment() {
         val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
 
-        // Added because if we're reusing a directory, we don't want any of the previous state
-        Clean().execute()
+        // Only run Clean if --clean flag is provided
+        if (clean) {
+            outputHandler.handleMessage("Cleaning existing configuration...")
+            Clean().execute()
+        }
 
         // Create InitConfig with all the parameters from this Init command
         val initConfig = InitConfig(
