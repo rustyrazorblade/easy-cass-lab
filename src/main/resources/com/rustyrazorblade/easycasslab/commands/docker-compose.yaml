@@ -3,9 +3,16 @@ services:
     image: rustyrazorblade/easy-cass-mcp:latest
     container_name: easy-cass-mcp
     environment:
-      - CASSANDRA_HOST=cassandra0
+      - CASSANDRA_HOST=${CASSANDRA_HOST}
+      - CASSANDRA_DATACENTER=${CASSANDRA_DATACENTER}
     restart: unless-stopped
     network_mode: host
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   opensearch:
     image: opensearchproject/opensearch:latest

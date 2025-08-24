@@ -16,6 +16,7 @@ import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
@@ -166,7 +167,32 @@ class Init(
         // Added because if we're reusing a directory, we don't want any of the previous state
         Clean().execute()
 
-        val state = ClusterState(name = name, versions = mutableMapOf())
+        // Create InitConfig with all the parameters from this Init command
+        val initConfig = InitConfig(
+            cassandraInstances = cassandraInstances,
+            stressInstances = stressInstances,
+            instanceType = instanceType,
+            stressInstanceType = stressInstanceType,
+            azs = azs,
+            ami = ami,
+            region = context.userConfig.region,
+            name = name,
+            ebsType = ebsType.toString(),
+            ebsSize = ebsSize,
+            ebsIops = ebsIops,
+            ebsThroughput = ebsThroughput,
+            ebsOptimized = ebsOptimized,
+            open = open,
+            controlInstances = 1,  // Control instances are currently hardcoded to 1
+            controlInstanceType = "t3.xlarge",  // Default control instance type
+            tags = tags,
+        )
+
+        val state = ClusterState(
+            name = name,
+            versions = mutableMapOf(),
+            initConfig = initConfig,
+        )
         state.save()
     }
 

@@ -7,6 +7,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.io.File
 
@@ -60,8 +61,33 @@ class Start(context: Context) : BaseCommand(context) {
             return
         }
 
+        // Load cluster state to get InitConfig
+        val clusterState = try {
+            ClusterState.load()
+        } catch (e: Exception) {
+            outputHandler.handleMessage("Warning: Could not load cluster state, using defaults")
+            null
+        }
+
+        // Get datacenter (region) and cassandra host
+        val datacenter = clusterState?.initConfig?.region ?: context.userConfig.region
+        val cassandraHost = context.tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
+
+        // Create .env file content
+        val envContent = """
+            CASSANDRA_DATACENTER=$datacenter
+            CASSANDRA_HOST=$cassandraHost
+        """.trimIndent()
+
         context.tfstate.withHosts(ServerType.Control, hosts) { host ->
             outputHandler.handleMessage("Starting Docker Compose services on control node ${host.public}")
+
+            // Create and upload .env file
+            outputHandler.handleMessage("Creating .env file with datacenter=$datacenter and host=$cassandraHost")
+            val envFile = File.createTempFile("docker", ".env")
+            envFile.writeText(envContent)
+            remoteOps.upload(host, envFile.toPath(), "/home/ubuntu/.env")
+            envFile.delete()
 
             // Check if docker-compose.yaml exists on the remote host
             val checkResult =
