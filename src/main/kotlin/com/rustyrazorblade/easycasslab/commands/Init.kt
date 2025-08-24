@@ -210,6 +210,11 @@ class Init(
         outputHandler.handleMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
         extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
+        
+        // Create control directory and extract docker-compose.yaml there
+        outputHandler.handleMessage("Creating control directory and writing docker-compose.yaml")
+        File("control").mkdirs()
+        extractResourceFile("docker-compose.yaml", "control/docker-compose.yaml")
     }
 
     private fun extractResourceFile(

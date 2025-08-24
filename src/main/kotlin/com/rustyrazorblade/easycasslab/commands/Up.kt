@@ -43,6 +43,7 @@ class Up(
         writeConfigurationFiles()
         WriteConfig(context).execute()
         waitForSshAndDownloadVersions()
+        uploadDockerComposeToControlNodes()
         setupInstancesIfNeeded()
     }
 
@@ -131,6 +132,37 @@ class Up(
                 Thread.sleep(SSH_RETRY_DELAY.toMillis())
             }
         } while (!done)
+    }
+
+    private fun uploadDockerComposeToControlNodes() {
+        outputHandler.handleMessage("Preparing Docker Compose configuration for control nodes...")
+        
+        val dockerComposeFile = File("control/docker-compose.yaml")
+        if (!dockerComposeFile.exists()) {
+            outputHandler.handleMessage("control/docker-compose.yaml not found, skipping upload")
+            return
+        }
+        
+        // Get the internal IP of the first Cassandra node
+        val cassandraHost = context.tfstate.getHosts(ServerType.Cassandra).first().private
+        outputHandler.handleMessage("Using Cassandra host IP: $cassandraHost")
+        
+        // Read the docker-compose.yaml file and replace cassandra0 with the actual IP
+        val dockerComposeContent = dockerComposeFile.readText()
+        val updatedContent = dockerComposeContent.replace("CASSANDRA_HOST=cassandra0", "CASSANDRA_HOST=$cassandraHost")
+        
+        // Write the updated content back to the file
+        dockerComposeFile.writeText(updatedContent)
+        outputHandler.handleMessage("Updated docker-compose.yaml with Cassandra IP: $cassandraHost")
+        
+        context.tfstate.withHosts(ServerType.Control, hosts) { host ->
+            outputHandler.handleMessage("Uploading docker-compose.yaml to control node ${host.public}")
+            
+            // Upload docker-compose.yaml to ubuntu user's home directory
+            remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
+        }
+        
+        outputHandler.handleMessage("Docker Compose configuration uploaded to control nodes")
     }
 
     private fun setupInstancesIfNeeded() {
