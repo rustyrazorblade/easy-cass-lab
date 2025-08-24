@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
 import com.rustyrazorblade.easycasslab.commands.BuildImage
@@ -26,7 +27,11 @@ import com.rustyrazorblade.easycasslab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easycasslab.commands.UseCassandra
 import com.rustyrazorblade.easycasslab.commands.Version
 import com.rustyrazorblade.easycasslab.commands.WriteConfig
+import com.rustyrazorblade.easycasslab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import kotlin.system.exitProcess
 
 data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
 
@@ -35,13 +40,14 @@ class MainArgs {
     var help = false
 }
 
-class CommandLineParser(val context: Context) {
+class CommandLineParser(val context: Context) : KoinComponent {
     val commands: List<Command>
 
     @JsonIgnore
     private val logger = KotlinLogging.logger {}
     private val jc: JCommander
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
+    private val dockerClientProvider: DockerClientProvider by inject()
 
     init {
 
@@ -100,9 +106,30 @@ class CommandLineParser(val context: Context) {
         @Suppress("SpreadOperator") // Required for varargs
         jc.parse(*input)
         commands.filter { it.name == jc.parsedCommand }.firstOrNull()?.run {
+            // Check if the command requires Docker
+            if (this.command::class.annotations.any { it is RequireDocker }) {
+                if (!checkDockerAvailability()) {
+                    println("Error: Docker is not available or not running.")
+                    println("Please ensure Docker is installed and running before executing this command.")
+                    exitProcess(1)
+                }
+            }
             this.command.execute()
         } ?: run {
             jc.usage()
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun checkDockerAvailability(): Boolean {
+        return try {
+            val dockerClient = dockerClientProvider.getDockerClient()
+            // Try to list images as a simple health check
+            dockerClient.listImages("", "")
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "Docker availability check failed" }
+            false
         }
     }
 }

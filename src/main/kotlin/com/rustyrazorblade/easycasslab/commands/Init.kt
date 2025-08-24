@@ -11,6 +11,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
+import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
@@ -27,6 +28,7 @@ import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.time.LocalDate
 
+@RequireDocker
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
 class Init(
     @JsonIgnore val context: Context,
@@ -210,11 +212,14 @@ class Init(
         outputHandler.handleMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
         extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
-        
-        // Create control directory and extract docker-compose.yaml there
-        outputHandler.handleMessage("Creating control directory and writing docker-compose.yaml")
+
+        // Create control directory and extract docker-compose.yaml and otel config there
+        outputHandler.handleMessage(
+            "Creating control directory and writing docker-compose.yaml and otel-collector-config.yaml",
+        )
         File("control").mkdirs()
         extractResourceFile("docker-compose.yaml", "control/docker-compose.yaml")
+        extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
     }
 
     private fun extractResourceFile(

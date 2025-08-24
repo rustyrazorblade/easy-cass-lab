@@ -5,7 +5,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.charset.Charset
 import java.nio.file.Path
 
 /**
@@ -38,13 +40,14 @@ class SSHClient(
             outputHandler.handleMessage("Executing remote command: [hidden]")
         }
 
-        val result = session.executeRemoteCommand(command)
+        val stderrStream = ByteArrayOutputStream()
+        val result = session.executeRemoteCommand(command, stderrStream, Charset.defaultCharset())
 
         if (output) {
             outputHandler.handleMessage(result)
         }
 
-        return Response(result)
+        return Response(result, stderrStream.toString())
     }
 
     /**

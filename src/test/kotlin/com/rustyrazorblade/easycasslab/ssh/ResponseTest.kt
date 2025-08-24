@@ -68,10 +68,48 @@ class ResponseTest {
 
     @Test
     fun `Response component functions work correctly`() {
-        val response = Response("Component test")
+        val response = Response("Component test", "Error test")
 
-        val (text) = response
+        val (text, stderr) = response
 
         assertThat(text).isEqualTo("Component test")
+        assertThat(stderr).isEqualTo("Error test")
+    }
+
+    @Test
+    fun `Response should store and retrieve stderr`() {
+        val response = Response("Command output", "Error output")
+
+        assertThat(response.text).isEqualTo("Command output")
+        assertThat(response.stderr).isEqualTo("Error output")
+    }
+
+    @Test
+    fun `Response should have empty stderr by default`() {
+        val response = Response("Command output")
+
+        assertThat(response.text).isEqualTo("Command output")
+        assertThat(response.stderr).isEmpty()
+    }
+
+    @Test
+    fun `Response copy function works with stderr`() {
+        val original = Response("Original text", "Original error")
+        val copyWithNewStderr = original.copy(stderr = "New error")
+
+        assertThat(copyWithNewStderr.text).isEqualTo("Original text")
+        assertThat(copyWithNewStderr.stderr).isEqualTo("New error")
+    }
+
+    @Test
+    fun `Response equals and hashCode work with stderr`() {
+        val response1 = Response("Same text", "Same error")
+        val response2 = Response("Same text", "Same error")
+        val response3 = Response("Same text", "Different error")
+
+        assertThat(response1).isEqualTo(response2)
+        assertThat(response1.hashCode()).isEqualTo(response2.hashCode())
+        assertThat(response1).isNotEqualTo(response3)
+        assertThat(response1.hashCode()).isNotEqualTo(response3.hashCode())
     }
 }

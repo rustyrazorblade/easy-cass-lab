@@ -7,40 +7,54 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+      # To install additional plugins, uncomment and add plugin names:
+      - OPENSEARCH_PLUGINS_INSTALL=analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-phonetic
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
+      - opensearch_data:/usr/share/opensearch/data
     restart: unless-stopped
     network_mode: host
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    environment:
+      - OPENSEARCH_HOSTS=http://localhost:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    volumes:
+      - opensearch_dashboards_data:/usr/share/opensearch-dashboards/data
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - opensearch
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
-    restart: unless-stopped
-    network_mode: host
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=
+    command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - grafana_data:/var/lib/grafana
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    environment:
+      - GOMEMLIMIT=256MiB
     restart: unless-stopped
     network_mode: host
     depends_on:
-      - prometheus
+      - opensearch
 
 volumes:
-  prometheus_data:
-  grafana_data:
+  opensearch_data:
+  opensearch_dashboards_data:

@@ -1,0 +1,157 @@
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['localhost:8888']
+  
+  # Host metrics receiver for system metrics
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      cpu:
+      disk:
+      filesystem:
+      load:
+      memory:
+      network:
+      paging:
+      processes:
+  
+  # Jaeger receiver for backwards compatibility with traces
+  jaeger:
+    protocols:
+      thrift_compact:
+        endpoint: 0.0.0.0:6831
+      thrift_binary:
+        endpoint: 0.0.0.0:6832
+      grpc:
+        endpoint: 0.0.0.0:14250
+      thrift_http:
+        endpoint: 0.0.0.0:14268
+  
+  # Zipkin receiver for backwards compatibility with traces
+  zipkin:
+    endpoint: 0.0.0.0:9411
+
+processors:
+  # Batch processor to optimize data flow
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  
+  # Resource processor to add metadata
+  resource:
+    attributes:
+      - key: service.name
+        value: "easy-cass-lab"
+        action: upsert
+      - key: deployment.environment
+        value: "development"
+        action: insert
+      - key: cluster.name
+        from_attribute: cluster
+        action: insert
+  
+  # Attributes processor to add trace and log metadata
+  attributes:
+    actions:
+      - key: environment
+        value: development
+        action: insert
+      - key: service.namespace
+        value: easy-cass-lab
+        action: insert
+
+exporters:
+  # OTLP/HTTP exporter to send data to OpenSearch Data Prepper or directly to OpenSearch
+  # Note: OpenSearch typically requires Data Prepper as an intermediary for OTLP data
+  otlphttp/traces:
+    endpoint: http://localhost:9200
+    tls:
+      insecure: true
+    headers:
+      Content-Type: application/json
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+  
+  # File exporter for logs (simplified without rotation options)
+  file/logs:
+    path: /var/log/otel-collector/logs.json
+  
+  # Prometheus exporter for metrics (can be scraped by other tools)
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+    send_timestamps: true
+    enable_open_metrics: true
+  
+  # Debug exporter for troubleshooting (replaces deprecated logging exporter)
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+  
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+  
+  # zPages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  
+  pipelines:
+    # Traces pipeline - send to OpenSearch and debug
+    traces:
+      receivers: [otlp, jaeger, zipkin]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [otlphttp/traces, debug]
+    
+    # Metrics pipeline - expose via Prometheus endpoint
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [prometheus, debug]
+    
+    # Logs pipeline - send to file and debug
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [file/logs, debug]
+  
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      # Remove the address field - it's not valid at this level
+      # Metrics telemetry is configured differently in newer versions

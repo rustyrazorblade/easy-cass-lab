@@ -26,6 +26,11 @@ class MockSSHClient : ISSHClient {
      * Mock command output can be customized per test
      */
     var commandOutput = ""
+    
+    /**
+     * Mock stderr output can be customized per test
+     */
+    var commandStderr = ""
 
     override fun executeRemoteCommand(
         command: String,
@@ -34,7 +39,7 @@ class MockSSHClient : ISSHClient {
     ): Response {
         log.debug { "MOCK: Executing command: $command" }
         executedCommands.add(command)
-        return Response(commandOutput)
+        return Response(commandOutput, commandStderr)
     }
 
     override fun uploadFile(
@@ -191,5 +196,6 @@ class MockSSHClient : ISSHClient {
         downloadedFiles.clear()
         downloadedDirectories.clear()
         commandOutput = ""
+        commandStderr = ""
     }
 }
