@@ -83,3 +83,11 @@ The `docker-compose.yaml` file is:
 3. Uploaded to control nodes with real IP addresses
 
 This ensures services on control nodes can connect to Cassandra nodes using their internal IPs.
+
+
+## Open Telemetry
+
+Cassandra and control nodes are set up with OpenTelemetry.
+
+Local OTel nodes are forwarding metrics to the control node.
+

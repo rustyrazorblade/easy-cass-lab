@@ -285,7 +285,7 @@ class Init(
             "Creating control directory and writing docker-compose.yaml and otel-collector-config.yaml",
         )
         File("control").mkdirs()
-        extractResourceFile("docker-compose.yaml", "control/docker-compose.yaml")
+        extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
         extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
         
         // Create cassandra directory and extract OTel configs for Cassandra nodes
@@ -294,7 +294,7 @@ class Init(
         )
         File("cassandra").mkdirs()
         extractResourceFile("otel-cassandra-config.yaml", "cassandra/otel-cassandra-config.yaml")
-        extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose-cassandra.yaml")
+        extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose.yaml")
     }
 
     private fun extractResourceFile(
