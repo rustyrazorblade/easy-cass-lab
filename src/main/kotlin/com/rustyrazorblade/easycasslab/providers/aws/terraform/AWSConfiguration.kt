@@ -246,6 +246,12 @@ class AWSConfiguration(
                 tags = tags + Pair("Name", controlInstanceName),
                 vpc_security_group_ids = listOf(instanceSg.id()),
                 count = 1,
+                root_block_device = InstanceRootBlockDevice(
+                    volume_type = "gp3",
+                    volume_size = 30,  // Increased from default 8GB to 30GB for Docker images
+                    iops = 3000,
+                    throughput = 125
+                ),
                 ebs_block_device = null,
                 ebs_optimized = false,
                 subnet = subnets[0],

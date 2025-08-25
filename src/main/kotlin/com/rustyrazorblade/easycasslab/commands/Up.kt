@@ -144,6 +144,7 @@ class Up(
 
         val dockerComposeFile = File("control/docker-compose.yaml")
         val otelConfigFile = File("control/otel-collector-config.yaml")
+        val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
 
         if (!dockerComposeFile.exists()) {
             outputHandler.handleMessage("control/docker-compose.yaml not found, skipping upload")
@@ -172,6 +173,12 @@ class Up(
             if (otelConfigFile.exists()) {
                 outputHandler.handleMessage("Uploading otel-collector-config.yaml to control node ${host.public}")
                 remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
+            }
+
+            // Upload data-prepper-pipelines.yaml if it exists
+            if (dataPrepperConfigFile.exists()) {
+                outputHandler.handleMessage("Uploading data-prepper-pipelines.yaml to control node ${host.public}")
+                remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
             }
         }
 

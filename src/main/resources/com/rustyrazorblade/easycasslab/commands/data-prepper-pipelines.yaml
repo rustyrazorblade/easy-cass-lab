@@ -1,0 +1,95 @@
+# Data Prepper pipelines configuration for ingesting OTLP data into OpenSearch
+# Receives traces, metrics, and logs from OTEL collector and indexes them into OpenSearch
+
+# Metrics pipeline - receives OTLP metrics and indexes them
+otel-metrics-pipeline:
+  delay: "100"
+  source:
+    otel_metrics_source:
+      # Receive OTLP metrics from OTEL collector
+      port: 21891
+      ssl: false
+  buffer:
+    bounded_blocking:
+      buffer_size: 10240
+      batch_size: 160
+  processor:
+    - otel_metrics:
+  sink:
+    - opensearch:
+        hosts: ["http://localhost:9200"]
+        index: metrics-otel
+        insecure: true
+        bulk_size: 100
+
+# TODO: Add traces pipelines once metrics are working
+# # Traces entry pipeline - receives OTLP traces and routes to processing pipelines
+# otel-traces-entry:
+#   delay: "100"
+#   source:
+#     otel_trace_source:
+#       port: 21890
+#       ssl: false
+#   buffer:
+#     bounded_blocking:
+#       buffer_size: 10240
+#       batch_size: 160
+#   sink:
+#     - pipeline:
+#         name: "otel-traces-raw"
+#     - pipeline:
+#         name: "otel-service-map"
+
+# # Raw traces pipeline for span processing
+# otel-traces-raw:
+#   source:
+#     pipeline:
+#       name: "otel-traces-entry"
+#   buffer:
+#     bounded_blocking:
+#       buffer_size: 10240
+#       batch_size: 160
+#   processor:
+#     - otel_traces_raw:
+#   sink:
+#     - opensearch:
+#         hosts: ["http://localhost:9200"]
+#         index_type: trace-analytics-raw
+#         insecure: true
+
+# # Service map pipeline for trace visualization
+# otel-service-map:
+#   delay: "100"
+#   source:
+#     pipeline:
+#       name: "otel-traces-entry"
+#   buffer:
+#     bounded_blocking:
+#       buffer_size: 10240
+#       batch_size: 160
+#   processor:
+#     - service_map_stateful:
+#   sink:
+#     - opensearch:
+#         hosts: ["http://localhost:9200"]
+#         index_type: trace-analytics-service-map
+#         insecure: true
+
+# TODO: Add logs pipeline once metrics are working
+# # Logs pipeline - receives OTLP logs and indexes them
+# otel-logs-pipeline:
+#   delay: "100"
+#   source:
+#     otel_logs_source:
+#       port: 21892
+#       ssl: false
+#   buffer:
+#     bounded_blocking:
+#       buffer_size: 10240
+#       batch_size: 160
+#   sink:
+#     - opensearch:
+#         hosts: ["http://localhost:9200"]
+#         index: logs-otel-%{yyyy.MM.dd}
+#         insecure: true
+#         bulk_size: 100

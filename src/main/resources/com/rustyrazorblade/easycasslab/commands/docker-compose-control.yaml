@@ -49,6 +49,24 @@ services:
     depends_on:
       - opensearch
 
+  data-prepper:
+    image: opensearchproject/data-prepper:latest
+    container_name: data-prepper
+    volumes:
+      - ./data-prepper-pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx256m
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - opensearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4900/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
@@ -61,6 +79,7 @@ services:
     network_mode: host
     depends_on:
       - opensearch
+      - data-prepper
 
 volumes:
   opensearch_data:

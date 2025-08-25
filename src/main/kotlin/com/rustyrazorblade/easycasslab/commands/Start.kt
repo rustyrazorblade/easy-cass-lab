@@ -58,6 +58,7 @@ class Start(context: Context) : BaseCommand(context) {
 
         val dockerComposeFile = File("control/docker-compose.yaml")
         val otelConfigFile = File("control/otel-collector-config.yaml")
+        val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
 
         if (!dockerComposeFile.exists()) {
             outputHandler.handleMessage("control/docker-compose.yaml not found, skipping Docker Compose startup")
@@ -115,6 +116,19 @@ class Start(context: Context) : BaseCommand(context) {
                 if (otelCheckResult.text.trim() == "not found") {
                     outputHandler.handleMessage("otel-collector-config.yaml not found on ${host.public}, uploading...")
                     remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
+                }
+            }
+
+            // Check and upload data-prepper-pipelines.yaml if it exists
+            if (dataPrepperConfigFile.exists()) {
+                val dataPrepperCheckResult =
+                    remoteOps.executeRemotely(
+                        host,
+                        "test -f /home/ubuntu/data-prepper-pipelines.yaml && echo 'exists' || echo 'not found'",
+                    )
+                if (dataPrepperCheckResult.text.trim() == "not found") {
+                    outputHandler.handleMessage("data-prepper-pipelines.yaml not found on ${host.public}, uploading...")
+                    remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
                 }
             }
 

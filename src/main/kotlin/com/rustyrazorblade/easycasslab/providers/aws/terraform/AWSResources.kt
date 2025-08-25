@@ -46,6 +46,7 @@ data class InstanceResource(
     val vpc_security_group_ids: List<String> = listOf(),
     val key_name: String = "\${var.key_name}",
     val count: Int,
+    val root_block_device: InstanceRootBlockDevice? = null,
     val ebs_block_device: InstanceEBSBlockDevice? = null,
     val ebs_optimized: Boolean = false,
     val associate_public_ip_address: Boolean = true,
@@ -62,6 +63,15 @@ data class InstanceResource(
         }
     }
 }
+
+data class InstanceRootBlockDevice(
+    val volume_type: String = "gp3",
+    val volume_size: Int = 8,
+    val iops: Int = 3000,
+    val throughput: Int = 125,
+    val delete_on_termination: Boolean = true,
+    val encrypted: Boolean = false,
+)
 
 data class InstanceEBSBlockDevice(
     val volume_type: String = "", // TODO (jwest): what default to use?

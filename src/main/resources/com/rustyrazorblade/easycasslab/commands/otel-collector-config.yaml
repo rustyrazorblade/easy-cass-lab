@@ -73,19 +73,39 @@ processors:
         action: insert
 
 exporters:
-  # OTLP/HTTP exporter to send data to OpenSearch Data Prepper or directly to OpenSearch
-  # Note: OpenSearch typically requires Data Prepper as an intermediary for OTLP data
-  otlphttp/traces:
-    endpoint: http://localhost:9200
+  # OTLP exporters to send data to Data Prepper
+  otlp/traces:
+    endpoint: localhost:21890
     tls:
       insecure: true
-    headers:
-      Content-Type: application/json
     retry_on_failure:
       enabled: true
       initial_interval: 5s
       max_interval: 30s
       max_elapsed_time: 300s
+    compression: gzip
+  
+  otlp/metrics:
+    endpoint: localhost:21891
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    compression: gzip
+  
+  otlp/logs:
+    endpoint: localhost:21892
+    tls:
+      insecure: true
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    compression: gzip
   
   # Debug exporter for troubleshooting (replaces deprecated logging exporter)
   debug:
@@ -110,23 +130,23 @@ service:
   extensions: [health_check, pprof, zpages]
   
   pipelines:
-    # Traces pipeline - send to OpenSearch and debug
+    # Traces pipeline - send to Data Prepper and debug
     traces:
       receivers: [otlp, jaeger, zipkin]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [otlphttp/traces, debug]
+      exporters: [otlp/traces, debug]
     
-    # Metrics pipeline - expose via Prometheus endpoint
+    # Metrics pipeline - send to Data Prepper and debug
     metrics:
       receivers: [otlp, hostmetrics]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [debug]
+      exporters: [otlp/metrics, debug]
     
-    # Logs pipeline - send to debug
+    # Logs pipeline - send to Data Prepper and debug
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [debug]
+      exporters: [otlp/logs, debug]
   
   telemetry:
     logs:

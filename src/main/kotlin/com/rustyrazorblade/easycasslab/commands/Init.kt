@@ -282,11 +282,12 @@ class Init(
 
         // Create control directory and extract docker-compose.yaml and otel config there
         outputHandler.handleMessage(
-            "Creating control directory and writing docker-compose.yaml and otel-collector-config.yaml",
+            "Creating control directory and writing docker-compose.yaml, otel-collector-config.yaml, and data-prepper-pipelines.yaml",
         )
         File("control").mkdirs()
         extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
         extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
+        extractResourceFile("data-prepper-pipelines.yaml", "control/data-prepper-pipelines.yaml")
         
         // Create cassandra directory and extract OTel configs for Cassandra nodes
         outputHandler.handleMessage(
