@@ -182,7 +182,7 @@ class Up(
         outputHandler.handleMessage("Preparing OTel configuration for Cassandra nodes...")
 
         val otelConfigFile = File("cassandra/otel-cassandra-config.yaml")
-        val dockerComposeFile = File("cassandra/docker-compose-cassandra.yaml")
+        val dockerComposeFile = File("cassandra/docker-compose.yaml")
 
         if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
             outputHandler.handleMessage("Cassandra OTel config files not found, skipping upload")
@@ -202,34 +202,26 @@ class Up(
         context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
             outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
 
-            // Read and replace placeholders in OTel config
-            val otelConfigContent = otelConfigFile.readText()
-            val updatedOtelConfig = otelConfigContent
-                .replace("CONTROL_NODE_IP", controlNodeIp)
-                .replace("NODE_ALIAS", host.alias)
+            // Create .env file for docker-compose with environment variables
+            val envContent = """
+                CONTROL_NODE_IP=$controlNodeIp
+            """.trimIndent()
 
-            // Read and replace placeholders in docker-compose
-            val dockerComposeContent = dockerComposeFile.readText()
-            val updatedDockerCompose = dockerComposeContent
-                .replace("NODE_ALIAS", host.alias)
-
-            // Create temporary files with updated content
-            val tempOtelConfig = File.createTempFile("otel-cassandra-config-", ".yaml")
-            val tempDockerCompose = File.createTempFile("docker-compose-cassandra-", ".yaml")
+            // Create temporary .env file
+            val tempEnvFile = File.createTempFile("env-", "")
             
             try {
-                tempOtelConfig.writeText(updatedOtelConfig)
-                tempDockerCompose.writeText(updatedDockerCompose)
+                tempEnvFile.writeText(envContent)
 
                 // Upload configuration files to Cassandra node
-                remoteOps.upload(host, tempOtelConfig.toPath(), "/home/ubuntu/otel-cassandra-config.yaml")
-                remoteOps.upload(host, tempDockerCompose.toPath(), "/home/ubuntu/docker-compose-cassandra.yaml")
+                remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-cassandra-config.yaml")
+                remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
+                remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
                 
                 outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
             } finally {
                 // Clean up temporary files
-                tempOtelConfig.delete()
-                tempDockerCompose.delete()
+                tempEnvFile.delete()
             }
         }
 

@@ -191,12 +191,20 @@ class Start(context: Context) : BaseCommand(context) {
         outputHandler.handleMessage("Starting OTel collectors on Cassandra nodes...")
 
         val otelConfigFile = File("cassandra/otel-cassandra-config.yaml")
-        val dockerComposeFile = File("cassandra/docker-compose-cassandra.yaml")
+        val dockerComposeFile = File("cassandra/docker-compose.yaml")
 
         if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
             outputHandler.handleMessage("Cassandra OTel config files not found, skipping OTel startup")
             return
         }
+
+        // Get the internal IP of the first control node for OTLP endpoint
+        val controlHost = context.tfstate.getHosts(ServerType.Control).firstOrNull()
+        if (controlHost == null) {
+            outputHandler.handleMessage("No control nodes found, skipping OTel startup for Cassandra nodes")
+            return
+        }
+        val controlNodeIp = controlHost.private
 
         context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
             outputHandler.handleMessage("Starting OTel collector on Cassandra node ${host.alias} (${host.public})")
@@ -205,12 +213,30 @@ class Start(context: Context) : BaseCommand(context) {
             val configCheckResult =
                 remoteOps.executeRemotely(
                     host,
-                    "test -f /home/ubuntu/otel-cassandra-config.yaml && test -f /home/ubuntu/docker-compose-cassandra.yaml && echo 'exists' || echo 'not found'",
+                    "test -f /home/ubuntu/otel-cassandra-config.yaml && test -f /home/ubuntu/docker-compose.yaml && echo 'exists' || echo 'not found'",
                 )
 
             if (configCheckResult.text.trim() == "not found") {
                 outputHandler.handleMessage("OTel configuration not found on ${host.alias}, skipping...")
                 return@withHosts
+            }
+
+            // Check if .env file exists, if not create it
+            val envCheckResult = remoteOps.executeRemotely(
+                host,
+                "test -f /home/ubuntu/.env && echo 'exists' || echo 'not found'"
+            )
+            
+            if (envCheckResult.text.trim() == "not found") {
+                outputHandler.handleMessage("Creating .env file for ${host.alias}")
+                val envContent = """
+                    CONTROL_NODE_IP=$controlNodeIp
+                """.trimIndent()
+                
+                remoteOps.executeRemotely(
+                    host,
+                    "cat > /home/ubuntu/.env << 'EOF'\n$envContent\nEOF"
+                )
             }
 
             // Check if docker is available
@@ -249,7 +275,7 @@ class Start(context: Context) : BaseCommand(context) {
                     // Run docker compose up for OTel
                     val result = remoteOps.executeRemotely(
                         host,
-                        "cd /home/ubuntu && docker compose -f docker-compose-cassandra.yaml up -d"
+                        "cd /home/ubuntu && docker compose up -d"
                     )
                     outputHandler.handleMessage("OTel collector started on ${host.alias}")
                     success = true

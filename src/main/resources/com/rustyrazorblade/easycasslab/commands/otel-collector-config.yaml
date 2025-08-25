@@ -87,10 +87,6 @@ exporters:
       max_interval: 30s
       max_elapsed_time: 300s
   
-  # File exporter for logs (simplified without rotation options)
-  file/logs:
-    path: /var/log/otel-collector/logs.json
-
   # Debug exporter for troubleshooting (replaces deprecated logging exporter)
   debug:
     verbosity: detailed
@@ -126,11 +122,11 @@ service:
       processors: [memory_limiter, batch, resource, attributes]
       exporters: [debug]
     
-    # Logs pipeline - send to file and debug
+    # Logs pipeline - send to debug
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource, attributes]
-      exporters: [file/logs, debug]
+      exporters: [debug]
   
   telemetry:
     logs:
