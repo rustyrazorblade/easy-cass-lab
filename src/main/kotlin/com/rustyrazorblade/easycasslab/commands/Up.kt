@@ -14,6 +14,7 @@ import org.apache.sshd.common.SshException
 import java.io.File
 import java.nio.file.Path
 import java.time.Duration
+import kotlin.system.exitProcess
 
 @RequireDocker
 @Parameters(commandDescription = "Starts instances")
@@ -46,6 +47,7 @@ class Up(
         WriteConfig(context).execute()
         waitForSshAndDownloadVersions()
         uploadDockerComposeToControlNodes()
+        uploadOtelConfigsToCassandraNodes()
         setupInstancesIfNeeded()
     }
 
@@ -60,6 +62,7 @@ class Up(
                         "Some resources may have been unsuccessfully provisioned.",
                     )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
                 )
+                exitProcess(1)
             }.onSuccess {
                 outputHandler.handleMessage(
                     """Instances have been provisioned.
@@ -173,6 +176,64 @@ class Up(
         }
 
         outputHandler.handleMessage("Docker Compose configuration uploaded to control nodes")
+    }
+
+    private fun uploadOtelConfigsToCassandraNodes() {
+        outputHandler.handleMessage("Preparing OTel configuration for Cassandra nodes...")
+
+        val otelConfigFile = File("cassandra/otel-cassandra-config.yaml")
+        val dockerComposeFile = File("cassandra/docker-compose-cassandra.yaml")
+
+        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
+            outputHandler.handleMessage("Cassandra OTel config files not found, skipping upload")
+            return
+        }
+
+        // Get the internal IP of the first control node for OTLP endpoint
+        val controlHost = context.tfstate.getHosts(ServerType.Control).firstOrNull()
+        if (controlHost == null) {
+            outputHandler.handleMessage("No control nodes found, skipping OTel configuration for Cassandra nodes")
+            return
+        }
+        
+        val controlNodeIp = controlHost.private
+        outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
+
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
+            outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
+
+            // Read and replace placeholders in OTel config
+            val otelConfigContent = otelConfigFile.readText()
+            val updatedOtelConfig = otelConfigContent
+                .replace("CONTROL_NODE_IP", controlNodeIp)
+                .replace("NODE_ALIAS", host.alias)
+
+            // Read and replace placeholders in docker-compose
+            val dockerComposeContent = dockerComposeFile.readText()
+            val updatedDockerCompose = dockerComposeContent
+                .replace("NODE_ALIAS", host.alias)
+
+            // Create temporary files with updated content
+            val tempOtelConfig = File.createTempFile("otel-cassandra-config-", ".yaml")
+            val tempDockerCompose = File.createTempFile("docker-compose-cassandra-", ".yaml")
+            
+            try {
+                tempOtelConfig.writeText(updatedOtelConfig)
+                tempDockerCompose.writeText(updatedDockerCompose)
+
+                // Upload configuration files to Cassandra node
+                remoteOps.upload(host, tempOtelConfig.toPath(), "/home/ubuntu/otel-cassandra-config.yaml")
+                remoteOps.upload(host, tempDockerCompose.toPath(), "/home/ubuntu/docker-compose-cassandra.yaml")
+                
+                outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
+            } finally {
+                // Clean up temporary files
+                tempOtelConfig.delete()
+                tempDockerCompose.delete()
+            }
+        }
+
+        outputHandler.handleMessage("OTel configuration uploaded to all Cassandra nodes")
     }
 
     private fun setupInstancesIfNeeded() {

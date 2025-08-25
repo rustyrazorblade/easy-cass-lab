@@ -44,6 +44,9 @@ class Start(context: Context) : BaseCommand(context) {
             StartAxonOps(context).execute()
         }
 
+        // Start OTel collectors on Cassandra nodes
+        startOtelOnCassandraNodes()
+
         // Write MCP configuration file for AI agents
         writeMCPConfiguration()
         // this has to happen last, because we want Cassandra to be available before starting the MCP server.
@@ -182,6 +185,106 @@ class Start(context: Context) : BaseCommand(context) {
         }
 
         outputHandler.handleMessage("Docker Compose services started on control nodes")
+    }
+
+    private fun startOtelOnCassandraNodes() {
+        outputHandler.handleMessage("Starting OTel collectors on Cassandra nodes...")
+
+        val otelConfigFile = File("cassandra/otel-cassandra-config.yaml")
+        val dockerComposeFile = File("cassandra/docker-compose-cassandra.yaml")
+
+        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
+            outputHandler.handleMessage("Cassandra OTel config files not found, skipping OTel startup")
+            return
+        }
+
+        context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
+            outputHandler.handleMessage("Starting OTel collector on Cassandra node ${host.alias} (${host.public})")
+
+            // Check if configuration files exist on the remote host
+            val configCheckResult =
+                remoteOps.executeRemotely(
+                    host,
+                    "test -f /home/ubuntu/otel-cassandra-config.yaml && test -f /home/ubuntu/docker-compose-cassandra.yaml && echo 'exists' || echo 'not found'",
+                )
+
+            if (configCheckResult.text.trim() == "not found") {
+                outputHandler.handleMessage("OTel configuration not found on ${host.alias}, skipping...")
+                return@withHosts
+            }
+
+            // Check if docker is available
+            try {
+                val dockerCheck = remoteOps.executeRemotely(host, "which docker && docker --version")
+                outputHandler.handleMessage("Docker check on ${host.alias}: ${dockerCheck.text}")
+            } catch (e: Exception) {
+                outputHandler.handleMessage("Warning: Docker may not be installed on ${host.alias}")
+                return@withHosts
+            }
+
+            // Pull OTel collector image
+            outputHandler.handleMessage("Pulling OTel collector image on ${host.alias}...")
+            try {
+                val pullResult = remoteOps.executeRemotely(
+                    host,
+                    "docker pull otel/opentelemetry-collector-contrib:latest"
+                )
+                outputHandler.handleMessage("Docker pull completed on ${host.alias}")
+            } catch (e: Exception) {
+                outputHandler.handleMessage("Warning: Failed to pull OTel image on ${host.alias}: ${e.message}")
+            }
+
+            // Start OTel collector with docker compose
+            var success = false
+            var retryCount = 0
+            var lastError: String? = null
+
+            while (!success && retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
+                try {
+                    if (retryCount > 0) {
+                        outputHandler.handleMessage("Retrying OTel startup on ${host.alias} (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...")
+                        Thread.sleep(DOCKER_COMPOSE_RETRY_DELAY_MS)
+                    }
+
+                    // Run docker compose up for OTel
+                    val result = remoteOps.executeRemotely(
+                        host,
+                        "cd /home/ubuntu && docker compose -f docker-compose-cassandra.yaml up -d"
+                    )
+                    outputHandler.handleMessage("OTel collector started on ${host.alias}")
+                    success = true
+                } catch (e: Exception) {
+                    lastError = e.message
+                    retryCount++
+                    if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
+                        outputHandler.handleMessage("OTel startup failed on ${host.alias}: ${e.message}")
+                    }
+                }
+            }
+
+            if (!success) {
+                outputHandler.handleMessage("ERROR: Failed to start OTel on ${host.alias} after $DOCKER_COMPOSE_MAX_RETRIES attempts")
+                outputHandler.handleMessage("Last error: $lastError")
+            } else {
+                // Check OTel collector status
+                Thread.sleep(2000) // Give it time to start
+                try {
+                    val statusResult = remoteOps.executeRemotely(
+                        host,
+                        "docker ps | grep otel-collector"
+                    )
+                    if (statusResult.text.contains("Up")) {
+                        outputHandler.handleMessage("OTel collector is running on ${host.alias}")
+                    } else {
+                        outputHandler.handleMessage("Warning: OTel collector may not be running properly on ${host.alias}")
+                    }
+                } catch (e: Exception) {
+                    outputHandler.handleMessage("Could not verify OTel status on ${host.alias}: ${e.message}")
+                }
+            }
+        }
+
+        outputHandler.handleMessage("OTel collectors startup completed on Cassandra nodes")
     }
 
     @Suppress("TooGenericExceptionCaught")

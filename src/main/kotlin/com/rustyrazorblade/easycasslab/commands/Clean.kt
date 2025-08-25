@@ -37,6 +37,7 @@ class Clean : ICommand, KoinComponent {
                 ".terraform",
                 "provisioning",
                 "control",
+                "cassandra",
             )
     }
 
