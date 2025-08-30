@@ -1,24 +1,29 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.server.engine.embeddedServer
 import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.*
-import kotlinx.coroutines.Job
+import io.ktor.server.cio.CIO
 import kotlinx.coroutines.runBlocking
-import kotlinx.io.*
+import org.koin.core.component.inject
+import kotlin.getValue
+import org.koin.core.component.KoinComponent
 
 /**
  * MCP server implementation using the official SDK.
  */
-class McpServer(private val context: Context) {
+class McpServer(private val context: Context) : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
     }
+    protected val outputHandler: OutputHandler by inject()
     
     private val toolRegistry = McpToolRegistry(context)
     
-    fun start() {
+    fun start(port: Int) {
         try {
             log.info { "Starting MCP server with SDK (version ${context.version})" }
             
@@ -54,30 +59,27 @@ class McpServer(private val context: Context) {
                     }
                 )
             }
-            
-            // Set up stdio transport using kotlinx-io
-            val transport = StdioServerTransport(
-                inputStream = System.`in`.asSource().buffered(),
-                outputStream = System.out.asSink().buffered()
-            )
-            
-            // Connect server to transport
+            outputHandler.handleMessage("""
+                Starting MCP server.  You can add it to claude code by doing the following:
+                
+                claude mcp add --transport sse easy-cass-lab http://127.0.0.1:$port/sse
+                    """.trimIndent())
+            // Create a KTor application here
+            // register the SSE plugin
             runBlocking {
-                server.connect(transport)
-                log.info { "MCP server running, waiting for messages..." }
-                val done = Job()
-                server.onClose {
-                    done.complete()
-                }
-                done.join()
+                embeddedServer(CIO, host = "0.0.0.0", port = port) {
+                    mcp {
+                        server
+                    }
+//                    install(SSE)
+//                    routing {
+//                        sse("/sse") {
+//                            val transport = SseServerTransport("/message", this)
+//                            server.connect(transport)
+//                        }
+//                    }
+                }.startSuspend(wait = true)
             }
-
-            // The server runs in the transport's coroutine scope
-            // We need to keep the main coroutine alive
-            // The transport will handle the message loop
-
-            // Block here to keep the server running
-            // The server will run until the transport is closed
 
             log.info { "MCP server stopped" }
         } catch (e: IllegalStateException) {
