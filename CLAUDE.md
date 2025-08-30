@@ -91,3 +91,6 @@ Cassandra and control nodes are set up with OpenTelemetry.
 
 Local OTel nodes are forwarding metrics to the control node.
 
+## User Manual
+
+The user manual is located in manual/index.adoc.  

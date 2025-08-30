@@ -185,3 +185,46 @@ The following ports are open:
 
 
 the normal ports are all mapped for you so you can reach prometheus on 9090 and grafana on 3000
+
+== MCP Server Integration with Claude Code
+
+easy-cass-lab includes a Model Context Protocol (MCP) server that allows seamless integration with Claude Code. This enables Claude to directly interact with your easy-cass-lab clusters and perform operations through a standardized protocol.
+
+=== Starting the MCP Server
+
+To start the MCP server, run:
+
+[source,bash]
+----
+easy-cass-lab mcp --port 8888
+----
+
+This will start the MCP server on port 8888 (you can use any available port).
+
+=== Adding to Claude Code
+
+Once the MCP server is running, you can add it to Claude Code using:
+
+[source,bash]
+----
+claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse
+----
+
+This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-cass-lab MCP server.
+
+=== Available MCP Operations
+
+The MCP server provides Claude with direct access to easy-cass-lab operations, allowing for:
+
+* Cluster management and provisioning
+* Cassandra configuration and deployment
+* Performance testing and monitoring
+* Log analysis and troubleshooting
+* Automated cluster operations
+
+=== Benefits of MCP Integration
+
+* **Direct Control**: Claude can execute easy-cass-lab commands directly without manual intervention
+* **Context Awareness**: Claude maintains context about your cluster state and configuration
+* **Automation**: Complex multi-step operations can be automated through Claude
+* **Intelligent Assistance**: Claude can analyze logs, metrics, and provide optimization recommendations
