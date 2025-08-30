@@ -2,10 +2,11 @@ plugins {
     idea
     java
     kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 dependencies {

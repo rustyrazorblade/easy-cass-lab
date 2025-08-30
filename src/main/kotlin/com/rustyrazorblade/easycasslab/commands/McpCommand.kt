@@ -1,0 +1,36 @@
+package com.rustyrazorblade.easycasslab.commands
+
+import com.beust.jcommander.Parameters
+import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.mcp.McpServer
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+/**
+ * Command to start the MCP (Model Context Protocol) server.
+ * This server exposes all easy-cass-lab commands as MCP tools,
+ * allowing AI assistants and other MCP clients to interact with
+ * the tool programmatically.
+ */
+@Parameters(commandDescription = "Start MCP server for AI assistant integration")
+class McpCommand(context: Context) : BaseCommand(context) {
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
+
+    override fun execute() {
+        log.info { "Starting easy-cass-lab MCP server..." }
+        
+        try {
+            // Create and start the MCP server with SDK
+            val server = McpServer(context)
+            server.start()
+            
+            // The server will run until interrupted
+            log.info { "MCP server stopped." }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to start MCP server" }
+            System.err.println("Failed to start MCP server: ${e.message}")
+            throw e
+        }
+    }
+}

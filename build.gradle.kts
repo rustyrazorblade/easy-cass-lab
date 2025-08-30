@@ -11,6 +11,7 @@ plugins {
     idea
     application
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.shadow)
     alias(libs.plugins.versions)
     alias(libs.plugins.ktlint)
@@ -21,7 +22,7 @@ plugins {
 group = "com.rustyrazorblade"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 application {
@@ -96,13 +97,20 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.bundles.koin)
 
+    // Kotlinx Serialization for MCP
+    implementation(libs.kotlinx.serialization.json)
+    
+    // MCP SDK and dependencies
+    implementation(libs.mcp.sdk)
+    implementation(libs.kotlinx.io)
+
     // Testing
     testImplementation(libs.bundles.testing)
     testImplementation(libs.bundles.koin.test)
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 sourceSets {

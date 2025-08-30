@@ -15,6 +15,8 @@ import com.rustyrazorblade.easycasslab.commands.Hosts
 import com.rustyrazorblade.easycasslab.commands.ICommand
 import com.rustyrazorblade.easycasslab.commands.Init
 import com.rustyrazorblade.easycasslab.commands.ListVersions
+import com.rustyrazorblade.easycasslab.commands.McpCommand
+import com.rustyrazorblade.easycasslab.commands.McpConfigCommand
 import com.rustyrazorblade.easycasslab.commands.Repl
 import com.rustyrazorblade.easycasslab.commands.Restart
 import com.rustyrazorblade.easycasslab.commands.Server
@@ -79,6 +81,8 @@ class CommandLineParser(val context: Context) : KoinComponent {
                 Command("repl", Repl(context)),
                 Command("server", Server(context)),
                 Command("version", Version(context)),
+                Command("mcp", McpCommand(context)),
+                Command("mcp-config", McpConfigCommand(context)),
             )
 
         for (c in commands) {
