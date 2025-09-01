@@ -37,13 +37,15 @@ class McpServer(private val context: Context) : KoinComponent {
                     capabilities = ServerCapabilities(
                         tools = ServerCapabilities.Tools(
                             listChanged = true
-                        )
+                        ),
+                        logging = null  // Explicitly disable logging capability
                     )
                 )
             )
             
             // Add all tools from registry
-            toolRegistry.getTools().forEach { toolInfo ->
+            toolRegistry.getTools().forEachIndexed { index, toolInfo ->
+                log.info { "Tool $index (${toolInfo.name}): inputSchema = ${toolInfo.inputSchema}" }
                 server.addTool(
                     name = toolInfo.name,
                     description = toolInfo.description,
@@ -59,6 +61,7 @@ class McpServer(private val context: Context) : KoinComponent {
                     }
                 )
             }
+
             outputHandler.handleMessage("""
                 Starting MCP server.  You can add it to claude code by doing the following:
                 
@@ -71,13 +74,7 @@ class McpServer(private val context: Context) : KoinComponent {
                     mcp {
                         server
                     }
-//                    install(SSE)
-//                    routing {
-//                        sse("/sse") {
-//                            val transport = SseServerTransport("/message", this)
-//                            server.connect(transport)
-//                        }
-//                    }
+
                 }.startSuspend(wait = true)
             }
 

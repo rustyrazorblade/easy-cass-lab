@@ -17,7 +17,7 @@ import kotlin.system.exitProcess
 class UseCassandra(
     context: Context,
 ) : BaseCommand(context) {
-    @Parameter
+    @Parameter(description = "Cassandra version", required = true)
     var version: String = ""
 
     @ParametersDelegate
