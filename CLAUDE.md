@@ -8,6 +8,7 @@
 - Do not use remote docker-compose commands, use docker compose, the subcommand version.
 - Check if the codebase already has a way of accomplishing something before writing new code.  For example, there's already Docker logic.
 - ABSOLUTE RULE: Never try to commit without explicit instruction to do so.
+- activate easy-cass-lab (son)
 
 ## Testing Guidelines
 
