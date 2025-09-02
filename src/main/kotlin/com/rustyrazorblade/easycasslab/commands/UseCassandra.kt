@@ -6,6 +6,7 @@ import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -13,6 +14,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
+@McpCommand
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
 class UseCassandra(
     context: Context,

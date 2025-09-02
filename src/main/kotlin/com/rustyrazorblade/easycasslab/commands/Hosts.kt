@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.configuration.HostList
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -9,6 +10,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.FileNotFoundException
 
+@McpCommand
 class Hosts(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
 

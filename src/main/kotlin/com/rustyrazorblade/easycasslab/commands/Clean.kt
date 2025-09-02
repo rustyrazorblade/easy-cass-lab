@@ -1,10 +1,12 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 
+@McpCommand
 class Clean : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
 

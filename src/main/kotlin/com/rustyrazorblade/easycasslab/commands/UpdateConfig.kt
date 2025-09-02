@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Files
@@ -12,6 +13,7 @@ import java.nio.file.Path
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.inputStream
 
+@McpCommand
 @Parameters(
     commandDescription =
         "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +

@@ -6,11 +6,15 @@ import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.di.outputModule
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import kotlinx.serialization.json.buildJsonObject
@@ -22,8 +26,18 @@ class McpToolRegistryTest {
 
     @BeforeEach
     fun setup() {
+        // Initialize Koin for dependency injection
+        startKoin {
+            modules(listOf(outputModule))
+        }
+        
         context = mock()
         registry = McpToolRegistry(context)
+    }
+    
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
     }
 
     @Test
@@ -404,9 +418,28 @@ class McpToolRegistryTest {
     
     @Test
     fun `validate all actual command schemas are JSON Schema compliant`() {
-        // Create a mock context to get all actual commands
-        val mockContext: Context = mock()
-        val realRegistry = McpToolRegistry(mockContext)
+        // Create a real context to get all actual commands
+        val tempDir = java.io.File("/tmp/test-mcp-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+        
+        // Create a test user config file to avoid interactive prompt
+        val profileDir = java.io.File(tempDir, "profiles/default")
+        profileDir.mkdirs()
+        val userConfigFile = java.io.File(profileDir, "settings.yaml")
+        userConfigFile.writeText("""
+            email: test@example.com
+            region: us-east-1
+            keyName: test-key
+            sshKeyPath: /tmp/test-key.pem
+            awsProfile: default
+            awsAccessKey: test-access-key
+            awsSecret: test-secret
+            axonOpsOrg: ""
+            axonOpsKey: ""
+        """.trimIndent())
+        
+        val realContext = Context(tempDir)
+        val realRegistry = McpToolRegistry(realContext)
         
         // Get all tools from the registry
         val tools = realRegistry.getTools()
@@ -477,9 +510,28 @@ class McpToolRegistryTest {
     
     @Test
     fun `find problematic schemas in actual commands`() {
-        // Create a mock context to analyze actual commands
-        val mockContext: Context = mock()
-        val realRegistry = McpToolRegistry(mockContext)
+        // Create a real context to analyze actual commands
+        val tempDir = java.io.File("/tmp/test-mcp-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+        
+        // Create a test user config file to avoid interactive prompt
+        val profileDir = java.io.File(tempDir, "profiles/default")
+        profileDir.mkdirs()
+        val userConfigFile = java.io.File(profileDir, "settings.yaml")
+        userConfigFile.writeText("""
+            email: test@example.com
+            region: us-east-1
+            keyName: test-key
+            sshKeyPath: /tmp/test-key.pem
+            awsProfile: default
+            awsAccessKey: test-access-key
+            awsSecret: test-secret
+            axonOpsOrg: ""
+            axonOpsKey: ""
+        """.trimIndent())
+        
+        val realContext = Context(tempDir)
+        val realRegistry = McpToolRegistry(realContext)
         
         // Get all tools and look for potential issues
         val tools = realRegistry.getTools()

@@ -5,10 +5,14 @@ import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.di.outputModule
 import kotlinx.serialization.json.*
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.mockito.kotlin.mock
 
 class McpEnumTest {
@@ -17,8 +21,18 @@ class McpEnumTest {
 
     @BeforeEach
     fun setup() {
+        // Initialize Koin for dependency injection
+        startKoin {
+            modules(listOf(outputModule))
+        }
+        
         context = mock()
         registry = McpToolRegistry(context)
+    }
+    
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
     }
 
     @Test

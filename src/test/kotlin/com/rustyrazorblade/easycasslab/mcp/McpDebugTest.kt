@@ -1,33 +1,55 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.di.outputModule
 import kotlinx.serialization.json.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.io.File
 
 class McpDebugTest {
     
+    @BeforeEach
+    fun setup() {
+        // Initialize Koin for dependency injection
+        startKoin {
+            modules(listOf(outputModule))
+        }
+    }
+    
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
+    }
+    
     @Test
     fun `debug tool 15 schema`() {
-        // Create a real context with mocked userConfig to avoid NPE
-        val mockUserConfig = com.rustyrazorblade.easycasslab.configuration.User(
-            email = "test@example.com",
-            region = "us-east-1",
-            keyName = "test-key",
-            sshKeyPath = "/tmp/test-key.pem",
-            awsProfile = "default",
-            awsAccessKey = "test-access-key",
-            awsSecret = "test-secret"
-        )
+        // Create a context with a temp directory
+        val tempDir = File("/tmp/test-mcp-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
         
-        val context = Context(File("/tmp"))
+        // Create a test user config file to avoid interactive prompt
+        val profileDir = File(tempDir, "profiles/default")
+        profileDir.mkdirs()
+        val userConfigFile = File(profileDir, "settings.yaml")
+        userConfigFile.writeText("""
+            email: test@example.com
+            region: us-east-1
+            keyName: test-key
+            sshKeyPath: /tmp/test-key.pem
+            awsProfile: default
+            awsAccessKey: test-access-key
+            awsSecret: test-secret
+            axonOpsOrg: ""
+            axonOpsKey: ""
+        """.trimIndent())
         
-        // Use reflection to set userConfig
-        val userConfigField = Context::class.java.getDeclaredField("userConfig")
-        userConfigField.isAccessible = true
-        userConfigField.set(context, mockUserConfig)
+        val context = Context(tempDir)
         
         val registry = McpToolRegistry(context)
         val tools = registry.getTools()

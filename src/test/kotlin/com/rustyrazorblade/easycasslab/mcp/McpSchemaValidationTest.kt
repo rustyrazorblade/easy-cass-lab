@@ -2,29 +2,53 @@ package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.di.outputModule
 import kotlinx.serialization.json.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import java.io.File
 
 class McpSchemaValidationTest {
     
+    @BeforeEach
+    fun setup() {
+        // Initialize Koin for dependency injection
+        startKoin {
+            modules(listOf(outputModule))
+        }
+    }
+    
+    @AfterEach
+    fun tearDown() {
+        stopKoin()
+    }
+    
     @Test
     fun `check for JSON Schema 2020-12 compliance issues`() {
-        // Create a real context with mocked userConfig
-        val mockUserConfig = User(
-            email = "test@example.com",
-            region = "us-east-1",
-            keyName = "test-key",
-            sshKeyPath = "/tmp/test-key.pem",
-            awsProfile = "default",
-            awsAccessKey = "test-access-key",
-            awsSecret = "test-secret"
-        )
+        // Create a context with a temp directory
+        val tempDir = File("/tmp/test-mcp-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
         
-        val context = Context(File("/tmp"))
-        val userConfigField = Context::class.java.getDeclaredField("userConfig")
-        userConfigField.isAccessible = true
-        userConfigField.set(context, mockUserConfig)
+        // Create a test user config file to avoid interactive prompt
+        val profileDir = File(tempDir, "profiles/default")
+        profileDir.mkdirs()
+        val userConfigFile = File(profileDir, "settings.yaml")
+        userConfigFile.writeText("""
+            email: test@example.com
+            region: us-east-1
+            keyName: test-key
+            sshKeyPath: /tmp/test-key.pem
+            awsProfile: default
+            awsAccessKey: test-access-key
+            awsSecret: test-secret
+            axonOpsOrg: ""
+            axonOpsKey: ""
+        """.trimIndent())
+        
+        val context = Context(tempDir)
         
         val registry = McpToolRegistry(context)
         val tools = registry.getTools()

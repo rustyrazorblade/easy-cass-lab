@@ -11,6 +11,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
+import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
@@ -29,6 +30,7 @@ import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.time.LocalDate
 
+@McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
 class Init(

@@ -43,9 +43,14 @@ class McpServer(private val context: Context) : KoinComponent {
                 )
             )
             
-            // Add all tools from registry
-            toolRegistry.getTools().forEachIndexed { index, toolInfo ->
-                log.info { "Tool $index (${toolInfo.name}): inputSchema = ${toolInfo.inputSchema}" }
+            // Get tools from registry (already filtered by @McpCommand annotation)
+            val tools = toolRegistry.getTools()
+            
+            log.info { "Registering ${tools.size} MCP-enabled tools" }
+            log.info { "Tools to register: ${tools.map { it.name }}" }
+            
+            tools.forEach { toolInfo ->
+                log.info { "Registering tool: ${toolInfo.name} with description: ${toolInfo.description}"}
                 server.addTool(
                     name = toolInfo.name,
                     description = toolInfo.description,
