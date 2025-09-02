@@ -61,6 +61,14 @@ Parses Terraform state and provides methods to retrieve host information:
 - `getHosts(serverType: ServerType)`: Returns list of hosts for a given server type
 - `withHosts(serverType: ServerType, hostFilter: Hosts, action: (Host) -> Unit)`: Executes action on filtered hosts
 
+#### 4. Commands (`commands/*`)
+
+JCommander subcommands.  Most run then exit.  There are two exceptions:
+
+- Repl: Starts a REPL to reduce typing
+- McpCommand: Starts an MCP server for AI Agents.
+
+
 ### Common Patterns
 
 #### Getting Host IPs
