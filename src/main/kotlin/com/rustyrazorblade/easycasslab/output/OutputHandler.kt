@@ -392,3 +392,67 @@ class ChannelOutputHandler(
         }
     }
 }
+
+/**
+ * Output handler that filters frame events and sends periodic docker activity updates.
+ * Drops individual frame events to reduce noise, but sends a progress message every 100 frames.
+ * All other event types (MessageEvent, ErrorEvent, CloseEvent) are passed through unchanged.
+ *
+ * This handler is designed for MCP streaming where frame-by-frame output would be too verbose,
+ * but users still need to know that Docker containers are actively running.
+ *
+ * @param channel The Channel to send filtered output events to
+ */
+class FilteringChannelOutputHandler(
+    private val channel: Channel<OutputEvent>,
+) : OutputHandler {
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
+
+    private var frameCount = 0
+
+    /**
+     * Reset the frame count to 0.
+     * This should be called before each new tool execution to ensure frame counting starts fresh.
+     */
+    fun resetFrameCount() {
+        frameCount = 0
+    }
+
+    override fun handleFrame(frame: Frame) {
+        frameCount++
+        if (frameCount % 100 == 0) {
+            val activityMessage = "Docker container activity: $frameCount frames processed"
+            val event = OutputEvent.MessageEvent(activityMessage)
+            sendEvent(event)
+        }
+        // Drop individual frame events - don't send to channel
+    }
+
+    override fun handleMessage(message: String) {
+        val event = OutputEvent.MessageEvent(message)
+        sendEvent(event)
+    }
+
+    override fun handleError(
+        message: String,
+        throwable: Throwable?,
+    ) {
+        val event = OutputEvent.ErrorEvent(message, throwable)
+        sendEvent(event)
+    }
+
+    override fun close() {
+        val event = OutputEvent.CloseEvent
+        sendEvent(event)
+        log.debug { "Closing filtering channel output handler" }
+    }
+
+    private fun sendEvent(event: OutputEvent) {
+        val result = channel.trySend(event)
+        if (result.isFailure) {
+            log.warn { "Failed to send event to channel: $event" }
+        }
+    }
+}

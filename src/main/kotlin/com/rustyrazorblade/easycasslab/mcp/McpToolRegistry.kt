@@ -93,20 +93,24 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         }
 
         try {
-            // Temporarily replace the output handler
-            // Note: This is a workaround since we can't directly set the handler on the command
-            // In a production system, commands should accept an output handler parameter
-
+            // Stream start message via outputHandler
+            outputHandler.handleMessage("Starting execution of tool: $name")
+            
             // Execute the command
             freshCommand.execute()
 
-            // For now, return empty success since we can't capture output easily
-            // A proper fix would require modifying the command execution framework
+            // Stream completion message
+            outputHandler.handleMessage("Tool '$name' completed successfully")
+            
             return ToolResult(
-                content = listOf("Command executed successfully"),
+                content = listOf("Tool executed successfully"),
             )
         } catch (e: Exception) {
             log.error(e) { "Error executing command ${tool.name}" }
+            
+            // Stream error message
+            outputHandler.handleError("Tool '$name' failed: ${e.message}", e)
+            
             return ToolResult(
                 content = listOf("Error executing command: ${e.message}"),
                 isError = true,
