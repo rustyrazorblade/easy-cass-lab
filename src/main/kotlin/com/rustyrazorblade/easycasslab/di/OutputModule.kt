@@ -16,10 +16,10 @@ import org.koin.dsl.module
  */
 val outputModule =
     module {
-        // Default output handler - factory because it can maintain state
-        factory<OutputHandler> { ConsoleOutputHandler() }
+        // Default output handler - singleton for consistent instance
+        single<OutputHandler> { ConsoleOutputHandler() }
 
         // Named output handlers for specific use cases
-        factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
-        factory<OutputHandler>(named("logger")) { LoggerOutputHandler("Application") }
+        single<OutputHandler>(named("console")) { ConsoleOutputHandler() }
+        single<OutputHandler>(named("logger")) { LoggerOutputHandler("Application") }
     }
