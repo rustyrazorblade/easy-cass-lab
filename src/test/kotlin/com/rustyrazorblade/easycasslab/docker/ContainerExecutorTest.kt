@@ -8,9 +8,9 @@ import com.github.dockerjava.api.model.StreamType
 import com.rustyrazorblade.easycasslab.DockerClientInterface
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -35,20 +35,21 @@ class ContainerExecutorTest {
     @BeforeEach
     fun setup() {
         bufferedOutputHandler = BufferedOutputHandler()
-        
+
         // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule = module {
-            factory<OutputHandler> { bufferedOutputHandler }
-        }
-        
+        val testModule =
+            module {
+                factory<OutputHandler> { bufferedOutputHandler }
+            }
+
         startKoin {
             modules(testModule)
         }
-        
+
         mockDockerClient = mock()
         containerExecutor = ContainerExecutor(mockDockerClient)
     }
-    
+
     @AfterEach
     fun teardown() {
         stopKoin()
@@ -128,20 +129,21 @@ class ContainerIOManagerTest {
     @BeforeEach
     fun setup() {
         bufferedOutputHandler = BufferedOutputHandler()
-        
+
         // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule = module {
-            factory<OutputHandler> { bufferedOutputHandler }
-        }
-        
+        val testModule =
+            module {
+                factory<OutputHandler> { bufferedOutputHandler }
+            }
+
         startKoin {
             modules(testModule)
         }
-        
+
         mockDockerClient = mock()
         ioManager = ContainerIOManager(mockDockerClient)
     }
-    
+
     @AfterEach
     fun teardown() {
         stopKoin()
@@ -209,20 +211,21 @@ class ContainerStateMonitorTest {
     @BeforeEach
     fun setup() {
         bufferedOutputHandler = BufferedOutputHandler()
-        
+
         // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule = module {
-            factory<OutputHandler> { bufferedOutputHandler }
-        }
-        
+        val testModule =
+            module {
+                factory<OutputHandler> { bufferedOutputHandler }
+            }
+
         startKoin {
             modules(testModule)
         }
-        
+
         mockDockerClient = mock()
         stateMonitor = ContainerStateMonitor()
     }
-    
+
     @AfterEach
     fun teardown() {
         stopKoin()

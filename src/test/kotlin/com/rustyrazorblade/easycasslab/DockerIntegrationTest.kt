@@ -4,10 +4,10 @@ import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.AccessMode
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -37,16 +37,17 @@ class DockerIntegrationTest {
     @BeforeEach
     fun setup() {
         bufferedOutputHandler = BufferedOutputHandler()
-        
+
         // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule = module {
-            factory<OutputHandler> { bufferedOutputHandler }
-        }
-        
+        val testModule =
+            module {
+                factory<OutputHandler> { bufferedOutputHandler }
+            }
+
         startKoin {
             modules(testModule)
         }
-        
+
         mockContext = mock()
         mockDockerClient = mock()
         mockUserIdProvider = mock()
@@ -72,7 +73,7 @@ class DockerIntegrationTest {
 
         docker = Docker(mockContext, mockDockerClient, mockUserIdProvider)
     }
-    
+
     @AfterEach
     fun teardown() {
         stopKoin()

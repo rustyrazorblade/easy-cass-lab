@@ -226,6 +226,7 @@ class Docker(
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
 ) : KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private const val CONTAINER_ID_DISPLAY_LENGTH = 12
         private val DEFAULT_MAX_WAIT_TIME = Duration.ofMinutes(10)

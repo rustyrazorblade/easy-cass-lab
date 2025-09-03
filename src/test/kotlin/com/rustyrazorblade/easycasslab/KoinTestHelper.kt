@@ -13,20 +13,20 @@ import org.koin.dsl.module
  * Helper object for setting up Koin context in tests
  */
 object KoinTestHelper {
-    
     /**
      * Test module that provides test-specific OutputHandler implementations
      */
-    val testModule = module {
-        // Default output handler for tests - use BufferedOutputHandler for testing
-        factory<OutputHandler> { BufferedOutputHandler() }
-        
-        // Named output handlers for specific test cases
-        factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
-        factory<OutputHandler>(named("logger")) { com.rustyrazorblade.easycasslab.output.LoggerOutputHandler("Test") }
-        factory<OutputHandler>(named("buffered")) { BufferedOutputHandler() }
-    }
-    
+    val testModule =
+        module {
+            // Default output handler for tests - use BufferedOutputHandler for testing
+            factory<OutputHandler> { BufferedOutputHandler() }
+
+            // Named output handlers for specific test cases
+            factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
+            factory<OutputHandler>(named("logger")) { com.rustyrazorblade.easycasslab.output.LoggerOutputHandler("Test") }
+            factory<OutputHandler>(named("buffered")) { BufferedOutputHandler() }
+        }
+
     /**
      * Start Koin with test configuration
      */
@@ -37,14 +37,14 @@ object KoinTestHelper {
             }
         }
     }
-    
+
     /**
      * Stop Koin context
      */
     fun stopKoin() {
         org.koin.core.context.stopKoin()
     }
-    
+
     /**
      * Reset Koin context - stops and restarts with clean state
      */

@@ -22,6 +22,7 @@ class ContainerExecutor(
     private val dockerClient: DockerClientInterface,
 ) : KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
         private val CONTAINER_POLLING_INTERVAL = Duration.ofSeconds(1)
@@ -111,6 +112,7 @@ class ContainerIOManager(
     private val dockerClient: DockerClientInterface,
 ) : KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -204,6 +206,7 @@ class ContainerIOManager(
  */
 class ContainerStateMonitor() : KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
     }

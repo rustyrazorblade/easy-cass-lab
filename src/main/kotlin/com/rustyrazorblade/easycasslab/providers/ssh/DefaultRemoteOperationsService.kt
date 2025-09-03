@@ -20,6 +20,7 @@ class DefaultRemoteOperationsService(
     private val connectionProvider: SSHConnectionProvider,
 ) : RemoteOperationsService, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
     }

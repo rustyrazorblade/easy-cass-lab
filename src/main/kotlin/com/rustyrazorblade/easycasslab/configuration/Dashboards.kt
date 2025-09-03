@@ -15,6 +15,7 @@ class Dashboards(
     private val dashboardLocation: File,
 ) : KoinComponent {
     private val outputHandler: OutputHandler by inject()
+
     fun copyDashboards() {
         val reflections = Reflections("com.rustyrazorblade.dashboards", ResourcesScanner())
         val resources = reflections.getResources(".*".toPattern())
