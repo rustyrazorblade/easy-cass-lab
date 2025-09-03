@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.mcp.McpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -12,9 +13,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
  * allowing AI assistants and other MCP clients to interact with
  * the tool programmatically.
  */
-@Parameters(commandDescription = "Start MCP server for AI assistant integration.  Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse")
+@RequireDocker
+@Parameters(
+    commandDescription = "Start MCP server for AI assistant integration.  Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
+)
 class McpCommand(context: Context) : BaseCommand(context) {
-
     @Parameter(description = "MCP server port", names = ["--port", "-p"])
     var port: Int = 8888
 
@@ -24,12 +27,12 @@ class McpCommand(context: Context) : BaseCommand(context) {
 
     override fun execute() {
         log.info { "Starting easy-cass-lab MCP server..." }
-        
+
         try {
             // Create and start the MCP server with SDK
             val server = McpServer(context)
             server.start(port)
-            
+
             // The server will run until interrupted
             log.info { "MCP server stopped." }
         } catch (e: Exception) {

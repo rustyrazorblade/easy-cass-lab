@@ -204,7 +204,7 @@ class Up(
             outputHandler.handleMessage("No control nodes found, skipping OTel configuration for Cassandra nodes")
             return
         }
-        
+
         val controlNodeIp = controlHost.private
         outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
 
@@ -212,13 +212,14 @@ class Up(
             outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
 
             // Create .env file for docker-compose with environment variables
-            val envContent = """
+            val envContent =
+                """
                 CONTROL_NODE_IP=$controlNodeIp
-            """.trimIndent()
+                """.trimIndent()
 
             // Create temporary .env file
             val tempEnvFile = File.createTempFile("env-", "")
-            
+
             try {
                 tempEnvFile.writeText(envContent)
 
@@ -226,7 +227,7 @@ class Up(
                 remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-cassandra-config.yaml")
                 remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
                 remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
-                
+
                 outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
             } finally {
                 // Clean up temporary files

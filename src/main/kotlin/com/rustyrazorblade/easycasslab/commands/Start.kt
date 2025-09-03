@@ -68,22 +68,24 @@ class Start(context: Context) : BaseCommand(context) {
         }
 
         // Load cluster state to get InitConfig
-        val clusterState = try {
-            ClusterState.load()
-        } catch (e: Exception) {
-            outputHandler.handleMessage("Warning: Could not load cluster state, using defaults")
-            null
-        }
+        val clusterState =
+            try {
+                ClusterState.load()
+            } catch (e: Exception) {
+                outputHandler.handleMessage("Warning: Could not load cluster state, using defaults")
+                null
+            }
 
         // Get datacenter (region) and cassandra host
         val datacenter = clusterState?.initConfig?.region ?: context.userConfig.region
         val cassandraHost = context.tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
 
         // Create .env file content
-        val envContent = """
+        val envContent =
+            """
             CASSANDRA_DATACENTER=$datacenter
             CASSANDRA_HOST=$cassandraHost
-        """.trimIndent()
+            """.trimIndent()
 
         context.tfstate.withHosts(ServerType.Control, hosts) { host ->
             outputHandler.handleMessage("Starting Docker Compose services on control node ${host.public}")
@@ -157,14 +159,16 @@ class Start(context: Context) : BaseCommand(context) {
             var success = false
             var retryCount = 0
             var lastError: String? = null
-            
+
             while (!success && retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
                 try {
                     if (retryCount > 0) {
-                        outputHandler.handleMessage("Retrying docker compose up (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...")
+                        outputHandler.handleMessage(
+                            "Retrying docker compose up (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...",
+                        )
                         Thread.sleep(DOCKER_COMPOSE_RETRY_DELAY_MS)
                     }
-                    
+
                     // Run docker compose up
                     val result = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose up -d")
                     outputHandler.handleMessage("Docker Compose output: ${result.text}")
@@ -178,7 +182,7 @@ class Start(context: Context) : BaseCommand(context) {
                     }
                 }
             }
-            
+
             if (!success) {
                 outputHandler.handleMessage("ERROR: Failed to start Docker Compose after $DOCKER_COMPOSE_MAX_RETRIES attempts")
                 outputHandler.handleMessage("Last error: $lastError")
@@ -238,20 +242,22 @@ class Start(context: Context) : BaseCommand(context) {
             }
 
             // Check if .env file exists, if not create it
-            val envCheckResult = remoteOps.executeRemotely(
-                host,
-                "test -f /home/ubuntu/.env && echo 'exists' || echo 'not found'"
-            )
-            
-            if (envCheckResult.text.trim() == "not found") {
-                outputHandler.handleMessage("Creating .env file for ${host.alias}")
-                val envContent = """
-                    CONTROL_NODE_IP=$controlNodeIp
-                """.trimIndent()
-                
+            val envCheckResult =
                 remoteOps.executeRemotely(
                     host,
-                    "cat > /home/ubuntu/.env << 'EOF'\n$envContent\nEOF"
+                    "test -f /home/ubuntu/.env && echo 'exists' || echo 'not found'",
+                )
+
+            if (envCheckResult.text.trim() == "not found") {
+                outputHandler.handleMessage("Creating .env file for ${host.alias}")
+                val envContent =
+                    """
+                    CONTROL_NODE_IP=$controlNodeIp
+                    """.trimIndent()
+
+                remoteOps.executeRemotely(
+                    host,
+                    "cat > /home/ubuntu/.env << 'EOF'\n$envContent\nEOF",
                 )
             }
 
@@ -267,10 +273,11 @@ class Start(context: Context) : BaseCommand(context) {
             // Pull OTel collector image
             outputHandler.handleMessage("Pulling OTel collector image on ${host.alias}...")
             try {
-                val pullResult = remoteOps.executeRemotely(
-                    host,
-                    "docker pull otel/opentelemetry-collector-contrib:latest"
-                )
+                val pullResult =
+                    remoteOps.executeRemotely(
+                        host,
+                        "docker pull otel/opentelemetry-collector-contrib:latest",
+                    )
                 outputHandler.handleMessage("Docker pull completed on ${host.alias}")
             } catch (e: Exception) {
                 outputHandler.handleMessage("Warning: Failed to pull OTel image on ${host.alias}: ${e.message}")
@@ -284,15 +291,18 @@ class Start(context: Context) : BaseCommand(context) {
             while (!success && retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
                 try {
                     if (retryCount > 0) {
-                        outputHandler.handleMessage("Retrying OTel startup on ${host.alias} (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...")
+                        outputHandler.handleMessage(
+                            "Retrying OTel startup on ${host.alias} (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...",
+                        )
                         Thread.sleep(DOCKER_COMPOSE_RETRY_DELAY_MS)
                     }
 
                     // Run docker compose up for OTel
-                    val result = remoteOps.executeRemotely(
-                        host,
-                        "cd /home/ubuntu && docker compose up -d"
-                    )
+                    val result =
+                        remoteOps.executeRemotely(
+                            host,
+                            "cd /home/ubuntu && docker compose up -d",
+                        )
                     outputHandler.handleMessage("OTel collector started on ${host.alias}")
                     success = true
                 } catch (e: Exception) {
@@ -311,10 +321,11 @@ class Start(context: Context) : BaseCommand(context) {
                 // Check OTel collector status
                 Thread.sleep(2000) // Give it time to start
                 try {
-                    val statusResult = remoteOps.executeRemotely(
-                        host,
-                        "docker ps | grep otel-collector"
-                    )
+                    val statusResult =
+                        remoteOps.executeRemotely(
+                            host,
+                            "docker ps | grep otel-collector",
+                        )
                     if (statusResult.text.contains("Up")) {
                         outputHandler.handleMessage("OTel collector is running on ${host.alias}")
                     } else {

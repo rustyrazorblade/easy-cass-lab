@@ -55,12 +55,13 @@ data class ClusterState(
 ) {
     companion object {
         @JsonIgnore
-        private val mapper = ObjectMapper().registerKotlinModule().apply {
-            // Configure to handle missing fields and unknown properties gracefully
-            configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-            configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
-            configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
-        }
+        private val mapper =
+            ObjectMapper().registerKotlinModule().apply {
+                // Configure to handle missing fields and unknown properties gracefully
+                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
+                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
+            }
 
         @JsonIgnore
         var fp = File(CLUSTER_STATE)

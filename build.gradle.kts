@@ -99,7 +99,7 @@ dependencies {
 
     // Kotlinx Serialization for MCP
     implementation(libs.kotlinx.serialization.json)
-    
+
     // MCP SDK and dependencies
     implementation(libs.mcp.sdk)
     implementation(libs.kotlinx.io)

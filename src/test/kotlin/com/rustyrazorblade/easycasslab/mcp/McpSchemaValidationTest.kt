@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.di.outputModule
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.AfterEach
@@ -12,7 +11,6 @@ import org.koin.core.context.stopKoin
 import java.io.File
 
 class McpSchemaValidationTest {
-    
     @BeforeEach
     fun setup() {
         // Initialize Koin for dependency injection
@@ -20,23 +18,24 @@ class McpSchemaValidationTest {
             modules(listOf(outputModule))
         }
     }
-    
+
     @AfterEach
     fun tearDown() {
         stopKoin()
     }
-    
+
     @Test
     fun `check for JSON Schema 2020-12 compliance issues`() {
         // Create a context with a temp directory
         val tempDir = File("/tmp/test-mcp-${System.currentTimeMillis()}")
         tempDir.mkdirs()
-        
+
         // Create a test user config file to avoid interactive prompt
         val profileDir = File(tempDir, "profiles/default")
         profileDir.mkdirs()
         val userConfigFile = File(profileDir, "settings.yaml")
-        userConfigFile.writeText("""
+        userConfigFile.writeText(
+            """
             email: test@example.com
             region: us-east-1
             keyName: test-key
@@ -46,53 +45,54 @@ class McpSchemaValidationTest {
             awsSecret: test-secret
             axonOpsOrg: ""
             axonOpsKey: ""
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         val context = Context(tempDir)
-        
+
         val registry = McpToolRegistry(context)
         val tools = registry.getTools()
-        
+
         println("Checking all ${tools.size} tools for JSON Schema 2020-12 compliance issues...\n")
-        
+
         var issueCount = 0
-        
+
         tools.forEachIndexed { index, tool ->
             val issues = mutableListOf<String>()
             val schema = tool.inputSchema
-            
+
             // Check 1: Must have type field at root
             if (!schema.containsKey("type")) {
                 issues.add("Missing root 'type' field")
             }
-            
+
             // Check 2: Must have properties field (even if empty)
             if (!schema.containsKey("properties")) {
                 issues.add("Missing 'properties' field")
             }
-            
+
             // Check 3: additionalProperties should be boolean, not string
             val additionalProps = schema["additionalProperties"]
             if (additionalProps != null && additionalProps !is JsonPrimitive) {
                 issues.add("additionalProperties must be a boolean primitive")
             }
-            
+
             val properties = schema["properties"]?.jsonObject
             if (properties != null) {
                 properties.forEach { (propName, propValue) ->
                     val prop = propValue.jsonObject
-                    
+
                     // Check 4: Each property must have a type
                     if (!prop.containsKey("type")) {
                         issues.add("Property '$propName' missing 'type' field")
                     }
-                    
+
                     // Check 5: If enum is present, it must be an array
                     val enumField = prop["enum"]
                     if (enumField != null && enumField !is JsonArray) {
                         issues.add("Property '$propName' has invalid 'enum' field (must be array)")
                     }
-                    
+
                     // Check 6: Default value must match the type
                     val type = prop["type"]?.jsonPrimitive?.content
                     val defaultValue = prop["default"]
@@ -115,7 +115,7 @@ class McpSchemaValidationTest {
                             }
                         }
                     }
-                    
+
                     // Check 7: If enum exists, default must be one of the enum values
                     if (enumField is JsonArray && defaultValue != null) {
                         val enumValues = enumField.map { it.jsonPrimitive.content }
@@ -124,12 +124,12 @@ class McpSchemaValidationTest {
                             issues.add("Property '$propName' default '$defaultStr' not in enum values: $enumValues")
                         }
                     }
-                    
+
                     // Check 8: Look for nested objects that might need $ref or proper definitions
                     if (type == "object" && !prop.containsKey("properties")) {
                         issues.add("Property '$propName' is type 'object' but missing 'properties' definition")
                     }
-                    
+
                     // Check 9: Description should be a string
                     val description = prop["description"]
                     if (description != null && (description !is JsonPrimitive || !description.isString)) {
@@ -137,7 +137,7 @@ class McpSchemaValidationTest {
                     }
                 }
             }
-            
+
             // Check 10: If required field exists, it must be an array of strings
             val required = schema["required"]
             if (required != null) {
@@ -156,13 +156,13 @@ class McpSchemaValidationTest {
                     }
                 }
             }
-            
+
             if (issues.isNotEmpty()) {
                 println("Tool $index (${tool.name}) - ${issues.size} issues:")
                 issues.forEach { println("  - $it") }
                 println()
                 issueCount++
-                
+
                 // Print the problematic schema for debugging
                 if (index == 15) {
                     println("Full schema for tool 15:")
@@ -171,7 +171,7 @@ class McpSchemaValidationTest {
                 }
             }
         }
-        
+
         if (issueCount == 0) {
             println("✓ All tools pass JSON Schema 2020-12 compliance checks")
         } else {

@@ -47,7 +47,7 @@ class Clean : ICommand, KoinComponent {
         for (f in filesToClean) {
             File(f).deleteRecursively()
         }
-        
+
         for (d in directoriesToClean) {
             File(d).deleteRecursively()
         }

@@ -26,7 +26,7 @@ class MockSSHClient : ISSHClient {
      * Mock command output can be customized per test
      */
     var commandOutput = ""
-    
+
     /**
      * Mock stderr output can be customized per test
      */

@@ -12,12 +12,12 @@ import java.io.File
 data class McpServerConfig(
     val command: String,
     val args: List<String>,
-    val env: Map<String, String> = emptyMap()
+    val env: Map<String, String> = emptyMap(),
 )
 
 @Serializable
 data class McpConfig(
-    val mcpServers: Map<String, McpServerConfig>
+    val mcpServers: Map<String, McpServerConfig>,
 )
 
 /**
@@ -27,42 +27,41 @@ data class McpConfig(
  */
 @Parameters(commandDescription = "Generate MCP server configuration for Claude Desktop")
 class McpConfigCommand(context: Context) : BaseCommand(context) {
-    
     @Parameter(names = ["--json"], description = "Output JSON configuration instead of instructions")
     var json: Boolean = false
-    
+
     @Parameter(names = ["--path"], description = "Path to easy-cass-lab installation (auto-detected if not specified)")
     var installPath: String? = null
-    
+
     override fun execute() {
         // Determine the installation path
         val easyCassLabPath = installPath ?: detectInstallationPath()
-        
+
         if (easyCassLabPath == null) {
             println("Error: Could not detect easy-cass-lab installation path.")
             println("Please specify the path using --path parameter.")
             return
         }
-        
+
         if (json) {
             outputJsonConfig(easyCassLabPath)
         } else {
             outputInstructions(easyCassLabPath)
         }
     }
-    
+
     private fun detectInstallationPath(): String? {
         // First, try to find the location of the running script
         val currentDir = File(System.getProperty("user.dir"))
-        
+
         // Check if we're running from the project directory
         val binDir = File(currentDir, "bin")
         val easyCassLabScript = File(binDir, "easy-cass-lab")
-        
+
         if (easyCassLabScript.exists()) {
             return currentDir.absolutePath
         }
-        
+
         // Check if we're running from a distribution
         val parentDir = currentDir.parentFile
         if (parentDir != null) {
@@ -72,7 +71,7 @@ class McpConfigCommand(context: Context) : BaseCommand(context) {
                 return parentDir.absolutePath
             }
         }
-        
+
         // Try to find from the JAR location
         val jarPath = this::class.java.protectionDomain.codeSource?.location?.path
         if (jarPath != null) {
@@ -85,32 +84,38 @@ class McpConfigCommand(context: Context) : BaseCommand(context) {
                 }
             }
         }
-        
+
         return null
     }
-    
+
     private fun outputJsonConfig(easyCassLabPath: String) {
-        val config = McpConfig(
-            mcpServers = mapOf(
-                "easy-cass-lab" to McpServerConfig(
-                    command = "$easyCassLabPath/bin/easy-cass-lab",
-                    args = listOf("mcp"),
-                    env = mapOf(
-                        "PATH" to "\$PATH:$easyCassLabPath/bin"
-                    )
-                )
+        val config =
+            McpConfig(
+                mcpServers =
+                    mapOf(
+                        "easy-cass-lab" to
+                            McpServerConfig(
+                                command = "$easyCassLabPath/bin/easy-cass-lab",
+                                args = listOf("mcp"),
+                                env =
+                                    mapOf(
+                                        "PATH" to "\$PATH:$easyCassLabPath/bin",
+                                    ),
+                            ),
+                    ),
             )
-        )
-        
-        val json = Json { 
-            prettyPrint = true 
-            encodeDefaults = true
-        }
+
+        val json =
+            Json {
+                prettyPrint = true
+                encodeDefaults = true
+            }
         println(json.encodeToString(config))
     }
-    
+
     private fun outputInstructions(easyCassLabPath: String) {
-        println("""
+        println(
+            """
             ========================================
             MCP Server Configuration for Claude Desktop
             ========================================
@@ -151,6 +156,7 @@ class McpConfigCommand(context: Context) : BaseCommand(context) {
             
             To output just the JSON configuration, run:
             easy-cass-lab mcp-config --json
-        """.trimIndent())
+            """.trimIndent(),
+        )
     }
 }

@@ -133,12 +133,12 @@ class Init(
 
     override fun execute() {
         validateParameters()
-        
+
         // Check for existing files unless --clean is specified
         if (!clean) {
             checkExistingFiles()
         }
-        
+
         prepareEnvironment()
 
         outputHandler.handleMessage("Initializing directory")
@@ -173,28 +173,29 @@ class Init(
 
     private fun checkExistingFiles() {
         val existingFiles = mutableListOf<String>()
-        
+
         // Check files from Clean.filesToClean
         Clean.filesToClean.forEach { file ->
             if (File(file).exists()) {
                 existingFiles.add(file)
             }
         }
-        
+
         // Check directories from Clean.directoriesToClean
         Clean.directoriesToClean.forEach { dir ->
             if (File(dir).exists()) {
                 existingFiles.add("$dir/")
             }
         }
-        
+
         if (existingFiles.isNotEmpty()) {
-            val message = buildString {
-                appendLine("Error: Directory already contains configuration files:")
-                existingFiles.forEach { appendLine("  - $it") }
-                appendLine()
-                appendLine("Please use --clean flag to remove existing configuration, or run 'easy-cass-lab clean' first.")
-            }
+            val message =
+                buildString {
+                    appendLine("Error: Directory already contains configuration files:")
+                    existingFiles.forEach { appendLine("  - $it") }
+                    appendLine()
+                    appendLine("Please use --clean flag to remove existing configuration, or run 'easy-cass-lab clean' first.")
+                }
             outputHandler.handleMessage(message)
             System.exit(1)
         }
@@ -211,31 +212,33 @@ class Init(
         }
 
         // Create InitConfig with all the parameters from this Init command
-        val initConfig = InitConfig(
-            cassandraInstances = cassandraInstances,
-            stressInstances = stressInstances,
-            instanceType = instanceType,
-            stressInstanceType = stressInstanceType,
-            azs = azs,
-            ami = ami,
-            region = context.userConfig.region,
-            name = name,
-            ebsType = ebsType.toString(),
-            ebsSize = ebsSize,
-            ebsIops = ebsIops,
-            ebsThroughput = ebsThroughput,
-            ebsOptimized = ebsOptimized,
-            open = open,
-            controlInstances = 1,  // Control instances are currently hardcoded to 1
-            controlInstanceType = "t3.xlarge",  // Default control instance type
-            tags = tags,
-        )
+        val initConfig =
+            InitConfig(
+                cassandraInstances = cassandraInstances,
+                stressInstances = stressInstances,
+                instanceType = instanceType,
+                stressInstanceType = stressInstanceType,
+                azs = azs,
+                ami = ami,
+                region = context.userConfig.region,
+                name = name,
+                ebsType = ebsType.toString(),
+                ebsSize = ebsSize,
+                ebsIops = ebsIops,
+                ebsThroughput = ebsThroughput,
+                ebsOptimized = ebsOptimized,
+                open = open,
+                controlInstances = 1, // Control instances are currently hardcoded to 1
+                controlInstanceType = "t3.xlarge", // Default control instance type
+                tags = tags,
+            )
 
-        val state = ClusterState(
-            name = name,
-            versions = mutableMapOf(),
-            initConfig = initConfig,
-        )
+        val state =
+            ClusterState(
+                name = name,
+                versions = mutableMapOf(),
+                initConfig = initConfig,
+            )
         state.save()
     }
 
@@ -290,7 +293,7 @@ class Init(
         extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
         extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
         extractResourceFile("data-prepper-pipelines.yaml", "control/data-prepper-pipelines.yaml")
-        
+
         // Create cassandra directory and extract OTel configs for Cassandra nodes
         outputHandler.handleMessage(
             "Creating cassandra directory and writing OTel configs for Cassandra nodes",

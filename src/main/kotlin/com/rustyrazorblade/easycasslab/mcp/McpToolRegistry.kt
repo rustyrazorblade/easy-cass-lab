@@ -8,7 +8,6 @@ import com.rustyrazorblade.easycasslab.CommandLineParser
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
@@ -28,28 +27,28 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
     }
-    
+
     data class ToolInfo(
         val name: String,
         val description: String,
         val inputSchema: JsonObject,
-        val command: Command
+        val command: Command,
     )
-    
+
     data class ToolResult(
         val content: List<String>,
-        val isError: Boolean = false
+        val isError: Boolean = false,
     )
-    
+
     /**
      * Get all available tools from the command registry.
      * Only includes commands annotated with @McpCommand.
      */
     open fun getTools(): List<ToolInfo> {
         val parser = CommandLineParser(context)
-        
+
         return parser.commands
-            .filter { command -> 
+            .filter { command ->
                 // Only include commands with @McpCommand annotation
                 command.command::class.java.isAnnotationPresent(McpCommand::class.java)
             }
@@ -57,29 +56,33 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 createToolInfo(command)
             }
     }
-    
+
     /**
      * Execute a tool by name with the given arguments.
      */
-    fun executeTool(name: String, arguments: JsonObject?): ToolResult {
+    fun executeTool(
+        name: String,
+        arguments: JsonObject?,
+    ): ToolResult {
         log.debug { "executeTool called with name='$name', arguments=$arguments" }
         val tool = getTools().find { it.name == name }
-        
+
         if (tool == null) {
             return ToolResult(
                 content = listOf("Tool not found: $name"),
-                isError = true
+                isError = true,
             )
         }
 
         // Create a fresh command instance to avoid state retention
-        val freshCommand = try {
-            tool.command.command::class.java.getDeclaredConstructor(Context::class.java).newInstance(context)
-        } catch (e: Exception) {
-            // If we can't create a fresh instance, fall back to the original
-            log.warn { "Could not create fresh command instance for ${tool.name}: ${e.message}" }
-            tool.command.command
-        }
+        val freshCommand =
+            try {
+                tool.command.command::class.java.getDeclaredConstructor(Context::class.java).newInstance(context)
+            } catch (e: Exception) {
+                // If we can't create a fresh instance, fall back to the original
+                log.warn { "Could not create fresh command instance for ${tool.name}: ${e.message}" }
+                tool.command.command
+            }
 
         // Map JSON arguments to command parameters
         if (arguments != null) {
@@ -93,47 +96,47 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             // Temporarily replace the output handler
             // Note: This is a workaround since we can't directly set the handler on the command
             // In a production system, commands should accept an output handler parameter
-            
+
             // Execute the command
             freshCommand.execute()
-            
+
             // For now, return empty success since we can't capture output easily
             // A proper fix would require modifying the command execution framework
             return ToolResult(
-                content = listOf("Command executed successfully")
+                content = listOf("Command executed successfully"),
             )
         } catch (e: Exception) {
             log.error(e) { "Error executing command ${tool.name}" }
             return ToolResult(
                 content = listOf("Error executing command: ${e.message}"),
-                isError = true
+                isError = true,
             )
         }
     }
-    
+
     private fun createToolInfo(command: Command): ToolInfo {
         val description = extractDescription(command.command)
         val schema = generateSchema(command.command)
         log.info { "Creating tool info for $description : $schema" }
-        
+
         return ToolInfo(
             name = command.name,
             description = description,
             inputSchema = schema,
-            command = command
+            command = command,
         )
     }
-    
+
     private fun extractDescription(command: ICommand): String {
         val parametersAnnotation = command::class.findAnnotation<Parameters>()
-        return parametersAnnotation?.commandDescription 
+        return parametersAnnotation?.commandDescription
             ?: "No description available"
     }
-    
+
     fun generateSchema(command: ICommand): JsonObject {
         val properties = mutableMapOf<String, JsonElement>()
         val requiredFields = mutableListOf<String>()
-        
+
         // Scan all properties for Parameter annotations
         command::class.memberProperties.forEach { property ->
             val javaField = property.javaField
@@ -141,61 +144,65 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 val paramAnnotation = javaField.getAnnotation(Parameter::class.java)
                 if (paramAnnotation != null) {
                     val fieldName = property.name
-                    
+
                     // Check if field is required
                     if (paramAnnotation.required) {
                         requiredFields.add(fieldName)
                     }
-                    
-                    properties[fieldName] = buildJsonObject {
-                        put("type", determineJsonType(javaField.type))
-                        // Use description if available, otherwise use field name as fallback
-                        val desc = paramAnnotation.description?.takeIf { it.isNotEmpty() } 
-                            ?: "Parameter: $fieldName"
-                        put("description", desc)
-                        
-                        // Add enum constraints if this is an enum type
-                        if (javaField.type.isEnum) {
-                            putJsonArray("enum") {
-                                javaField.type.enumConstants.forEach { enumValue ->
-                                    // Get the string representation of the enum
-                                    val enumString = if (enumValue is Enum<*>) {
-                                        // Try to get the 'type' property if it exists (like Arch.type)
-                                        try {
-                                            val typeMethod = enumValue.javaClass.getMethod("getType")
-                                            typeMethod.invoke(enumValue) as String
-                                        } catch (e: Exception) {
-                                            enumValue.name.lowercase()
-                                        }
-                                    } else {
-                                        enumValue.toString()
+
+                    properties[fieldName] =
+                        buildJsonObject {
+                            put("type", determineJsonType(javaField.type))
+                            // Use description if available, otherwise use field name as fallback
+                            val desc =
+                                paramAnnotation.description?.takeIf { it.isNotEmpty() }
+                                    ?: "Parameter: $fieldName"
+                            put("description", desc)
+
+                            // Add enum constraints if this is an enum type
+                            if (javaField.type.isEnum) {
+                                putJsonArray("enum") {
+                                    javaField.type.enumConstants.forEach { enumValue ->
+                                        // Get the string representation of the enum
+                                        val enumString =
+                                            if (enumValue is Enum<*>) {
+                                                // Try to get the 'type' property if it exists (like Arch.type)
+                                                try {
+                                                    val typeMethod = enumValue.javaClass.getMethod("getType")
+                                                    typeMethod.invoke(enumValue) as String
+                                                } catch (e: Exception) {
+                                                    enumValue.name.lowercase()
+                                                }
+                                            } else {
+                                                enumValue.toString()
+                                            }
+                                        add(enumString)
                                     }
-                                    add(enumString)
                                 }
                             }
-                        }
-                        
-                        // Add default value if available
-                        javaField.isAccessible = true
-                        val defaultValue = javaField.get(command)
-                        when (defaultValue) {
-                            is Boolean -> put("default", defaultValue)
-                            is Number -> put("default", defaultValue)
-                            is String -> if (defaultValue.isNotEmpty()) put("default", defaultValue)
-                            is Enum<*> -> {
-                                // For enums, get the string representation
-                                val enumString = try {
-                                    val typeMethod = defaultValue.javaClass.getMethod("getType")
-                                    typeMethod.invoke(defaultValue) as String
-                                } catch (e: Exception) {
-                                    defaultValue.name.lowercase()
+
+                            // Add default value if available
+                            javaField.isAccessible = true
+                            val defaultValue = javaField.get(command)
+                            when (defaultValue) {
+                                is Boolean -> put("default", defaultValue)
+                                is Number -> put("default", defaultValue)
+                                is String -> if (defaultValue.isNotEmpty()) put("default", defaultValue)
+                                is Enum<*> -> {
+                                    // For enums, get the string representation
+                                    val enumString =
+                                        try {
+                                            val typeMethod = defaultValue.javaClass.getMethod("getType")
+                                            typeMethod.invoke(defaultValue) as String
+                                        } catch (e: Exception) {
+                                            defaultValue.name.lowercase()
+                                        }
+                                    put("default", enumString)
                                 }
-                                put("default", enumString)
+                                null -> {} // No default
+                                else -> {} // Complex type, skip default
                             }
-                            null -> {} // No default
-                            else -> {} // Complex type, skip default
                         }
-                    }
                 }
             }
 
@@ -214,7 +221,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 }
             }
         }
-        
+
         // Return just the properties - MCP SDK will add the wrapper with type, properties, etc.
         return buildJsonObject {
             properties.forEach { (key, value) ->
@@ -222,46 +229,55 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             }
         }
     }
-    
-    private fun scanDelegateForParameters(delegate: Any, properties: MutableMap<String, JsonElement>, requiredFields: MutableList<String>) {
+
+    private fun scanDelegateForParameters(
+        delegate: Any,
+        properties: MutableMap<String, JsonElement>,
+        requiredFields: MutableList<String>,
+    ) {
         delegate::class.memberProperties.forEach { property ->
             val javaField = property.javaField
             if (javaField != null) {
                 val paramAnnotation = javaField.getAnnotation(Parameter::class.java)
                 if (paramAnnotation != null) {
                     val fieldName = property.name
-                    
+
                     // Check if delegate field is required
                     if (paramAnnotation.required) {
                         requiredFields.add(fieldName)
                     }
-                    
-                    properties[fieldName] = buildJsonObject {
-                        put("type", determineJsonType(javaField.type))
-                        // Use description if available, otherwise use field name as fallback
-                        val desc = paramAnnotation.description?.takeIf { it.isNotEmpty() } 
-                            ?: "Parameter: $fieldName"
-                        put("description", desc)
-                    }
+
+                    properties[fieldName] =
+                        buildJsonObject {
+                            put("type", determineJsonType(javaField.type))
+                            // Use description if available, otherwise use field name as fallback
+                            val desc =
+                                paramAnnotation.description?.takeIf { it.isNotEmpty() }
+                                    ?: "Parameter: $fieldName"
+                            put("description", desc)
+                        }
                 }
             }
         }
     }
-    
+
     private fun determineJsonType(type: Class<*>): String {
         return when {
             type.isEnum -> "string" // Enums are strings with constraints
             type == String::class.java -> "string"
             type == Int::class.java || type == Integer::class.java ||
-            type == Long::class.java || type == java.lang.Long::class.java ||
-            type == Double::class.java || type == java.lang.Double::class.java ||
-            type == Float::class.java || type == java.lang.Float::class.java -> "number"
+                type == Long::class.java || type == java.lang.Long::class.java ||
+                type == Double::class.java || type == java.lang.Double::class.java ||
+                type == Float::class.java || type == java.lang.Float::class.java -> "number"
             type == Boolean::class.java || type == java.lang.Boolean::class.java -> "boolean"
             else -> "string" // Default to string for unknown types
         }
     }
-    
-    private fun mapArgumentsToCommand(command: ICommand, arguments: JsonObject) {
+
+    private fun mapArgumentsToCommand(
+        command: ICommand,
+        arguments: JsonObject,
+    ) {
         log.debug { "Mapping arguments to ${command::class.simpleName}" }
         command::class.memberProperties.forEach { property ->
             val javaField = property.javaField
@@ -269,7 +285,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 val paramAnnotation = javaField.getAnnotation(Parameter::class.java)
                 if (paramAnnotation != null) {
                     val fieldName = property.name
-                    
+
                     val value = arguments[fieldName]
                     if (value != null && value !is JsonNull) {
                         log.debug { "Setting field '$fieldName'" }
@@ -279,7 +295,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                     }
                 }
             }
-            
+
             // Handle ParametersDelegate
             val delegateAnnotation = property.javaField?.getAnnotation(ParametersDelegate::class.java)
             if (delegateAnnotation != null && property.javaField != null) {
@@ -298,8 +314,11 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             }
         }
     }
-    
-    private fun mapArgumentsToDelegate(delegate: Any, arguments: JsonObject) {
+
+    private fun mapArgumentsToDelegate(
+        delegate: Any,
+        arguments: JsonObject,
+    ) {
         log.debug { "Mapping arguments to delegate ${delegate::class.simpleName}" }
         delegate::class.memberProperties.forEach { property ->
             val javaField = property.javaField
@@ -307,7 +326,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 val paramAnnotation = javaField.getAnnotation(Parameter::class.java)
                 if (paramAnnotation != null) {
                     val fieldName = property.name
-                    
+
                     val value = arguments[fieldName]
                     if (value != null && value !is JsonNull) {
                         log.debug { "Setting delegate field '$fieldName'" }
@@ -319,8 +338,12 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             }
         }
     }
-    
-    private fun setFieldValue(target: Any, field: java.lang.reflect.Field, value: JsonElement) {
+
+    private fun setFieldValue(
+        target: Any,
+        field: java.lang.reflect.Field,
+        value: JsonElement,
+    ) {
         try {
             field.isAccessible = true
             when {
@@ -328,24 +351,25 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                     // Handle enum types
                     val enumString = value.jsonPrimitive.content
                     val enumConstants = field.type.enumConstants
-                    
+
                     // Try to find matching enum by 'type' property or name
-                    val enumValue = enumConstants.firstOrNull { enumConstant ->
-                        if (enumConstant is Enum<*>) {
-                            // First try to match by 'type' property if it exists
-                            try {
-                                val typeMethod = enumConstant.javaClass.getMethod("getType")
-                                val typeValue = typeMethod.invoke(enumConstant) as String
-                                typeValue == enumString
-                            } catch (e: Exception) {
-                                // Fall back to name matching
-                                enumConstant.name.equals(enumString, ignoreCase = true)
+                    val enumValue =
+                        enumConstants.firstOrNull { enumConstant ->
+                            if (enumConstant is Enum<*>) {
+                                // First try to match by 'type' property if it exists
+                                try {
+                                    val typeMethod = enumConstant.javaClass.getMethod("getType")
+                                    val typeValue = typeMethod.invoke(enumConstant) as String
+                                    typeValue == enumString
+                                } catch (e: Exception) {
+                                    // Fall back to name matching
+                                    enumConstant.name.equals(enumString, ignoreCase = true)
+                                }
+                            } else {
+                                enumConstant.toString() == enumString
                             }
-                        } else {
-                            enumConstant.toString() == enumString
                         }
-                    }
-                    
+
                     if (enumValue != null) {
                         field.set(target, enumValue)
                     } else {
