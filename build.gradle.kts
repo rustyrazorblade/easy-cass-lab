@@ -99,6 +99,7 @@ dependencies {
 
     // Kotlinx Serialization for MCP
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
 
     // MCP SDK and dependencies
     implementation(libs.mcp.sdk)
@@ -107,6 +108,7 @@ dependencies {
     // Testing
     testImplementation(libs.bundles.testing)
     testImplementation(libs.bundles.koin.test)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 kotlin {

@@ -18,6 +18,9 @@ jackson-kotlin = "2.9.+"
 # Kotlinx Serialization
 kotlinx-serialization = "1.6.0"
 
+# Kotlinx Coroutines
+kotlinx-coroutines = "1.8.1"
+
 # Testing
 jupiter = "5.5.2"
 assertj = "3.11.1"
@@ -110,6 +113,10 @@ reflections = { module = "org.reflections:reflections", version.ref = "reflectio
 
 # Kotlinx Serialization
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# Kotlinx Coroutines  
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
 # MCP SDK
 mcp-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-sdk" }
