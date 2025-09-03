@@ -3,13 +3,14 @@
 ## Development Rules
 
 - All tests should pass before committing.
-- Always add tests to new code.
+- Always add tests to new non-trivial code.
 - If this document needs to be updated in order to provide more context for future work, do it.
 - Do not use remote docker-compose commands, use docker compose, the subcommand version.
 - Check if the codebase already has a way of accomplishing something before writing new code.  For example, there's already Docker logic.
 - ABSOLUTE RULE: Never try to commit without explicit instruction to do so.
 - activate kotlin and java for context7
 - activate the serena MCP server
+- ABSOLUTE RULE: NEVER attribute commit messages to Claude.  
 
 ## Testing Guidelines
 
