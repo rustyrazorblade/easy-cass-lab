@@ -200,33 +200,127 @@ class BufferedOutputHandler : OutputHandler {
 /**
  * Composite output handler that delegates to multiple handlers.
  * Useful for writing to both console and logs simultaneously.
+ * Supports dynamic addition and removal of handlers at runtime.
+ * Thread-safe for concurrent access and modifications.
+ *
+ * Example usage:
+ * ```kotlin
+ * val composite = CompositeOutputHandler()
+ * composite.addHandler(ConsoleOutputHandler())
+ * composite.addHandler(LoggerOutputHandler("MyApp"))
+ *
+ * // Later, add more handlers dynamically
+ * composite.addHandler(BufferedOutputHandler())
+ * ```
  */
 class CompositeOutputHandler(
-    private val handlers: List<OutputHandler>,
+    handlers: List<OutputHandler> = emptyList(),
 ) : OutputHandler {
-    init {
-        require(handlers.isNotEmpty()) { "At least one handler must be provided" }
-    }
+    private val handlers: MutableList<OutputHandler> = handlers.toMutableList()
 
     constructor(vararg handlers: OutputHandler) : this(handlers.toList())
 
+    /**
+     * Add a new handler to the composite.
+     * The handler will receive all subsequent output.
+     *
+     * @param handler The OutputHandler to add
+     * @throws IllegalArgumentException if handler is already present
+     */
+    fun addHandler(handler: OutputHandler) {
+        synchronized(handlers) {
+            require(!handlers.contains(handler)) { "Handler already exists in composite" }
+            handlers.add(handler)
+        }
+    }
+
+    /**
+     * Remove a handler from the composite.
+     * The handler will no longer receive output.
+     *
+     * @param handler The OutputHandler to remove
+     * @return true if handler was removed, false if it wasn't present
+     */
+    fun removeHandler(handler: OutputHandler): Boolean {
+        return synchronized(handlers) {
+            handlers.remove(handler)
+        }
+    }
+
+    /**
+     * Remove all handlers from the composite.
+     * After this call, no output will be processed until new handlers are added.
+     */
+    fun removeAllHandlers() {
+        synchronized(handlers) {
+            handlers.clear()
+        }
+    }
+
+    /**
+     * Get the current number of handlers in the composite.
+     *
+     * @return The number of active handlers
+     */
+    fun getHandlerCount(): Int {
+        return synchronized(handlers) {
+            handlers.size
+        }
+    }
+
+    /**
+     * Check if a specific handler is present in the composite.
+     *
+     * @param handler The OutputHandler to check for
+     * @return true if handler is present, false otherwise
+     */
+    fun hasHandler(handler: OutputHandler): Boolean {
+        return synchronized(handlers) {
+            handlers.contains(handler)
+        }
+    }
+
+    /**
+     * Get a copy of all current handlers.
+     * This is a defensive copy to prevent external modification.
+     *
+     * @return List of current handlers
+     */
+    fun getHandlers(): List<OutputHandler> {
+        return synchronized(handlers) {
+            handlers.toList()
+        }
+    }
+
     override fun handleFrame(frame: Frame) {
-        handlers.forEach { it.handleFrame(frame) }
+        val currentHandlers = synchronized(handlers) {
+            handlers.toList() // Copy for safe iteration
+        }
+        currentHandlers.forEach { it.handleFrame(frame) }
     }
 
     override fun handleMessage(message: String) {
-        handlers.forEach { it.handleMessage(message) }
+        val currentHandlers = synchronized(handlers) {
+            handlers.toList() // Copy for safe iteration
+        }
+        currentHandlers.forEach { it.handleMessage(message) }
     }
 
     override fun handleError(
         message: String,
         throwable: Throwable?,
     ) {
-        handlers.forEach { it.handleError(message, throwable) }
+        val currentHandlers = synchronized(handlers) {
+            handlers.toList() // Copy for safe iteration
+        }
+        currentHandlers.forEach { it.handleError(message, throwable) }
     }
 
     override fun close() {
-        handlers.forEach { it.close() }
+        val currentHandlers = synchronized(handlers) {
+            handlers.toList() // Copy for safe iteration
+        }
+        currentHandlers.forEach { it.close() }
     }
 }
 

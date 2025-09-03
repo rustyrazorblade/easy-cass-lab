@@ -7,6 +7,7 @@ import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.output.LoggerOutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
@@ -125,6 +126,117 @@ class OutputHandlerTest {
         assertEquals(listOf("test message"), handler2.messages)
         assertEquals(1, handler1.errors.size)
         assertEquals(1, handler2.errors.size)
+    }
+
+    @Test
+    fun `CompositeOutputHandler can be created empty and handlers added dynamically`() {
+        val composite = CompositeOutputHandler()
+        assertEquals(0, composite.getHandlerCount())
+
+        val handler1 = BufferedOutputHandler()
+        val handler2 = BufferedOutputHandler()
+
+        composite.addHandler(handler1)
+        assertEquals(1, composite.getHandlerCount())
+        assertTrue(composite.hasHandler(handler1))
+
+        composite.addHandler(handler2)
+        assertEquals(2, composite.getHandlerCount())
+        assertTrue(composite.hasHandler(handler2))
+
+        // Test output goes to both handlers
+        composite.handleMessage("dynamic test")
+        assertEquals(listOf("dynamic test"), handler1.messages)
+        assertEquals(listOf("dynamic test"), handler2.messages)
+    }
+
+    @Test
+    fun `CompositeOutputHandler can remove handlers dynamically`() {
+        val handler1 = BufferedOutputHandler()
+        val handler2 = BufferedOutputHandler()
+        val composite = CompositeOutputHandler(handler1, handler2)
+
+        assertEquals(2, composite.getHandlerCount())
+
+        // Remove handler1
+        assertTrue(composite.removeHandler(handler1))
+        assertEquals(1, composite.getHandlerCount())
+        assertFalse(composite.hasHandler(handler1))
+        assertTrue(composite.hasHandler(handler2))
+
+        // Output should only go to handler2 now
+        composite.handleMessage("after removal")
+        assertEquals(emptyList<String>(), handler1.messages)
+        assertEquals(listOf("after removal"), handler2.messages)
+
+        // Try to remove non-existent handler
+        assertFalse(composite.removeHandler(handler1))
+    }
+
+    @Test
+    fun `CompositeOutputHandler removeAllHandlers clears all handlers`() {
+        val handler1 = BufferedOutputHandler()
+        val handler2 = BufferedOutputHandler()
+        val composite = CompositeOutputHandler(handler1, handler2)
+
+        assertEquals(2, composite.getHandlerCount())
+
+        composite.removeAllHandlers()
+        assertEquals(0, composite.getHandlerCount())
+        assertFalse(composite.hasHandler(handler1))
+        assertFalse(composite.hasHandler(handler2))
+
+        // No output should be processed
+        composite.handleMessage("after clear")
+        assertEquals(emptyList<String>(), handler1.messages)
+        assertEquals(emptyList<String>(), handler2.messages)
+    }
+
+    @Test
+    fun `CompositeOutputHandler prevents duplicate handlers`() {
+        val handler = BufferedOutputHandler()
+        val composite = CompositeOutputHandler()
+
+        composite.addHandler(handler)
+        assertEquals(1, composite.getHandlerCount())
+
+        // Adding the same handler again should throw
+        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            composite.addHandler(handler)
+        }
+        assertEquals("Handler already exists in composite", exception.message)
+        assertEquals(1, composite.getHandlerCount())
+    }
+
+    @Test
+    fun `CompositeOutputHandler getHandlers returns defensive copy`() {
+        val handler1 = BufferedOutputHandler()
+        val handler2 = BufferedOutputHandler()
+        val composite = CompositeOutputHandler(handler1, handler2)
+
+        val handlersList = composite.getHandlers()
+        assertEquals(2, handlersList.size)
+        assertTrue(handlersList.contains(handler1))
+        assertTrue(handlersList.contains(handler2))
+
+        // Modifying the returned list should not affect the composite
+        val mutableList = handlersList as? MutableList
+        if (mutableList != null) {
+            mutableList.clear()
+        }
+        assertEquals(2, composite.getHandlerCount()) // Should still be 2
+    }
+
+    @Test
+    fun `CompositeOutputHandler handles empty handler list gracefully`() {
+        val composite = CompositeOutputHandler()
+        assertEquals(0, composite.getHandlerCount())
+
+        // These operations should not throw exceptions
+        composite.handleFrame(Frame(StreamType.STDOUT, "test".toByteArray()))
+        composite.handleMessage("test message")
+        composite.handleError("test error", null)
+        composite.close()
     }
 
     @Test

@@ -3,7 +3,7 @@ package com.rustyrazorblade.easycasslab.mcp
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.server.cio.CIO
+import io.ktor.server.netty.Netty
 import io.ktor.server.engine.embeddedServer
 import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.*
@@ -103,7 +103,7 @@ class McpServer(private val context: Context) : KoinComponent {
             // Create a KTor application here
             // register the SSE plugin
             runBlocking {
-                embeddedServer(CIO, host = "0.0.0.0", port = port) {
+                embeddedServer(Netty, host = "0.0.0.0", port = port) {
                     mcp {
                         server
                     }
