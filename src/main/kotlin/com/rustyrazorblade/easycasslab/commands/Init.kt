@@ -174,16 +174,16 @@ class Init(
     private fun checkExistingFiles() {
         val existingFiles = mutableListOf<String>()
 
-        // Check files from Clean.filesToClean
+        // Check files from Clean.filesToClean relative to context directory
         Clean.filesToClean.forEach { file ->
-            if (File(file).exists()) {
+            if (File(context.easycasslabUserDirectory, file).exists()) {
                 existingFiles.add(file)
             }
         }
 
-        // Check directories from Clean.directoriesToClean
+        // Check directories from Clean.directoriesToClean relative to context directory
         Clean.directoriesToClean.forEach { dir ->
-            if (File(dir).exists()) {
+            if (File(context.easycasslabUserDirectory, dir).exists()) {
                 existingFiles.add("$dir/")
             }
         }

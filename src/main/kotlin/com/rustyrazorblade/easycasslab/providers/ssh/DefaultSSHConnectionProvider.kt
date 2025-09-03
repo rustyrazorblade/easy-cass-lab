@@ -8,6 +8,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.IOException
 import java.security.KeyPair
 import java.time.Duration
@@ -21,8 +23,8 @@ import kotlin.io.path.Path
  */
 class DefaultSSHConnectionProvider(
     private val config: SSHConfiguration,
-    private val outputHandler: OutputHandler,
-) : SSHConnectionProvider {
+) : SSHConnectionProvider, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -63,7 +65,7 @@ class DefaultSSHConnectionProvider(
             session.auth().verify()
 
             log.info { "SSH connection established to ${host.alias}" }
-            SSHClient(session, outputHandler)
+            SSHClient(session)
         }
     }
 

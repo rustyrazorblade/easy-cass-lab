@@ -5,6 +5,8 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 import java.nio.file.Path
 
@@ -16,8 +18,8 @@ import java.nio.file.Path
  */
 class DefaultRemoteOperationsService(
     private val connectionProvider: SSHConnectionProvider,
-    private val outputHandler: OutputHandler,
-) : RemoteOperationsService {
+) : RemoteOperationsService, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private val log = KotlinLogging.logger {}
     }

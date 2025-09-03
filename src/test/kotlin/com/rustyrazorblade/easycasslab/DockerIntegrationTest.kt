@@ -3,12 +3,17 @@ package com.rustyrazorblade.easycasslab
 import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.AccessMode
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
@@ -31,10 +36,20 @@ class DockerIntegrationTest {
 
     @BeforeEach
     fun setup() {
+        bufferedOutputHandler = BufferedOutputHandler()
+        
+        // Create a test-specific Koin module that uses our bufferedOutputHandler
+        val testModule = module {
+            factory<OutputHandler> { bufferedOutputHandler }
+        }
+        
+        startKoin {
+            modules(testModule)
+        }
+        
         mockContext = mock()
         mockDockerClient = mock()
         mockUserIdProvider = mock()
-        bufferedOutputHandler = BufferedOutputHandler()
         mockContainerCreationCommand = mock()
         mockContainerResponse = mock()
         mockContainerState = mock()
@@ -55,7 +70,12 @@ class DockerIntegrationTest {
 
         whenever(mockUserIdProvider.getUserId()).thenReturn(1000)
 
-        docker = Docker(mockContext, mockDockerClient, mockUserIdProvider, bufferedOutputHandler)
+        docker = Docker(mockContext, mockDockerClient, mockUserIdProvider)
+    }
+    
+    @AfterEach
+    fun teardown() {
+        stopKoin()
     }
 
     @Test

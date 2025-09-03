@@ -2,6 +2,8 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.apache.commons.io.FileUtils
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.reflections.Reflections
 import org.reflections.scanners.ResourcesScanner
 import java.io.File
@@ -11,8 +13,8 @@ import java.io.File
  */
 class Dashboards(
     private val dashboardLocation: File,
-    private val outputHandler: OutputHandler,
-) {
+) : KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     fun copyDashboards() {
         val reflections = Reflections("com.rustyrazorblade.dashboards", ResourcesScanner())
         val resources = reflections.getResources(".*".toPattern())

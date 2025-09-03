@@ -5,6 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.Charset
@@ -16,8 +18,8 @@ import java.nio.file.Path
  */
 class SSHClient(
     private val session: ClientSession,
-    private val outputHandler: OutputHandler,
-) : ISSHClient {
+) : ISSHClient, KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     private val log = KotlinLogging.logger {}
 
     /**

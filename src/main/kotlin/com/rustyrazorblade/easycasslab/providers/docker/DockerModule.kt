@@ -31,7 +31,6 @@ val dockerModule =
                 context = context,
                 dockerClient = get<DockerClientProvider>().getDockerClient(),
                 userIdProvider = get(),
-                outputHandler = get(),
             )
         }
 
@@ -41,7 +40,6 @@ val dockerModule =
                 context = context,
                 dockerClient = get<DockerClientProvider>().getDockerClient(),
                 userIdProvider = get(),
-                outputHandler = get(named("logger")),
             )
         }
     }

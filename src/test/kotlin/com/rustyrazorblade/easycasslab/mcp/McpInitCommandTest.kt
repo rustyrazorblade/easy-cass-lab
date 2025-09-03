@@ -162,6 +162,7 @@ class McpInitCommandTest {
             buildJsonObject {
                 put("cassandraInstances", 3)
                 put("name", "test-cluster")
+                put("clean", true) // Use clean flag to bypass existing file checks
             }
 
         val result = registry.executeTool("init", arguments)

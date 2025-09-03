@@ -49,7 +49,6 @@ object DockerFactory {
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
-            outputHandler = ConsoleOutputHandler(),
         )
     }
 
@@ -73,7 +72,6 @@ object DockerFactory {
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
-            outputHandler = LoggerOutputHandler(loggerName),
         )
     }
 
@@ -90,16 +88,12 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Pair<Docker, BufferedOutputHandler> {
-        val outputHandler = BufferedOutputHandler()
-        val docker =
-            Docker(
-                context = context,
-                dockerClient = dockerClient,
-                userIdProvider = userIdProvider,
-                outputHandler = outputHandler,
-            )
-        return docker to outputHandler
+    ): Docker {
+        return Docker(
+            context = context,
+            dockerClient = dockerClient,
+            userIdProvider = userIdProvider,
+        )
     }
 
     /**
@@ -115,14 +109,12 @@ object DockerFactory {
     fun createCompositeDocker(
         context: Context,
         dockerClient: DockerClientInterface,
-        vararg outputHandlers: OutputHandler,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
     ): Docker {
         return Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
-            outputHandler = CompositeOutputHandler(*outputHandlers),
         )
     }
 
@@ -139,14 +131,12 @@ object DockerFactory {
     fun createCustomDocker(
         context: Context,
         dockerClient: DockerClientInterface,
-        outputHandler: OutputHandler,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
     ): Docker {
         return Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
-            outputHandler = outputHandler,
         )
     }
 }

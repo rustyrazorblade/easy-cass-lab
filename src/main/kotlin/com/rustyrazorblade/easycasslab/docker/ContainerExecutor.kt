@@ -5,9 +5,10 @@ import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.model.Frame
 import com.rustyrazorblade.easycasslab.DockerClientInterface
 import com.rustyrazorblade.easycasslab.DockerException
-import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.IOException
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
@@ -19,8 +20,8 @@ import kotlin.concurrent.thread
  */
 class ContainerExecutor(
     private val dockerClient: DockerClientInterface,
-    private val outputHandler: OutputHandler = ConsoleOutputHandler(),
-) {
+) : KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private val log = KotlinLogging.logger {}
         private val CONTAINER_POLLING_INTERVAL = Duration.ofSeconds(1)
@@ -108,8 +109,8 @@ class ContainerExecutor(
  */
 class ContainerIOManager(
     private val dockerClient: DockerClientInterface,
-    private val outputHandler: OutputHandler = ConsoleOutputHandler(),
-) {
+) : KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -201,10 +202,8 @@ class ContainerIOManager(
 /**
  * Monitors and reports on container state.
  */
-class ContainerStateMonitor(
-    private val dockerClient: DockerClientInterface,
-    private val outputHandler: OutputHandler = ConsoleOutputHandler(),
-) {
+class ContainerStateMonitor() : KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private val log = KotlinLogging.logger {}
     }

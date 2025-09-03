@@ -15,9 +15,10 @@ import com.rustyrazorblade.easycasslab.docker.ContainerExecutor
 import com.rustyrazorblade.easycasslab.docker.ContainerIOManager
 import com.rustyrazorblade.easycasslab.docker.ContainerStateMonitor
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
-import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.IOException
 import java.io.PipedInputStream
 import java.time.Duration
@@ -223,8 +224,8 @@ class Docker(
     val context: Context,
     private val dockerClient: DockerClientInterface,
     private val userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    private val outputHandler: OutputHandler = ConsoleOutputHandler(),
-) {
+) : KoinComponent {
+    private val outputHandler: OutputHandler by inject()
     companion object {
         private const val CONTAINER_ID_DISPLAY_LENGTH = 12
         private val DEFAULT_MAX_WAIT_TIME = Duration.ofMinutes(10)
@@ -384,9 +385,9 @@ class Docker(
         compositeHandler.handleMessage("Starting $imageTag container ($containerId)")
 
         // Use the new modular components
-        val ioManager = ContainerIOManager(dockerClient, compositeHandler)
-        val executor = ContainerExecutor(dockerClient, compositeHandler)
-        val stateMonitor = ContainerStateMonitor(dockerClient, compositeHandler)
+        val ioManager = ContainerIOManager(dockerClient)
+        val executor = ContainerExecutor(dockerClient)
+        val stateMonitor = ContainerStateMonitor()
 
         // Attach to container and set up IO
         val framesRead = ioManager.attachToContainer(dockerContainer.id, true)
