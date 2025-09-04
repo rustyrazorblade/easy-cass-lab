@@ -126,6 +126,7 @@ cassandra_versions_extra.yaml
 state.json
 /cassandra_versions.yaml
 axonops-dashboards.json
+axonops-workbench.json
 info.log
 info*.log.gz
 

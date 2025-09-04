@@ -46,6 +46,16 @@ class Start(context: Context) : BaseCommand(context) {
             StartAxonOps(context).execute()
         }
 
+        // Inform user about AxonOps Workbench configuration if it exists
+        val axonOpsWorkbenchFile = File("axonops-workbench.json")
+        if (axonOpsWorkbenchFile.exists()) {
+            outputHandler.handleMessage("")
+            outputHandler.handleMessage("AxonOps Workbench configuration available:")
+            outputHandler.handleMessage("To import into AxonOps Workbench, run:")
+            outputHandler.handleMessage("  /path/to/axonops-workbench -v --import-workspace=axonops-workbench.json")
+            outputHandler.handleMessage("")
+        }
+
         // Start OTel collectors on Cassandra nodes
         startOtelOnCassandraNodes()
 

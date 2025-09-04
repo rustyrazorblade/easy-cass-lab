@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -99,6 +100,30 @@ class Up(
         val envFile = File("env.sh").bufferedWriter()
         context.tfstate.writeEnvironmentFile(envFile)
         writeStressEnvironmentVariables()
+        writeAxonOpsWorkbenchConfig()
+    }
+    
+    private fun writeAxonOpsWorkbenchConfig() {
+        try {
+            // Get the first Cassandra node (cassandra0)
+            val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
+            if (cassandraHosts.isNotEmpty()) {
+                val cassandra0 = cassandraHosts.first()
+                val config = AxonOpsWorkbenchConfig.create(
+                    host = cassandra0,
+                    userConfig = context.userConfig,
+                    clusterName = "easy-cass-lab"
+                )
+                val configFile = File("axonops-workbench.json")
+                AxonOpsWorkbenchConfig.writeToFile(config, configFile)
+                outputHandler.handleMessage("AxonOps Workbench configuration written to axonops-workbench.json")
+            } else {
+                log.warn { "No Cassandra hosts found, skipping AxonOps Workbench configuration" }
+            }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to write AxonOps Workbench configuration" }
+            // Don't fail the entire Up command if AxonOps config fails
+        }
     }
 
     private fun writeStressEnvironmentVariables() {
