@@ -6,7 +6,7 @@ import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import kotlinx.serialization.json.buildJsonObject
@@ -29,7 +29,7 @@ class McpServerBackgroundTest : KoinTest {
     @BeforeEach
     fun setup() {
         startKoin {
-            modules(outputModule)
+            modules(KoinModules.getAllModules())
         }
         
         mockContext = mock()

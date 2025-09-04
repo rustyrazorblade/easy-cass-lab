@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -26,7 +26,7 @@ class McpServerStreamingTest : KoinTest {
         mockContext = mock()
         
         startKoin {
-            modules(outputModule)
+            modules(KoinModules.getAllModules())
         }
     }
     

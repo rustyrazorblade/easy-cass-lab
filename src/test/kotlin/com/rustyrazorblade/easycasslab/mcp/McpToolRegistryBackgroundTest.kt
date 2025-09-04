@@ -6,7 +6,7 @@ import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputEvent
@@ -36,7 +36,7 @@ class McpToolRegistryBackgroundTest : KoinTest {
     @BeforeEach
     fun setup() {
         startKoin {
-            modules(outputModule)
+            modules(KoinModules.getAllModules())
         }
 
         context = mock()

@@ -6,7 +6,7 @@ import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
 import kotlinx.serialization.json.buildJsonObject
@@ -27,7 +27,7 @@ class McpToolRegistryTest {
     fun setup() {
         // Initialize Koin for dependency injection
         startKoin {
-            modules(listOf(outputModule))
+            modules(KoinModules.getAllModules())
         }
 
         context = mock()

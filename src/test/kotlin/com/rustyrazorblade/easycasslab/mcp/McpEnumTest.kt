@@ -5,7 +5,7 @@ import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import kotlinx.serialization.json.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -23,7 +23,7 @@ class McpEnumTest {
     fun setup() {
         // Initialize Koin for dependency injection
         startKoin {
-            modules(listOf(outputModule))
+            modules(KoinModules.getAllModules())
         }
 
         context = mock()

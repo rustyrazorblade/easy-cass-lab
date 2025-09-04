@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -15,7 +15,7 @@ class McpSchemaValidationTest {
     fun setup() {
         // Initialize Koin for dependency injection
         startKoin {
-            modules(listOf(outputModule))
+            modules(KoinModules.getAllModules())
         }
     }
 

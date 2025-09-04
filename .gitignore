@@ -135,3 +135,4 @@ easy-cass-mcp.json
 /cassandra
 
 .serena
+/logs/*

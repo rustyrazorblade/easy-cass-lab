@@ -5,7 +5,7 @@ import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputEvent
@@ -35,7 +35,7 @@ class McpToolRegistryStreamingTest : KoinTest {
     fun setup() {
         // Initialize Koin for dependency injection
         startKoin {
-            modules(listOf(outputModule))
+            modules(KoinModules.getAllModules())
         }
 
         context = mock()

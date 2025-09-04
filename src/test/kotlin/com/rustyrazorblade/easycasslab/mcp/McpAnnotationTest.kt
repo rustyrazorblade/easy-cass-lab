@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.outputModule
+import com.rustyrazorblade.easycasslab.di.KoinModules
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.AfterEach
@@ -28,7 +28,7 @@ class McpAnnotationTest {
     fun setup() {
         // Initialize Koin for dependency injection
         startKoin {
-            modules(listOf(outputModule))
+            modules(KoinModules.getAllModules())
         }
 
         // Create a proper settings file
