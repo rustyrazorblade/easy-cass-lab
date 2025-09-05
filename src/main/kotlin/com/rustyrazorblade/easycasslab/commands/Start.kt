@@ -97,7 +97,7 @@ class Start(context: Context) : BaseCommand(context) {
             CASSANDRA_HOST=$cassandraHost
             """.trimIndent()
 
-        context.tfstate.withHosts(ServerType.Control, hosts) { host ->
+        context.tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Starting Docker Compose services on control node ${host.public}")
 
             // Create and upload .env file
@@ -236,7 +236,7 @@ class Start(context: Context) : BaseCommand(context) {
         }
         val controlNodeIp = controlHost.private
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
+        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Starting OTel collector on Cassandra node ${host.alias} (${host.public})")
 
             // Check if configuration files exist on the remote host

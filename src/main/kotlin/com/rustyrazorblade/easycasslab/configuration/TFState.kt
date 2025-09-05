@@ -88,17 +88,29 @@ class TFState(
 
     /**
      * Host filter is a simple string check for now.
+     * @param parallel If true, execute operations on each host in parallel threads
      */
     fun withHosts(
         serverType: ServerType,
         hostFilter: Hosts,
+        parallel: Boolean = false,
         withHost: (h: Host) -> Unit,
     ) {
         val hostSet = hostFilter.hostList.split(",").filter { it.isNotBlank() }.toSet()
-        getHosts(serverType).filter {
-            it
+        val hosts = getHosts(serverType).filter {
             hostSet.isEmpty() || it.alias in hostSet
-        }.forEach(withHost)
+        }
+        
+        if (parallel && hosts.size > 1) {
+            val threads = hosts.map { host ->
+                Thread {
+                    withHost(host)
+                }.apply { start() }
+            }
+            threads.forEach { it.join() }
+        } else {
+            hosts.forEach(withHost)
+        }
     }
 
     fun writeSshConfig(config: BufferedWriter) {
