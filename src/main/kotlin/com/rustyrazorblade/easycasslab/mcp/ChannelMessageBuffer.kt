@@ -50,19 +50,16 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
                 while (running) {
                     val result = outputChannel.tryReceive()
                     if (result.isSuccess) {
-                        val event = result.getOrNull()
-                        if (event != null && !processEvent(event)) {
-                            break
-                        }
+                        result.getOrNull()?.let { processEvent(it) }
                     } else if (result.isClosed) {
-                        break
+                        // do nothing
                     }
                     Thread.sleep(10) // Small delay to avoid busy-waiting
                 }
             } catch (e: Exception) {
                 log.error(e) { "Message buffer consumer thread error" }
             }
-            log.debug { "Message buffer consumer thread completed" }
+            log.info { "Message buffer consumer thread completed" }
             running = false
         }
     }

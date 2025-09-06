@@ -38,6 +38,8 @@ class Start(context: Context) : BaseCommand(context) {
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra").text
                 outputHandler.handleMessage("Cassandra started, waiting for up/normal")
                 remoteOps.executeRemotely(it, "sudo wait-for-up-normal").text
+            }
+            context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
             }
         }

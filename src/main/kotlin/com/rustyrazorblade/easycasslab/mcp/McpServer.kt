@@ -199,9 +199,10 @@ class McpServer(private val context: Context) : KoinComponent {
                             6. Start services: call 'start'
                             
                             IMPORTANT: Commands run asynchronously in the background to avoid timeouts.
+                            
                             - Each command returns immediately with a "started in background" message
                             - Use 'get_status' to monitor progress and see accumulated log messages
-                            - Call 'get_status' until status shows 'idle' before proceeding
+                            - Call 'get_status' once a second until status shows 'idle' before proceeding
                             - Long-running commands (especially 'up' and 'start') may take several minutes
                             
                             You can now run load tests and perform cluster analysis.

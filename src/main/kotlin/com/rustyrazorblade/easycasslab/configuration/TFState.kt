@@ -11,6 +11,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.BufferedWriter
 import java.io.File
 import java.io.InputStream
+import kotlin.concurrent.thread
 
 typealias HostList = List<Host>
 
@@ -103,9 +104,9 @@ class TFState(
         
         if (parallel && hosts.size > 1) {
             val threads = hosts.map { host ->
-                Thread {
+                thread(start = true, isDaemon = false) {
                     withHost(host)
-                }.apply { start() }
+                }
             }
             threads.forEach { it.join() }
         } else {

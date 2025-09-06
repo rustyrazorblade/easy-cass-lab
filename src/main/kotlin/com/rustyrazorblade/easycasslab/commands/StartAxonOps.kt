@@ -13,7 +13,7 @@ class StartAxonOps(context: Context) : BaseCommand(context) {
 
     override fun execute() {
         context.requireSshKey()
-        context.tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
+        context.tfstate.withHosts(ServerType.Cassandra, Hosts.all(), parallel = true) {
             remoteOps.executeRemotely(it, "sudo systemctl start axon-agent").text
         }
     }

@@ -190,7 +190,7 @@ class Up(
         dockerComposeFile.writeText(updatedContent)
         outputHandler.handleMessage("Updated docker-compose.yaml with Cassandra IP: $cassandraHost")
 
-        context.tfstate.withHosts(ServerType.Control, hosts) { host ->
+        context.tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Uploading configuration files to control node ${host.public}")
 
             // Upload docker-compose.yaml to ubuntu user's home directory
@@ -233,7 +233,7 @@ class Up(
         val controlNodeIp = controlHost.private
         outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) { host ->
+        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
 
             // Create .env file for docker-compose with environment variables

@@ -50,7 +50,7 @@ class UseCassandra(
         val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
         outputHandler.handleMessage("Using version $version on ${cassandraHosts.size} hosts, filter: $hosts")
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
             if (javaVersion.isNotBlank()) {
                 remoteOps.executeRemotely(it, "set-java-version $javaVersion $version")
             }
