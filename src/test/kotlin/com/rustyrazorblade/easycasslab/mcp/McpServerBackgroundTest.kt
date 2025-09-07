@@ -22,7 +22,6 @@ import org.mockito.kotlin.mock
 import java.lang.reflect.Field
 
 class McpServerBackgroundTest : KoinTest {
-
     private lateinit var mockContext: Context
     private lateinit var server: McpServer
 
@@ -31,7 +30,7 @@ class McpServerBackgroundTest : KoinTest {
         startKoin {
             modules(KoinModules.getAllModules())
         }
-        
+
         mockContext = mock()
         server = McpServer(mockContext)
     }
@@ -45,23 +44,25 @@ class McpServerBackgroundTest : KoinTest {
     fun `tool handler should return immediate response for background execution`() {
         // Initialize streaming to set up the server
         server.initializeStreaming()
-        
-        // Create a test registry with a simple command
-        val testRegistry = object : McpToolRegistry(mockContext) {
-            override fun getTools(): List<ToolInfo> {
-                val testCommand = BackgroundTestCommand()
-                val command = Command("test-bg", testCommand)
-                return listOf(createToolInfo(command))
-            }
 
-            private fun createToolInfo(cmd: Command): ToolInfo {
-                val createMethod = McpToolRegistry::class.java.getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java
-                ).apply { isAccessible = true }
-                return createMethod.invoke(this, cmd) as ToolInfo
+        // Create a test registry with a simple command
+        val testRegistry =
+            object : McpToolRegistry(mockContext) {
+                override fun getTools(): List<ToolInfo> {
+                    val testCommand = BackgroundTestCommand()
+                    val command = Command("test-bg", testCommand)
+                    return listOf(createToolInfo(command))
+                }
+
+                private fun createToolInfo(cmd: Command): ToolInfo {
+                    val createMethod =
+                        McpToolRegistry::class.java.getDeclaredMethod(
+                            "createToolInfo",
+                            Command::class.java,
+                        ).apply { isAccessible = true }
+                    return createMethod.invoke(this, cmd) as ToolInfo
+                }
             }
-        }
 
         // Get the tool handler through reflection (simulate MCP SDK behavior)
         val toolRegistryField: Field = McpServer::class.java.getDeclaredField("toolRegistry")
@@ -69,12 +70,14 @@ class McpServerBackgroundTest : KoinTest {
         toolRegistryField.set(server, testRegistry)
 
         // Simulate tool execution request
-        val request = object {
-            val name = "test-bg"
-            val arguments = buildJsonObject {
-                put("message", "test execution")
+        val request =
+            object {
+                val name = "test-bg"
+                val arguments =
+                    buildJsonObject {
+                        put("message", "test execution")
+                    }
             }
-        }
 
         // Get the tool handler function through tool registry
         val tools = testRegistry.getTools()
@@ -92,13 +95,13 @@ class McpServerBackgroundTest : KoinTest {
         assertFalse(result.isError, "Tool execution should succeed")
         assertNotNull(result.content, "Result should have content")
         assertTrue(result.content.isNotEmpty(), "Result content should not be empty")
-        
+
         // Wait for command to complete
         // Note: testCommand variable is not accessible here in the current scope
         // The streaming messages verify that execution occurred
-        
+
         // Verify streaming messages were sent (visible in console output)
-        // The streaming messages "Starting execution of tool: test-bg" and 
+        // The streaming messages "Starting execution of tool: test-bg" and
         // "Tool 'test-bg' completed successfully" should be visible in test output
     }
 
@@ -106,24 +109,26 @@ class McpServerBackgroundTest : KoinTest {
     fun `mcp server handler should execute tool in background thread and return immediate response`() {
         // Initialize streaming to set up the server
         server.initializeStreaming()
-        
+
         // Create a test command that tracks execution thread
         val testCommand = BackgroundTestCommand()
         val command = Command("test-background", testCommand)
-        
-        val testRegistry = object : McpToolRegistry(mockContext) {
-            override fun getTools(): List<ToolInfo> {
-                return listOf(createToolInfo(command))
-            }
 
-            private fun createToolInfo(cmd: Command): ToolInfo {
-                val createMethod = McpToolRegistry::class.java.getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java
-                ).apply { isAccessible = true }
-                return createMethod.invoke(this, cmd) as ToolInfo
+        val testRegistry =
+            object : McpToolRegistry(mockContext) {
+                override fun getTools(): List<ToolInfo> {
+                    return listOf(createToolInfo(command))
+                }
+
+                private fun createToolInfo(cmd: Command): ToolInfo {
+                    val createMethod =
+                        McpToolRegistry::class.java.getDeclaredMethod(
+                            "createToolInfo",
+                            Command::class.java,
+                        ).apply { isAccessible = true }
+                    return createMethod.invoke(this, cmd) as ToolInfo
+                }
             }
-        }
 
         // Replace the tool registry in server
         val toolRegistryField = McpServer::class.java.getDeclaredField("toolRegistry")
@@ -131,25 +136,29 @@ class McpServerBackgroundTest : KoinTest {
         toolRegistryField.set(server, testRegistry)
 
         // Simulate the handler behavior (like the MCP server does)
-        val request = object {
-            val name = "test-background"
-            val arguments = buildJsonObject {
-                put("message", "background test")
+        val request =
+            object {
+                val name = "test-background"
+                val arguments =
+                    buildJsonObject {
+                        put("message", "background test")
+                    }
             }
-        }
 
         val mainThreadName = Thread.currentThread().name
-        
+
         // Simulate what the MCP server handler does now
-        val handlerResponse = io.modelcontextprotocol.kotlin.sdk.CallToolResult(
-            content = listOf(
-                io.modelcontextprotocol.kotlin.sdk.TextContent(
-                    text = "Tool '${request.name}' executing in background. Listen for streaming events for progress and results."
-                )
-            ),
-            isError = false
-        )
-        
+        val handlerResponse =
+            io.modelcontextprotocol.kotlin.sdk.CallToolResult(
+                content =
+                    listOf(
+                        io.modelcontextprotocol.kotlin.sdk.TextContent(
+                            text = "Tool '${request.name}' executing in background. Listen for streaming events for progress and results.",
+                        ),
+                    ),
+                isError = false,
+            )
+
         // Launch background thread (simulating what the handler does)
         Thread {
             try {
@@ -166,15 +175,16 @@ class McpServerBackgroundTest : KoinTest {
         assertFalse(handlerResponse.isError ?: true, "Handler response should not be error")
         assertTrue(handlerResponse.content.isNotEmpty(), "Handler should return immediate response")
         val responseContent = handlerResponse.content.first()
-        val responseText = when (responseContent) {
-            is io.modelcontextprotocol.kotlin.sdk.TextContent -> responseContent.text ?: ""
-            else -> responseContent.toString()
-        }
+        val responseText =
+            when (responseContent) {
+                is io.modelcontextprotocol.kotlin.sdk.TextContent -> responseContent.text ?: ""
+                else -> responseContent.toString()
+            }
         assertTrue(responseText.contains("executing in background"), "Response should indicate background execution")
-        
+
         // Verify command was executed (eventually)
         assertTrue(testCommand.executed, "Command should have been executed in background")
-        
+
         // The execution thread name will depend on when we check it
         // but it should show background execution happened
         assertNotNull(testCommand.executionThread, "Execution thread should be recorded")
@@ -184,24 +194,26 @@ class McpServerBackgroundTest : KoinTest {
     fun `frame count should reset between tool executions`() {
         // Initialize streaming to set up the server
         server.initializeStreaming()
-        
+
         // Create a simple test command
         val testCommand = BackgroundTestCommand()
         val command = Command("test-frame-reset", testCommand)
-        
-        val testRegistry = object : McpToolRegistry(mockContext) {
-            override fun getTools(): List<ToolInfo> {
-                return listOf(createToolInfo(command))
-            }
 
-            private fun createToolInfo(cmd: Command): ToolInfo {
-                val createMethod = McpToolRegistry::class.java.getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java
-                ).apply { isAccessible = true }
-                return createMethod.invoke(this, cmd) as ToolInfo
+        val testRegistry =
+            object : McpToolRegistry(mockContext) {
+                override fun getTools(): List<ToolInfo> {
+                    return listOf(createToolInfo(command))
+                }
+
+                private fun createToolInfo(cmd: Command): ToolInfo {
+                    val createMethod =
+                        McpToolRegistry::class.java.getDeclaredMethod(
+                            "createToolInfo",
+                            Command::class.java,
+                        ).apply { isAccessible = true }
+                    return createMethod.invoke(this, cmd) as ToolInfo
+                }
             }
-        }
 
         // Replace the tool registry in server
         val toolRegistryField = McpServer::class.java.getDeclaredField("toolRegistry")
@@ -211,7 +223,7 @@ class McpServerBackgroundTest : KoinTest {
         // Verify that streaming handler is properly initialized and has resetFrameCount method
         val streamingHandlerField = McpServer::class.java.getDeclaredField("streamingHandler")
         streamingHandlerField.isAccessible = true
-        
+
         // Execute tool once to verify streaming handler is available
         Thread {
             try {
@@ -228,11 +240,11 @@ class McpServerBackgroundTest : KoinTest {
         val streamingHandler = streamingHandlerField.get(server)
         assertNotNull(streamingHandler, "Streaming handler should be initialized")
         assertTrue(streamingHandler is FilteringChannelOutputHandler, "Should be FilteringChannelOutputHandler")
-        
+
         // Verify resetFrameCount method exists (this confirms our implementation is accessible)
         val resetMethod = FilteringChannelOutputHandler::class.java.getDeclaredMethod("resetFrameCount")
         assertNotNull(resetMethod, "resetFrameCount method should exist")
-        
+
         // The actual frame count reset behavior is tested in FilteringChannelOutputHandlerFrameResetTest
         // This test verifies the integration point exists in the MCP server
     }
@@ -243,17 +255,17 @@ class McpServerBackgroundTest : KoinTest {
     class BackgroundTestCommand : ICommand {
         @Parameter(names = ["--message"], description = "Test message")
         var message: String = ""
-        
+
         var executed = false
         var executionThread: String? = null
 
         override fun execute() {
             executed = true
             executionThread = Thread.currentThread().name
-            
+
             // Simulate some work
             Thread.sleep(100)
-            
+
             println("Background test command executed with message: $message on thread: $executionThread")
         }
     }

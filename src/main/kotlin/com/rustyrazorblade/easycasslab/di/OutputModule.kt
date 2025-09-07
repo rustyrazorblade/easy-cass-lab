@@ -19,11 +19,11 @@ import org.koin.dsl.module
 val outputModule =
     module {
         // Default output handler - composite with console and logger
-        single<OutputHandler> { 
+        single<OutputHandler> {
             CompositeOutputHandler(
                 LoggerOutputHandler("EasyCassLab"),
-                ConsoleOutputHandler()
-            ) 
+                ConsoleOutputHandler(),
+            )
         }
 
         // Named output handlers for specific use cases

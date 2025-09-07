@@ -27,7 +27,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class McpToolRegistryBackgroundTest : KoinTest {
-
     private lateinit var context: Context
     private lateinit var registry: McpToolRegistry
     private lateinit var outputChannel: Channel<OutputEvent>
@@ -41,11 +40,11 @@ class McpToolRegistryBackgroundTest : KoinTest {
 
         context = mock()
         registry = McpToolRegistry(context)
-        
+
         // Set up streaming infrastructure for testing
         outputChannel = Channel(Channel.UNLIMITED)
         streamingHandler = FilteringChannelOutputHandler(outputChannel)
-        
+
         // Add streaming handler to composite
         val outputHandler: OutputHandler by inject()
         val compositeHandler = outputHandler as? CompositeOutputHandler
@@ -65,23 +64,26 @@ class McpToolRegistryBackgroundTest : KoinTest {
         val command = Command("test-thread", testCommand)
 
         // Create test registry with our command
-        val testRegistry = object : McpToolRegistry(context) {
-            override fun getTools(): List<ToolInfo> {
-                return listOf(createToolInfo(command))
+        val testRegistry =
+            object : McpToolRegistry(context) {
+                override fun getTools(): List<ToolInfo> {
+                    return listOf(createToolInfo(command))
+                }
+
+                private fun createToolInfo(cmd: Command): ToolInfo {
+                    val createMethod =
+                        McpToolRegistry::class.java.getDeclaredMethod(
+                            "createToolInfo",
+                            Command::class.java,
+                        ).apply { isAccessible = true }
+                    return createMethod.invoke(this, cmd) as ToolInfo
+                }
             }
 
-            private fun createToolInfo(cmd: Command): ToolInfo {
-                val createMethod = McpToolRegistry::class.java.getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java
-                ).apply { isAccessible = true }
-                return createMethod.invoke(this, cmd) as ToolInfo
+        val arguments =
+            buildJsonObject {
+                put("workDuration", 50)
             }
-        }
-
-        val arguments = buildJsonObject {
-            put("workDuration", 50)
-        }
 
         // Record the current thread name
         val mainThreadName = Thread.currentThread().name
@@ -96,15 +98,15 @@ class McpToolRegistryBackgroundTest : KoinTest {
 
         // Verify execution completed
         assertTrue(testCommand.executed, "Command should have been executed")
-        
+
         // For now (before background implementation), this will be same thread
         // After implementation, we'll verify it's a different thread
         assertNotNull(testCommand.executionThread, "Execution thread should be recorded")
-        
+
         // Currently this will be the same thread (synchronous execution)
         // After background implementation, we'll assert:
         // assertNotEquals(mainThreadName, testCommand.executionThread, "Should execute in different thread")
-        
+
         // Verify result is returned (immediately after background implementation)
         assertFalse(result.isError, "Tool execution should succeed")
         assertNotNull(result.content, "Result should have content")
@@ -117,23 +119,26 @@ class McpToolRegistryBackgroundTest : KoinTest {
         val command = Command("test-stream", testCommand)
 
         // Create test registry
-        val testRegistry = object : McpToolRegistry(context) {
-            override fun getTools(): List<ToolInfo> {
-                return listOf(createToolInfo(command))
+        val testRegistry =
+            object : McpToolRegistry(context) {
+                override fun getTools(): List<ToolInfo> {
+                    return listOf(createToolInfo(command))
+                }
+
+                private fun createToolInfo(cmd: Command): ToolInfo {
+                    val createMethod =
+                        McpToolRegistry::class.java.getDeclaredMethod(
+                            "createToolInfo",
+                            Command::class.java,
+                        ).apply { isAccessible = true }
+                    return createMethod.invoke(this, cmd) as ToolInfo
+                }
             }
 
-            private fun createToolInfo(cmd: Command): ToolInfo {
-                val createMethod = McpToolRegistry::class.java.getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java
-                ).apply { isAccessible = true }
-                return createMethod.invoke(this, cmd) as ToolInfo
+        val arguments =
+            buildJsonObject {
+                put("steps", 3)
             }
-        }
-
-        val arguments = buildJsonObject {
-            put("steps", 3)
-        }
 
         // Execute tool
         val result = testRegistry.executeTool("test-stream", arguments)
@@ -143,12 +148,12 @@ class McpToolRegistryBackgroundTest : KoinTest {
 
         // Verify result
         assertFalse(result.isError, "Tool execution should succeed")
-        
+
         // After background implementation, verify streaming messages were sent
         // For now, this test documents the expected behavior
         assertTrue(testCommand.executed, "Command should have executed")
         assertEquals(3, testCommand.stepsCompleted, "All steps should have completed")
-        
+
         // After implementation, we'll verify streaming events in outputChannel
         // Current implementation doesn't stream, so we can't verify streaming yet
     }
@@ -159,7 +164,7 @@ class McpToolRegistryBackgroundTest : KoinTest {
     class ThreadTrackingCommand : ICommand {
         @Parameter(names = ["--work-duration"], description = "Duration of work in ms")
         var workDuration: Int = 100
-        
+
         var executed = false
         var executionThread: String? = null
         val completionLatch = CountDownLatch(1)
@@ -168,10 +173,10 @@ class McpToolRegistryBackgroundTest : KoinTest {
             try {
                 executed = true
                 executionThread = Thread.currentThread().name
-                
+
                 // Simulate work
                 Thread.sleep(workDuration.toLong())
-                
+
                 println("Thread tracking command executed on: $executionThread")
             } finally {
                 completionLatch.countDown()
@@ -185,7 +190,7 @@ class McpToolRegistryBackgroundTest : KoinTest {
     class StreamingTestCommand : ICommand {
         @Parameter(names = ["--steps"], description = "Number of steps to execute")
         var steps: Int = 1
-        
+
         var executed = false
         var stepsCompleted = 0
         val completionLatch = CountDownLatch(1)
@@ -193,13 +198,13 @@ class McpToolRegistryBackgroundTest : KoinTest {
         override fun execute() {
             try {
                 executed = true
-                
+
                 repeat(steps) { step ->
                     Thread.sleep(50)
                     println("Step ${step + 1} completed")
                     stepsCompleted++
                 }
-                
+
                 println("Streaming test command completed with $stepsCompleted steps")
             } finally {
                 completionLatch.countDown()

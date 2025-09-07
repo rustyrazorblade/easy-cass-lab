@@ -201,9 +201,10 @@ class OutputHandlerTest {
         assertEquals(1, composite.getHandlerCount())
 
         // Adding the same handler again should throw
-        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
-            composite.addHandler(handler)
-        }
+        val exception =
+            org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+                composite.addHandler(handler)
+            }
         assertEquals("Handler already exists in composite", exception.message)
         assertEquals(1, composite.getHandlerCount())
     }

@@ -98,16 +98,18 @@ class TFState(
         withHost: (h: Host) -> Unit,
     ) {
         val hostSet = hostFilter.hostList.split(",").filter { it.isNotBlank() }.toSet()
-        val hosts = getHosts(serverType).filter {
-            hostSet.isEmpty() || it.alias in hostSet
-        }
-        
-        if (parallel && hosts.size > 1) {
-            val threads = hosts.map { host ->
-                thread(start = true, isDaemon = false) {
-                    withHost(host)
-                }
+        val hosts =
+            getHosts(serverType).filter {
+                hostSet.isEmpty() || it.alias in hostSet
             }
+
+        if (parallel && hosts.size > 1) {
+            val threads =
+                hosts.map { host ->
+                    thread(start = true, isDaemon = false) {
+                        withHost(host)
+                    }
+                }
             threads.forEach { it.join() }
         } else {
             hosts.forEach(withHost)

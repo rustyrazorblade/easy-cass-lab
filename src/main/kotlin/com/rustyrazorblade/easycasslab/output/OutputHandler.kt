@@ -293,16 +293,18 @@ class CompositeOutputHandler(
     }
 
     override fun handleFrame(frame: Frame) {
-        val currentHandlers = synchronized(handlers) {
-            handlers.toList() // Copy for safe iteration
-        }
+        val currentHandlers =
+            synchronized(handlers) {
+                handlers.toList() // Copy for safe iteration
+            }
         currentHandlers.forEach { it.handleFrame(frame) }
     }
 
     override fun handleMessage(message: String) {
-        val currentHandlers = synchronized(handlers) {
-            handlers.toList() // Copy for safe iteration
-        }
+        val currentHandlers =
+            synchronized(handlers) {
+                handlers.toList() // Copy for safe iteration
+            }
         currentHandlers.forEach { it.handleMessage(message) }
     }
 
@@ -310,16 +312,18 @@ class CompositeOutputHandler(
         message: String,
         throwable: Throwable?,
     ) {
-        val currentHandlers = synchronized(handlers) {
-            handlers.toList() // Copy for safe iteration
-        }
+        val currentHandlers =
+            synchronized(handlers) {
+                handlers.toList() // Copy for safe iteration
+            }
         currentHandlers.forEach { it.handleError(message, throwable) }
     }
 
     override fun close() {
-        val currentHandlers = synchronized(handlers) {
-            handlers.toList() // Copy for safe iteration
-        }
+        val currentHandlers =
+            synchronized(handlers) {
+                handlers.toList() // Copy for safe iteration
+            }
         currentHandlers.forEach { it.close() }
     }
 }

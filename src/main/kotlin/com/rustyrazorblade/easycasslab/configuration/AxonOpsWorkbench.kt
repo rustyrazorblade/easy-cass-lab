@@ -1,9 +1,8 @@
 package com.rustyrazorblade.easycasslab.configuration
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
@@ -15,20 +14,21 @@ data class AxonOpsWorkbenchConfig(
     val basic: BasicConfig,
     val auth: AuthConfig,
     val ssl: SslConfig,
-    val ssh: SshConfig
+    val ssh: SshConfig,
 ) {
     companion object {
         /**
          * Creates a JSON instance with pretty printing for serialization
          */
-        val json = Json {
-            prettyPrint = true
-            encodeDefaults = true
-        }
-        
+        val json =
+            Json {
+                prettyPrint = true
+                encodeDefaults = true
+            }
+
         /**
          * Creates an AxonOps Workbench configuration for a given host and user configuration
-         * 
+         *
          * @param host The Cassandra host to connect to (typically cassandra0)
          * @param userConfig The user configuration containing SSH key information
          * @param clusterName The name of the Cassandra cluster
@@ -37,49 +37,56 @@ data class AxonOpsWorkbenchConfig(
         fun create(
             host: Host,
             userConfig: User,
-            clusterName: String = "easy-cass-lab"
+            clusterName: String = "easy-cass-lab",
         ): AxonOpsWorkbenchConfig {
             return AxonOpsWorkbenchConfig(
-                basic = BasicConfig(
-                    workspace_id = "",
-                    name = clusterName,
-                    datacenter = "datacenter1", // Default Cassandra datacenter name
-                    hostname = host.private, // Use private IP for internal connectivity
-                    port = "9042", // Default Cassandra CQL port
-                    timestamp_generator = "",
-                    cqlshrc = ""
-                ),
-                auth = AuthConfig(
-                    username = "",
-                    password = ""
-                ),
-                ssl = SslConfig(
-                    ssl = "",
-                    certfile = "",
-                    userkey = "",
-                    usercert = "",
-                    validate = ""
-                ),
-                ssh = SshConfig(
-                    host = host.public, // Use public IP for SSH connectivity
-                    port = "22", // Default SSH port
-                    username = "ubuntu", // Default EC2 user
-                    password = "",
-                    privatekey = userConfig.sshKeyPath,
-                    passphrase = "",
-                    destaddr = host.private, // Destination is the private IP
-                    destport = "9042" // Destination port is CQL port
-                )
+                basic =
+                    BasicConfig(
+                        workspace_id = "",
+                        name = clusterName,
+                        datacenter = "datacenter1", // Default Cassandra datacenter name
+                        hostname = host.private, // Use private IP for internal connectivity
+                        port = "9042", // Default Cassandra CQL port
+                        timestamp_generator = "",
+                        cqlshrc = "",
+                    ),
+                auth =
+                    AuthConfig(
+                        username = "",
+                        password = "",
+                    ),
+                ssl =
+                    SslConfig(
+                        ssl = "",
+                        certfile = "",
+                        userkey = "",
+                        usercert = "",
+                        validate = "",
+                    ),
+                ssh =
+                    SshConfig(
+                        host = host.public, // Use public IP for SSH connectivity
+                        port = "22", // Default SSH port
+                        username = "ubuntu", // Default EC2 user
+                        password = "",
+                        privatekey = userConfig.sshKeyPath,
+                        passphrase = "",
+                        destaddr = host.private, // Destination is the private IP
+                        destport = "9042", // Destination port is CQL port
+                    ),
             )
         }
-        
+
         /**
          * Writes the configuration to a JSON file
-         * 
+         *
          * @param config The configuration to write
          * @param file The file to write to
          */
-        fun writeToFile(config: AxonOpsWorkbenchConfig, file: File) {
+        fun writeToFile(
+            config: AxonOpsWorkbenchConfig,
+            file: File,
+        ) {
             val jsonString = json.encodeToString(config)
             file.writeText(jsonString)
         }
@@ -94,13 +101,13 @@ data class BasicConfig(
     val hostname: String,
     val port: String,
     val timestamp_generator: String,
-    val cqlshrc: String
+    val cqlshrc: String,
 )
 
 @Serializable
 data class AuthConfig(
     val username: String,
-    val password: String
+    val password: String,
 )
 
 @Serializable
@@ -109,7 +116,7 @@ data class SslConfig(
     val certfile: String,
     val userkey: String,
     val usercert: String,
-    val validate: String
+    val validate: String,
 )
 
 @Serializable
@@ -121,5 +128,5 @@ data class SshConfig(
     val privatekey: String,
     val passphrase: String,
     val destaddr: String,
-    val destport: String
+    val destport: String,
 )

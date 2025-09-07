@@ -102,18 +102,19 @@ class Up(
         writeStressEnvironmentVariables()
         writeAxonOpsWorkbenchConfig()
     }
-    
+
     private fun writeAxonOpsWorkbenchConfig() {
         try {
             // Get the first Cassandra node (cassandra0)
             val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
             if (cassandraHosts.isNotEmpty()) {
                 val cassandra0 = cassandraHosts.first()
-                val config = AxonOpsWorkbenchConfig.create(
-                    host = cassandra0,
-                    userConfig = context.userConfig,
-                    clusterName = "easy-cass-lab"
-                )
+                val config =
+                    AxonOpsWorkbenchConfig.create(
+                        host = cassandra0,
+                        userConfig = context.userConfig,
+                        clusterName = "easy-cass-lab",
+                    )
                 val configFile = File("axonops-workbench.json")
                 AxonOpsWorkbenchConfig.writeToFile(config, configFile)
                 outputHandler.handleMessage("AxonOps Workbench configuration written to axonops-workbench.json")

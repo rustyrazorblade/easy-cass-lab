@@ -95,22 +95,22 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         try {
             // Stream start message via outputHandler
             outputHandler.handleMessage("Starting execution of tool: $name")
-            
+
             // Execute the command
             freshCommand.execute()
 
             // Stream completion message
             outputHandler.handleMessage("Tool '$name' completed successfully")
-            
+
             return ToolResult(
                 content = listOf("Tool executed successfully"),
             )
         } catch (e: Exception) {
             log.error(e) { "Error executing command ${tool.name}" }
-            
+
             // Stream error message
             outputHandler.handleError("Tool '$name' failed: ${e.message}", e)
-            
+
             return ToolResult(
                 content = listOf("Error executing command: ${e.message}"),
                 isError = true,
