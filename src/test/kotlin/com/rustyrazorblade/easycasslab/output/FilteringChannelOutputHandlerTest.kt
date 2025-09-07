@@ -103,7 +103,11 @@ class FilteringChannelOutputHandlerTest {
             val event = channel.tryReceive().getOrNull()
             assertNotNull(event, "Should have received an event")
             assertTrue(event is OutputEvent.MessageEvent, "Event should be MessageEvent")
-            assertEquals(testMessage, (event as OutputEvent.MessageEvent).message, "Message content should be unchanged")
+            assertEquals(
+                testMessage,
+                (event as OutputEvent.MessageEvent).message,
+                "Message content should be unchanged",
+            )
         }
 
     @Test

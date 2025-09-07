@@ -134,7 +134,8 @@ class McpServer(private val context: Context) : KoinComponent {
                     content =
                         listOf(
                             TextContent(
-                                text = "Another tool is already running. Please wait for it to complete or check status with 'get_status'.",
+                                text = "Another tool is already running. " +
+                                    "Please wait for it to complete or check status with 'get_status'.",
                             ),
                         ),
                     isError = false,
@@ -156,10 +157,15 @@ class McpServer(private val context: Context) : KoinComponent {
 
                         toolRegistry.executeTool(request.name, request.arguments)
                         log.info { "Completed background execution of tool: ${request.name}" }
-                        outputHandler.handleMessage("Background execution of tool '${request.name}' complete.")
+                        outputHandler.handleMessage(
+                            "Background execution of tool '${request.name}' complete.",
+                        )
                     } catch (e: Exception) {
                         log.error(e) { "Error in background execution of tool ${request.name}" }
-                        outputHandler.handleError("Background execution of tool '${request.name}' failed: ${e.message}", e)
+                        outputHandler.handleError(
+                            "Background execution of tool '${request.name}' failed: ${e.message}",
+                            e,
+                        )
                     } finally {
                         executionSemaphore.release()
                     }

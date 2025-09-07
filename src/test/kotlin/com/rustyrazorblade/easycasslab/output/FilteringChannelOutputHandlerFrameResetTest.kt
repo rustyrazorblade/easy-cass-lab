@@ -107,7 +107,10 @@ class FilteringChannelOutputHandlerFrameResetTest {
                 handler.handleFrame(mockFrame)
             }
             val event1 = outputChannel.tryReceive().getOrNull()
-            assertEquals("Docker container activity: 100 frames processed", (event1 as OutputEvent.MessageEvent).message)
+            assertEquals(
+                "Docker container activity: 100 frames processed",
+                (event1 as OutputEvent.MessageEvent).message,
+            )
 
             // Reset and second batch: 100 frames
             handler.resetFrameCount()
@@ -115,7 +118,10 @@ class FilteringChannelOutputHandlerFrameResetTest {
                 handler.handleFrame(mockFrame)
             }
             val event2 = outputChannel.tryReceive().getOrNull()
-            assertEquals("Docker container activity: 100 frames processed", (event2 as OutputEvent.MessageEvent).message)
+            assertEquals(
+                "Docker container activity: 100 frames processed",
+                (event2 as OutputEvent.MessageEvent).message,
+            )
 
             // Reset and third batch: 100 frames
             handler.resetFrameCount()
@@ -123,7 +129,10 @@ class FilteringChannelOutputHandlerFrameResetTest {
                 handler.handleFrame(mockFrame)
             }
             val event3 = outputChannel.tryReceive().getOrNull()
-            assertEquals("Docker container activity: 100 frames processed", (event3 as OutputEvent.MessageEvent).message)
+            assertEquals(
+                "Docker container activity: 100 frames processed",
+                (event3 as OutputEvent.MessageEvent).message,
+            )
 
             // All three batches should show "100 frames processed" due to resets
         }

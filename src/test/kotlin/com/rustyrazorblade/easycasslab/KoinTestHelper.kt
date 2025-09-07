@@ -23,7 +23,9 @@ object KoinTestHelper {
 
             // Named output handlers for specific test cases
             factory<OutputHandler>(named("console")) { ConsoleOutputHandler() }
-            factory<OutputHandler>(named("logger")) { com.rustyrazorblade.easycasslab.output.LoggerOutputHandler("Test") }
+            factory<OutputHandler>(named("logger")) {
+                com.rustyrazorblade.easycasslab.output.LoggerOutputHandler("Test")
+            }
             factory<OutputHandler>(named("buffered")) { BufferedOutputHandler() }
         }
 

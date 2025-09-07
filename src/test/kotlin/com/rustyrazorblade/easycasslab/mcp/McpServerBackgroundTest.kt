@@ -154,7 +154,8 @@ class McpServerBackgroundTest : KoinTest {
                 content =
                     listOf(
                         io.modelcontextprotocol.kotlin.sdk.TextContent(
-                            text = "Tool '${request.name}' executing in background. Listen for streaming events for progress and results.",
+                            text = "Tool '${request.name}' executing in background. " +
+                                "Listen for streaming events for progress and results.",
                         ),
                     ),
                 isError = false,

@@ -194,7 +194,10 @@ class Init(
                     appendLine("Error: Directory already contains configuration files:")
                     existingFiles.forEach { appendLine("  - $it") }
                     appendLine()
-                    appendLine("Please use --clean flag to remove existing configuration, or run 'easy-cass-lab clean' first.")
+                    appendLine(
+                        "Please use --clean flag to remove existing configuration, " +
+                            "or run 'easy-cass-lab clean' first.",
+                    )
                 }
             outputHandler.handleMessage(message)
             System.exit(1)
@@ -287,7 +290,8 @@ class Init(
 
         // Create control directory and extract docker-compose.yaml and otel config there
         outputHandler.handleMessage(
-            "Creating control directory and writing docker-compose.yaml, otel-collector-config.yaml, and data-prepper-pipelines.yaml",
+            "Creating control directory and writing docker-compose.yaml, " +
+                "otel-collector-config.yaml, and data-prepper-pipelines.yaml",
         )
         File("control").mkdirs()
         extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")

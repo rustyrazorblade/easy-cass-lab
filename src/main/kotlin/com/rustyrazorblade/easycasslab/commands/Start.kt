@@ -196,9 +196,13 @@ class Start(context: Context) : BaseCommand(context) {
             }
 
             if (!success) {
-                outputHandler.handleMessage("ERROR: Failed to start Docker Compose after $DOCKER_COMPOSE_MAX_RETRIES attempts")
+                outputHandler.handleMessage(
+                    "ERROR: Failed to start Docker Compose after $DOCKER_COMPOSE_MAX_RETRIES attempts",
+                )
                 outputHandler.handleMessage("Last error: $lastError")
-                outputHandler.handleMessage("You may need to manually run: ssh ${host.public} 'cd /home/ubuntu && docker compose up -d'")
+                outputHandler.handleMessage(
+                    "You may need to manually run: ssh ${host.public} 'cd /home/ubuntu && docker compose up -d'",
+                )
             }
 
             // Wait for services to be ready only if docker compose succeeded
@@ -245,7 +249,8 @@ class Start(context: Context) : BaseCommand(context) {
             val configCheckResult =
                 remoteOps.executeRemotely(
                     host,
-                    "test -f /home/ubuntu/otel-cassandra-config.yaml && test -f /home/ubuntu/docker-compose.yaml && echo 'exists' || echo 'not found'",
+                    "test -f /home/ubuntu/otel-cassandra-config.yaml && " +
+                        "test -f /home/ubuntu/docker-compose.yaml && echo 'exists' || echo 'not found'",
                 )
 
             if (configCheckResult.text.trim() == "not found") {
@@ -304,7 +309,8 @@ class Start(context: Context) : BaseCommand(context) {
                 try {
                     if (retryCount > 0) {
                         outputHandler.handleMessage(
-                            "Retrying OTel startup on ${host.alias} (attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...",
+                            "Retrying OTel startup on ${host.alias} " +
+                                "(attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...",
                         )
                         Thread.sleep(DOCKER_COMPOSE_RETRY_DELAY_MS)
                     }
@@ -327,7 +333,9 @@ class Start(context: Context) : BaseCommand(context) {
             }
 
             if (!success) {
-                outputHandler.handleMessage("ERROR: Failed to start OTel on ${host.alias} after $DOCKER_COMPOSE_MAX_RETRIES attempts")
+                outputHandler.handleMessage(
+                    "ERROR: Failed to start OTel on ${host.alias} after $DOCKER_COMPOSE_MAX_RETRIES attempts",
+                )
                 outputHandler.handleMessage("Last error: $lastError")
             } else {
                 // Check OTel collector status
@@ -341,7 +349,9 @@ class Start(context: Context) : BaseCommand(context) {
                     if (statusResult.text.contains("Up")) {
                         outputHandler.handleMessage("OTel collector is running on ${host.alias}")
                     } else {
-                        outputHandler.handleMessage("Warning: OTel collector may not be running properly on ${host.alias}")
+                        outputHandler.handleMessage(
+                            "Warning: OTel collector may not be running properly on ${host.alias}",
+                        )
                     }
                 } catch (e: Exception) {
                     outputHandler.handleMessage("Could not verify OTel status on ${host.alias}: ${e.message}")
