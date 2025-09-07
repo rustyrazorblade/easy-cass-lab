@@ -13,7 +13,6 @@ import org.koin.core.component.inject
 abstract class BaseCommand(val context: Context) : ICommand, KoinComponent {
     /**
      * Injected RemoteOperationsService for SSH operations.
-     * Command classes should use this instead of context.executeRemotely(), etc.
      */
     protected val remoteOps: RemoteOperationsService by inject()
 

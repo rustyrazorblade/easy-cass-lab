@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.terraform
 
-import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.TestContextFactory
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 class AWSConfigurationTest {
     @Test
     fun testConfigWriteWithSparkParams() {
-        val context = Context.testContext()
+        val context = TestContextFactory.createTestContext()
 
         val sparkParams =
             SparkInitParams().apply {

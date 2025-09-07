@@ -3,21 +3,14 @@ package com.rustyrazorblade.easycasslab
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.common.annotations.VisibleForTesting
-import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
-import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
-import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
 
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     var profilesDir = File(easycasslabUserDirectory, "profiles")
@@ -68,9 +61,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         yaml.readValue<User>(userConfigFile)
     }
 
-    // Docker client has been moved to dependency injection via Koin
-    // See DockerClientProvider and DockerModule for the new implementation
-
     val awsCredentialsName = Constants.AWS.DEFAULT_CREDENTIALS_NAME
 
     /**
@@ -90,142 +80,13 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         fp
     }
 
-
-    // SSH services are now injected via Koin
-    private val sshConnectionProvider: SSHConnectionProvider by inject()
-    private val remoteOperationsService: RemoteOperationsService by inject()
+    // OutputHandler is still needed for user configuration
     private val outputHandler: OutputHandler by inject()
 
     val cwdPath = System.getProperty("user.dir")
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
-
-    /**
-     * Returns the version currently set on the remote server.
-     * Delegates to RemoteOperationsService.
-     *
-     * @param host The host to check
-     * @param inputVersion The version to use, or "current" to check the symlink
-     * @return A Version object containing the path and version component
-     */
-    fun getRemoteVersion(
-        host: Host,
-        inputVersion: String = "current",
-    ): Version {
-        return remoteOperationsService.getRemoteVersion(host, inputVersion)
-    }
-
-    /**
-     * Execute a command on a remote host.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     */
-    fun executeRemotely(
-        host: Host,
-        command: String,
-        output: Boolean = true,
-        secret: Boolean = false,
-    ): Response {
-        return remoteOperationsService.executeRemotely(host, command, output, secret)
-    }
-
-    /**
-     * Upload a file to a remote host.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     */
-    fun upload(
-        host: Host,
-        local: Path,
-        remote: String,
-    ) {
-        return remoteOperationsService.upload(host, local, remote)
-    }
-
-    /**
-     * Uploads a directory recursively to a remote host.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     * @param host The target host
-     * @param localDir The local directory to upload
-     * @param remoteDir The remote directory where files will be uploaded
-     */
-    fun uploadDirectory(
-        host: Host,
-        localDir: File,
-        remoteDir: String,
-    ) {
-        return remoteOperationsService.uploadDirectory(host, localDir, remoteDir)
-    }
-
-    /**
-     * Convenience that uses the file and conf dir of Version to upload.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     */
-    fun uploadDirectory(
-        host: Host,
-        version: Version,
-    ) {
-        return remoteOperationsService.uploadDirectory(host, version)
-    }
-
-    /**
-     * Download a file from a remote host.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     */
-    fun download(
-        host: Host,
-        remote: String,
-        local: Path,
-    ) {
-        return remoteOperationsService.download(host, remote, local)
-    }
-
-    /**
-     * Downloads a directory recursively from a remote host.
-     * Delegates to RemoteOperationsService for backward compatibility.
-     * @param host The source host
-     * @param remoteDir The remote directory to download
-     * @param localDir The local directory where files will be downloaded
-     * @param includeFilters Optional list of patterns to filter files for download (e.g. "jvm*")
-     * @param excludeFilters Optional list of patterns to exclude files from download (e.g. "*.bak")
-     */
-    fun downloadDirectory(
-        host: Host,
-        remoteDir: String,
-        localDir: File,
-        includeFilters: List<String> = listOf(),
-        excludeFilters: List<String> = listOf(),
-    ) {
-        return remoteOperationsService.downloadDirectory(host, remoteDir, localDir, includeFilters, excludeFilters)
-    }
-
-    /**
-     * Stop all SSH connections.
-     * Delegates to SSHConnectionProvider.
-     */
-    fun stop() {
-        sshConnectionProvider.stop()
-    }
-
-    companion object {
-        /**
-         * Used only for testing
-         */
-        @VisibleForTesting
-        fun testContext(): Context {
-            val tmpContentParent = File("test/contexts")
-            tmpContentParent.mkdirs()
-
-            val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "easycasslab")
-            assert(testTempDirectory != null)
-            // create a default profile
-            // generate a fake key
-            val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test", "", "")
-
-            val context = Context(testTempDirectory.toFile())
-            context.yaml.writeValue(context.userConfigFile, user)
-            return context
-        }
-    }
 
     fun requireSshKey() {
         if (!File(userConfig.sshKeyPath).exists()) {
