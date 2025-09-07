@@ -17,7 +17,8 @@ object KoinModules {
             outputModule,
             dockerModule,
             sshModule,
+            awsModule,
             // Add more modules here as the refactoring progresses
-            // e.g., awsModule, configurationModule
+            // e.g., configurationModule
         )
 }

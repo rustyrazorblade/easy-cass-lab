@@ -2,7 +2,7 @@ package com.rustyrazorblade.easycasslab.output
 
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
-import com.rustyrazorblade.easycasslab.KoinTestHelper
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -14,20 +14,18 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 
-class ChannelOutputHandlerTest {
+class ChannelOutputHandlerTest : BaseKoinTest() {
     private lateinit var outputChannel: Channel<OutputEvent>
     private lateinit var channelHandler: ChannelOutputHandler
 
     @BeforeEach
     fun setup() {
-        KoinTestHelper.startKoin()
         outputChannel = Channel(capacity = Channel.UNLIMITED)
         channelHandler = ChannelOutputHandler(outputChannel)
     }
 
     @AfterEach
     fun teardown() {
-        KoinTestHelper.stopKoin()
         outputChannel.close()
     }
 

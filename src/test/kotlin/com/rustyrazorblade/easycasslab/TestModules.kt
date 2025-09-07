@@ -1,6 +1,11 @@
 package com.rustyrazorblade.easycasslab
 
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConfiguration
@@ -8,7 +13,11 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
+import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import software.amazon.awssdk.services.iam.IamClient
 import java.io.File
 import java.nio.file.Path
 
@@ -16,6 +25,70 @@ import java.nio.file.Path
  * Test modules for Koin dependency injection in tests.
  */
 object TestModules {
+    /**
+     * Core test modules that should always be loaded in tests.
+     * These modules provide mocks for services that should NEVER make real calls during testing.
+     * 
+     * Includes:
+     * - AWS services (to prevent real API calls and charges)
+     * - Output handlers (to capture output for testing)
+     * - SSH services (to prevent real SSH connections)
+     * 
+     * @return List of core modules that should always be present in tests
+     */
+    fun coreTestModules(): List<Module> =
+        listOf(
+            testAWSModule(),
+            testOutputModule(),
+            testSSHModule(),
+        )
+
+    /**
+     * Creates a test output module with buffered output handler.
+     * This captures all output for verification in tests.
+     */
+    fun testOutputModule() =
+        module {
+            // Use BufferedOutputHandler for tests to capture output
+            factory<OutputHandler> { BufferedOutputHandler() }
+        }
+    /**
+     * Creates a test AWS module with mock implementations.
+     * This ensures no real AWS API calls are made during testing.
+     */
+    fun testAWSModule() =
+        module {
+            // Mock User configuration for AWS
+            single {
+                User(
+                    email = "test@example.com",
+                    region = "us-west-2",
+                    keyName = "test-key",
+                    sshKeyPath = "test-key-path",
+                    awsProfile = "",
+                    awsAccessKey = "test-access-key",
+                    awsSecret = "test-secret",
+                    axonOpsOrg = "",
+                    axonOpsKey = ""
+                )
+            }
+
+            // Mock AWS Clients
+            single {
+                val mockIamClient = mock<IamClient>()
+                val mockClients = mock<Clients>()
+                whenever(mockClients.iam).thenReturn(mockIamClient)
+                mockClients
+            }
+
+            // AWS service with mocked clients
+            // Using real AWS class with mocked clients ensures the service logic
+            // is tested while preventing actual AWS API calls
+            single {
+                AWS(get<Clients>())
+            }
+        }
+
     /**
      * Creates a test SSH module with mock implementations.
      */

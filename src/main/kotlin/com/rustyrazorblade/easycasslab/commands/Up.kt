@@ -11,8 +11,10 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.containers.Terraform
+import com.rustyrazorblade.easycasslab.providers.AWS
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.common.SshException
+import org.koin.core.component.inject
 import java.io.File
 import java.nio.file.Path
 import java.time.Duration
@@ -24,6 +26,7 @@ import kotlin.system.exitProcess
 class Up(
     context: Context,
 ) : BaseCommand(context) {
+    private val aws: AWS by inject()
     companion object {
         private val log = KotlinLogging.logger {}
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
@@ -44,7 +47,7 @@ class Up(
         // so we have to explicitly specify the local one to ensure it gets
         // priority over user
         // slowly migrating code from Terraform to Java.
-        context.cloudProvider.createLabEnvironment()
+        aws.createLabEnvironment()
         provisionInfrastructure()
         writeConfigurationFiles()
         WriteConfig(context).execute()

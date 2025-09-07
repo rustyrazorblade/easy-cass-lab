@@ -14,6 +14,9 @@ fun contextModule(context: Context) =
         // Provide the context itself
         single { context }
 
+        // Provide User configuration for AWS and SSH
+        single { context.userConfig }
+
         // Provide SSH configuration from the user config
         single<SSHConfiguration> {
             DefaultSSHConfiguration(

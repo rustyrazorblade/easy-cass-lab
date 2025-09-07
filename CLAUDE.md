@@ -14,29 +14,111 @@
 
 ## Testing Guidelines
 
-### Mocking AWS Services
-When writing tests that would normally interact with AWS services (IAM, EC2, EMR, etc.), always use mocked clients to avoid:
-- Making actual AWS API calls during tests
-- Requiring AWS credentials for test execution
-- Incurring AWS charges from test runs
-- Test failures due to network issues or AWS service availability
+### Test Base Class and Dependency Injection
+All tests should extend `BaseKoinTest` to get automatic Koin dependency injection setup and teardown. This ensures:
+- Critical services (like AWS) are always mocked to prevent real API calls
+- Consistent test configuration across the codebase
+- Automatic lifecycle management (no manual `startKoin`/`stopKoin` needed)
 
-Example pattern for mocking AWS services:
-
+#### Basic Test Structure
 ```kotlin
-// Create mock clients
-val mockIamClient = mock<IamClient>()
-val mockClients = mock<Clients>()
-whenever(mockClients.iam).thenReturn(mockIamClient)
-
-// Setup mock responses
-whenever(mockIamClient.createRole(any())).thenReturn(mockResponse)
-
-// Test with mocked clients
-val aws = AWS(mockClients)
+class MyTest : BaseKoinTest() {
+    // Your test methods here
+}
 ```
 
-The project uses `mockito-kotlin` for mocking. See `AWSTest.kt` for a complete example.
+#### Tests Requiring Additional Modules
+If your test needs additional mocked services beyond the core modules:
+
+```kotlin
+class MyTestWithExtraModules : BaseKoinTest() {
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            // Add your additional test-specific modules here
+            module {
+                single { mock<MyCustomService>() }
+            }
+        )
+    
+    @Test
+    fun `test with additional services`() {
+        val customService: MyCustomService by inject()
+        // Test code here
+    }
+}
+```
+
+Note: SSH, AWS, and OutputHandler modules are already included in core modules and don't need to be added.
+
+#### Creating Custom Test Mocks
+For test-specific mocks:
+
+```kotlin
+class MyTestWithCustomMocks : BaseKoinTest() {
+    private val mockService = mock<MyService>()
+    
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            module {
+                single { mockService }
+            }
+        )
+    
+    @Test
+    fun `test with custom mock`() {
+        whenever(mockService.doSomething()).thenReturn("mocked value")
+        
+        val service: MyService by inject()
+        assertThat(service.doSomething()).isEqualTo("mocked value")
+    }
+}
+```
+
+### Core Test Modules
+The `BaseKoinTest` automatically provides these core modules that should ALWAYS be mocked:
+
+1. **AWS Module** (`testAWSModule`):
+   - Provides mocked `AWS` service with mocked `Clients`
+   - Prevents real AWS API calls and charges
+   - Includes mock User configuration
+
+2. **Output Module** (`testOutputModule`):
+   - Provides `BufferedOutputHandler` for capturing output in tests
+   - Prevents console output during test runs
+
+3. **SSH Module** (`testSSHModule`):
+   - Provides mocked SSH configuration and connections
+   - Prevents real SSH connections to remote hosts
+   - Includes mock `RemoteOperationsService` for simulating remote operations
+
+### Mocking AWS Services
+When testing code that interacts with AWS services, the AWS module is automatically mocked by `BaseKoinTest`. 
+For tests that need to verify specific AWS behavior:
+
+```kotlin
+class AWSTest : BaseKoinTest() {
+    @Test
+    fun `test AWS operation`() {
+        // AWS is automatically injected with mocked clients
+        val aws: AWS by inject()
+        val clients: Clients by inject()
+        
+        // The AWS instance is real but uses mocked clients
+        // This ensures service logic is tested without real API calls
+        
+        // For lower-level testing with custom mock responses:
+        val mockIamClient = mock<IamClient>()
+        val mockClients = mock<Clients>()
+        whenever(mockClients.iam).thenReturn(mockIamClient)
+        whenever(mockIamClient.createRole(any())).thenReturn(mockResponse)
+        
+        val customAws = AWS(mockClients)
+        // Test with custom AWS instance
+    }
+}
+```
+
+The project uses `mockito-kotlin` for mocking. See `AWSTest.kt` for a complete example of testing AWS services with mocked clients.
 
 ## Hostname and IP Management
 
@@ -109,3 +191,5 @@ Local OTel nodes are forwarding metrics to the control node.
 The user manual is located in manual/index.adoc.  
 - Don't use wildcard imports.
 - Always use assertj style assertions, not the raw junit ones.
+- Constants and magic numbers should be stored in com.rustyrazorblade.easycasslab.Constants
+- When migrating code, it is not necessary to maintain backwards compability.

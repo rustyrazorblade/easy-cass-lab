@@ -9,8 +9,6 @@ import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import com.rustyrazorblade.easycasslab.providers.AWS
-import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.Response
@@ -92,13 +90,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         fp
     }
 
-    /**
-     * Setting the codebase up to be able to support other cloud providers
-     */
-    val cloudProvider by lazy {
-        val clients = Clients(userConfig)
-        AWS(clients)
-    }
 
     // SSH services are now injected via Koin
     private val sshConnectionProvider: SSHConnectionProvider by inject()

@@ -1,30 +1,22 @@
 package com.rustyrazorblade.easycasslab.docker
 
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.DockerClientInterface
-import com.rustyrazorblade.easycasslab.KoinTestHelper
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 
-class DockerFactoryTest {
+class DockerFactoryTest : BaseKoinTest() {
     private lateinit var mockContext: Context
     private lateinit var mockDockerClient: DockerClientInterface
 
     @BeforeEach
     fun setup() {
-        KoinTestHelper.startKoin()
-
         mockContext = mock()
         mockDockerClient = mock()
-    }
-
-    @AfterEach
-    fun teardown() {
-        KoinTestHelper.stopKoin()
     }
 
     @Test
