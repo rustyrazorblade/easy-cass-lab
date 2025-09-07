@@ -4,7 +4,10 @@ import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class FilteringChannelOutputHandlerTest {

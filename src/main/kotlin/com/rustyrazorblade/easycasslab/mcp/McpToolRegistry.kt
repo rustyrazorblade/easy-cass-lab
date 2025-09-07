@@ -10,7 +10,14 @@ import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.ICommand
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
@@ -384,19 +391,19 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                     field.set(target, value.jsonPrimitive.content)
                 }
                 field.type == Int::class.java || field.type == Integer::class.java -> {
-                    field.set(target, value.jsonPrimitive.int)
+                    field.set(target, value.jsonPrimitive.content.toInt())
                 }
                 field.type == Long::class.java || field.type == java.lang.Long::class.java -> {
-                    field.set(target, value.jsonPrimitive.long)
+                    field.set(target, value.jsonPrimitive.content.toLong())
                 }
                 field.type == Double::class.java || field.type == java.lang.Double::class.java -> {
-                    field.set(target, value.jsonPrimitive.double)
+                    field.set(target, value.jsonPrimitive.content.toDouble())
                 }
                 field.type == Float::class.java || field.type == java.lang.Float::class.java -> {
-                    field.set(target, value.jsonPrimitive.float)
+                    field.set(target, value.jsonPrimitive.content.toFloat())
                 }
                 field.type == Boolean::class.java || field.type == java.lang.Boolean::class.java -> {
-                    field.set(target, value.jsonPrimitive.boolean)
+                    field.set(target, value.jsonPrimitive.content.toBoolean())
                 }
             }
             log.debug { "Set field '${field.name}' on ${target::class.simpleName}" }

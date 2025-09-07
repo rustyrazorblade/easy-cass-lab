@@ -107,3 +107,5 @@ Local OTel nodes are forwarding metrics to the control node.
 ## User Manual
 
 The user manual is located in manual/index.adoc.  
+- Don't use wildcard imports.
+- Always use assertj style assertions, not the raw junit ones.

@@ -5,7 +5,9 @@ import com.rustyrazorblade.easycasslab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easycasslab.output.LoggerOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin

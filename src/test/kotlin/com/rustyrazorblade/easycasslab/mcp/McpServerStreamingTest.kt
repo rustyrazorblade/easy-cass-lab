@@ -6,7 +6,10 @@ import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
