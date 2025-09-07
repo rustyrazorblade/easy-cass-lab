@@ -14,16 +14,15 @@ import io.modelcontextprotocol.kotlin.sdk.GetPromptResult
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.PromptMessage
 import io.modelcontextprotocol.kotlin.sdk.Role
+import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.mcp
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -126,10 +125,7 @@ class McpServer(private val context: Context) : KoinComponent {
     /**
      * Creates a tool handler for background execution with proper error handling and status tracking.
      */
-    private fun createToolHandler(
-        toolName: String,
-        inputSchema: JsonObject,
-    ): (CallToolRequest) -> CallToolResult =
+    private fun createToolHandler(): (CallToolRequest) -> CallToolResult =
         { request ->
             // Try to acquire semaphore without blocking
             if (!executionSemaphore.tryAcquire()) {
@@ -193,7 +189,7 @@ class McpServer(private val context: Context) : KoinComponent {
                 name = toolInfo.name,
                 description = toolInfo.description,
                 inputSchema = Tool.Input(toolInfo.inputSchema),
-                handler = createToolHandler(toolInfo.name, toolInfo.inputSchema),
+                handler = createToolHandler(),
             )
         }
     }

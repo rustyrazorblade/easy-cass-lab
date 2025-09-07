@@ -41,7 +41,6 @@ class DockerFactoryTest {
             DockerFactory.createLoggerDocker(
                 mockContext,
                 mockDockerClient,
-                "TestLogger",
             )
 
         assertNotNull(docker)

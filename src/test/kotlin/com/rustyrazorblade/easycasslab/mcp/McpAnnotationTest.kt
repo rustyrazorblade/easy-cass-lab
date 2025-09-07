@@ -2,7 +2,6 @@ package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.di.KoinModules
-import io.github.oshai.kotlinlogging.KotlinLogging
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -14,10 +13,6 @@ import org.koin.core.context.stopKoin
 import java.io.File
 
 class McpAnnotationTest {
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
-
     @TempDir
     lateinit var tempDir: File
 

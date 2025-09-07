@@ -24,8 +24,6 @@ import kotlin.io.path.Path
 class DefaultSSHConnectionProvider(
     private val config: SSHConfiguration,
 ) : SSHConnectionProvider, KoinComponent {
-    private val outputHandler: OutputHandler by inject()
-
     companion object {
         private val log = KotlinLogging.logger {}
     }

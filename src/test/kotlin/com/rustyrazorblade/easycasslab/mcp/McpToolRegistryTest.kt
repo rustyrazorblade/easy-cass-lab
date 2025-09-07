@@ -402,13 +402,6 @@ class McpToolRegistryTest {
     // IMPORTANT: These test commands are used to verify MCP parameter passing.
     // They track execution count to ensure proper state management.
 
-    @Parameters(commandDescription = "Empty command with no parameters")
-    private class EmptyCommand : ICommand {
-        override fun execute() {
-            // No-op
-        }
-    }
-
     @Parameters(commandDescription = "Test command")
     private class TestCommand : ICommand {
         @Parameter(names = ["--test-param", "-t"], description = "Test parameter description")
@@ -488,25 +481,4 @@ class McpToolRegistryTest {
         }
     }
 
-    @Parameters(commandDescription = "Test command with various types")
-    private class TestCommandWithTypes : ICommand {
-        @Parameter(names = ["--string"], description = "String field")
-        var stringField: String = ""
-
-        @Parameter(names = ["--int"], description = "Int field")
-        var intField: Int = 0
-
-        @Parameter(names = ["--bool"], description = "Boolean field")
-        var booleanField: Boolean = false
-
-        @Parameter(names = ["--long"], description = "Long field")
-        var longField: Long = 0L
-
-        @Parameter(names = ["--double"], description = "Double field")
-        var doubleField: Double = 0.0
-
-        override fun execute() {
-            // Test implementation
-        }
-    }
 }

@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab.mcp
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.Init
 import com.rustyrazorblade.easycasslab.di.KoinModules
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -23,10 +22,6 @@ import org.koin.core.context.stopKoin
 import java.io.File
 
 class McpInitCommandTest {
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
-
     @TempDir
     lateinit var tempDir: File
 

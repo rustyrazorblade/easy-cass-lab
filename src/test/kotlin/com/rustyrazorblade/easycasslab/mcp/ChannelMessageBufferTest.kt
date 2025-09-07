@@ -39,17 +39,6 @@ class ChannelMessageBufferTest {
         Thread.sleep(50) // Give buffer time to process
     }
 
-    // Helper method to send event and get result (for CloseEvent)
-    private fun sendEventAndCheckProcessing(event: OutputEvent): Boolean {
-        sendEvent(event)
-        // For CloseEvent, the buffer should stop
-        if (event is OutputEvent.CloseEvent) {
-            Thread.sleep(100) // Give more time for thread to stop
-            return false
-        }
-        return true
-    }
-
     // ========== Construction Tests ==========
 
     @Test

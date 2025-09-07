@@ -53,14 +53,12 @@ object DockerFactory {
      *
      * @param context The execution context
      * @param dockerClient The Docker client interface
-     * @param loggerName The name for the logger (default: "DockerContainer")
      * @param userIdProvider Optional custom user ID provider
      * @return Docker instance configured for logger output
      */
     fun createLoggerDocker(
         context: Context,
         dockerClient: DockerClientInterface,
-        loggerName: String = "DockerContainer",
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
     ): Docker {
         return Docker(
