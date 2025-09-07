@@ -88,13 +88,8 @@ class McpToolRegistryBackgroundTest : KoinTest {
                 put("workDuration", 50)
             }
 
-        // Record the current thread name
-        val mainThreadName = Thread.currentThread().name
-
         // Execute tool
-        val startTime = System.currentTimeMillis()
         val result = testRegistry.executeTool("test-thread", arguments)
-        val executionTime = System.currentTimeMillis() - startTime
 
         // Wait for command to complete
         assertTrue(testCommand.completionLatch.await(2, TimeUnit.SECONDS), "Command should complete within 2 seconds")

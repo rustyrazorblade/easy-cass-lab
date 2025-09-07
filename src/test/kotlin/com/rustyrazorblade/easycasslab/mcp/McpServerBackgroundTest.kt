@@ -88,9 +88,7 @@ class McpServerBackgroundTest : KoinTest {
         // Test the MCP server behavior by simulating the handler execution
         // We can't easily test the full MCP server handler without starting the server,
         // but we can verify that executeTool now includes streaming messages
-        val executionStartTime = System.currentTimeMillis()
         val result = testRegistry.executeTool(request.name, request.arguments)
-        val executionTime = System.currentTimeMillis() - executionStartTime
 
         // Verify tool execution includes streaming messages
         assertFalse(result.isError, "Tool execution should succeed")
@@ -145,8 +143,6 @@ class McpServerBackgroundTest : KoinTest {
                         put("message", "background test")
                     }
             }
-
-        val mainThreadName = Thread.currentThread().name
 
         // Simulate what the MCP server handler does now
         val handlerResponse =

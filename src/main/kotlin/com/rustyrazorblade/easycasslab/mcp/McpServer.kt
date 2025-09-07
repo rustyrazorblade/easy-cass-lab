@@ -175,7 +175,10 @@ class McpServer(private val context: Context) : KoinComponent {
                 CallToolResult(
                     content =
                         listOf(
-                            TextContent(text = "Tool '${request.name}' started in background. Use 'get_status' to monitor progress."),
+                            TextContent(
+                                text = "Tool '${request.name}' started in background. " +
+                                    "Use 'get_status' to monitor progress.",
+                            ),
                         ),
                     isError = false,
                 )
