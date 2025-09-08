@@ -19,10 +19,16 @@ object Constants {
         const val CONTROL = "control"
     }
 
+    // Time-related constants
+    object Time {
+        const val MILLIS_PER_SECOND = 1000L
+    }
+
     // Docker configuration
     object Docker {
         const val CONTAINER_ID_DISPLAY_LENGTH = 12
         const val CONTAINER_POLLING_INTERVAL_MS = 1000L
+        const val FRAME_REPORTING_INTERVAL = 100
     }
 
     // Terraform configuration

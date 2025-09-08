@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.output
 
 import com.github.dockerjava.api.model.Frame
+import com.rustyrazorblade.easycasslab.Constants
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.channels.Channel
 
@@ -426,7 +427,7 @@ class FilteringChannelOutputHandler(
 
     override fun handleFrame(frame: Frame) {
         frameCount++
-        if (frameCount % 100 == 0) {
+        if (frameCount % Constants.Docker.FRAME_REPORTING_INTERVAL == 0) {
             val activityMessage = "Docker container activity: $frameCount frames processed"
             val event = OutputEvent.MessageEvent(activityMessage)
             sendEvent(event)

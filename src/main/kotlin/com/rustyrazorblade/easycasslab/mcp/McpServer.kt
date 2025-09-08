@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.mcp
 
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.FilteringChannelOutputHandler
@@ -95,7 +96,7 @@ class McpServer(private val context: Context) : KoinComponent {
 
             val runtimeSeconds =
                 if (commandStartTime != null) {
-                    (System.currentTimeMillis() - commandStartTime!!) / 1000
+                    (System.currentTimeMillis() - commandStartTime!!) / Constants.Time.MILLIS_PER_SECOND
                 } else {
                     0
                 }

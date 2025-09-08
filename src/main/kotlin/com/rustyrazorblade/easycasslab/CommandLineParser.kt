@@ -118,7 +118,9 @@ class CommandLineParser(val context: Context) : KoinComponent {
             if (this.command::class.annotations.any { it is RequireDocker }) {
                 if (!checkDockerAvailability()) {
                     outputHandler.handleError("Error: Docker is not available or not running.")
-                    outputHandler.handleError("Please ensure Docker is installed and running before executing this command.")
+                    outputHandler.handleError(
+                        "Please ensure Docker is installed and running before executing this command."
+                    )
                     exitProcess(1)
                 }
             }

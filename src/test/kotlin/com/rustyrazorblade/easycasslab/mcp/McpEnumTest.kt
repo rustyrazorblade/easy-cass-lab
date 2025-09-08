@@ -86,14 +86,14 @@ class McpEnumTest {
         mapArgumentsMethod.invoke(registry, testCommand, arguments)
 
         // Verify enum fields were set correctly
-        assertThat(testCommand.arch).isEqualTo(TestArch.arm64)
+        assertThat(testCommand.arch).isEqualTo(TestArch.ARM64)
         assertThat(testCommand.mode).isEqualTo(TestMode.PRODUCTION)
     }
 
     // Test enum with type property (like Arch)
     enum class TestArch(val type: String) {
-        amd64("amd64"),
-        arm64("arm64"),
+        AMD64("amd64"),
+        ARM64("arm64"),
     }
 
     // Test enum without type property
@@ -106,7 +106,7 @@ class McpEnumTest {
     @Parameters(commandDescription = "Test command with enum parameters")
     private class TestCommandWithEnum : ICommand {
         @Parameter(names = ["--arch", "-a"], description = "CPU architecture")
-        var arch: TestArch = TestArch.amd64
+        var arch: TestArch = TestArch.AMD64
 
         @Parameter(names = ["--mode", "-m"], description = "Deployment mode")
         var mode: TestMode = TestMode.DEVELOPMENT
