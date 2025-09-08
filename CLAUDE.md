@@ -13,6 +13,7 @@
 - ABSOLUTE RULE: NEVER attribute commit messages to Claude.  
 - Do not use wildcard imports.
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
+- Always ensure files end with a newline
 
 ## Testing Guidelines
 

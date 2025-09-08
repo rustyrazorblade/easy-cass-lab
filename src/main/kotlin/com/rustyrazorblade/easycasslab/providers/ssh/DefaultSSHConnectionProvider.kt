@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.providers.ssh
 
 import com.rustyrazorblade.easycasslab.configuration.Host
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.SSHClient
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -9,7 +8,6 @@ import org.apache.sshd.client.SshClient
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider
 import org.apache.sshd.common.util.security.SecurityUtils
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.IOException
 import java.security.KeyPair
 import java.time.Duration

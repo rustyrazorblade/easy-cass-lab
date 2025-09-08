@@ -9,16 +9,16 @@ import org.koin.core.module.Module
 
 /**
  * Base test class that provides automatic Koin dependency injection setup and teardown.
- * 
+ *
  * This class ensures that critical services (like AWS) are always mocked to prevent
  * accidental real API calls during testing, while allowing tests to add their own
  * specific modules as needed.
- * 
+ *
  * Usage:
  * - Simple tests can just extend this class to get core mocks
  * - Tests needing additional mocks can override additionalTestModules()
  * - Tests can override coreTestModules() if they need to replace core mocks (rare)
- * 
+ *
  * Example:
  * ```
  * class MyTest : BaseKoinTest() {
@@ -32,7 +32,7 @@ abstract class BaseKoinTest {
     /**
      * Core test modules that should always be loaded.
      * These include mocks for services that should NEVER make real calls in tests.
-     * 
+     *
      * Override this only if you need to replace core mocks (rare).
      * Usually you want to override additionalTestModules() instead.
      */
@@ -41,7 +41,7 @@ abstract class BaseKoinTest {
     /**
      * Additional test-specific modules.
      * Override this to add modules needed for your specific test.
-     * 
+     *
      * Examples:
      * - Return TestModules.testSSHModule() if you need SSH mocks
      * - Return real modules if you're doing integration testing
@@ -60,7 +60,7 @@ abstract class BaseKoinTest {
         if (GlobalContext.getOrNull() != null) {
             stopKoin()
         }
-        
+
         startKoin {
             modules(coreTestModules() + additionalTestModules())
         }

@@ -69,7 +69,7 @@ class BaseKoinTestWithCustomMocks : BaseKoinTest(), KoinComponent {
         listOf(
             org.koin.dsl.module {
                 single { mockService }
-            }
+            },
         )
 
     @Test

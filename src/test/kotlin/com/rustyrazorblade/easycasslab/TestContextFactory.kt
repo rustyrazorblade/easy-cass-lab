@@ -19,16 +19,16 @@ object TestContextFactory {
 
         val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "easycasslab")
         assert(testTempDirectory != null)
-        
+
         // Create a default profile with a fake user
         val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test", "", "")
 
         val context = Context(testTempDirectory.toFile())
-        
+
         // userConfigFile is accessed through the profileDir
         val userConfigFile = File(context.profileDir, "settings.yaml")
         context.yaml.writeValue(userConfigFile, user)
-        
+
         return context
     }
 }

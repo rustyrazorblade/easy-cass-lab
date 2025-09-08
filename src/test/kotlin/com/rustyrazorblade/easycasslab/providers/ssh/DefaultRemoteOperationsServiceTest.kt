@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.providers.ssh
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.Version
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
@@ -65,7 +64,9 @@ class DefaultRemoteOperationsServiceTest : BaseKoinTest(), KoinComponent {
     @Test
     fun `test getRemoteVersion from current symlink`() {
         // Given the remote command will return a path to version 5.0
-        whenever(mockSSHClient.executeRemoteCommand(eq("readlink -f /usr/local/cassandra/current"), any(), any())).thenReturn(Response(TEST_VERSION_PATH))
+        whenever(
+            mockSSHClient.executeRemoteCommand(eq("readlink -f /usr/local/cassandra/current"), any(), any()),
+        ).thenReturn(Response(TEST_VERSION_PATH))
 
         // When getting the current version
         val result = service.getRemoteVersion(host, "current")

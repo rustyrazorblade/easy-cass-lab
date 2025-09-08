@@ -27,6 +27,7 @@ class Up(
     context: Context,
 ) : BaseCommand(context) {
     private val aws: AWS by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)

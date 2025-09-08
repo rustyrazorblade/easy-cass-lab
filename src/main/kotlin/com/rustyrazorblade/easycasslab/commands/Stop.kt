@@ -15,7 +15,6 @@ class Stop(context: Context) : BaseCommand(context) {
     var hosts = Hosts()
 
     override fun execute() {
-
         outputHandler.handleMessage("Stopping cassandra service on all nodes.")
 
         tfstate.withHosts(ServerType.Cassandra, hosts) {

@@ -1,16 +1,13 @@
 package com.rustyrazorblade.easycasslab.providers
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyRequest
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyResponse
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest
@@ -21,6 +18,7 @@ import software.amazon.awssdk.services.iam.model.Role
 internal class AWSTest : BaseKoinTest(), KoinComponent {
     // Inject the mocked AWS service from BaseKoinTest
     private val aws: AWS by inject()
+
     @Test
     fun createEMRServiceRoleSuccess() {
         // Get the mocked IAM client from the injected AWS service

@@ -11,12 +11,12 @@ import java.io.File
  */
 class AWSCredentialsManager(private val context: Context) {
     private val logger = KotlinLogging.logger {}
-    
+
     /**
      * The name of the AWS credentials file
      */
     val credentialsFileName: String = Constants.AWS.DEFAULT_CREDENTIALS_NAME
-    
+
     /**
      * Get or create the AWS credentials file.
      * If the file doesn't exist, it will be created with the user's AWS credentials.
@@ -29,12 +29,12 @@ class AWSCredentialsManager(private val context: Context) {
                 """[default]
                 |aws_access_key_id=${context.userConfig.awsAccessKey}
                 |aws_secret_access_key=${context.userConfig.awsSecret}
-            """.trimMargin("|")
+            """.trimMargin("|"),
             )
         }
         file
     }
-    
+
     /**
      * Get the absolute path of the credentials file.
      * This is used for volume mounting in Docker containers.

@@ -60,7 +60,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         yaml.readValue<User>(userConfigFile)
     }
 
-
     // OutputHandler is still needed for user configuration
     private val outputHandler: OutputHandler by inject()
 

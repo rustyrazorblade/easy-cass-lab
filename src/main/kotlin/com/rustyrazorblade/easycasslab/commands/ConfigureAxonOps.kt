@@ -21,7 +21,6 @@ class ConfigureAxonOps(context: Context) : BaseCommand(context) {
     var hosts = Hosts()
 
     override fun execute() {
-
         val axonOrg = if (org.isNotBlank()) org else context.userConfig.axonOpsOrg
         val axonKey = if (key.isNotBlank()) key else context.userConfig.axonOpsKey
         if ((axonOrg.isBlank() || axonKey.isBlank())) {

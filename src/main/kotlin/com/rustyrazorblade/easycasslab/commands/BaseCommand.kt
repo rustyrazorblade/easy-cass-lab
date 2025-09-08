@@ -22,13 +22,13 @@ abstract class BaseCommand(val context: Context) : ICommand, KoinComponent {
      * Command classes should use this instead of println().
      */
     protected val outputHandler: OutputHandler by inject()
-    
+
     /**
      * Injected TFStateProvider for Terraform state management.
      * Use tfStateProvider.getDefault() to get the current TFState.
      */
     protected val tfStateProvider: TFStateProvider by inject()
-    
+
     /**
      * Convenience property to get the default TFState.
      * This replaces the old tfstate usage.

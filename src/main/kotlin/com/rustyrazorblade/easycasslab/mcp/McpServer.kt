@@ -134,8 +134,9 @@ class McpServer(private val context: Context) : KoinComponent {
                     content =
                         listOf(
                             TextContent(
-                                text = "Another tool is already running. " +
-                                    "Please wait for it to complete or check status with 'get_status'.",
+                                text =
+                                    "Another tool is already running. " +
+                                        "Please wait for it to complete or check status with 'get_status'.",
                             ),
                         ),
                     isError = false,
@@ -176,8 +177,9 @@ class McpServer(private val context: Context) : KoinComponent {
                     content =
                         listOf(
                             TextContent(
-                                text = "Tool '${request.name}' started in background. " +
-                                    "Use 'get_status' to monitor progress.",
+                                text =
+                                    "Tool '${request.name}' started in background. " +
+                                        "Use 'get_status' to monitor progress.",
                             ),
                         ),
                     isError = false,

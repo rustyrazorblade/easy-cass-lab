@@ -32,7 +32,6 @@ class Start(context: Context) : BaseCommand(context) {
     var hosts = Hosts()
 
     override fun execute() {
-
         with(TermColors()) {
             tfstate.withHosts(ServerType.Cassandra, hosts) {
                 outputHandler.handleMessage(green("Starting $it"))

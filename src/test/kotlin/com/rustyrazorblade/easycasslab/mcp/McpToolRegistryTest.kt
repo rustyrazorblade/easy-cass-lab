@@ -480,5 +480,4 @@ class McpToolRegistryTest {
             println("Executed with mainField=$mainField, delegateField=${delegate.delegateField}")
         }
     }
-
 }

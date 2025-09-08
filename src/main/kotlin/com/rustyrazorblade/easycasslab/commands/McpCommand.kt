@@ -15,8 +15,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
  */
 @RequireDocker
 @Parameters(
-    commandDescription = "Start MCP server for AI assistant integration. " +
-        "Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
+    commandDescription =
+        "Start MCP server for AI assistant integration. " +
+            "Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
 )
 class McpCommand(context: Context) : BaseCommand(context) {
     @Parameter(description = "MCP server port", names = ["--port", "-p"])

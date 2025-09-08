@@ -7,7 +7,6 @@ import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.DockerClientInterface
-import com.rustyrazorblade.easycasslab.TestModules
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.assertj.core.api.Assertions.assertThat
@@ -17,7 +16,6 @@ import org.junit.jupiter.api.assertThrows
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.module.Module
-import org.koin.dsl.module
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.atLeast
@@ -235,7 +233,7 @@ class ContainerStateMonitorTest : BaseKoinTest(), KoinComponent {
         assertThat(
             bufferedOutputHandler.messages.any {
                 it.contains("Container exited with exit code 0") && it.contains("frames read: 25")
-            }
+            },
         ).isTrue()
     }
 }

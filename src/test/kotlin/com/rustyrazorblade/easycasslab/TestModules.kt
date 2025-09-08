@@ -5,7 +5,6 @@ import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
-import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
@@ -33,12 +32,12 @@ object TestModules {
     /**
      * Core test modules that should always be loaded in tests.
      * These modules provide mocks for services that should NEVER make real calls during testing.
-     * 
+     *
      * Includes:
      * - AWS services (to prevent real API calls and charges)
      * - Output handlers (to capture output for testing)
      * - SSH services (to prevent real SSH connections)
-     * 
+     *
      * @return List of core modules that should always be present in tests
      */
     fun coreTestModules(): List<Module> =
@@ -62,6 +61,7 @@ object TestModules {
                 BufferedOutputHandler()
             }
         }
+
     /**
      * Creates a test AWS module with mock implementations.
      * This ensures no real AWS API calls are made during testing.
@@ -79,7 +79,7 @@ object TestModules {
                     awsAccessKey = "test-access-key",
                     awsSecret = "test-secret",
                     axonOpsOrg = "",
-                    axonOpsKey = ""
+                    axonOpsKey = "",
                 )
             }
 
@@ -186,7 +186,7 @@ object TestModules {
                 }
             }
         }
-    
+
     /**
      * Creates a test Terraform module with mock implementations.
      * This provides a mock TFStateProvider that returns empty state for testing.
@@ -198,7 +198,8 @@ object TestModules {
                 object : TFStateProvider {
                     override fun parseFromFile(file: File): TFState {
                         // Return a mock TFState with minimal valid JSON
-                        val json = """
+                        val json =
+                            """
                             {
                                 "version": 4,
                                 "terraform_version": "1.0.0",
@@ -207,20 +208,20 @@ object TestModules {
                                 "outputs": {},
                                 "resources": []
                             }
-                        """.trimIndent()
+                            """.trimIndent()
                         return TFState(get(), ByteArrayInputStream(json.toByteArray()))
                     }
-                    
+
                     override fun parseFromStream(stream: InputStream): TFState {
                         return TFState(get(), stream)
                     }
-                    
+
                     override fun getDefault(): TFState {
                         return parseFromFile(File("terraform.tfstate"))
                     }
                 }
             }
-            
+
             // Provide a factory for TFState (for backward compatibility)
             factory {
                 get<TFStateProvider>().getDefault()
