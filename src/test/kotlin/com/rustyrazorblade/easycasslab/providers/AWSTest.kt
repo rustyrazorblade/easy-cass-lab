@@ -1,7 +1,11 @@
 package com.rustyrazorblade.easycasslab.providers
 
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
@@ -14,15 +18,13 @@ import software.amazon.awssdk.services.iam.model.CreateRoleResponse
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 import software.amazon.awssdk.services.iam.model.Role
 
-internal class AWSTest {
+internal class AWSTest : BaseKoinTest(), KoinComponent {
+    // Inject the mocked AWS service from BaseKoinTest
+    private val aws: AWS by inject()
     @Test
     fun createEMRServiceRoleSuccess() {
-        // Create mock IAM client
-        val mockIamClient = mock<IamClient>()
-
-        // Create mock Clients with the mock IAM client
-        val mockClients = mock<Clients>()
-        whenever(mockClients.iam).thenReturn(mockIamClient)
+        // Get the mocked IAM client from the injected AWS service
+        val mockIamClient = aws.clients.iam
 
         // Setup mock responses
         val mockRole =
@@ -41,9 +43,6 @@ internal class AWSTest {
         val attachPolicyResponse = AttachRolePolicyResponse.builder().build()
         whenever(mockIamClient.attachRolePolicy(any<AttachRolePolicyRequest>())).thenReturn(attachPolicyResponse)
 
-        // Create AWS instance with mocked clients
-        val aws = AWS(mockClients)
-
         // Execute the method
         val result = aws.createServiceRole()
 
@@ -51,18 +50,14 @@ internal class AWSTest {
         verify(mockIamClient).createRole(any<CreateRoleRequest>())
         verify(mockIamClient).attachRolePolicy(any<AttachRolePolicyRequest>())
 
-        // Assert the result
-        assert(result == AWS.SERVICE_ROLE)
+        // Assert the result using AssertJ
+        assertThat(result).isEqualTo(AWS.SERVICE_ROLE)
     }
 
     @Test
     fun createEMRServiceRoleAlreadyExists() {
-        // Create mock IAM client
-        val mockIamClient = mock<IamClient>()
-
-        // Create mock Clients with the mock IAM client
-        val mockClients = mock<Clients>()
-        whenever(mockClients.iam).thenReturn(mockIamClient)
+        // Get the mocked IAM client from the injected AWS service
+        val mockIamClient = aws.clients.iam
 
         // Setup mock to throw EntityAlreadyExistsException
         whenever(mockIamClient.createRole(any<CreateRoleRequest>()))
@@ -72,16 +67,13 @@ internal class AWSTest {
                     .build(),
             )
 
-        // Create AWS instance with mocked clients
-        val aws = AWS(mockClients)
-
         // Execute the method - should not throw exception
         val result = aws.createServiceRole()
 
         // Verify the createRole was attempted
         verify(mockIamClient).createRole(any<CreateRoleRequest>())
 
-        // Assert the result
-        assert(result == AWS.SERVICE_ROLE)
+        // Assert the result using AssertJ
+        assertThat(result).isEqualTo(AWS.SERVICE_ROLE)
     }
 }
