@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.mcp
 
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.output.OutputEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.channels.Channel
@@ -55,7 +56,7 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
                         } else if (result.isClosed) {
                             // do nothing
                         }
-                        Thread.sleep(10) // Small delay to avoid busy-waiting
+                        Thread.sleep(Constants.Time.THREAD_SLEEP_DELAY_MS) // Small delay to avoid busy-waiting
                     }
                 } catch (e: Exception) {
                     log.error(e) { "Message buffer consumer thread error" }
@@ -70,7 +71,7 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
      */
     fun stop() {
         running = false
-        consumerThread?.join(1000) // Wait up to 1 second for thread to finish
+        consumerThread?.join(Constants.Time.THREAD_JOIN_TIMEOUT_MS) // Wait up to 1 second for thread to finish
     }
 
     /**

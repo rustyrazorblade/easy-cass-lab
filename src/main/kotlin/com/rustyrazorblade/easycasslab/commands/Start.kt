@@ -84,7 +84,7 @@ class Start(context: Context) : BaseCommand(context) {
             try {
                 ClusterState.load()
             } catch (e: Exception) {
-                outputHandler.handleMessage("Warning: Could not load cluster state, using defaults")
+                outputHandler.handleMessage("Warning: Could not load cluster state, using defaults: ${e.message}")
                 null
             }
 
@@ -283,7 +283,7 @@ class Start(context: Context) : BaseCommand(context) {
                 val dockerCheck = remoteOps.executeRemotely(host, "which docker && docker --version")
                 outputHandler.handleMessage("Docker check on ${host.alias}: ${dockerCheck.text}")
             } catch (e: Exception) {
-                outputHandler.handleMessage("Warning: Docker may not be installed on ${host.alias}")
+                outputHandler.handleMessage("Warning: Docker may not be installed on ${host.alias}: ${e.message}")
                 return@withHosts
             }
 

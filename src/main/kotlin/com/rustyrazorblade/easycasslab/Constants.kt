@@ -22,6 +22,8 @@ object Constants {
     // Time-related constants
     object Time {
         const val MILLIS_PER_SECOND = 1000L
+        const val THREAD_SLEEP_DELAY_MS = 10L
+        const val THREAD_JOIN_TIMEOUT_MS = 1000L
     }
 
     // Docker configuration

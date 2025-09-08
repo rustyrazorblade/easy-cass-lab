@@ -100,7 +100,11 @@ class FilteringChannelOutputHandlerFrameResetTest {
             val event2 = outputChannel.tryReceive().getOrNull()
             assertNotNull(event2, "Second activity message should be sent")
             val message2 = (event2 as OutputEvent.MessageEvent).message
-            assertEquals("Docker container activity: 200 frames processed", message2, "Frame count should accumulate without reset")
+            assertEquals(
+                "Docker container activity: 200 frames processed",
+                message2,
+                "Frame count should accumulate without reset",
+            )
         }
 
     @Test
