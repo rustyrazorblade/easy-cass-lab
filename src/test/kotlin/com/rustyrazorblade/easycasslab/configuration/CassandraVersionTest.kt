@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
@@ -17,10 +16,10 @@ class CassandraVersionTest {
     fun testLoadFromMainAndExtras_ValidYaml() {
         val cassandraVersions = CassandraVersion.loadFromMainAndExtras(mainFilePath, extrasDirectoryPath)
         assertThat(cassandraVersions).isNotEmpty
-        assertTrue(cassandraVersions.any { it.version == "3.0" })
-        assertTrue(cassandraVersions.any { it.version == "3.11" })
-        assertTrue(cassandraVersions.any { it.version == "4.0" })
-        assertTrue(cassandraVersions.any { it.version == "1.2" })
+        assertThat(cassandraVersions).anyMatch { it.version == "3.0" }
+        assertThat(cassandraVersions).anyMatch { it.version == "3.11" }
+        assertThat(cassandraVersions).anyMatch { it.version == "4.0" }
+        assertThat(cassandraVersions).anyMatch { it.version == "1.2" }
     }
 
     @Test
