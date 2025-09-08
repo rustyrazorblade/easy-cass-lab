@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.mcp.McpServer
@@ -21,7 +22,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 )
 class McpCommand(context: Context) : BaseCommand(context) {
     @Parameter(description = "MCP server port", names = ["--port", "-p"])
-    var port: Int = 8888
+    var port: Int = Constants.Network.DEFAULT_MCP_PORT
 
     companion object {
         private val log = KotlinLogging.logger {}
@@ -37,7 +38,7 @@ class McpCommand(context: Context) : BaseCommand(context) {
 
             // The server will run until interrupted
             log.info { "MCP server stopped." }
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             log.error(e) { "Failed to start MCP server" }
             System.err.println("Failed to start MCP server: ${e.message}")
             throw e

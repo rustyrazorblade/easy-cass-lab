@@ -164,7 +164,7 @@ class McpServer(private val context: Context) : KoinComponent {
                         outputHandler.handleMessage(
                             "Background execution of tool '${request.name}' complete.",
                         )
-                    } catch (e: Exception) {
+                    } catch (e: RuntimeException) {
                         log.error(e) { "Error in background execution of tool ${request.name}" }
                         outputHandler.handleError(
                             "Background execution of tool '${request.name}' failed: ${e.message}",
@@ -323,7 +323,7 @@ class McpServer(private val context: Context) : KoinComponent {
         } catch (e: IllegalStateException) {
             log.error { "Transport error: ${e.message}" }
             throw e
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             log.error(e) { "Unexpected error in MCP server" }
             throw e
         }

@@ -4,6 +4,7 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
@@ -152,7 +153,7 @@ class Start(context: Context) : BaseCommand(context) {
             try {
                 val dockerCheck = remoteOps.executeRemotely(host, "which docker && docker --version")
                 outputHandler.handleMessage("Docker check: ${dockerCheck.text}")
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 outputHandler.handleMessage("Warning: Docker may not be installed on ${host.public}")
                 outputHandler.handleMessage("Error: ${e.message}")
             }
@@ -162,7 +163,7 @@ class Start(context: Context) : BaseCommand(context) {
             try {
                 val pullResult = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose pull")
                 outputHandler.handleMessage("Docker pull output: ${pullResult.text}")
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 outputHandler.handleMessage("Warning: Failed to pull Docker images: ${e.message}")
                 outputHandler.handleMessage("Will attempt to start anyway (images may be pulled automatically)...")
             }
@@ -185,7 +186,7 @@ class Start(context: Context) : BaseCommand(context) {
                     val result = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose up -d")
                     outputHandler.handleMessage("Docker Compose output: ${result.text}")
                     success = true
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     lastError = e.message
                     retryCount++
                     if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
@@ -323,7 +324,7 @@ class Start(context: Context) : BaseCommand(context) {
                         )
                     outputHandler.handleMessage("OTel collector started on ${host.alias}")
                     success = true
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     lastError = e.message
                     retryCount++
                     if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
@@ -339,7 +340,7 @@ class Start(context: Context) : BaseCommand(context) {
                 outputHandler.handleMessage("Last error: $lastError")
             } else {
                 // Check OTel collector status
-                Thread.sleep(2000) // Give it time to start
+                Thread.sleep(Constants.Time.OTEL_STARTUP_DELAY_MS) // Give it time to start
                 try {
                     val statusResult =
                         remoteOps.executeRemotely(

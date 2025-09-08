@@ -58,7 +58,9 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
                         }
                         Thread.sleep(Constants.Time.THREAD_SLEEP_DELAY_MS) // Small delay to avoid busy-waiting
                     }
-                } catch (e: Exception) {
+                } catch (e: InterruptedException) {
+                    log.info { "Message buffer consumer thread interrupted" }
+                } catch (e: RuntimeException) {
                     log.error(e) { "Message buffer consumer thread error" }
                 }
                 log.info { "Message buffer consumer thread completed" }
@@ -106,7 +108,7 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
                     return true
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             log.error(e) { "Error processing output event for message buffer" }
             return true
         }

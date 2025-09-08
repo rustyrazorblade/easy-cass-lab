@@ -24,6 +24,12 @@ object Constants {
         const val MILLIS_PER_SECOND = 1000L
         const val THREAD_SLEEP_DELAY_MS = 10L
         const val THREAD_JOIN_TIMEOUT_MS = 1000L
+        const val OTEL_STARTUP_DELAY_MS = 2000L
+    }
+
+    // Network configuration
+    object Network {
+        const val DEFAULT_MCP_PORT = 8888
     }
 
     // Docker configuration
