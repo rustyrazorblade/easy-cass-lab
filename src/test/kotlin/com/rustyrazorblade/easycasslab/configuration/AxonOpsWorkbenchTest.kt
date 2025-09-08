@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -41,23 +40,23 @@ class AxonOpsWorkbenchTest {
             )
 
         // Verify configuration is created correctly
-        assertEquals("test-cluster", config.basic.name)
-        assertEquals("datacenter1", config.basic.datacenter)
-        assertEquals("10.0.1.100", config.basic.hostname) // Should use private IP
-        assertEquals("9042", config.basic.port)
+        assertThat(config.basic.name).isEqualTo("test-cluster")
+        assertThat(config.basic.datacenter).isEqualTo("datacenter1")
+        assertThat(config.basic.hostname).isEqualTo("10.0.1.100") // Should use private IP
+        assertThat(config.basic.port).isEqualTo("9042")
 
         // Verify SSH configuration
-        assertEquals("54.123.45.67", config.ssh.host) // Should use public IP
-        assertEquals("22", config.ssh.port)
-        assertEquals("ubuntu", config.ssh.username)
-        assertEquals("/home/user/.easy-cass-lab/secret.pem", config.ssh.privatekey)
-        assertEquals("10.0.1.100", config.ssh.destaddr) // Should use private IP
-        assertEquals("9042", config.ssh.destport)
+        assertThat(config.ssh.host).isEqualTo("54.123.45.67") // Should use public IP
+        assertThat(config.ssh.port).isEqualTo("22")
+        assertThat(config.ssh.username).isEqualTo("ubuntu")
+        assertThat(config.ssh.privatekey).isEqualTo("/home/user/.easy-cass-lab/secret.pem")
+        assertThat(config.ssh.destaddr).isEqualTo("10.0.1.100") // Should use private IP
+        assertThat(config.ssh.destport).isEqualTo("9042")
 
         // Verify empty auth and SSL configs
-        assertEquals("", config.auth.username)
-        assertEquals("", config.auth.password)
-        assertEquals("", config.ssl.ssl)
+        assertThat(config.auth.username).isEmpty()
+        assertThat(config.auth.password).isEmpty()
+        assertThat(config.ssl.ssl).isEmpty()
     }
 
     @Test
@@ -94,8 +93,8 @@ class AxonOpsWorkbenchTest {
         AxonOpsWorkbenchConfig.writeToFile(config, outputFile)
 
         // Verify file exists and can be read back
-        assertTrue(outputFile.exists())
+        assertThat(outputFile).exists()
         val parsedConfig = AxonOpsWorkbenchConfig.json.decodeFromString<AxonOpsWorkbenchConfig>(outputFile.readText())
-        assertEquals(config, parsedConfig)
+        assertThat(parsedConfig).isEqualTo(config)
     }
 }
