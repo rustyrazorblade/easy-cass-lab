@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
 import com.rustyrazorblade.easycasslab.commands.BuildImage
@@ -47,6 +48,7 @@ class MainArgs {
 
 class CommandLineParser : KoinComponent {
     val context: Context by inject()
+    private val userConfig: User by inject()
     val commands: List<Command>
 
     @JsonIgnore
@@ -128,7 +130,7 @@ class CommandLineParser : KoinComponent {
             // Check if the command requires an SSH key
             if (this.command::class.annotations.any { it is RequireSSHKey }) {
                 if (!checkSSHKeyAvailability()) {
-                    outputHandler.handleError("SSH key not found at ${context.userConfig.sshKeyPath}")
+                    outputHandler.handleError("SSH key not found at ${userConfig.sshKeyPath}")
                     exitProcess(1)
                 }
             }
@@ -152,6 +154,6 @@ class CommandLineParser : KoinComponent {
     }
 
     private fun checkSSHKeyAvailability(): Boolean {
-        return File(context.userConfig.sshKeyPath).exists()
+        return File(userConfig.sshKeyPath).exists()
     }
 }

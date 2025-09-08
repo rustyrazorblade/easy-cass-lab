@@ -6,10 +6,14 @@ import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.User
+import org.koin.core.component.inject
 
 @RequireSSHKey
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
 class ConfigureAxonOps : BaseCommand() {
+    private val userConfig: User by inject()
+    
     @Parameter(description = "AxonOps Organization Name", names = ["--org"])
     var org = ""
 
@@ -20,8 +24,8 @@ class ConfigureAxonOps : BaseCommand() {
     var hosts = Hosts()
 
     override fun execute() {
-        val axonOrg = if (org.isNotBlank()) org else context.userConfig.axonOpsOrg
-        val axonKey = if (key.isNotBlank()) key else context.userConfig.axonOpsKey
+        val axonOrg = if (org.isNotBlank()) org else userConfig.axonOpsOrg
+        val axonKey = if (key.isNotBlank()) key else userConfig.axonOpsKey
         if ((axonOrg.isBlank() || axonKey.isBlank())) {
             outputHandler.handleMessage("--org and --key are required")
             System.exit(1)

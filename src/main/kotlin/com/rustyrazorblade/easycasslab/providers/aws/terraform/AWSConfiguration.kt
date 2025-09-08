@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -26,6 +27,7 @@ class AWSConfiguration(
     var name: String,
     var region: String,
     var context: Context,
+    var user: User,
     val ami: Ami,
     val open: Boolean,
     val ebs: EBSConfiguration,
@@ -41,7 +43,7 @@ class AWSConfiguration(
 
     private val tags =
         mutableMapOf(
-            "email" to context.userConfig.email,
+            "email" to user.email,
             "easy_cass_lab" to "1",
             "cluster_name" to name,
             "Name" to name,
@@ -62,8 +64,8 @@ class AWSConfiguration(
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
         mapper.enable(SerializationFeature.INDENT_OUTPUT)
 
-        setVariable("email", context.userConfig.email)
-        setVariable("key_name", context.userConfig.keyName)
+        setVariable("email", user.email)
+        setVariable("key_name", user.keyName)
         setVariable("region", region)
         setVariable("name", name)
     }

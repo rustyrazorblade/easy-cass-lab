@@ -2,9 +2,11 @@ package com.rustyrazorblade.easycasslab.terraform
 
 import com.rustyrazorblade.easycasslab.TestContextFactory
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
+import java.io.File
 import org.assertj.core.api.AssertionsForClassTypes.assertThat
 import org.junit.jupiter.api.Test
 
@@ -12,6 +14,8 @@ class AWSConfigurationTest {
     @Test
     fun testConfigWriteWithSparkParams() {
         val context = TestContextFactory.createTestContext()
+        val userConfigFile = File(context.profileDir, "settings.yaml")
+        val user = context.yaml.readValue(userConfigFile, User::class.java)
 
         val sparkParams =
             SparkInitParams().apply {
@@ -26,6 +30,7 @@ class AWSConfigurationTest {
                 name = "test-cluster",
                 region = "us-west-2",
                 context = context,
+                user = user,
                 open = false,
                 ami = "test",
                 sparkParams = sparkParams,

@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.providers.aws
 
 import com.rustyrazorblade.easycasslab.Constants
-import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.User
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 
@@ -9,7 +9,7 @@ import java.io.File
  * Manages AWS credentials file creation and access.
  * This was previously handled by the awsConfig lazy property in Context.
  */
-class AWSCredentialsManager(private val context: Context) {
+class AWSCredentialsManager(private val profileDir: File, private val user: User) {
     private val logger = KotlinLogging.logger {}
 
     /**
@@ -22,13 +22,13 @@ class AWSCredentialsManager(private val context: Context) {
      * If the file doesn't exist, it will be created with the user's AWS credentials.
      */
     val credentialsFile: File by lazy {
-        val file = File(context.profileDir, credentialsFileName)
+        val file = File(profileDir, credentialsFileName)
         if (!file.exists()) {
             logger.debug { "Creating AWS credentials file at ${file.absolutePath}" }
             file.writeText(
                 """[default]
-                |aws_access_key_id=${context.userConfig.awsAccessKey}
-                |aws_secret_access_key=${context.userConfig.awsSecret}
+                |aws_access_key_id=${user.awsAccessKey}
+                |aws_secret_access_key=${user.awsSecret}
             """.trimMargin("|"),
             )
         }

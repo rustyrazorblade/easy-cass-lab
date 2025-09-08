@@ -11,6 +11,8 @@ import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.User
+import org.koin.core.component.inject
 import java.io.File
 
 @McpCommand
@@ -18,6 +20,8 @@ import java.io.File
 @RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start : BaseCommand() {
+    private val userConfig: User by inject()
+    
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
         private const val DOCKER_COMPOSE_STARTUP_DELAY_MS = 5000L
@@ -44,7 +48,7 @@ class Start : BaseCommand() {
             }
         }
 
-        if (context.userConfig.axonOpsOrg.isNotBlank() && context.userConfig.axonOpsKey.isNotBlank()) {
+        if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
             StartAxonOps().execute()
         }
 
@@ -89,7 +93,7 @@ class Start : BaseCommand() {
             }
 
         // Get datacenter (region) and cassandra host
-        val datacenter = clusterState?.initConfig?.region ?: context.userConfig.region
+        val datacenter = clusterState?.initConfig?.region ?: userConfig.region
         val cassandraHost = tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
 
         // Create .env file content

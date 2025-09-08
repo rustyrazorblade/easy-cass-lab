@@ -18,6 +18,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
@@ -36,6 +37,7 @@ import java.time.LocalDate
 class Init : ICommand, KoinComponent {
     private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
+    private val userConfig: User by inject()
 
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
@@ -222,7 +224,7 @@ class Init : ICommand, KoinComponent {
                 stressInstanceType = stressInstanceType,
                 azs = azs,
                 ami = ami,
-                region = context.userConfig.region,
+                region = userConfig.region,
                 name = name,
                 ebsType = ebsType.toString(),
                 ebsSize = ebsSize,
@@ -248,8 +250,9 @@ class Init : ICommand, KoinComponent {
         val ebs = EBSConfiguration(ebsType, ebsSize, ebsIops, ebsThroughput, ebsOptimized)
         return AWSConfiguration(
             name,
-            region = context.userConfig.region,
+            region = userConfig.region,
             context = context,
+            user = userConfig,
             ami = ami,
             open = open,
             ebs = ebs,
@@ -273,7 +276,7 @@ class Init : ICommand, KoinComponent {
 
         if (azs.isNotEmpty()) {
             outputHandler.handleMessage("Overriding default az list with $azs")
-            config.azs = expand(context.userConfig.region, azs)
+            config.azs = expand(userConfig.region, azs)
         }
     }
 
@@ -322,7 +325,7 @@ class Init : ICommand, KoinComponent {
         outputHandler.handleMessage(
             "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
                 "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
-                "in ${context.userConfig.region}",
+                "in ${userConfig.region}",
         )
     }
 

@@ -20,7 +20,8 @@ val awsModule =
         // Provide AWSCredentialsManager as singleton
         single {
             val context = get<Context>()
-            AWSCredentialsManager(context)
+            val user = get<User>()
+            AWSCredentialsManager(context.profileDir, user)
         }
 
         // Provide AWS Clients as singleton

@@ -10,14 +10,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
 import org.koin.dsl.module
-import org.koin.test.KoinTest
 import java.io.ByteArrayInputStream
 import java.io.File
 
-class TerraformModuleTest : KoinTest {
+class TerraformModuleTest : BaseKoinTest(), KoinComponent {
     @TempDir
     lateinit var tempDir: File
 
@@ -27,23 +24,17 @@ class TerraformModuleTest : KoinTest {
     private lateinit var context: Context
     private lateinit var tfStateProvider: TFStateProvider
 
+    override fun additionalTestModules() =
+        listOf(
+            module { single { Context(profileDir) } },
+            terraformModule,
+        )
+
     @BeforeEach
     fun setup() {
-        stopKoin() // Stop any existing Koin instance
-
-        // Create a test context
-        context = Context(profileDir)
-
-        // Start Koin with the terraform module and test context
-        startKoin {
-            modules(
-                module { single { context } },
-                terraformModule,
-            )
-        }
-
-        // Get the provider instance
-        tfStateProvider = getKoin().get()
+        // Get instances from DI
+        context = get()
+        tfStateProvider = get()
     }
 
     @Test

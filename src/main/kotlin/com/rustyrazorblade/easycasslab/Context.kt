@@ -2,18 +2,13 @@ package com.rustyrazorblade.easycasslab
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
 
-    private val outputHandler: OutputHandler by inject()
     val log = KotlinLogging.logger {}
 
     /**
@@ -24,7 +19,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     var profile = System.getenv("EASY_CASS_LAB_PROFILE") ?: "default"
     var profilesDir = File(easycasslabUserDirectory, "profiles")
     var profileDir = File(profilesDir, profile)
-    private val userConfigFile = File(profileDir, "settings.yaml")
 
     init {
         profileDir.mkdirs()
@@ -55,15 +49,4 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
 
     // if you need to anything funky with the mapper (settings etc) use this
     fun getJsonMapper() = jacksonObjectMapper()
-
-    // this will let us write out the yaml
-    val userConfig by lazy {
-        if (!userConfigFile.exists()) {
-            log.debug { "$userConfigFile not found, going through interactive setup" }
-            profilesDir.mkdirs()
-            User.createInteractively(this, userConfigFile, outputHandler)
-        }
-
-        yaml.readValue<User>(userConfigFile)
-    }
 }

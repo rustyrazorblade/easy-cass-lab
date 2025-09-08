@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.providers.AWS
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -24,6 +25,7 @@ import kotlin.system.exitProcess
 @Parameters(commandDescription = "Starts instances")
 class Up : BaseCommand() {
     private val aws: AWS by inject()
+    private val userConfig: User by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
@@ -97,7 +99,7 @@ class Up : BaseCommand() {
 
     private fun writeConfigurationFiles() {
         val config = File("sshConfig").bufferedWriter()
-        tfstate.writeSshConfig(config)
+        tfstate.writeSshConfig(config, userConfig.sshKeyPath)
         val envFile = File("env.sh").bufferedWriter()
         tfstate.writeEnvironmentFile(envFile)
         writeStressEnvironmentVariables()
@@ -113,7 +115,7 @@ class Up : BaseCommand() {
                 val config =
                     AxonOpsWorkbenchConfig.create(
                         host = cassandra0,
-                        userConfig = context.userConfig,
+                        userConfig = userConfig,
                         clusterName = "easy-cass-lab",
                     )
                 val configFile = File("axonops-workbench.json")
@@ -276,8 +278,8 @@ class Up : BaseCommand() {
         } else {
             SetupInstance().execute()
 
-            if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
-                outputHandler.handleMessage("Setting up axonops for ${context.userConfig.axonOpsOrg}")
+            if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
+                outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
                 ConfigureAxonOps().execute()
             }
         }

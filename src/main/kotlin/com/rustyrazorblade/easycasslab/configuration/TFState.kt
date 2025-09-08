@@ -116,10 +116,6 @@ class TFState(
         }
     }
 
-    fun writeSshConfig(config: BufferedWriter) {
-        writeSshConfig(config, "${context.userConfig.sshKeyPath}")
-    }
-
     fun writeSshConfig(
         config: BufferedWriter,
         identityFile: String,
