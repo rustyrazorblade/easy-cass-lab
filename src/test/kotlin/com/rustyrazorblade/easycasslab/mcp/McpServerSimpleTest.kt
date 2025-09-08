@@ -2,38 +2,21 @@ package com.rustyrazorblade.easycasslab.mcp
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.Command
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.ICommand
-import com.rustyrazorblade.easycasslab.di.KoinModules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.mockito.kotlin.mock
 
-class McpServerSimpleTest {
-    private lateinit var context: Context
+class McpServerSimpleTest : BaseKoinTest() {
     private lateinit var registry: McpToolRegistry
 
     @BeforeEach
     fun setup() {
-        // Initialize Koin for dependency injection
-        startKoin {
-            modules(KoinModules.getAllModules())
-        }
-
-        context = mock()
-        registry = McpToolRegistry(context)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        stopKoin()
+        registry = McpToolRegistry()
     }
 
     @Test

@@ -5,7 +5,6 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
@@ -18,7 +17,7 @@ import java.io.File
 @RequireDocker
 @RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
-class Start(context: Context) : BaseCommand(context) {
+class Start : BaseCommand() {
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
         private const val DOCKER_COMPOSE_STARTUP_DELAY_MS = 5000L
@@ -46,7 +45,7 @@ class Start(context: Context) : BaseCommand(context) {
         }
 
         if (context.userConfig.axonOpsOrg.isNotBlank() && context.userConfig.axonOpsKey.isNotBlank()) {
-            StartAxonOps(context).execute()
+            StartAxonOps().execute()
         }
 
         // Inform user about AxonOps Workbench configuration if it exists

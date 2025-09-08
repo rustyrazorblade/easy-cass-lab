@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e  # Exit on any error
+
+echo "=== Building project ==="
+./gradlew clean test shadowJar installDist
+
+echo "=== Initializing cluster ==="
+bin/easy-cass-lab init -c 2 -i t3a.xlarge test --clean --up
+
+echo "=== Setting Cassandra version to 5.0 ==="
+bin/easy-cass-lab use 5.0
+
+echo "=== Starting Cassandra ==="
+bin/easy-cass-lab start
+
+echo "=== Tearing down cluster ==="
+bin/easy-cass-lab down --yes
+
+echo "=== End-to-end test completed successfully ==="
+
+

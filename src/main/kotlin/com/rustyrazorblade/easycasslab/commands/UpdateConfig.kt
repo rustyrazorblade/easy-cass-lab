@@ -4,7 +4,6 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
@@ -21,7 +20,7 @@ import kotlin.io.path.inputStream
         "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +
             " Done automatically after use-cassandra.",
 )
-class UpdateConfig(context: Context) : BaseCommand(context) {
+class UpdateConfig : BaseCommand() {
     @ParametersDelegate
     var hosts = Hosts()
 
@@ -78,7 +77,7 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
         }
 
         if (restart) {
-            val restart = Restart(context)
+            val restart = Restart()
             restart.hosts = hosts
             restart.execute()
         }

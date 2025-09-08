@@ -1,7 +1,8 @@
 package com.rustyrazorblade.easycasslab.mcp
 
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.KoinModules
+import com.rustyrazorblade.easycasslab.di.contextModule
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -10,54 +11,22 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.junit.jupiter.api.io.TempDir
+import org.koin.core.module.Module
 import java.io.File
 
-class McpSchemaValidationTest {
-    @BeforeEach
-    fun setup() {
-        // Initialize Koin for dependency injection
-        startKoin {
-            modules(KoinModules.getAllModules())
-        }
-    }
+class McpSchemaValidationTest : BaseKoinTest() {
+    private lateinit var registry: McpToolRegistry
 
-    @AfterEach
-    fun tearDown() {
-        stopKoin()
+    @BeforeEach  
+    fun setup() {
+        registry = McpToolRegistry()
     }
 
     @Test
     fun `check for JSON Schema 2020-12 compliance issues`() {
-        // Create a context with a temp directory
-        val tempDir = File("/tmp/test-mcp-${System.currentTimeMillis()}")
-        tempDir.mkdirs()
-
-        // Create a test user config file to avoid interactive prompt
-        val profileDir = File(tempDir, "profiles/default")
-        profileDir.mkdirs()
-        val userConfigFile = File(profileDir, "settings.yaml")
-        userConfigFile.writeText(
-            """
-            email: test@example.com
-            region: us-east-1
-            keyName: test-key
-            sshKeyPath: /tmp/test-key.pem
-            awsProfile: default
-            awsAccessKey: test-access-key
-            awsSecret: test-secret
-            axonOpsOrg: ""
-            axonOpsKey: ""
-            """.trimIndent(),
-        )
-
-        val context = Context(tempDir)
-
-        val registry = McpToolRegistry(context)
         val tools = registry.getTools()
 
         println("Checking all ${tools.size} tools for JSON Schema 2020-12 compliance issues...\n")

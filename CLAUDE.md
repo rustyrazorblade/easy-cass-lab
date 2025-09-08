@@ -14,6 +14,7 @@
 - Do not use wildcard imports.
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
 - Always ensure files end with a newline
+- Tests should extend BaseKoinTest to use Koin DI
 
 ## Testing Guidelines
 

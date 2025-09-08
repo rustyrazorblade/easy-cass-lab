@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab
 
 import com.github.ajalt.mordant.TermColors
+import com.github.dockerjava.api.exception.DockerException
 import com.rustyrazorblade.easycasslab.di.KoinModules
 import com.rustyrazorblade.easycasslab.di.contextModule
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -21,7 +22,7 @@ fun main(arguments: Array<String>) {
             KoinModules.getAllModules() + contextModule(context),
         )
     }
-    val parser = CommandLineParser(context)
+    val parser = CommandLineParser()
     try {
         parser.eval(arguments)
     } catch (e: DockerException) {

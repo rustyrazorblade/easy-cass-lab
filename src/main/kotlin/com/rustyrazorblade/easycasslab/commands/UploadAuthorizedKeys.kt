@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -14,7 +13,7 @@ import java.nio.file.Paths
 import kotlin.io.path.exists
 
 @Parameters(commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory")
-class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
+class UploadAuthorizedKeys : BaseCommand() {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 

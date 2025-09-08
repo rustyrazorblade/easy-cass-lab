@@ -6,6 +6,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
+import org.koin.test.KoinTest
 
 /**
  * Base test class that provides automatic Koin dependency injection setup and teardown.
@@ -28,7 +29,7 @@ import org.koin.core.module.Module
  * }
  * ```
  */
-abstract class BaseKoinTest {
+abstract class BaseKoinTest : KoinTest {
     /**
      * Core test modules that should always be loaded.
      * These include mocks for services that should NEVER make real calls in tests.

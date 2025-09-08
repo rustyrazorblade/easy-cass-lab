@@ -5,7 +5,8 @@ import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class Version(val context: Context) : ICommand, KoinComponent {
+class Version : ICommand, KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
 
     override fun execute() {

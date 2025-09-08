@@ -13,9 +13,8 @@ import org.koin.core.component.inject
 import java.io.File
 
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
-class WriteConfig(
-    @JsonIgnore val context: Context,
-) : ICommand, KoinComponent {
+class WriteConfig : ICommand, KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }

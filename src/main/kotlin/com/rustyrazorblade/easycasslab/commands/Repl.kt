@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.CommandLineParser
-import com.rustyrazorblade.easycasslab.Context
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
@@ -12,7 +11,7 @@ import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
-class Repl(val context: Context) : ICommand {
+class Repl : BaseCommand() {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -35,7 +34,7 @@ class Repl(val context: Context) : ICommand {
         // just to prove this out
         // todo: add cluster names, C* configuration options
         // also make it context aware
-        val parser = CommandLineParser(context)
+        val parser = CommandLineParser()
         val commands = parser.commands.map { it.name }
 
         return LineReaderBuilder.builder()
@@ -76,7 +75,7 @@ class Repl(val context: Context) : ICommand {
     private fun processCommand(line: String) {
         // we have to create a new parser every time due to a jcommander limitation
         // See https://github.com/cbeust/jcommander/issues/271
-        val parser = CommandLineParser(context)
+        val parser = CommandLineParser()
         parser.eval(line)
     }
 

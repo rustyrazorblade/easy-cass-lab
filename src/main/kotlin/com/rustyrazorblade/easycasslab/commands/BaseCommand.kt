@@ -11,7 +11,11 @@ import org.koin.core.component.inject
  * Base class for commands that need remote operations.
  * Provides injected services for SSH operations, Terraform state, and output handling.
  */
-abstract class BaseCommand(val context: Context) : ICommand, KoinComponent {
+abstract class BaseCommand : ICommand, KoinComponent {
+    /**
+     * Injected Context for accessing configuration and user settings.
+     */
+    protected val context: Context by inject()
     /**
      * Injected RemoteOperationsService for SSH operations.
      */

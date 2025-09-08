@@ -33,9 +33,8 @@ import java.time.LocalDate
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
-class Init(
-    @JsonIgnore val context: Context,
-) : ICommand, KoinComponent {
+class Init : ICommand, KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -153,7 +152,7 @@ class Init(
 
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
-            Up(context).execute()
+            Up().execute()
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(

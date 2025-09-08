@@ -45,7 +45,8 @@ class MainArgs {
     var help = false
 }
 
-class CommandLineParser(val context: Context) : KoinComponent {
+class CommandLineParser : KoinComponent {
+    val context: Context by inject()
     val commands: List<Command>
 
     @JsonIgnore
@@ -63,30 +64,30 @@ class CommandLineParser(val context: Context) : KoinComponent {
 
         commands =
             listOf(
-                Command("build-base", BuildBaseImage(context)),
-                Command("build-cassandra", BuildCassandraImage(context)),
-                Command("build-image", BuildImage(context)),
+                Command("build-base", BuildBaseImage()),
+                Command("build-cassandra", BuildCassandraImage()),
+                Command("build-image", BuildImage()),
                 Command("clean", Clean()),
-                Command("down", Down(context)),
-                Command("download-config", DownloadConfig(context), listOf("dc")),
-                Command("hosts", Hosts(context)),
-                Command("init", Init(context)),
-                Command("list", ListVersions(context), listOf("ls")),
-                Command("setup-instances", SetupInstance(context), listOf("si")),
-                Command("start", Start(context)),
-                Command("stop", Stop(context)),
-                Command("restart", Restart(context)),
-                Command("up", Up(context)),
-                Command("update-config", UpdateConfig(context), listOf("uc")),
-                Command("use", UseCassandra(context)),
-                Command("write-config", WriteConfig(context), listOf("wc")),
-                Command("configure-axonops", ConfigureAxonOps(context)),
-                Command("upload-keys", UploadAuthorizedKeys(context)),
-                Command("repl", Repl(context)),
-                Command("server", Server(context)),
-                Command("version", Version(context)),
-                Command("mcp", McpCommand(context)),
-                Command("mcp-config", McpConfigCommand(context)),
+                Command("down", Down()),
+                Command("download-config", DownloadConfig(), listOf("dc")),
+                Command("hosts", Hosts()),
+                Command("init", Init()),
+                Command("list", ListVersions(), listOf("ls")),
+                Command("setup-instances", SetupInstance(), listOf("si")),
+                Command("start", Start()),
+                Command("stop", Stop()),
+                Command("restart", Restart()),
+                Command("up", Up()),
+                Command("update-config", UpdateConfig(), listOf("uc")),
+                Command("use", UseCassandra()),
+                Command("write-config", WriteConfig(), listOf("wc")),
+                Command("configure-axonops", ConfigureAxonOps()),
+                Command("upload-keys", UploadAuthorizedKeys()),
+                Command("repl", Repl()),
+                Command("server", Server()),
+                Command("version", Version()),
+                Command("mcp", McpCommand()),
+                Command("mcp-config", McpConfigCommand()),
             )
 
         for (c in commands) {

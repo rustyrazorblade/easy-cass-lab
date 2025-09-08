@@ -2,14 +2,13 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 
 @Parameters(commandDescription = "Runs setup_instance.sh on all Cassandra instances")
-class SetupInstance(context: Context) : BaseCommand(context) {
+class SetupInstance : BaseCommand() {
     @ParametersDelegate
     var hosts = Hosts()
 

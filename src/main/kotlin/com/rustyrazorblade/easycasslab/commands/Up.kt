@@ -4,7 +4,6 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
@@ -23,9 +22,7 @@ import kotlin.system.exitProcess
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Starts instances")
-class Up(
-    context: Context,
-) : BaseCommand(context) {
+class Up : BaseCommand() {
     private val aws: AWS by inject()
 
     companion object {
@@ -51,7 +48,7 @@ class Up(
         aws.createLabEnvironment()
         provisionInfrastructure()
         writeConfigurationFiles()
-        WriteConfig(context).execute()
+        WriteConfig().execute()
         waitForSshAndDownloadVersions()
         uploadDockerComposeToControlNodes()
         uploadOtelConfigsToCassandraNodes()
@@ -277,11 +274,11 @@ class Up(
                 )
             }
         } else {
-            SetupInstance(context).execute()
+            SetupInstance().execute()
 
             if (context.userConfig.axonOpsKey.isNotBlank() && context.userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${context.userConfig.axonOpsOrg}")
-                ConfigureAxonOps(context).execute()
+                ConfigureAxonOps().execute()
             }
         }
     }

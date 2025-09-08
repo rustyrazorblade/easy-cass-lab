@@ -30,7 +30,7 @@ class McpEnumTest {
         }
 
         context = mock()
-        registry = McpToolRegistry(context)
+        registry = McpToolRegistry()
     }
 
     @AfterEach

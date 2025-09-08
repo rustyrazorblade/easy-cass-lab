@@ -2,7 +2,6 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
-import com.rustyrazorblade.easycasslab.Context
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -26,7 +25,7 @@ data class McpConfig(
  * as an MCP server in Claude Desktop's configuration file.
  */
 @Parameters(commandDescription = "Generate MCP server configuration for Claude Desktop")
-class McpConfigCommand(context: Context) : BaseCommand(context) {
+class McpConfigCommand : BaseCommand() {
     @Parameter(names = ["--json"], description = "Output JSON configuration instead of instructions")
     var json: Boolean = false
 

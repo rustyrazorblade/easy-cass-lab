@@ -61,7 +61,7 @@ class McpMessageFlowTest : KoinComponent {
         // Create context and MCP components
         context = Context(tempDir)
         mcpServer = McpServer(context)
-        registry = McpToolRegistry(context)
+        registry = McpToolRegistry()
     }
 
     @AfterEach

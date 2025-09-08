@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameters
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -12,7 +11,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 @Parameters(commandDescription = "Start server mode")
-class Server(val context: Context) : ICommand, KoinComponent {
+class Server : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {

@@ -15,6 +15,7 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
+import com.rustyrazorblade.easycasslab.di.contextModule
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
@@ -42,6 +43,7 @@ object TestModules {
      */
     fun coreTestModules(): List<Module> =
         listOf(
+            testContextModule(),
             testAWSModule(),
             testOutputModule(),
             testSSHModule(),
@@ -52,6 +54,18 @@ object TestModules {
      * Creates a test output module with buffered output handler.
      * This captures all output for verification in tests.
      */
+    /**
+     * Test module that provides a fresh Context instance for each test.
+     * Creates a new temporary directory and test user configuration.
+     * This ensures test isolation and allows safe cleanup.
+     *
+     * @return Module providing a test Context
+     */
+    fun testContextModule(): Module {
+        val testContext = TestContextFactory.createTestContext()
+        return contextModule(testContext)
+    }
+
     fun testOutputModule() =
         module {
             // Use CompositeOutputHandler with BufferedOutputHandler for tests

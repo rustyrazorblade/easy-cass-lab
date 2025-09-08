@@ -28,7 +28,8 @@ import kotlin.reflect.jvm.javaField
 /**
  * Registry that manages easy-cass-lab commands as MCP tools.
  */
-open class McpToolRegistry(private val context: Context) : KoinComponent {
+open class McpToolRegistry : KoinComponent {
+    private val context: Context by inject()
     val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -52,7 +53,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
      * Only includes commands annotated with @McpCommand.
      */
     open fun getTools(): List<ToolInfo> {
-        val parser = CommandLineParser(context)
+        val parser = CommandLineParser()
 
         return parser.commands
             .filter { command ->
@@ -84,7 +85,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         // Create a fresh command instance to avoid state retention
         val freshCommand =
             try {
-                tool.command.command::class.java.getDeclaredConstructor(Context::class.java).newInstance(context)
+                tool.command.command::class.java.getDeclaredConstructor().newInstance()
             } catch (e: Exception) {
                 // If we can't create a fresh instance, fall back to the original
                 log.warn { "Could not create fresh command instance for ${tool.name}: ${e.message}" }

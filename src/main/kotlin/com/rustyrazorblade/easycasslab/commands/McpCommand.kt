@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Constants
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.mcp.McpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -20,7 +19,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
         "Start MCP server for AI assistant integration. " +
             "Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
 )
-class McpCommand(context: Context) : BaseCommand(context) {
+class McpCommand : BaseCommand() {
     @Parameter(description = "MCP server port", names = ["--port", "-p"])
     var port: Int = Constants.Network.DEFAULT_MCP_PORT
 

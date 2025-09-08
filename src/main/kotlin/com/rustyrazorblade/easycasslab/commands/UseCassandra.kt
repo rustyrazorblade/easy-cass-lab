@@ -5,7 +5,6 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
@@ -16,9 +15,7 @@ import kotlin.system.exitProcess
 
 @McpCommand
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
-class UseCassandra(
-    context: Context,
-) : BaseCommand(context) {
+class UseCassandra : BaseCommand() {
     @Parameter(description = "Cassandra version", required = true)
     var version: String = ""
 
@@ -60,10 +57,10 @@ class UseCassandra(
 
         state.save()
 
-        DownloadConfig(context).execute()
+        DownloadConfig().execute()
 
         // make sure we only apply to the filtered hosts
-        val uc = UpdateConfig(context)
+        val uc = UpdateConfig()
         uc.hosts = hosts
         uc.execute()
 

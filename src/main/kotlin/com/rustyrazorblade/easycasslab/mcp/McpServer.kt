@@ -52,7 +52,7 @@ class McpServer(private val context: Context) : KoinComponent {
 
     private val outputHandler: OutputHandler by inject()
 
-    private val toolRegistry = McpToolRegistry(context)
+    private val toolRegistry = McpToolRegistry()
     private val executionSemaphore = Semaphore(1) // Only allow one tool execution at a time
 
     // Status tracking components

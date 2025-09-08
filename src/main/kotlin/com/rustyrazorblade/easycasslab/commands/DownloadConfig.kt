@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
-import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -13,7 +12,7 @@ import kotlin.io.path.exists
  * Downloads configuration.
  */
 @Parameters(commandDescription = "Download JVM and YAML config files.")
-class DownloadConfig(context: Context) : BaseCommand(context) {
+class DownloadConfig : BaseCommand() {
     @ParametersDelegate
     var hosts = Hosts()
 
