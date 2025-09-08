@@ -77,6 +77,24 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
     }
 
     /**
+     * Cleans a message by removing ANSI escape sequences and newlines.
+     * 
+     * @param message The message to clean
+     * @return The cleaned message
+     */
+    private fun cleanMessage(message: String): String {
+        // Remove ANSI escape sequences (e.g., color codes)
+        // Pattern matches ESC followed by [ and any number of digits, semicolons, and letters
+        val noAnsi = message.replace(Regex("\u001b\\[[0-9;]*[a-zA-Z]"), "")
+        
+        // Remove newlines and carriage returns, replace with space to preserve word boundaries
+        val noNewlines = noAnsi.replace(Regex("[\r\n]+"), " ")
+        
+        // Trim and collapse multiple spaces into single space
+        return noNewlines.trim().replace(Regex("\\s+"), " ")
+    }
+
+    /**
      * Processes an output event and adds it to the buffer if appropriate.
      *
      * @param event The OutputEvent to process
@@ -86,15 +104,17 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
         try {
             when (event) {
                 is OutputEvent.MessageEvent -> {
-                    val timestampedMessage = "[${LocalTime.now()}] ${event.message}"
+                    val cleanedMessage = cleanMessage(event.message)
+                    val timestampedMessage = "[${LocalTime.now()}] $cleanedMessage"
                     messageBuffer.add(timestampedMessage)
-                    log.debug { "Buffered message: ${event.message}" }
+                    log.debug { "Buffered message: $cleanedMessage" }
                     return true
                 }
                 is OutputEvent.ErrorEvent -> {
-                    val timestampedMessage = "[${LocalTime.now()}] ERROR: ${event.message}"
+                    val cleanedMessage = cleanMessage(event.message)
+                    val timestampedMessage = "[${LocalTime.now()}] ERROR: $cleanedMessage"
                     messageBuffer.add(timestampedMessage)
-                    log.debug { "Buffered error: ${event.message}" }
+                    log.debug { "Buffered error: $cleanedMessage" }
                     return true
                 }
                 is OutputEvent.CloseEvent -> {

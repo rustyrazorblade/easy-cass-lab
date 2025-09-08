@@ -12,19 +12,28 @@ import org.koin.core.component.inject
 import java.io.File
 
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
-    var profilesDir = File(easycasslabUserDirectory, "profiles")
 
-    // TODO allow for other profiles
+    private val outputHandler: OutputHandler by inject()
+    val log = KotlinLogging.logger {}
+
+    /**
+     * Profile setup.  User can override the default profile using a env var.
+     * Long term, should probably make this something they can do via a command.
+     * Will be useful once multiple cloud providers are supported.
+     */
     var profile = System.getenv("EASY_CASS_LAB_PROFILE") ?: "default"
-
+    var profilesDir = File(easycasslabUserDirectory, "profiles")
     var profileDir = File(profilesDir, profile)
-    val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
+    private val userConfigFile = File(profileDir, "settings.yaml")
 
     init {
         profileDir.mkdirs()
     }
 
-    val log = KotlinLogging.logger {}
+    val cwdPath = System.getProperty("user.dir")
+    val home = File(System.getProperty("user.home"))
+
+    val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
 
     /**
      * Version is either supplied by the in-repo script,
@@ -47,8 +56,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     // if you need to anything funky with the mapper (settings etc) use this
     fun getJsonMapper() = jacksonObjectMapper()
 
-    private val userConfigFile = File(profileDir, "settings.yaml")
-
     // this will let us write out the yaml
     val userConfig by lazy {
         if (!userConfigFile.exists()) {
@@ -59,10 +66,4 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
 
         yaml.readValue<User>(userConfigFile)
     }
-
-    // OutputHandler is still needed for user configuration
-    private val outputHandler: OutputHandler by inject()
-
-    val cwdPath = System.getProperty("user.dir")
-    val home = File(System.getProperty("user.home"))
 }
