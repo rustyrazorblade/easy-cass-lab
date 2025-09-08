@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -16,6 +17,8 @@ class WriteConfig(
     @JsonIgnore val context: Context,
 ) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+    private val tfStateProvider: TFStateProvider by inject()
+    private val tfstate by lazy { tfStateProvider.getDefault() }
 
     companion object {
         private const val DEFAULT_TOKEN_COUNT = 4
@@ -49,7 +52,7 @@ class WriteConfig(
                         val parameters =
                             object {
                                 val seeds =
-                                    context.tfstate.getHosts(ServerType.Cassandra)
+                                    tfstate.getHosts(ServerType.Cassandra)
                                         .map { it.private }
                                         .take(1)
                                         .joinToString(",")

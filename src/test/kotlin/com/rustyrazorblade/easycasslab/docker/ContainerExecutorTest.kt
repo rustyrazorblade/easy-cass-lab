@@ -5,17 +5,18 @@ import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
+import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.DockerClientInterface
+import com.rustyrazorblade.easycasslab.TestModules
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
@@ -27,32 +28,17 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.io.IOException
 
-class ContainerExecutorTest {
+class ContainerExecutorTest : BaseKoinTest(), KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var containerExecutor: ContainerExecutor
 
     @BeforeEach
     fun setup() {
-        bufferedOutputHandler = BufferedOutputHandler()
-
-        // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule =
-            module {
-                factory<OutputHandler> { bufferedOutputHandler }
-            }
-
-        startKoin {
-            modules(testModule)
-        }
-
         mockDockerClient = mock()
+        // Get the OutputHandler from Koin and cast it to BufferedOutputHandler
+        bufferedOutputHandler = get<OutputHandler>() as BufferedOutputHandler
         containerExecutor = ContainerExecutor(mockDockerClient)
-    }
-
-    @AfterEach
-    fun teardown() {
-        stopKoin()
     }
 
     @Test
@@ -73,8 +59,8 @@ class ContainerExecutorTest {
         // Then
         verify(mockDockerClient).startContainer(containerId)
         verify(mockDockerClient, atLeast(2)).inspectContainer(containerId)
-        assertEquals(mockState, result)
-        assertTrue(bufferedOutputHandler.messages.any { it.contains("Starting container") })
+        assertThat(result).isEqualTo(mockState)
+        assertThat(bufferedOutputHandler.messages.any { it.contains("Starting container") }).isTrue()
     }
 
     @Test
@@ -90,8 +76,8 @@ class ContainerExecutorTest {
                 containerExecutor.startAndWaitForCompletion(containerId)
             }
 
-        assertTrue(exception.message?.contains("Failed to start container") == true)
-        assertTrue(bufferedOutputHandler.errors.any { it.first.contains("Error starting container") })
+        assertThat(exception.message).contains("Failed to start container")
+        assertThat(bufferedOutputHandler.errors.any { it.first.contains("Error starting container") }).isTrue()
     }
 
     @Test
@@ -117,36 +103,21 @@ class ContainerExecutorTest {
         containerExecutor.removeContainer(containerId)
 
         // Then - should not throw, just log the error
-        assertTrue(bufferedOutputHandler.errors.any { it.first.contains("Failed to remove container") })
+        assertThat(bufferedOutputHandler.errors.any { it.first.contains("Failed to remove container") }).isTrue()
     }
 }
 
-class ContainerIOManagerTest {
+class ContainerIOManagerTest : BaseKoinTest(), KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var ioManager: ContainerIOManager
 
     @BeforeEach
     fun setup() {
-        bufferedOutputHandler = BufferedOutputHandler()
-
-        // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule =
-            module {
-                factory<OutputHandler> { bufferedOutputHandler }
-            }
-
-        startKoin {
-            modules(testModule)
-        }
-
         mockDockerClient = mock()
+        // Get the OutputHandler from Koin and cast it to BufferedOutputHandler
+        bufferedOutputHandler = get<OutputHandler>() as BufferedOutputHandler
         ioManager = ContainerIOManager(mockDockerClient)
-    }
-
-    @AfterEach
-    fun teardown() {
-        stopKoin()
     }
 
     @Test
@@ -168,10 +139,10 @@ class ContainerIOManagerTest {
         val framesRead = ioManager.attachToContainer(containerId, false)
 
         // Then
-        assertEquals(3, framesRead)
-        assertTrue(bufferedOutputHandler.messages.contains("Attaching to running container"))
-        assertEquals("Line 1\nLine 2\n", bufferedOutputHandler.stdout)
-        assertEquals("Error line\n", bufferedOutputHandler.stderr)
+        assertThat(framesRead).isEqualTo(3)
+        assertThat(bufferedOutputHandler.messages).contains("Attaching to running container")
+        assertThat(bufferedOutputHandler.stdout).isEqualTo("Line 1\nLine 2\n")
+        assertThat(bufferedOutputHandler.stderr).isEqualTo("Error line\n")
     }
 
     @Test
@@ -189,8 +160,8 @@ class ContainerIOManagerTest {
         val framesRead = ioManager.attachToContainer(containerId, false)
 
         // Then
-        assertEquals(0, framesRead)
-        assertTrue(bufferedOutputHandler.errors.any { it.first.contains("Container attachment error") })
+        assertThat(framesRead).isEqualTo(0)
+        assertThat(bufferedOutputHandler.errors.any { it.first.contains("Container attachment error") }).isTrue()
     }
 
     @Test
@@ -199,36 +170,27 @@ class ContainerIOManagerTest {
         ioManager.close()
 
         // Then - should not throw any exceptions
-        assertTrue(bufferedOutputHandler.stdout.isEmpty())
+        assertThat(bufferedOutputHandler.stdout).isEmpty()
     }
 }
 
-class ContainerStateMonitorTest {
+class ContainerStateMonitorTest : BaseKoinTest(), KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var stateMonitor: ContainerStateMonitor
 
-    @BeforeEach
-    fun setup() {
-        bufferedOutputHandler = BufferedOutputHandler()
-
-        // Create a test-specific Koin module that uses our bufferedOutputHandler
-        val testModule =
-            module {
-                factory<OutputHandler> { bufferedOutputHandler }
-            }
-
-        startKoin {
-            modules(testModule)
-        }
-
-        mockDockerClient = mock()
-        stateMonitor = ContainerStateMonitor()
+    override fun additionalTestModules(): List<Module> {
+        // BufferedOutputHandler is already provided by testOutputModule() in coreTestModules()
+        // We just need to get the instance for our tests
+        return emptyList()
     }
 
-    @AfterEach
-    fun teardown() {
-        stopKoin()
+    @BeforeEach
+    fun setup() {
+        mockDockerClient = mock()
+        // Get the OutputHandler from Koin and cast it to BufferedOutputHandler
+        bufferedOutputHandler = get<OutputHandler>() as BufferedOutputHandler
+        stateMonitor = ContainerStateMonitor()
     }
 
     @Test
@@ -242,7 +204,7 @@ class ContainerStateMonitorTest {
         val message = stateMonitor.buildReturnMessage(mockState, 42)
 
         // Then
-        assertEquals("Container exited with exit code 0, frames read: 42", message)
+        assertThat(message).isEqualTo("Container exited with exit code 0, frames read: 42")
     }
 
     @Test
@@ -256,7 +218,7 @@ class ContainerStateMonitorTest {
         val message = stateMonitor.buildReturnMessage(mockState, 10)
 
         // Then
-        assertEquals("Container exited with exit code 1, Out of memory, frames read: 10", message)
+        assertThat(message).isEqualTo("Container exited with exit code 1, Out of memory, frames read: 10")
     }
 
     @Test
@@ -270,10 +232,10 @@ class ContainerStateMonitorTest {
         stateMonitor.reportFinalState(mockState, 25)
 
         // Then
-        assertTrue(
+        assertThat(
             bufferedOutputHandler.messages.any {
                 it.contains("Container exited with exit code 0") && it.contains("frames read: 25")
-            },
-        )
+            }
+        ).isTrue()
     }
 }

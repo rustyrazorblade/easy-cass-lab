@@ -49,8 +49,8 @@ class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
         outputHandler.handleMessage(keys)
 
         val upload = doUpload(authorizedKeysExtra)
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
-        context.tfstate.withHosts(ServerType.Stress, Hosts.all()) { upload(it) }
+        tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
+        tfstate.withHosts(ServerType.Stress, Hosts.all()) { upload(it) }
     }
 
     private fun doUpload(authorizedKeys: File) =

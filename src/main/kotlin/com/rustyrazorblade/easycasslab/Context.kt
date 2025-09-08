@@ -3,7 +3,6 @@ package com.rustyrazorblade.easycasslab
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.core.YamlDelegate
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -66,7 +65,5 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     val cwdPath = System.getProperty("user.dir")
-
-    val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
 }

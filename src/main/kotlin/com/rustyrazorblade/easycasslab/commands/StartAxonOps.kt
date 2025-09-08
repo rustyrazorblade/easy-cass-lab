@@ -14,7 +14,7 @@ class StartAxonOps(context: Context) : BaseCommand(context) {
     var hosts = Hosts()
 
     override fun execute() {
-        context.tfstate.withHosts(ServerType.Cassandra, Hosts.all(), parallel = true) {
+        tfstate.withHosts(ServerType.Cassandra, Hosts.all(), parallel = true) {
             remoteOps.executeRemotely(it, "sudo systemctl start axon-agent").text
         }
     }

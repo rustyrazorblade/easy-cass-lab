@@ -5,6 +5,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.configuration.HostList
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -13,6 +14,8 @@ import java.io.FileNotFoundException
 @McpCommand
 class Hosts(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
+    private val tfStateProvider: TFStateProvider by inject()
+    private val tfstate by lazy { tfStateProvider.getDefault() }
 
     @Parameter(names = ["-c"], description = "Show Cassandra as a comma delimited list")
     var cassandra: Boolean = false
@@ -22,7 +25,7 @@ class Hosts(val context: Context) : ICommand, KoinComponent {
     override fun execute() {
         try {
             val output =
-                with(context.tfstate) {
+                with(tfstate) {
                     HostOutput(
                         getHosts(ServerType.Cassandra),
                         getHosts(ServerType.Stress),
@@ -31,7 +34,7 @@ class Hosts(val context: Context) : ICommand, KoinComponent {
                 }
 
             if (cassandra) {
-                val hosts = context.tfstate.getHosts(ServerType.Cassandra)
+                val hosts = tfstate.getHosts(ServerType.Cassandra)
                 val csv = hosts.map { it.public }.joinToString(",")
                 outputHandler.handleMessage(csv)
             } else {

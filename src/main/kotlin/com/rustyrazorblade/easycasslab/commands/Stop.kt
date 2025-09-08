@@ -18,7 +18,7 @@ class Stop(context: Context) : BaseCommand(context) {
 
         outputHandler.handleMessage("Stopping cassandra service on all nodes.")
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        tfstate.withHosts(ServerType.Cassandra, hosts) {
             remoteOps.executeRemotely(it, "sudo systemctl stop cassandra").text
         }
     }

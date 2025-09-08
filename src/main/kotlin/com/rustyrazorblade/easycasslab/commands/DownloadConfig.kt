@@ -25,7 +25,7 @@ class DownloadConfig(context: Context) : BaseCommand(context) {
     }
 
     override fun execute() {
-        val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
+        val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
 
         // Currently using first host - consider adding --host option for specific node selection
         val host = cassandraHosts.first()

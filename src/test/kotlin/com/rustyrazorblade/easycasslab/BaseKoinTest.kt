@@ -55,12 +55,14 @@ abstract class BaseKoinTest {
      */
     @BeforeEach
     fun setupKoin() {
-        // Only start Koin if it's not already running
-        // This prevents issues with nested test classes or parallel test execution
-        if (GlobalContext.getOrNull() == null) {
-            startKoin {
-                modules(coreTestModules() + additionalTestModules())
-            }
+        // Always stop Koin first to ensure clean state
+        // This prevents issues with stale instances from previous tests
+        if (GlobalContext.getOrNull() != null) {
+            stopKoin()
+        }
+        
+        startKoin {
+            modules(coreTestModules() + additionalTestModules())
         }
     }
 

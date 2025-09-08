@@ -19,13 +19,13 @@ class SetupInstance(context: Context) : BaseCommand(context) {
             remoteOps.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh").text
         }
 
-        context.tfstate.withHosts(ServerType.Stress, hosts, parallel = true) {
+        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) {
             setup(it)
             remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
             remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
             remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
         }
-        context.tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
+        tfstate.withHosts(ServerType.Cassandra, Hosts.all()) {
             setup(it)
             remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
             remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")

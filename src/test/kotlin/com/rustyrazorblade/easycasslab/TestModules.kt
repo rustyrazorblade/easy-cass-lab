@@ -1,8 +1,11 @@
 package com.rustyrazorblade.easycasslab
 
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
+import com.rustyrazorblade.easycasslab.output.CompositeOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.Clients
@@ -18,7 +21,9 @@ import org.koin.dsl.module
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import software.amazon.awssdk.services.iam.IamClient
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Path
 
 /**
@@ -41,6 +46,7 @@ object TestModules {
             testAWSModule(),
             testOutputModule(),
             testSSHModule(),
+            testTerraformModule(),
         )
 
     /**
@@ -49,8 +55,12 @@ object TestModules {
      */
     fun testOutputModule() =
         module {
-            // Use BufferedOutputHandler for tests to capture output
-            factory<OutputHandler> { BufferedOutputHandler() }
+            // Use CompositeOutputHandler with BufferedOutputHandler for tests
+            // This matches the production pattern but uses a test-friendly handler
+            // Use single to ensure all components get the same instance within a test
+            single<OutputHandler> {
+                BufferedOutputHandler()
+            }
         }
     /**
      * Creates a test AWS module with mock implementations.
@@ -174,6 +184,46 @@ object TestModules {
                         }
                     }
                 }
+            }
+        }
+    
+    /**
+     * Creates a test Terraform module with mock implementations.
+     * This provides a mock TFStateProvider that returns empty state for testing.
+     */
+    fun testTerraformModule() =
+        module {
+            // Mock TFStateProvider
+            single<TFStateProvider> {
+                object : TFStateProvider {
+                    override fun parseFromFile(file: File): TFState {
+                        // Return a mock TFState with minimal valid JSON
+                        val json = """
+                            {
+                                "version": 4,
+                                "terraform_version": "1.0.0",
+                                "serial": 1,
+                                "lineage": "test",
+                                "outputs": {},
+                                "resources": []
+                            }
+                        """.trimIndent()
+                        return TFState(get(), ByteArrayInputStream(json.toByteArray()))
+                    }
+                    
+                    override fun parseFromStream(stream: InputStream): TFState {
+                        return TFState(get(), stream)
+                    }
+                    
+                    override fun getDefault(): TFState {
+                        return parseFromFile(File("terraform.tfstate"))
+                    }
+                }
+            }
+            
+            // Provide a factory for TFState (for backward compatibility)
+            factory {
+                get<TFStateProvider>().getDefault()
             }
         }
 }

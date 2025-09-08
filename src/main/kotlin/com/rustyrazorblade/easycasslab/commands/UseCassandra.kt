@@ -38,7 +38,7 @@ class UseCassandra(
         check(version.isNotBlank())
         val state = ClusterState.load()
         try {
-            context.tfstate
+            tfstate
         } catch (ignored: FileNotFoundException) {
             outputHandler.handleMessage(
                 "Error: terraform config file not found.  Please run easy-cass-lab up first to " +
@@ -47,10 +47,10 @@ class UseCassandra(
             exitProcess(1)
         }
 
-        val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
+        val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
         outputHandler.handleMessage("Using version $version on ${cassandraHosts.size} hosts, filter: $hosts")
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
+        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
             if (javaVersion.isNotBlank()) {
                 remoteOps.executeRemotely(it, "set-java-version $javaVersion $version")
             }

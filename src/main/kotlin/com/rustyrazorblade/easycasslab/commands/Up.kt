@@ -99,9 +99,9 @@ class Up(
 
     private fun writeConfigurationFiles() {
         val config = File("sshConfig").bufferedWriter()
-        context.tfstate.writeSshConfig(config)
+        tfstate.writeSshConfig(config)
         val envFile = File("env.sh").bufferedWriter()
-        context.tfstate.writeEnvironmentFile(envFile)
+        tfstate.writeEnvironmentFile(envFile)
         writeStressEnvironmentVariables()
         writeAxonOpsWorkbenchConfig()
     }
@@ -109,7 +109,7 @@ class Up(
     private fun writeAxonOpsWorkbenchConfig() {
         try {
             // Get the first Cassandra node (cassandra0)
-            val cassandraHosts = context.tfstate.getHosts(ServerType.Cassandra)
+            val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
             if (cassandraHosts.isNotEmpty()) {
                 val cassandra0 = cassandraHosts.first()
                 val config =
@@ -134,7 +134,7 @@ class Up(
         val stressEnvironmentVars = File("environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
         stressEnvironmentVars.newLine()
-        val host = context.tfstate.getHosts(ServerType.Cassandra).first().private
+        val host = tfstate.getHosts(ServerType.Cassandra).first().private
         stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$host")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_PROM_PORT=0")
@@ -155,7 +155,7 @@ class Up(
         var done = false
         do {
             try {
-                context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+                tfstate.withHosts(ServerType.Cassandra, hosts) {
                     remoteOps.executeRemotely(it, "echo 1").text
                     // download /etc/cassandra_versions.yaml if we don't have it yet
                     if (!File("cassandra_versions.yaml").exists()) {
@@ -183,7 +183,7 @@ class Up(
         }
 
         // Get the internal IP of the first Cassandra node
-        val cassandraHost = context.tfstate.getHosts(ServerType.Cassandra).first().private
+        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
         outputHandler.handleMessage("Using Cassandra host IP: $cassandraHost")
 
         // Read the docker-compose.yaml file and replace cassandra0 with the actual IP
@@ -194,7 +194,7 @@ class Up(
         dockerComposeFile.writeText(updatedContent)
         outputHandler.handleMessage("Updated docker-compose.yaml with Cassandra IP: $cassandraHost")
 
-        context.tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
+        tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Uploading configuration files to control node ${host.public}")
 
             // Upload docker-compose.yaml to ubuntu user's home directory
@@ -228,7 +228,7 @@ class Up(
         }
 
         // Get the internal IP of the first control node for OTLP endpoint
-        val controlHost = context.tfstate.getHosts(ServerType.Control).firstOrNull()
+        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
         if (controlHost == null) {
             outputHandler.handleMessage("No control nodes found, skipping OTel configuration for Cassandra nodes")
             return
@@ -237,7 +237,7 @@ class Up(
         val controlNodeIp = controlHost.private
         outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
 
             // Create .env file for docker-compose with environment variables

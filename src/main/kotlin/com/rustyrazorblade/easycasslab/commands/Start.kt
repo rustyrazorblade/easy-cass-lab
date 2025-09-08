@@ -34,13 +34,13 @@ class Start(context: Context) : BaseCommand(context) {
     override fun execute() {
 
         with(TermColors()) {
-            context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+            tfstate.withHosts(ServerType.Cassandra, hosts) {
                 outputHandler.handleMessage(green("Starting $it"))
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra").text
                 outputHandler.handleMessage("Cassandra started, waiting for up/normal")
                 remoteOps.executeRemotely(it, "sudo wait-for-up-normal").text
             }
-            context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
+            tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
             }
         }
@@ -91,7 +91,7 @@ class Start(context: Context) : BaseCommand(context) {
 
         // Get datacenter (region) and cassandra host
         val datacenter = clusterState?.initConfig?.region ?: context.userConfig.region
-        val cassandraHost = context.tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
+        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
 
         // Create .env file content
         val envContent =
@@ -100,7 +100,7 @@ class Start(context: Context) : BaseCommand(context) {
             CASSANDRA_HOST=$cassandraHost
             """.trimIndent()
 
-        context.tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
+        tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Starting Docker Compose services on control node ${host.public}")
 
             // Create and upload .env file
@@ -236,14 +236,14 @@ class Start(context: Context) : BaseCommand(context) {
         }
 
         // Get the internal IP of the first control node for OTLP endpoint
-        val controlHost = context.tfstate.getHosts(ServerType.Control).firstOrNull()
+        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
         if (controlHost == null) {
             outputHandler.handleMessage("No control nodes found, skipping OTel startup for Cassandra nodes")
             return
         }
         val controlNodeIp = controlHost.private
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Starting OTel collector on Cassandra node ${host.alias} (${host.public})")
 
             // Check if configuration files exist on the remote host

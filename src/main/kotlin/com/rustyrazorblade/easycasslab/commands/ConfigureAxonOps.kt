@@ -29,7 +29,7 @@ class ConfigureAxonOps(context: Context) : BaseCommand(context) {
             System.exit(1)
         }
 
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        tfstate.withHosts(ServerType.Cassandra, hosts) {
             outputHandler.handleMessage("Configure axonops on $it")
 
             remoteOps.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey", secret = true).text

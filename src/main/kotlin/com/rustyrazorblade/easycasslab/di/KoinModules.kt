@@ -18,6 +18,7 @@ object KoinModules {
             dockerModule,
             sshModule,
             awsModule,
+            terraformModule,
             // Add more modules here as the refactoring progresses
             // e.g., configurationModule
         )

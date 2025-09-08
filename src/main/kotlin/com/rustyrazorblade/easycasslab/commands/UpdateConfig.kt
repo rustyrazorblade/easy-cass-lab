@@ -36,7 +36,7 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
 
     override fun execute() {
         // upload the patch file
-        context.tfstate.withHosts(ServerType.Cassandra, hosts) {
+        tfstate.withHosts(ServerType.Cassandra, hosts) {
             outputHandler.handleMessage("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())
