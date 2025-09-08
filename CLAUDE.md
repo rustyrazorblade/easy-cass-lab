@@ -11,6 +11,8 @@
 - activate kotlin and java for context7
 - activate the serena MCP server
 - ABSOLUTE RULE: NEVER attribute commit messages to Claude.  
+- Do not use wildcard imports.
+- When making changes, use the detekt plugin to determine if there are any code quality regressions.
 
 ## Testing Guidelines
 
