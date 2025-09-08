@@ -4,6 +4,7 @@ import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
 import com.rustyrazorblade.easycasslab.commands.BuildImage
@@ -29,10 +30,12 @@ import com.rustyrazorblade.easycasslab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easycasslab.commands.UseCassandra
 import com.rustyrazorblade.easycasslab.commands.Version
 import com.rustyrazorblade.easycasslab.commands.WriteConfig
+import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.io.File
 import kotlin.system.exitProcess
 
 data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
@@ -50,6 +53,7 @@ class CommandLineParser(val context: Context) : KoinComponent {
     private val jc: JCommander
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
     private val dockerClientProvider: DockerClientProvider by inject()
+    private val outputHandler: OutputHandler by inject()
 
     init {
 
@@ -113,8 +117,15 @@ class CommandLineParser(val context: Context) : KoinComponent {
             // Check if the command requires Docker
             if (this.command::class.annotations.any { it is RequireDocker }) {
                 if (!checkDockerAvailability()) {
-                    println("Error: Docker is not available or not running.")
-                    println("Please ensure Docker is installed and running before executing this command.")
+                    outputHandler.handleError("Error: Docker is not available or not running.")
+                    outputHandler.handleError("Please ensure Docker is installed and running before executing this command.")
+                    exitProcess(1)
+                }
+            }
+            // Check if the command requires an SSH key
+            if (this.command::class.annotations.any { it is RequireSSHKey }) {
+                if (!checkSSHKeyAvailability()) {
+                    outputHandler.handleError("SSH key not found at ${context.userConfig.sshKeyPath}")
                     exitProcess(1)
                 }
             }
@@ -135,5 +146,9 @@ class CommandLineParser(val context: Context) : KoinComponent {
             logger.error(e) { "Docker availability check failed" }
             false
         }
+    }
+
+    private fun checkSSHKeyAvailability(): Boolean {
+        return File(context.userConfig.sshKeyPath).exists()
     }
 }

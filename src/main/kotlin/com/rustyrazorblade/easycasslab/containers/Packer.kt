@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.VolumeMapping
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.aws.AWSCredentialsManager
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.koin.core.component.KoinComponent
@@ -23,6 +24,7 @@ import kotlin.system.exitProcess
 class Packer(val context: Context, var directory: String) : KoinComponent {
     private val docker: Docker by inject { parametersOf(context) }
     private val outputHandler: OutputHandler by inject()
+    private val awsCredentialsManager: AWSCredentialsManager by inject()
 
     private var containerWorkingDir = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
@@ -120,7 +122,7 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
 
         return docker
             .addVolume(packerDir)
-            .addVolume(VolumeMapping(context.awsConfig.absolutePath, creds, AccessMode.ro))
+            .addVolume(VolumeMapping(awsCredentialsManager.credentialsPath, creds, AccessMode.ro))
             .addEnv("${Constants.Packer.AWS_CREDENTIALS_ENV}=$creds")
             .runContainer(Containers.PACKER, args, containerWorkingDir, packerTimeout)
     }

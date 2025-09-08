@@ -61,24 +61,6 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
         yaml.readValue<User>(userConfigFile)
     }
 
-    val awsCredentialsName = Constants.AWS.DEFAULT_CREDENTIALS_NAME
-
-    /**
-     * Lazily create the AWS config. We might not need it and in the future we might support
-     * different cloud providers.
-     */
-    val awsConfig by lazy {
-        val fp = File(profileDir, awsCredentialsName)
-        if (!fp.exists()) {
-            fp.writeText(
-                """[default]
-                |aws_access_key_id=${userConfig.awsAccessKey}
-                |aws_secret_access_key=${userConfig.awsSecret}
-            """.trimMargin("|"),
-            )
-        }
-        fp
-    }
 
     // OutputHandler is still needed for user configuration
     private val outputHandler: OutputHandler by inject()
@@ -87,11 +69,4 @@ data class Context(val easycasslabUserDirectory: File) : KoinComponent {
 
     val tfstate by lazy { TFState.parse(this, File(cwdPath, "terraform.tfstate")) }
     val home = File(System.getProperty("user.home"))
-
-    fun requireSshKey() {
-        if (!File(userConfig.sshKeyPath).exists()) {
-            log.error { "SSH key not found at ${userConfig.sshKeyPath}" }
-            System.exit(1)
-        }
-    }
 }

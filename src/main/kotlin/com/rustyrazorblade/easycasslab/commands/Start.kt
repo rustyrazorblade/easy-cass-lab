@@ -7,6 +7,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -14,6 +15,7 @@ import java.io.File
 
 @McpCommand
 @RequireDocker
+@RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(context: Context) : BaseCommand(context) {
     companion object {
@@ -30,7 +32,6 @@ class Start(context: Context) : BaseCommand(context) {
     var hosts = Hosts()
 
     override fun execute() {
-        context.requireSshKey()
 
         with(TermColors()) {
             context.tfstate.withHosts(ServerType.Cassandra, hosts) {
