@@ -21,6 +21,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.mcp
 import kotlinx.coroutines.channels.Channel
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -34,7 +35,8 @@ import kotlin.getValue
 data class StatusResponse(
     val status: String,
     val command: String,
-    val runtime_seconds: Long,
+    @SerialName("runtime_seconds")
+    val runtimeSeconds: Long,
     val messages: List<String>,
     val timestamp: String,
 )
@@ -47,7 +49,7 @@ class McpServer(private val context: Context) : KoinComponent {
         private val log = KotlinLogging.logger {}
     }
 
-    protected val outputHandler: OutputHandler by inject()
+    private val outputHandler: OutputHandler by inject()
 
     private val toolRegistry = McpToolRegistry(context)
     private val executionSemaphore = Semaphore(1) // Only allow one tool execution at a time
@@ -105,7 +107,7 @@ class McpServer(private val context: Context) : KoinComponent {
                 StatusResponse(
                     status = status,
                     command = currentCommand ?: "none",
-                    runtime_seconds = runtimeSeconds,
+                    runtimeSeconds = runtimeSeconds,
                     messages = messages,
                     timestamp = java.time.Instant.now().toString(),
                 )

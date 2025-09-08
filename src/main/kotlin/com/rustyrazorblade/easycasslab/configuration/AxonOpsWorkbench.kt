@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -42,12 +43,12 @@ data class AxonOpsWorkbenchConfig(
             return AxonOpsWorkbenchConfig(
                 basic =
                     BasicConfig(
-                        workspace_id = "",
+                        workspaceId = "",
                         name = clusterName,
                         datacenter = "datacenter1", // Default Cassandra datacenter name
                         hostname = host.private, // Use private IP for internal connectivity
                         port = "9042", // Default Cassandra CQL port
-                        timestamp_generator = "",
+                        timestampGenerator = "",
                         cqlshrc = "",
                     ),
                 auth =
@@ -95,12 +96,14 @@ data class AxonOpsWorkbenchConfig(
 
 @Serializable
 data class BasicConfig(
-    val workspace_id: String,
+    @SerialName("workspace_id")
+    val workspaceId: String,
     val name: String,
     val datacenter: String,
     val hostname: String,
     val port: String,
-    val timestamp_generator: String,
+    @SerialName("timestamp_generator")
+    val timestampGenerator: String,
     val cqlshrc: String,
 )
 

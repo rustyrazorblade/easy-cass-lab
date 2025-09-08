@@ -204,7 +204,7 @@ class ContainerIOManager(
 /**
  * Monitors and reports on container state.
  */
-class ContainerStateMonitor() : KoinComponent {
+class ContainerStateMonitor : KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {
