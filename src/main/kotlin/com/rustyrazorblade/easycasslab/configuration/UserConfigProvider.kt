@@ -40,16 +40,14 @@ class UserConfigProvider(
 
     /**
      * Loads the user configuration from the YAML file.
-     * If the file doesn't exist, triggers interactive setup.
+     * Always calls createInteractively which handles both new setups and missing field updates.
      */
     private fun loadUserConfig(): User {
-        if (!userConfigFile.exists()) {
-            log.debug { "$userConfigFile not found, going through interactive setup" }
-            // Create a temporary context for interactive setup - this is a bit of a hack
-            // but needed for the createInteractively method
-            val tempContext = com.rustyrazorblade.easycasslab.Context(profileDir.parentFile.parentFile)
-            User.createInteractively(tempContext, userConfigFile, outputHandler)
-        }
+        log.debug { "Loading user config from $userConfigFile" }
+        // Create a temporary context for interactive setup - this is a bit of a hack
+        // but needed for the createInteractively method
+        val tempContext = com.rustyrazorblade.easycasslab.Context(profileDir.parentFile.parentFile)
+        User.createInteractively(tempContext, userConfigFile, outputHandler)
 
         return yaml.readValue<User>(userConfigFile)
     }
