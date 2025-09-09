@@ -117,3 +117,4 @@ The user manual is located in manual/index.adoc.
 - Always use assertj style assertions, not the raw junit ones.
 - Constants and magic numbers should be stored in com.rustyrazorblade.easycasslab.Constants
 - When migrating code, it is not necessary to maintain backwards compability.
+- Fail fast is usually preferred.

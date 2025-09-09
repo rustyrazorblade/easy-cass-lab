@@ -32,6 +32,8 @@ class Clean : ICommand, KoinComponent {
                 "state.json",
                 "axonops-dashboards.json",
                 "cassandra_versions.yaml",
+                "axonops-workbench.json",
+                "easy-cass-mcp.json",
             )
 
         val directoriesToClean =
@@ -40,6 +42,7 @@ class Clean : ICommand, KoinComponent {
                 "provisioning",
                 "control",
                 "cassandra",
+                "5.0",
             )
     }
 

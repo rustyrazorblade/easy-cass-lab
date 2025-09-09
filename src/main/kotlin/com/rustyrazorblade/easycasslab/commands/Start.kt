@@ -69,6 +69,9 @@ class Start : BaseCommand() {
         writeMCPConfiguration()
         // this has to happen last, because we want Cassandra to be available before starting the MCP server.
         deployDockerComposeToControlNodes()
+        
+        // Set up SS4O configuration after Docker services are started
+        setupSS4OConfiguration()
     }
 
     private fun deployDockerComposeToControlNodes() {
@@ -77,10 +80,22 @@ class Start : BaseCommand() {
         val dockerComposeFile = File("control/docker-compose.yaml")
         val otelConfigFile = File("control/otel-collector-config.yaml")
         val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
+        val ss4oTemplateFile = File("control/ss4o_metrics.json")
 
         if (!dockerComposeFile.exists()) {
-            outputHandler.handleMessage("control/docker-compose.yaml not found, skipping Docker Compose startup")
-            return
+            throw RuntimeException("control/docker-compose.yaml not found - required file missing")
+        }
+        
+        if (!otelConfigFile.exists()) {
+            throw RuntimeException("control/otel-collector-config.yaml not found - required file missing")
+        }
+        
+        if (!dataPrepperConfigFile.exists()) {
+            throw RuntimeException("control/data-prepper-pipelines.yaml not found - required file missing")
+        }
+        
+        if (!ss4oTemplateFile.exists()) {
+            throw RuntimeException("control/ss4o_metrics.json not found - required file missing")
         }
 
         // Load cluster state to get InitConfig
@@ -113,44 +128,12 @@ class Start : BaseCommand() {
             remoteOps.upload(host, envFile.toPath(), "/home/ubuntu/.env")
             envFile.delete()
 
-            // Check if docker-compose.yaml exists on the remote host
-            val checkResult =
-                remoteOps.executeRemotely(
-                    host,
-                    "test -f /home/ubuntu/docker-compose.yaml && echo 'exists' || echo 'not found'",
-                )
-
-            if (checkResult.text.trim() == "not found") {
-                outputHandler.handleMessage("docker-compose.yaml not found on ${host.public}, uploading...")
-                // Upload docker-compose.yaml to ubuntu user's home directory
-                remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
-            }
-
-            // Check and upload otel-collector-config.yaml if it exists
-            if (otelConfigFile.exists()) {
-                val otelCheckResult =
-                    remoteOps.executeRemotely(
-                        host,
-                        "test -f /home/ubuntu/otel-collector-config.yaml && echo 'exists' || echo 'not found'",
-                    )
-                if (otelCheckResult.text.trim() == "not found") {
-                    outputHandler.handleMessage("otel-collector-config.yaml not found on ${host.public}, uploading...")
-                    remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
-                }
-            }
-
-            // Check and upload data-prepper-pipelines.yaml if it exists
-            if (dataPrepperConfigFile.exists()) {
-                val dataPrepperCheckResult =
-                    remoteOps.executeRemotely(
-                        host,
-                        "test -f /home/ubuntu/data-prepper-pipelines.yaml && echo 'exists' || echo 'not found'",
-                    )
-                if (dataPrepperCheckResult.text.trim() == "not found") {
-                    outputHandler.handleMessage("data-prepper-pipelines.yaml not found on ${host.public}, uploading...")
-                    remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
-                }
-            }
+            // Upload required configuration files
+            outputHandler.handleMessage("Uploading configuration files to ${host.public}...")
+            remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
+            remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
+            remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
+            remoteOps.upload(host, ss4oTemplateFile.toPath(), "/home/ubuntu/ss4o_metrics.json")
 
             // Check if docker and docker compose are available
             try {
@@ -225,6 +208,146 @@ class Start : BaseCommand() {
         }
 
         outputHandler.handleMessage("Docker Compose services started on control nodes")
+    }
+
+    private fun setupSS4OConfiguration() {
+        outputHandler.handleMessage("Setting up SS4O (Simple Schema for Observability) configuration...")
+
+        tfstate.withHosts(ServerType.Control, hosts) { host ->
+            try {
+                // Wait for OpenSearch to be ready
+                outputHandler.handleMessage("Waiting for OpenSearch to be ready on ${host.public}...")
+                var opensearchReady = false
+                var retryCount = 0
+                val maxRetries = 12 // 2 minutes with 10-second intervals
+
+                while (!opensearchReady && retryCount < maxRetries) {
+                    try {
+                        val healthCheck = remoteOps.executeRemotely(host, "curl -s http://127.0.0.1:9200/_cluster/health")
+                        if (healthCheck.text.contains("\"status\":\"yellow\"") || healthCheck.text.contains("\"status\":\"green\"")) {
+                            opensearchReady = true
+                            outputHandler.handleMessage("OpenSearch is ready on ${host.public}")
+                        } else {
+                            Thread.sleep(10000) // Wait 10 seconds
+                            retryCount++
+                        }
+                    } catch (e: Exception) {
+                        Thread.sleep(10000) // Wait 10 seconds
+                        retryCount++
+                    }
+                }
+
+                if (!opensearchReady) {
+                    outputHandler.handleMessage("Warning: OpenSearch did not become ready on ${host.public}, skipping SS4O setup")
+                    return@withHosts
+                }
+
+                // Create SS4O index template
+                outputHandler.handleMessage("Creating SS4O index template on ${host.public}...")
+                val createTemplateCommand = """
+                    curl -X PUT "http://127.0.0.1:9200/_index_template/ss4o_metrics" \
+                    -H "Content-Type: application/json" \
+                    -d '{
+                        "index_patterns": ["ss4o_metrics-*"],
+                        "template": {
+                            "settings": {
+                                "number_of_shards": 1,
+                                "number_of_replicas": 0,
+                                "index": {
+                                    "refresh_interval": "5s"
+                                }
+                            },
+                            "mappings": {
+                                "properties": {
+                                    "@timestamp": { "type": "date" },
+                                    "observedTimestamp": { "type": "date" },
+                                    "serviceName": { "type": "keyword" },
+                                    "name": { "type": "keyword" },
+                                    "description": { "type": "text" },
+                                    "unit": { "type": "keyword" },
+                                    "value": { "type": "double" },
+                                    "kind": { "type": "keyword" },
+                                    "aggregationTemporality": { "type": "keyword" },
+                                    "startTime": { "type": "date" },
+                                    "schemaUrl": { "type": "keyword" }
+                                }
+                            }
+                        },
+                        "priority": 100,
+                        "version": 1,
+                        "_meta": {
+                            "description": "SS4O metrics index template for OpenSearch Observability"
+                        }
+                    }'
+                """.trimIndent()
+
+                val templateResult = remoteOps.executeRemotely(host, createTemplateCommand)
+                if (templateResult.text.contains("\"acknowledged\":true")) {
+                    outputHandler.handleMessage("SS4O index template created successfully on ${host.public}")
+                } else {
+                    outputHandler.handleMessage("Warning: Failed to create SS4O index template on ${host.public}: ${templateResult.text}")
+                }
+
+                // Wait for OpenSearch Dashboards to be ready
+                outputHandler.handleMessage("Waiting for OpenSearch Dashboards to be ready on ${host.public}...")
+                var dashboardsReady = false
+                retryCount = 0
+
+                while (!dashboardsReady && retryCount < maxRetries) {
+                    try {
+                        val dashboardsCheck = remoteOps.executeRemotely(host, "curl -s http://127.0.0.1:5601/api/status")
+                        if (dashboardsCheck.text.contains("\"level\":\"available\"") || dashboardsCheck.text.contains("overall")) {
+                            dashboardsReady = true
+                            outputHandler.handleMessage("OpenSearch Dashboards is ready on ${host.public}")
+                        } else {
+                            Thread.sleep(10000) // Wait 10 seconds
+                            retryCount++
+                        }
+                    } catch (e: Exception) {
+                        Thread.sleep(10000) // Wait 10 seconds
+                        retryCount++
+                    }
+                }
+
+                if (!dashboardsReady) {
+                    outputHandler.handleMessage("Warning: OpenSearch Dashboards did not become ready on ${host.public}, skipping index pattern creation")
+                    return@withHosts
+                }
+
+                // Create index pattern in OpenSearch Dashboards
+                outputHandler.handleMessage("Creating SS4O index pattern in OpenSearch Dashboards on ${host.public}...")
+                val createIndexPatternCommand = """
+                    curl -X POST "http://127.0.0.1:5601/api/saved_objects/index-pattern/ss4o_metrics-*" \
+                    -H "Content-Type: application/json" \
+                    -H "osd-xsrf: true" \
+                    -d '{
+                        "attributes": {
+                            "title": "ss4o_metrics-*",
+                            "timeFieldName": "@timestamp"
+                        }
+                    }'
+                """.trimIndent()
+
+                val indexPatternResult = remoteOps.executeRemotely(host, createIndexPatternCommand)
+                if (indexPatternResult.text.contains("\"id\":\"ss4o_metrics-*\"") || indexPatternResult.text.contains("version_conflict_engine_exception")) {
+                    outputHandler.handleMessage("SS4O index pattern created successfully on ${host.public}")
+                } else {
+                    outputHandler.handleMessage("Info: Index pattern creation response on ${host.public}: ${indexPatternResult.text}")
+                }
+
+                // Restart Data Prepper to pick up the new template
+                outputHandler.handleMessage("Restarting Data Prepper to apply SS4O configuration on ${host.public}...")
+                remoteOps.executeRemotely(host, "cd /home/ubuntu && docker restart data-prepper")
+                
+                outputHandler.handleMessage("SS4O configuration completed on ${host.public}")
+
+            } catch (e: Exception) {
+                outputHandler.handleMessage("Error setting up SS4O on ${host.public}: ${e.message}")
+            }
+        }
+
+        outputHandler.handleMessage("SS4O configuration setup completed on all control nodes")
+        outputHandler.handleMessage("Metrics should now be visible in OpenSearch Dashboards -> Observability -> Metrics")
     }
 
     private fun startOtelOnCassandraNodes() {

@@ -15,10 +15,22 @@ otel-metrics-pipeline:
       batch_size: 160
   processor:
     - otel_metrics:
+        calculate_histogram_buckets: true
+        calculate_exponential_histogram_buckets: true
+        exponential_histogram_max_allowed_scale: 10
+        flatten_attributes: false
+    - rename_keys:
+        entries:
+          - from_key: "time"
+            to_key: "@timestamp"
+          - from_key: "observedTime" 
+            to_key: "observedTimestamp"
   sink:
     - opensearch:
-        hosts: ["http://localhost:9200"]
-        index: metrics-otel
+        hosts: ["http://127.0.0.1:9200"]
+        index: ss4o_metrics-otel-%{yyyy.MM.dd}
+        index_type: custom
+        template_file: "/usr/share/data-prepper/config/ss4o_metrics.json"
         insecure: true
         bulk_size: 100
 
@@ -53,7 +65,7 @@ otel-metrics-pipeline:
 #     - otel_traces_raw:
 #   sink:
 #     - opensearch:
-#         hosts: ["http://localhost:9200"]
+#         hosts: ["http://127.0.0.1:9200"]
 #         index_type: trace-analytics-raw
 #         insecure: true
 
@@ -71,7 +83,7 @@ otel-metrics-pipeline:
 #     - service_map_stateful:
 #   sink:
 #     - opensearch:
-#         hosts: ["http://localhost:9200"]
+#         hosts: ["http://127.0.0.1:9200"]
 #         index_type: trace-analytics-service-map
 #         insecure: true
 
@@ -89,7 +101,7 @@ otel-metrics-pipeline:
 #       batch_size: 160
 #   sink:
 #     - opensearch:
-#         hosts: ["http://localhost:9200"]
+#         hosts: ["http://127.0.0.1:9200"]
 #         index: logs-otel-%{yyyy.MM.dd}
 #         insecure: true
 #         bulk_size: 100

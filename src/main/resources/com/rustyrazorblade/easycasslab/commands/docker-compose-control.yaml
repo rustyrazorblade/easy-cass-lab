@@ -41,6 +41,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:latest
@@ -53,19 +54,22 @@ services:
     restart: unless-stopped
     network_mode: host
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
 
   data-prepper:
     image: opensearchproject/data-prepper:latest
     container_name: data-prepper
     volumes:
       - ./data-prepper-pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+      - ./ss4o_metrics.json:/usr/share/data-prepper/config/ss4o_metrics.json:ro
     environment:
       - JAVA_OPTS=-Xms512m -Xmx512m
     restart: unless-stopped
     network_mode: host
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4900/health"]
       interval: 30s
@@ -84,8 +88,10 @@ services:
     restart: unless-stopped
     network_mode: host
     depends_on:
-      - opensearch
-      - data-prepper
+      opensearch:
+        condition: service_healthy
+      data-prepper:
+        condition: service_healthy
 
 volumes:
   opensearch_data:
