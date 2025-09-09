@@ -72,6 +72,22 @@ data class User(
         }
 
         /**
+         * Shows the welcome message if it hasn't been shown yet
+         */
+        private fun showWelcomeMessageOnce(
+            outputHandler: OutputHandler,
+            hasShownWelcome: Boolean
+        ): Boolean {
+            return if (!hasShownWelcome) {
+                outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
+                outputHandler.handleMessage("We just need to know a few things before we get started.")
+                true
+            } else {
+                hasShownWelcome
+            }
+        }
+
+        /**
          * Asks a bunch of questions and generates the user file
          * Now supports both initial creation and updating existing files with missing fields
          */
@@ -80,9 +96,6 @@ data class User(
             location: File,
             outputHandler: OutputHandler,
         ) {
-            outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
-            outputHandler.handleMessage("We just need to know a few things before we get started.")
-
             // Load existing config values if file exists
             val existingConfig = loadExistingConfig(context, location)
             val configFields = getConfigFields()
@@ -95,6 +108,7 @@ data class User(
             var region: Region? = null
             var awsAccessKey = ""
             var awsSecret = ""
+            var hasShownWelcome = false
             
             for (field in configFields) {
                 val configField = field.annotations.find { it is ConfigField } as ConfigField
@@ -116,6 +130,9 @@ data class User(
                     continue
                 }
                 
+                // Show welcome message only when we're about to prompt for the first field
+                hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
+                
                 // Prompt for missing field
                 val value = Utils.prompt(configField.prompt, configField.default, configField.secret)
                 fieldValues[fieldName] = value
@@ -131,6 +148,9 @@ data class User(
             // Generate AWS keys only when both keyName and sshKeyPath are missing
             // This preserves the original behavior where keys are auto-generated
             if (!existingConfig.containsKey("keyName") || !existingConfig.containsKey("sshKeyPath")) {
+                // Show welcome message if we haven't shown it yet and we're about to generate keys
+                hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
+                
                 outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
                 
                 val ec2 = EC2(awsAccessKey, awsSecret, region!!)
@@ -165,6 +185,9 @@ data class User(
 
             // Handle AxonOps prompting if not already configured
             if (!existingConfig.containsKey("axonOpsOrg") || !existingConfig.containsKey("axonOpsKey")) {
+                // Show welcome message if we haven't shown it yet and we're about to prompt for AxonOps
+                hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
+                
                 val axonOpsChoice = Utils.prompt("Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]", default = "N")
                 val useAxonOps = axonOpsChoice.equals("y", true)
                 
