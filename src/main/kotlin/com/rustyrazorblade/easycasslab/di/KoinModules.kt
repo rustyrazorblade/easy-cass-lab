@@ -1,24 +1,27 @@
 package com.rustyrazorblade.easycasslab.di
 
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.providers.docker.dockerModule
 import com.rustyrazorblade.easycasslab.providers.ssh.sshModule
 import org.koin.core.module.Module
 
 /**
- * Central registry of all Koin modules for the application.
- * Add new modules here as they are created.
+ * Central registry of all Koin modules for the application. Add new modules here as they are
+ * created.
  */
 object KoinModules {
     /**
      * Get all application modules for Koin initialization.
+     *
+     * @param context The Context instance to use for modules that require it
      */
-    fun getAllModules(): List<Module> =
+    fun getAllModules(context: Context): List<Module> =
         listOf(
             outputModule,
             dockerModule,
             sshModule,
             awsModule,
-            terraformModule,
+            terraformModule(context),
             // Add more modules here as the refactoring progresses
             // e.g., configurationModule
         )

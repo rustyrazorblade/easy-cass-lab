@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
@@ -15,21 +16,22 @@ import kotlin.system.exitProcess
 
 @McpCommand
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
-class UseCassandra : BaseCommand() {
+class UseCassandra(context: Context) : BaseCommand(context) {
     @Parameter(description = "Cassandra version", required = true)
     var version: String = ""
 
-    @ParametersDelegate
-    var hosts = Hosts()
+    @ParametersDelegate var hosts = Hosts()
 
-    @JsonIgnore
-    val log = KotlinLogging.logger {}
+    @JsonIgnore val log = KotlinLogging.logger {}
 
-    @Parameter(names = ["--java", "-j"], description = "Java Version Override, 8, 11 or 17 accepted")
+    @Parameter(
+        names = ["--java", "-j"],
+        description = "Java Version Override, 8, 11 or 17 accepted",
+    )
     var javaVersion = ""
 
-//    @Parameter(names = ["--bti"], description = "Enable BTI Storage")
-//    var bti = false
+    //    @Parameter(names = ["--bti"], description = "Enable BTI Storage")
+    //    var bti = false
 
     override fun execute() {
         check(version.isNotBlank())
@@ -45,7 +47,9 @@ class UseCassandra : BaseCommand() {
         }
 
         val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
-        outputHandler.handleMessage("Using version $version on ${cassandraHosts.size} hosts, filter: $hosts")
+        outputHandler.handleMessage(
+            "Using version $version on ${cassandraHosts.size} hosts, filter: $hosts",
+        )
 
         tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
             if (javaVersion.isNotBlank()) {
@@ -57,10 +61,10 @@ class UseCassandra : BaseCommand() {
 
         state.save()
 
-        DownloadConfig().execute()
+        DownloadConfig(context).execute()
 
         // make sure we only apply to the filtered hosts
-        val uc = UpdateConfig()
+        val uc = UpdateConfig(context)
         uc.hosts = hosts
         uc.execute()
 

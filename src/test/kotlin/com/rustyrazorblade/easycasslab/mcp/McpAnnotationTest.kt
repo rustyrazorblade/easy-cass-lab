@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
 class TestMcpCommand : ICommand {
     @Parameter(names = ["--test-param"], description = "Test parameter")
     var testParam: String = ""
-    
+
     override fun execute() {
         if (testParam.isNotEmpty()) {
             println("Test MCP command executed with param: $testParam")
@@ -29,17 +29,19 @@ class TestMcpCommand : ICommand {
 }
 
 // Test registry that includes test commands
-class TestMcpToolRegistry : McpToolRegistry() {
+class TestMcpToolRegistry(context: com.rustyrazorblade.easycasslab.Context) :
+    McpToolRegistry(context) {
     override fun getTools(): List<ToolInfo> {
         // Create a test command and add it to the list
         val testCommand = TestMcpCommand()
-        val testCommandInfo = ToolInfo(
-            name = "test-mcp-command",
-            description = "A test command with MCP annotation",
-            inputSchema = generateSchema(testCommand),
-            command = Command("test-mcp-command", testCommand)
-        )
-        
+        val testCommandInfo =
+            ToolInfo(
+                name = "test-mcp-command",
+                description = "A test command with MCP annotation",
+                inputSchema = generateSchema(testCommand),
+                command = Command("test-mcp-command", testCommand),
+            )
+
         // Get the real tools and add our test command
         val realTools = super.getTools()
         return realTools + testCommandInfo
@@ -51,16 +53,16 @@ class McpAnnotationTest : BaseKoinTest() {
 
     @BeforeEach
     fun setup() {
-        registry = TestMcpToolRegistry()
+        registry = TestMcpToolRegistry(context)
     }
 
     @Test
     fun `should detect and register commands with MCP annotation`() {
         val tools = registry.getTools()
-        
+
         // Find our test command
         val testTool = tools.find { it.name == "test-mcp-command" }
-        
+
         assertThat(testTool).isNotNull
         assertThat(testTool?.description).isEqualTo("A test command with MCP annotation")
     }
@@ -68,19 +70,17 @@ class McpAnnotationTest : BaseKoinTest() {
     @Test
     fun `should execute MCP annotated command`() {
         val result = registry.executeTool("test-mcp-command", null)
-        
+
         assertThat(result.isError).isFalse
         assertThat(result.content).contains("Tool executed successfully")
     }
 
     @Test
     fun `should handle parameters for MCP annotated commands`() {
-        val arguments = buildJsonObject {
-            put("testParam", "hello")
-        }
-        
+        val arguments = buildJsonObject { put("testParam", "hello") }
+
         val result = registry.executeTool("test-mcp-command", arguments)
-        
+
         assertThat(result.isError).isFalse
         assertThat(result.content).contains("Tool executed successfully")
     }

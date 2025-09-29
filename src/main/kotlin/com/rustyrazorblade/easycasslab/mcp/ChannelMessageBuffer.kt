@@ -78,7 +78,7 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
 
     /**
      * Cleans a message by removing ANSI escape sequences and newlines.
-     * 
+     *
      * @param message The message to clean
      * @return The cleaned message
      */
@@ -86,10 +86,10 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
         // Remove ANSI escape sequences (e.g., color codes)
         // Pattern matches ESC followed by [ and any number of digits, semicolons, and letters
         val noAnsi = message.replace(Regex("\u001b\\[[0-9;]*[a-zA-Z]"), "")
-        
+
         // Remove newlines and carriage returns, replace with space to preserve word boundaries
         val noNewlines = noAnsi.replace(Regex("[\r\n]+"), " ")
-        
+
         // Trim and collapse multiple spaces into single space
         return noNewlines.trim().replace(Regex("\\s+"), " ")
     }

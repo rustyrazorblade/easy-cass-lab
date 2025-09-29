@@ -14,7 +14,7 @@ enum class Arch(val type: String) {
 
 class BuildArgs : KoinComponent {
     private val userConfig: User by inject()
-    
+
     @Parameter(description = "Release flag", names = ["--release"])
     var release: Boolean = false
 

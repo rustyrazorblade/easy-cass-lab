@@ -7,15 +7,11 @@ import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.containers.Packer
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 @RequireDocker
 @Parameters(commandDescription = "Build the base image.")
-class BuildBaseImage : ICommand, KoinComponent {
-    private val context: Context by inject()
-    
-    @ParametersDelegate
-    var buildArgs = BuildArgs()
+class BuildBaseImage(val context: Context) : ICommand, KoinComponent {
+    @ParametersDelegate var buildArgs = BuildArgs()
 
     override fun execute() {
         val packer = Packer(context, "base")

@@ -12,8 +12,7 @@ import org.koin.core.component.inject
 import java.io.FileNotFoundException
 
 @McpCommand
-class Hosts : ICommand, KoinComponent {
-    private val context: Context by inject()
+class Hosts(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }

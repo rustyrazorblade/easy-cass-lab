@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -12,13 +13,14 @@ import java.io.FileWriter
 import java.nio.file.Paths
 import kotlin.io.path.exists
 
-@Parameters(commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory")
-class UploadAuthorizedKeys : BaseCommand() {
+@Parameters(
+    commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory",
+)
+class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 
-    @ParametersDelegate
-    var hosts = Hosts()
+    @ParametersDelegate var hosts = Hosts()
 
     val authorizedKeysExtra = "~/.ssh/authorized_keys_extra"
     val authorizedKeys = "~/.ssh/authorized_keys"
@@ -58,6 +60,10 @@ class UploadAuthorizedKeys : BaseCommand() {
             remoteOps.upload(host, authorizedKeys.toPath(), authorizedKeysExtra)
 
             // Append to authorized_keys
-            remoteOps.executeRemotely(host, "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys").text
+            remoteOps.executeRemotely(
+                host,
+                "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys",
+            )
+                .text
         }
 }

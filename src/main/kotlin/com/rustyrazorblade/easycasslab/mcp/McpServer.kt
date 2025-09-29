@@ -36,15 +36,12 @@ import kotlin.getValue
 data class StatusResponse(
     val status: String,
     val command: String,
-    @SerialName("runtime_seconds")
-    val runtimeSeconds: Long,
+    @SerialName("runtime_seconds") val runtimeSeconds: Long,
     val messages: List<String>,
     val timestamp: String,
 )
 
-/**
- * MCP server implementation using the official SDK.
- */
+/** MCP server implementation using the official SDK. */
 class McpServer(private val context: Context) : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -52,7 +49,7 @@ class McpServer(private val context: Context) : KoinComponent {
 
     private val outputHandler: OutputHandler by inject()
 
-    private val toolRegistry = McpToolRegistry()
+    private val toolRegistry = McpToolRegistry(context)
     private val executionSemaphore = Semaphore(1) // Only allow one tool execution at a time
 
     // Status tracking components
@@ -64,8 +61,9 @@ class McpServer(private val context: Context) : KoinComponent {
     private var commandStartTime: Long? = null
 
     /**
-     * Initialize streaming functionality by adding FilteringChannelOutputHandler to the CompositeOutputHandler.
-     * This method is idempotent - it will not add duplicate handlers if called multiple times.
+     * Initialize streaming functionality by adding FilteringChannelOutputHandler to the
+     * CompositeOutputHandler. This method is idempotent - it will not add duplicate handlers if
+     * called multiple times.
      */
     fun initializeStreaming() {
         if (streamingInitialized) {
@@ -96,7 +94,8 @@ class McpServer(private val context: Context) : KoinComponent {
 
             val runtimeSeconds =
                 if (commandStartTime != null) {
-                    (System.currentTimeMillis() - commandStartTime!!) / Constants.Time.MILLIS_PER_SECOND
+                    (System.currentTimeMillis() - commandStartTime!!) /
+                        Constants.Time.MILLIS_PER_SECOND
                 } else {
                     0
                 }
@@ -126,7 +125,8 @@ class McpServer(private val context: Context) : KoinComponent {
         }
 
     /**
-     * Creates a tool handler for background execution with proper error handling and status tracking.
+     * Creates a tool handler for background execution with proper error handling and status
+     * tracking.
      */
     private fun createToolHandler(): (CallToolRequest) -> CallToolResult =
         { request ->
@@ -198,7 +198,9 @@ class McpServer(private val context: Context) : KoinComponent {
         log.info { "Tools to register: ${tools.map { it.name }}" }
 
         tools.forEach { toolInfo ->
-            log.info { "Registering tool: ${toolInfo.name} with description: ${toolInfo.description}" }
+            log.info {
+                "Registering tool: ${toolInfo.name} with description: ${toolInfo.description}"
+            }
             server.addTool(
                 name = toolInfo.name,
                 description = toolInfo.description,
@@ -208,9 +210,7 @@ class McpServer(private val context: Context) : KoinComponent {
         }
     }
 
-    /**
-     * Creates and adds the provision prompt to the server.
-     */
+    /** Creates and adds the provision prompt to the server. */
     private fun createProvisionPrompt(server: Server) {
         log.info { "Registering provision prompt" }
         server.addPrompt(
@@ -222,29 +222,32 @@ class McpServer(private val context: Context) : KoinComponent {
                 messages =
                     listOf(
                         PromptMessage(
-                            role = Role.entries.first { it.toString().lowercase() == "user" },
+                            role =
+                                Role.entries.first {
+                                    it.toString().lowercase() == "user"
+                                },
                             content =
                                 TextContent(
                                     text =
                                         """
                                         Cluster Provisioning Guide, follow these steps:
-                                        
+
                                         1. Initialize cluster: call 'init' with start: false
-                                        2. Provision infrastructure: call 'up' 
+                                        2. Provision infrastructure: call 'up'
                                         3. Set Cassandra version: call 'use' with your desired version
                                         4. Check for configuration updates: review if any config changes are needed
                                         5. Update configuration: if config changes are required, update cassandra.patch.yaml and then call 'update-config'
                                         6. Start services: call 'start'
-                                        
+
                                         IMPORTANT: Commands run asynchronously in the background to avoid timeouts.
-                                        
+
                                         - Each command returns immediately with a "started in background" message
                                         - Use 'get_status' to monitor progress and see accumulated log messages
                                         - Call 'get_status' once a second until status shows 'idle' before proceeding
                                         - Long-running commands (especially 'up' and 'start') may take several minutes
-                                        
+
                                         You can now run load tests and perform cluster analysis.
-                                        
+
                                         When done, call down with autoApprove: true to shut the cluster down.
                                         """.trimIndent(),
                                 ),
@@ -281,7 +284,8 @@ class McpServer(private val context: Context) : KoinComponent {
                                         ServerCapabilities.Prompts(
                                             listChanged = true,
                                         ),
-                                    logging = null, // Explicitly disable logging capability
+                                    logging = null, // Explicitly disable
+                                    // logging capability
                                 ),
                         ),
                 )
@@ -290,7 +294,8 @@ class McpServer(private val context: Context) : KoinComponent {
             log.info { "Registering get_status tool" }
             server.addTool(
                 name = "get_status",
-                description = "Get the status of background tool execution and accumulated messages",
+                description =
+                    "Get the status of background tool execution and accumulated messages",
                 inputSchema = Tool.Input(buildJsonObject { /* no parameters needed */ }),
                 handler = createStatusHandler(),
             )
@@ -304,7 +309,7 @@ class McpServer(private val context: Context) : KoinComponent {
             outputHandler.handleMessage(
                 """
                 Starting MCP server.  You can add it to claude code by doing the following:
-                
+
                 claude mcp add --transport sse easy-cass-lab http://127.0.0.1:$port/sse
                 """.trimIndent(),
             )
@@ -313,11 +318,8 @@ class McpServer(private val context: Context) : KoinComponent {
 
             // Create a KTor application here
             // register the SSE plugin
-            embeddedServer(Netty, host = "0.0.0.0", port = port) {
-                mcp {
-                    server
-                }
-            }.start(wait = true)
+            embeddedServer(Netty, host = "0.0.0.0", port = port) { mcp { server } }
+                .start(wait = true)
 
             log.info { "MCP server stopped" }
         } catch (e: IllegalStateException) {

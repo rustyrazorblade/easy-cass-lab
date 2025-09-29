@@ -16,7 +16,7 @@ class McpServerSimpleTest : BaseKoinTest() {
 
     @BeforeEach
     fun setup() {
-        registry = McpToolRegistry()
+        registry = McpToolRegistry(context)
     }
 
     @Test
@@ -30,7 +30,8 @@ class McpServerSimpleTest : BaseKoinTest() {
             McpToolRegistry::class.java.getDeclaredMethod(
                 "createToolInfo",
                 Command::class.java,
-            ).apply { isAccessible = true }
+            )
+                .apply { isAccessible = true }
 
         val toolInfo = createToolInfoMethod.invoke(registry, command) as McpToolRegistry.ToolInfo
 

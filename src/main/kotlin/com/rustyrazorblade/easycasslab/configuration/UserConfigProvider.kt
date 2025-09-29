@@ -14,7 +14,7 @@ import java.io.File
  */
 class UserConfigProvider(
     private val profileDir: File,
-    private val outputHandler: OutputHandler
+    private val outputHandler: OutputHandler,
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -31,7 +31,7 @@ class UserConfigProvider(
     /**
      * Gets the User configuration, loading it from file if not already cached.
      * If the settings.yaml file doesn't exist, it will trigger interactive setup.
-     * 
+     *
      * @return The User configuration
      */
     fun getUserConfig(): User {

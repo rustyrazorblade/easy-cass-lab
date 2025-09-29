@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
+import com.rustyrazorblade.easycasslab.Context
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -20,16 +21,22 @@ data class McpConfig(
 )
 
 /**
- * Command to output MCP server configuration for Claude Desktop.
- * This command generates the configuration needed to register easy-cass-lab
- * as an MCP server in Claude Desktop's configuration file.
+ * Command to output MCP server configuration for Claude Desktop. This command generates the
+ * configuration needed to register easy-cass-lab as an MCP server in Claude Desktop's configuration
+ * file.
  */
 @Parameters(commandDescription = "Generate MCP server configuration for Claude Desktop")
-class McpConfigCommand : BaseCommand() {
-    @Parameter(names = ["--json"], description = "Output JSON configuration instead of instructions")
+class McpConfigCommand(context: Context) : BaseCommand(context) {
+    @Parameter(
+        names = ["--json"],
+        description = "Output JSON configuration instead of instructions",
+    )
     var json: Boolean = false
 
-    @Parameter(names = ["--path"], description = "Path to easy-cass-lab installation (auto-detected if not specified)")
+    @Parameter(
+        names = ["--path"],
+        description = "Path to easy-cass-lab installation (auto-detected if not specified)",
+    )
     var installPath: String? = null
 
     override fun execute() {
@@ -94,11 +101,13 @@ class McpConfigCommand : BaseCommand() {
                     mapOf(
                         "easy-cass-lab" to
                             McpServerConfig(
-                                command = "$easyCassLabPath/bin/easy-cass-lab",
+                                command =
+                                    "$easyCassLabPath/bin/easy-cass-lab",
                                 args = listOf("mcp"),
                                 env =
                                     mapOf(
-                                        "PATH" to "\$PATH:$easyCassLabPath/bin",
+                                        "PATH" to
+                                            "\$PATH:$easyCassLabPath/bin",
                                     ),
                             ),
                     ),
@@ -118,14 +127,14 @@ class McpConfigCommand : BaseCommand() {
             ========================================
             MCP Server Configuration for Claude Desktop
             ========================================
-            
+
             To register easy-cass-lab as an MCP server in Claude Desktop:
-            
+
             1. Open Claude Desktop settings
             2. Navigate to the Developer section
             3. Edit the configuration file (claude_desktop_config.json)
             4. Add the following to the "mcpServers" section:
-            
+
             {
               "mcpServers": {
                 "easy-cass-lab": {
@@ -137,22 +146,22 @@ class McpConfigCommand : BaseCommand() {
                 }
               }
             }
-            
+
             5. Restart Claude Desktop
-            
+
             After configuration, easy-cass-lab commands will be available as MCP tools
             in Claude Desktop, allowing Claude to directly manage your Cassandra clusters.
-            
+
             Available Commands:
             - up: Start Cassandra cluster instances
             - down: Shut down cluster instances
             - hosts: List cluster hosts
             - start/stop/restart: Control Cassandra services
             - And many more...
-            
+
             Note: Make sure easy-cass-lab is properly installed and the path is correct.
             Current detected path: $easyCassLabPath
-            
+
             To output just the JSON configuration, run:
             easy-cass-lab mcp-config --json
             """.trimIndent(),

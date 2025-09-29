@@ -14,12 +14,14 @@ private val log = KotlinLogging.logger {}
 fun main(arguments: Array<String>) {
     val easycasslabUserDirectory = File(System.getProperty("user.home"), "/.easy-cass-lab/")
 
-    val context = Context(easycasslabUserDirectory)
+    // Create factory and get default context
+    val contextFactory = ContextFactory(easycasslabUserDirectory)
+    val defaultContext = contextFactory.getDefault()
 
     // Initialize Koin dependency injection with context-specific configuration
     startKoin {
         modules(
-            KoinModules.getAllModules() + contextModule(context),
+            KoinModules.getAllModules(defaultContext) + contextModule(contextFactory),
         )
     }
     val parser = CommandLineParser()
@@ -37,14 +39,10 @@ fun main(arguments: Array<String>) {
         }
     } catch (e: IllegalArgumentException) {
         log.error(e) { "Invalid argument provided" }
-        with(TermColors()) {
-            println(red("Invalid argument: ${e.message}"))
-        }
+        with(TermColors()) { println(red("Invalid argument: ${e.message}")) }
     } catch (e: IllegalStateException) {
         log.error(e) { "Invalid state encountered" }
-        with(TermColors()) {
-            println(red("Invalid state: ${e.message}"))
-        }
+        with(TermColors()) { println(red("Invalid state: ${e.message}")) }
     } catch (e: RuntimeException) {
         log.error(e) { "A runtime exception has occurred" }
         with(TermColors()) {

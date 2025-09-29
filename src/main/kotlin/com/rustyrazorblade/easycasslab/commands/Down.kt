@@ -13,9 +13,7 @@ import org.koin.core.component.inject
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Shut down a cluster")
-class Down : ICommand, KoinComponent {
-    private val context: Context by inject()
-    
+class Down(val context: Context) : ICommand, KoinComponent {
     @Parameter(description = "Auto approve changes", names = ["--auto-approve", "-a", "--yes"])
     var autoApprove = false
 

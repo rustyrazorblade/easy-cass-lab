@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -11,17 +12,16 @@ import org.koin.core.component.inject
 
 @RequireSSHKey
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
-class ConfigureAxonOps : BaseCommand() {
+class ConfigureAxonOps(context: Context) : BaseCommand(context) {
     private val userConfig: User by inject()
-    
+
     @Parameter(description = "AxonOps Organization Name", names = ["--org"])
     var org = ""
 
     @Parameter(description = "AxonOps API Key", names = ["--key"])
     var key = ""
 
-    @ParametersDelegate
-    var hosts = Hosts()
+    @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {
         val axonOrg = if (org.isNotBlank()) org else userConfig.axonOpsOrg
@@ -34,7 +34,12 @@ class ConfigureAxonOps : BaseCommand() {
         tfstate.withHosts(ServerType.Cassandra, hosts) {
             outputHandler.handleMessage("Configure axonops on $it")
 
-            remoteOps.executeRemotely(it, "/usr/local/bin/setup-axonops $axonOrg $axonKey", secret = true).text
+            remoteOps.executeRemotely(
+                it,
+                "/usr/local/bin/setup-axonops $axonOrg $axonKey",
+                secret = true,
+            )
+                .text
         }
     }
 }

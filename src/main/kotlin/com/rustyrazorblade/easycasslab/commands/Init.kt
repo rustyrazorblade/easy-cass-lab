@@ -34,8 +34,7 @@ import java.time.LocalDate
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
-class Init : ICommand, KoinComponent {
-    private val context: Context by inject()
+class Init(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val userConfig: User by inject()
 
@@ -43,8 +42,7 @@ class Init : ICommand, KoinComponent {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
         private const val DEFAULT_EBS_SIZE_GB = 256
 
-        @JsonIgnore
-        val log = KotlinLogging.logger {}
+        @JsonIgnore val log = KotlinLogging.logger {}
 
         fun expand(
             region: String,
@@ -69,7 +67,8 @@ class Init : ICommand, KoinComponent {
 
     // update to use the default stress instance type for the arch
     @Parameter(
-        description = "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.",
+        description =
+            "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.",
         names = ["--stress-instance", "-si", "--si"],
     )
     var stressInstanceType = System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
@@ -112,7 +111,8 @@ class Init : ICommand, KoinComponent {
     var ebsThroughput = 0
 
     @Parameter(
-        description = "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
+        description =
+            "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
         names = ["--ebs.optimized"],
     )
     var ebsOptimized = false
@@ -123,13 +123,15 @@ class Init : ICommand, KoinComponent {
     @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
     var arch = Arch.amd64
 
-    @ParametersDelegate
-    var spark = SparkInitParams()
+    @ParametersDelegate var spark = SparkInitParams()
 
     @DynamicParameter(names = ["--tag."], description = "Tag instances")
     var tags: Map<String, String> = mutableMapOf()
 
-    @Parameter(description = "Clean existing configuration before initializing", names = ["--clean"])
+    @Parameter(
+        description = "Clean existing configuration before initializing",
+        names = ["--clean"],
+    )
     var clean = false
 
     override fun execute() {
@@ -154,7 +156,7 @@ class Init : ICommand, KoinComponent {
 
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
-            Up().execute()
+            Up(context).execute()
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -212,7 +214,7 @@ class Init : ICommand, KoinComponent {
         // Only run Clean if --clean flag is provided
         if (clean) {
             outputHandler.handleMessage("Cleaning existing configuration...")
-            Clean().execute()
+            Clean(context).execute()
         }
 
         // Create InitConfig with all the parameters from this Init command
@@ -316,9 +318,7 @@ class Init : ICommand, KoinComponent {
     ) {
         this::class.java.getResourceAsStream(resourceName).use { stream ->
             requireNotNull(stream) { "Resource $resourceName not found" }
-            File(targetFileName).outputStream().use { output ->
-                stream.copyTo(output)
-            }
+            File(targetFileName).outputStream().use { output -> stream.copyTo(output) }
         }
     }
 

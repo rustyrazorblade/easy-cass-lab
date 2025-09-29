@@ -4,6 +4,7 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
@@ -23,7 +24,7 @@ import kotlin.system.exitProcess
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Starts instances")
-class Up : BaseCommand() {
+class Up(context: Context) : BaseCommand(context) {
     private val aws: AWS by inject()
     private val userConfig: User by inject()
 
@@ -36,8 +37,7 @@ class Up : BaseCommand() {
     @Parameter(names = ["--no-setup", "-n"])
     var noSetup = false
 
-    @ParametersDelegate
-    var hosts = Hosts()
+    @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {
         // we have to list both the variable files explicitly here
@@ -50,7 +50,7 @@ class Up : BaseCommand() {
         aws.createLabEnvironment()
         provisionInfrastructure()
         writeConfigurationFiles()
-        WriteConfig().execute()
+        WriteConfig(context).execute()
         waitForSshAndDownloadVersions()
         uploadDockerComposeToControlNodes()
         uploadOtelConfigsToCassandraNodes()
@@ -60,40 +60,43 @@ class Up : BaseCommand() {
     private fun provisionInfrastructure() {
         val terraform = Terraform(context)
         with(TermColors()) {
-            terraform.up().onFailure {
-                log.error(it) { "Terraform provisioning failed" }
-                outputHandler.handleError(it.message ?: "Unknown error")
-                outputHandler.handleMessage(
-                    "${red(
-                        "Some resources may have been unsuccessfully provisioned.",
-                    )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
-                )
-                exitProcess(1)
-            }.onSuccess {
-                outputHandler.handleMessage(
-                    """Instances have been provisioned.
-                
+            terraform
+                .up()
+                .onFailure {
+                    log.error(it) { "Terraform provisioning failed" }
+                    outputHandler.handleError(it.message ?: "Unknown error")
+                    outputHandler.handleMessage(
+                        "${red(
+                            "Some resources may have been unsuccessfully provisioned.",
+                        )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
+                    )
+                    exitProcess(1)
+                }
+                .onSuccess {
+                    outputHandler.handleMessage(
+                        """Instances have been provisioned.
+
                 Use ${green("easy-cass-lab list")} to see all available versions
-                
-                Then use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.  
-                
-                    """.trimMargin(),
-                )
-                outputHandler.handleMessage("Writing ssh config file to sshConfig.")
-                outputHandler.handleMessage(
-                    """The following alias will allow you to easily work with the cluster:
+
+                Then use ${green("easy-cass-lab use <version>")} to use a specific version of Cassandra.
+
+                        """.trimMargin(),
+                    )
+                    outputHandler.handleMessage("Writing ssh config file to sshConfig.")
+                    outputHandler.handleMessage(
+                        """The following alias will allow you to easily work with the cluster:
                 |
                 |${green("source env.sh")}
                 |
                 |
-                    """.trimMargin(),
-                )
-                outputHandler.handleMessage(
-                    "You can edit ${green(
-                        "cassandra.patch.yaml",
-                    )} with any changes you'd like to see merge in into the remote cassandra.yaml file.",
-                )
-            }
+                        """.trimMargin(),
+                    )
+                    outputHandler.handleMessage(
+                        "You can edit ${green(
+                            "cassandra.patch.yaml",
+                        )} with any changes you'd like to see merge in into the remote cassandra.yaml file.",
+                    )
+                }
         }
     }
 
@@ -120,7 +123,9 @@ class Up : BaseCommand() {
                     )
                 val configFile = File("axonops-workbench.json")
                 AxonOpsWorkbenchConfig.writeToFile(config, configFile)
-                outputHandler.handleMessage("AxonOps Workbench configuration written to axonops-workbench.json")
+                outputHandler.handleMessage(
+                    "AxonOps Workbench configuration written to axonops-workbench.json",
+                )
             } else {
                 log.warn { "No Cassandra hosts found, skipping AxonOps Workbench configuration" }
             }
@@ -159,7 +164,11 @@ class Up : BaseCommand() {
                     remoteOps.executeRemotely(it, "echo 1").text
                     // download /etc/cassandra_versions.yaml if we don't have it yet
                     if (!File("cassandra_versions.yaml").exists()) {
-                        remoteOps.download(it, "/etc/cassandra_versions.yaml", Path.of("cassandra_versions.yaml"))
+                        remoteOps.download(
+                            it,
+                            "/etc/cassandra_versions.yaml",
+                            Path.of("cassandra_versions.yaml"),
+                        )
                     }
                 }
                 done = true
@@ -188,28 +197,46 @@ class Up : BaseCommand() {
 
         // Read the docker-compose.yaml file and replace cassandra0 with the actual IP
         val dockerComposeContent = dockerComposeFile.readText()
-        val updatedContent = dockerComposeContent.replace("CASSANDRA_HOST=cassandra0", "CASSANDRA_HOST=$cassandraHost")
+        val updatedContent =
+            dockerComposeContent.replace(
+                "CASSANDRA_HOST=cassandra0",
+                "CASSANDRA_HOST=$cassandraHost",
+            )
 
         // Write the updated content back to the file
         dockerComposeFile.writeText(updatedContent)
         outputHandler.handleMessage("Updated docker-compose.yaml with Cassandra IP: $cassandraHost")
 
         tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
-            outputHandler.handleMessage("Uploading configuration files to control node ${host.public}")
+            outputHandler.handleMessage(
+                "Uploading configuration files to control node ${host.public}",
+            )
 
             // Upload docker-compose.yaml to ubuntu user's home directory
             remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
 
             // Upload otel-collector-config.yaml if it exists
             if (otelConfigFile.exists()) {
-                outputHandler.handleMessage("Uploading otel-collector-config.yaml to control node ${host.public}")
-                remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
+                outputHandler.handleMessage(
+                    "Uploading otel-collector-config.yaml to control node ${host.public}",
+                )
+                remoteOps.upload(
+                    host,
+                    otelConfigFile.toPath(),
+                    "/home/ubuntu/otel-collector-config.yaml",
+                )
             }
 
             // Upload data-prepper-pipelines.yaml if it exists
             if (dataPrepperConfigFile.exists()) {
-                outputHandler.handleMessage("Uploading data-prepper-pipelines.yaml to control node ${host.public}")
-                remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
+                outputHandler.handleMessage(
+                    "Uploading data-prepper-pipelines.yaml to control node ${host.public}",
+                )
+                remoteOps.upload(
+                    host,
+                    dataPrepperConfigFile.toPath(),
+                    "/home/ubuntu/data-prepper-pipelines.yaml",
+                )
             }
         }
 
@@ -230,7 +257,9 @@ class Up : BaseCommand() {
         // Get the internal IP of the first control node for OTLP endpoint
         val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
         if (controlHost == null) {
-            outputHandler.handleMessage("No control nodes found, skipping OTel configuration for Cassandra nodes")
+            outputHandler.handleMessage(
+                "No control nodes found, skipping OTel configuration for Cassandra nodes",
+            )
             return
         }
 
@@ -238,7 +267,9 @@ class Up : BaseCommand() {
         outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
 
         tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
-            outputHandler.handleMessage("Configuring OTel for Cassandra node ${host.alias} (${host.public})")
+            outputHandler.handleMessage(
+                "Configuring OTel for Cassandra node ${host.alias} (${host.public})",
+            )
 
             // Create .env file for docker-compose with environment variables
             val envContent =
@@ -253,8 +284,16 @@ class Up : BaseCommand() {
                 tempEnvFile.writeText(envContent)
 
                 // Upload configuration files to Cassandra node
-                remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-cassandra-config.yaml")
-                remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
+                remoteOps.upload(
+                    host,
+                    otelConfigFile.toPath(),
+                    "/home/ubuntu/otel-cassandra-config.yaml",
+                )
+                remoteOps.upload(
+                    host,
+                    dockerComposeFile.toPath(),
+                    "/home/ubuntu/docker-compose.yaml",
+                )
                 remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
 
                 outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
@@ -276,11 +315,11 @@ class Up : BaseCommand() {
                 )
             }
         } else {
-            SetupInstance().execute()
+            SetupInstance(context).execute()
 
             if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
-                ConfigureAxonOps().execute()
+                ConfigureAxonOps(context).execute()
             }
         }
     }

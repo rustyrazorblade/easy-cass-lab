@@ -24,13 +24,12 @@ class McpEnumTest {
 
     @BeforeEach
     fun setup() {
-        // Initialize Koin for dependency injection
-        startKoin {
-            modules(KoinModules.getAllModules())
-        }
-
         context = mock()
-        registry = McpToolRegistry()
+
+        // Initialize Koin for dependency injection
+        startKoin { modules(KoinModules.getAllModules(context)) }
+
+        registry = McpToolRegistry(context)
     }
 
     @AfterEach
@@ -49,13 +48,17 @@ class McpEnumTest {
             McpToolRegistry::class.java.getDeclaredMethod(
                 "createToolInfo",
                 Command::class.java,
-            ).apply { isAccessible = true }
+            )
+                .apply { isAccessible = true }
 
         val toolInfo = createToolInfoMethod.invoke(registry, command) as McpToolRegistry.ToolInfo
 
         // Print the schema to see what's being generated
         println("Generated schema for enum command:")
-        println(Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), toolInfo.inputSchema))
+        println(
+            Json { prettyPrint = true }
+                .encodeToString(JsonObject.serializer(), toolInfo.inputSchema),
+        )
 
         // Just verify the schema is not null and has some content
         val schema = toolInfo.inputSchema
@@ -81,7 +84,8 @@ class McpEnumTest {
                 "mapArgumentsToCommand",
                 ICommand::class.java,
                 JsonObject::class.java,
-            ).apply { isAccessible = true }
+            )
+                .apply { isAccessible = true }
 
         mapArgumentsMethod.invoke(registry, testCommand, arguments)
 

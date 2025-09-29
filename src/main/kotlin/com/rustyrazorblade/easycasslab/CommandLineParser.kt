@@ -5,7 +5,6 @@ import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
 import com.rustyrazorblade.easycasslab.commands.BuildImage
@@ -31,6 +30,7 @@ import com.rustyrazorblade.easycasslab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easycasslab.commands.UseCassandra
 import com.rustyrazorblade.easycasslab.commands.Version
 import com.rustyrazorblade.easycasslab.commands.WriteConfig
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -47,12 +47,12 @@ class MainArgs {
 }
 
 class CommandLineParser : KoinComponent {
-    val context: Context by inject()
+    private val contextFactory: ContextFactory by inject()
+    val context: Context = contextFactory.getDefault()
     private val userConfig: User by inject()
     val commands: List<Command>
 
-    @JsonIgnore
-    private val logger = KotlinLogging.logger {}
+    @JsonIgnore private val logger = KotlinLogging.logger {}
     private val jc: JCommander
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
     private val dockerClientProvider: DockerClientProvider by inject()
@@ -66,30 +66,30 @@ class CommandLineParser : KoinComponent {
 
         commands =
             listOf(
-                Command("build-base", BuildBaseImage()),
-                Command("build-cassandra", BuildCassandraImage()),
-                Command("build-image", BuildImage()),
-                Command("clean", Clean()),
-                Command("down", Down()),
-                Command("download-config", DownloadConfig(), listOf("dc")),
-                Command("hosts", Hosts()),
-                Command("init", Init()),
-                Command("list", ListVersions(), listOf("ls")),
-                Command("setup-instances", SetupInstance(), listOf("si")),
-                Command("start", Start()),
-                Command("stop", Stop()),
-                Command("restart", Restart()),
-                Command("up", Up()),
-                Command("update-config", UpdateConfig(), listOf("uc")),
-                Command("use", UseCassandra()),
-                Command("write-config", WriteConfig(), listOf("wc")),
-                Command("configure-axonops", ConfigureAxonOps()),
-                Command("upload-keys", UploadAuthorizedKeys()),
-                Command("repl", Repl()),
-                Command("server", Server()),
-                Command("version", Version()),
-                Command("mcp", McpCommand()),
-                Command("mcp-config", McpConfigCommand()),
+                Command("build-base", BuildBaseImage(context)),
+                Command("build-cassandra", BuildCassandraImage(context)),
+                Command("build-image", BuildImage(context)),
+                Command("clean", Clean(context)),
+                Command("down", Down(context)),
+                Command("download-config", DownloadConfig(context), listOf("dc")),
+                Command("hosts", Hosts(context)),
+                Command("init", Init(context)),
+                Command("list", ListVersions(context), listOf("ls")),
+                Command("setup-instances", SetupInstance(context), listOf("si")),
+                Command("start", Start(context)),
+                Command("stop", Stop(context)),
+                Command("restart", Restart(context)),
+                Command("up", Up(context)),
+                Command("update-config", UpdateConfig(context), listOf("uc")),
+                Command("use", UseCassandra(context)),
+                Command("write-config", WriteConfig(context), listOf("wc")),
+                Command("configure-axonops", ConfigureAxonOps(context)),
+                Command("upload-keys", UploadAuthorizedKeys(context)),
+                Command("repl", Repl(context)),
+                Command("server", Server(context)),
+                Command("version", Version(context)),
+                Command("mcp", McpCommand(context)),
+                Command("mcp-config", McpConfigCommand(context)),
             )
 
         for (c in commands) {
@@ -135,9 +135,8 @@ class CommandLineParser : KoinComponent {
                 }
             }
             this.command.execute()
-        } ?: run {
-            jc.usage()
         }
+            ?: run { jc.usage() }
     }
 
     @Suppress("TooGenericExceptionCaught")

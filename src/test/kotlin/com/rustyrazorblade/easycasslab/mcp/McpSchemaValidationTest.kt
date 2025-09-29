@@ -1,8 +1,6 @@
 package com.rustyrazorblade.easycasslab.mcp
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.contextModule
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -13,16 +11,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import org.koin.core.module.Module
-import java.io.File
 
 class McpSchemaValidationTest : BaseKoinTest() {
     private lateinit var registry: McpToolRegistry
 
-    @BeforeEach  
+    @BeforeEach
     fun setup() {
-        registry = McpToolRegistry()
+        registry = McpToolRegistry(context)
     }
 
     @Test
@@ -76,17 +71,27 @@ class McpSchemaValidationTest : BaseKoinTest() {
                         when (type) {
                             "string" -> {
                                 if (defaultValue !is JsonPrimitive || !defaultValue.isString) {
-                                    issues.add("Property '$propName' has non-string default for string type")
+                                    issues.add(
+                                        "Property '$propName' has non-string default for string type",
+                                    )
                                 }
                             }
                             "number" -> {
-                                if (defaultValue !is JsonPrimitive || defaultValue.doubleOrNull == null) {
-                                    issues.add("Property '$propName' has non-number default for number type")
+                                if (defaultValue !is JsonPrimitive ||
+                                    defaultValue.doubleOrNull == null
+                                ) {
+                                    issues.add(
+                                        "Property '$propName' has non-number default for number type",
+                                    )
                                 }
                             }
                             "boolean" -> {
-                                if (defaultValue !is JsonPrimitive || defaultValue.booleanOrNull == null) {
-                                    issues.add("Property '$propName' has non-boolean default for boolean type")
+                                if (defaultValue !is JsonPrimitive ||
+                                    defaultValue.booleanOrNull == null
+                                ) {
+                                    issues.add(
+                                        "Property '$propName' has non-boolean default for boolean type",
+                                    )
                                 }
                             }
                         }
@@ -97,18 +102,24 @@ class McpSchemaValidationTest : BaseKoinTest() {
                         val enumValues = enumField.map { it.jsonPrimitive.content }
                         val defaultStr = defaultValue.jsonPrimitive.content
                         if (defaultStr !in enumValues) {
-                            issues.add("Property '$propName' default '$defaultStr' not in enum values: $enumValues")
+                            issues.add(
+                                "Property '$propName' default '$defaultStr' not in enum values: $enumValues",
+                            )
                         }
                     }
 
                     // Check 8: Look for nested objects that might need $ref or proper definitions
                     if (type == "object" && !prop.containsKey("properties")) {
-                        issues.add("Property '$propName' is type 'object' but missing 'properties' definition")
+                        issues.add(
+                            "Property '$propName' is type 'object' but missing 'properties' definition",
+                        )
                     }
 
                     // Check 9: Description should be a string
                     val description = prop["description"]
-                    if (description != null && (description !is JsonPrimitive || !description.isString)) {
+                    if (description != null &&
+                        (description !is JsonPrimitive || !description.isString)
+                    ) {
                         issues.add("Property '$propName' has non-string description")
                     }
                 }
@@ -142,7 +153,10 @@ class McpSchemaValidationTest : BaseKoinTest() {
                 // Print the problematic schema for debugging
                 if (index == 15) {
                     println("Full schema for tool 15:")
-                    println(Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), schema))
+                    println(
+                        Json { prettyPrint = true }
+                            .encodeToString(JsonObject.serializer(), schema),
+                    )
                     println()
                 }
             }

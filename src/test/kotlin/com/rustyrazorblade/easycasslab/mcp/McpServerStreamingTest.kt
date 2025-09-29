@@ -27,9 +27,7 @@ class McpServerStreamingTest : KoinTest {
     fun setup() {
         mockContext = mock()
 
-        startKoin {
-            modules(KoinModules.getAllModules())
-        }
+        startKoin { modules(KoinModules.getAllModules(mockContext)) }
     }
 
     @AfterEach
@@ -40,10 +38,16 @@ class McpServerStreamingTest : KoinTest {
     @Test
     fun `default OutputHandler should be CompositeOutputHandler for streaming integration`() {
         val outputHandler: OutputHandler by inject()
-        assertTrue(outputHandler is CompositeOutputHandler, "Default output handler should be CompositeOutputHandler")
+        assertTrue(
+            outputHandler is CompositeOutputHandler,
+            "Default output handler should be CompositeOutputHandler",
+        )
 
         val compositeHandler = outputHandler as CompositeOutputHandler
-        assertTrue(compositeHandler.getHandlerCount() >= 2, "Should have at least Logger and Console handlers")
+        assertTrue(
+            compositeHandler.getHandlerCount() >= 2,
+            "Should have at least Logger and Console handlers",
+        )
 
         // This test verifies that the injected output handler is ready for streaming integration
         // The actual streaming handler will be added when initializeStreaming() is implemented

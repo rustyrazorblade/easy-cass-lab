@@ -8,7 +8,6 @@ import org.koin.core.component.KoinComponent
 import java.io.File
 
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
-
     val log = KotlinLogging.logger {}
 
     /**

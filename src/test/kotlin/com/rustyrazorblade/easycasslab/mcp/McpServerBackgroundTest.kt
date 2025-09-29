@@ -10,7 +10,7 @@ class McpServerBackgroundTest : BaseKoinTest() {
 
     @BeforeEach
     fun setup() {
-        registry = McpToolRegistry()
+        registry = McpToolRegistry(context)
     }
 
     @Test
@@ -18,11 +18,11 @@ class McpServerBackgroundTest : BaseKoinTest() {
         // Execute clean tool multiple times
         val result1 = registry.executeTool("clean", null)
         val result2 = registry.executeTool("clean", null)
-        
+
         // Both executions should succeed
         assertThat(result1.isError).isFalse
         assertThat(result2.isError).isFalse
-        
+
         // Results should be consistent
         assertThat(result1.content).isEqualTo(result2.content)
     }

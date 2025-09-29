@@ -4,6 +4,7 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.di.TFStateProvider
+import com.rustyrazorblade.easycasslab.di.contextModule
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
@@ -15,7 +16,6 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
-import com.rustyrazorblade.easycasslab.di.contextModule
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
@@ -26,13 +26,11 @@ import java.io.File
 import java.io.InputStream
 import java.nio.file.Path
 
-/**
- * Test modules for Koin dependency injection in tests.
- */
+/** Test modules for Koin dependency injection in tests. */
 object TestModules {
     /**
-     * Core test modules that should always be loaded in tests.
-     * These modules provide mocks for services that should NEVER make real calls during testing.
+     * Core test modules that should always be loaded in tests. These modules provide mocks for
+     * services that should NEVER make real calls during testing.
      *
      * Includes:
      * - AWS services (to prevent real API calls and charges)
@@ -51,19 +49,26 @@ object TestModules {
         )
 
     /**
-     * Creates a test output module with buffered output handler.
-     * This captures all output for verification in tests.
+     * Creates a test output module with buffered output handler. This captures all output for
+     * verification in tests.
      */
+
     /**
-     * Test module that provides a fresh Context instance for each test.
-     * Creates a new temporary directory and test user configuration.
-     * This ensures test isolation and allows safe cleanup.
+     * Test module that provides a fresh Context instance for each test. Creates a new temporary
+     * directory and test user configuration. This ensures test isolation and allows safe cleanup.
      *
      * @return Module providing a test Context
      */
     fun testContextModule(): Module {
         val testContext = TestContextFactory.createTestContext()
-        return contextModule(testContext)
+        val contextFactory = ContextFactory(testContext.easycasslabUserDirectory)
+        return module {
+            // Include all context module definitions
+            includes(contextModule(contextFactory))
+
+            // Also provide Context directly for tests that need it
+            single { contextFactory.getDefault() }
+        }
     }
 
     fun testOutputModule() =
@@ -71,14 +76,12 @@ object TestModules {
             // Use CompositeOutputHandler with BufferedOutputHandler for tests
             // This matches the production pattern but uses a test-friendly handler
             // Use single to ensure all components get the same instance within a test
-            single<OutputHandler> {
-                BufferedOutputHandler()
-            }
+            single<OutputHandler> { BufferedOutputHandler() }
         }
 
     /**
-     * Creates a test AWS module with mock implementations.
-     * This ensures no real AWS API calls are made during testing.
+     * Creates a test AWS module with mock implementations. This ensures no real AWS API calls are
+     * made during testing.
      */
     fun testAWSModule() =
         module {
@@ -108,20 +111,14 @@ object TestModules {
             // AWS service with mocked clients
             // Using real AWS class with mocked clients ensures the service logic
             // is tested while preventing actual AWS API calls
-            single {
-                AWS(get<Clients>())
-            }
+            single { AWS(get<Clients>()) }
         }
 
-    /**
-     * Creates a test SSH module with mock implementations.
-     */
+    /** Creates a test SSH module with mock implementations. */
     fun testSSHModule() =
         module {
             // Mock SSH configuration
-            single<SSHConfiguration> {
-                DefaultSSHConfiguration(keyPath = "test")
-            }
+            single<SSHConfiguration> { DefaultSSHConfiguration(keyPath = "test") }
 
             // Mock SSH connection provider
             single<SSHConnectionProvider> {
@@ -202,8 +199,8 @@ object TestModules {
         }
 
     /**
-     * Creates a test Terraform module with mock implementations.
-     * This provides a mock TFStateProvider that returns empty state for testing.
+     * Creates a test Terraform module with mock implementations. This provides a mock
+     * TFStateProvider that returns empty state for testing.
      */
     fun testTerraformModule() =
         module {
@@ -237,8 +234,6 @@ object TestModules {
             }
 
             // Provide a factory for TFState (for backward compatibility)
-            factory {
-                get<TFStateProvider>().getDefault()
-            }
+            factory { get<TFStateProvider>().getDefault() }
         }
 }

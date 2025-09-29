@@ -6,35 +6,23 @@ import org.koin.dsl.module
 import java.io.File
 import java.io.InputStream
 
-/**
- * Provides Terraform state management services
- */
+/** Provides Terraform state management services */
 interface TFStateProvider {
-    /**
-     * Parse a TFState from a file
-     */
+    /** Parse a TFState from a file */
     fun parseFromFile(file: File): TFState
 
-    /**
-     * Parse a TFState from an input stream
-     */
+    /** Parse a TFState from an input stream */
     fun parseFromStream(stream: InputStream): TFState
 
-    /**
-     * Get the default TFState from terraform.tfstate in the current working directory
-     */
+    /** Get the default TFState from terraform.tfstate in the current working directory */
     fun getDefault(): TFState
 }
 
-/**
- * Default implementation of TFStateProvider
- */
+/** Default implementation of TFStateProvider */
 class DefaultTFStateProvider(
     private val context: Context,
 ) : TFStateProvider {
-    private val defaultStateFile by lazy {
-        File(context.cwdPath, "terraform.tfstate")
-    }
+    private val defaultStateFile by lazy { File(context.cwdPath, "terraform.tfstate") }
 
     override fun parseFromFile(file: File): TFState {
         return TFState(context, file.inputStream())
@@ -54,16 +42,14 @@ class DefaultTFStateProvider(
 
 /**
  * Koin module for Terraform-related services
+ *
+ * @param context The Context instance to use for TFState operations
  */
-val terraformModule =
+fun terraformModule(context: Context) =
     module {
-        single<TFStateProvider> {
-            DefaultTFStateProvider(get())
-        }
+        single<TFStateProvider> { DefaultTFStateProvider(context) }
 
         // Provide a default TFState instance for backward compatibility
         // This mimics the current lazy behavior in Context
-        factory {
-            get<TFStateProvider>().getDefault()
-        }
+        factory { get<TFStateProvider>().getDefault() }
     }

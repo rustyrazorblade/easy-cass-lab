@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.commands
 
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
@@ -7,7 +8,7 @@ import org.koin.core.component.inject
 import java.io.File
 
 @McpCommand
-class Clean : ICommand, KoinComponent {
+class Clean(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -60,7 +61,9 @@ class Clean : ICommand, KoinComponent {
             if (artifacts.listFiles().isEmpty()) {
                 artifacts.delete()
             } else {
-                outputHandler.handleMessage("Not deleting artifacts directory, it contains artifacts.")
+                outputHandler.handleMessage(
+                    "Not deleting artifacts directory, it contains artifacts.",
+                )
             }
         }
     }

@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
 import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.AWSCredentialsManager
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -24,7 +25,8 @@ import kotlin.system.exitProcess
 class Packer(val context: Context, var directory: String) : KoinComponent {
     private val docker: Docker by inject { parametersOf(context) }
     private val outputHandler: OutputHandler by inject()
-    private val awsCredentialsManager: AWSCredentialsManager by inject()
+    private val user: User by inject()
+    private val awsCredentialsManager by lazy { AWSCredentialsManager(context.profileDir, user) }
 
     private var containerWorkingDir = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
@@ -120,9 +122,10 @@ class Packer(val context: Context, var directory: String) : KoinComponent {
         // Packer builds can take 30+ minutes, especially when building from source
         val packerTimeout = Duration.ofMinutes(PACKER_TIMEOUT_MINUTES)
 
-        return docker
-            .addVolume(packerDir)
-            .addVolume(VolumeMapping(awsCredentialsManager.credentialsPath, creds, AccessMode.ro))
+        return docker.addVolume(packerDir)
+            .addVolume(
+                VolumeMapping(awsCredentialsManager.credentialsPath, creds, AccessMode.ro),
+            )
             .addEnv("${Constants.Packer.AWS_CREDENTIALS_ENV}=$creds")
             .runContainer(Containers.PACKER, args, containerWorkingDir, packerTimeout)
     }

@@ -2,7 +2,6 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -13,8 +12,7 @@ import org.koin.core.component.inject
 import java.io.File
 
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
-class WriteConfig : ICommand, KoinComponent {
-    private val context: Context by inject()
+class WriteConfig(val context: Context) : ICommand, KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }

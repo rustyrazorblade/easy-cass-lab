@@ -6,9 +6,9 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
-import java.io.File
 import org.assertj.core.api.AssertionsForClassTypes.assertThat
 import org.junit.jupiter.api.Test
+import java.io.File
 
 class AWSConfigurationTest {
     @Test

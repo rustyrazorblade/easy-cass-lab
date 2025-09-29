@@ -25,8 +25,7 @@ class McpMessageFlowTest : KoinComponent {
         private val log = KotlinLogging.logger {}
     }
 
-    @TempDir
-    lateinit var tempDir: File
+    @TempDir lateinit var tempDir: File
 
     private lateinit var context: Context
     private lateinit var mcpServer: McpServer
@@ -35,11 +34,6 @@ class McpMessageFlowTest : KoinComponent {
 
     @BeforeEach
     fun setup() {
-        // Initialize Koin for dependency injection
-        startKoin {
-            modules(KoinModules.getAllModules())
-        }
-
         // Create a proper settings file
         val profileDir = File(tempDir, "profiles/default")
         profileDir.mkdirs()
@@ -60,8 +54,12 @@ class McpMessageFlowTest : KoinComponent {
 
         // Create context and MCP components
         context = Context(tempDir)
+
+        // Initialize Koin for dependency injection
+        startKoin { modules(KoinModules.getAllModules(context)) }
+
         mcpServer = McpServer(context)
-        registry = McpToolRegistry()
+        registry = McpToolRegistry(context)
     }
 
     @AfterEach
@@ -155,10 +153,18 @@ class McpMessageFlowTest : KoinComponent {
         mcpServer.initializeStreaming()
 
         // Send messages directly to the channel (simulating tool execution output)
-        assertTrue(outputChannel.trySend(OutputEvent.MessageEvent("Tool execution started")).isSuccess)
+        assertTrue(
+            outputChannel.trySend(OutputEvent.MessageEvent("Tool execution started")).isSuccess,
+        )
         assertTrue(outputChannel.trySend(OutputEvent.MessageEvent("Processing data...")).isSuccess)
-        assertTrue(outputChannel.trySend(OutputEvent.ErrorEvent("Warning: High memory usage", null)).isSuccess)
-        assertTrue(outputChannel.trySend(OutputEvent.MessageEvent("Tool execution completed")).isSuccess)
+        assertTrue(
+            outputChannel.trySend(OutputEvent.ErrorEvent("Warning: High memory usage", null))
+                .isSuccess,
+        )
+        assertTrue(
+            outputChannel.trySend(OutputEvent.MessageEvent("Tool execution completed"))
+                .isSuccess,
+        )
 
         // Wait for processing
         Thread.sleep(100)

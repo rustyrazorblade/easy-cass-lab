@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.CommandLineParser
+import com.rustyrazorblade.easycasslab.Context
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
@@ -11,7 +12,7 @@ import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
-class Repl : BaseCommand() {
+class Repl(context: Context) : BaseCommand(context) {
     companion object {
         private val log = KotlinLogging.logger {}
     }

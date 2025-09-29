@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
@@ -19,9 +20,9 @@ import java.io.File
 @RequireDocker
 @RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
-class Start : BaseCommand() {
+class Start(context: Context) : BaseCommand(context) {
     private val userConfig: User by inject()
-    
+
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
         private const val DOCKER_COMPOSE_STARTUP_DELAY_MS = 5000L
@@ -32,8 +33,7 @@ class Start : BaseCommand() {
     @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
     var sleep: Long = DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS
 
-    @ParametersDelegate
-    var hosts = Hosts()
+    @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {
         with(TermColors()) {
@@ -49,7 +49,7 @@ class Start : BaseCommand() {
         }
 
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
-            StartAxonOps().execute()
+            StartAxonOps(context).execute()
         }
 
         // Inform user about AxonOps Workbench configuration if it exists
@@ -58,7 +58,9 @@ class Start : BaseCommand() {
             outputHandler.handleMessage("")
             outputHandler.handleMessage("AxonOps Workbench configuration available:")
             outputHandler.handleMessage("To import into AxonOps Workbench, run:")
-            outputHandler.handleMessage("  /path/to/axonops-workbench -v --import-workspace=axonops-workbench.json")
+            outputHandler.handleMessage(
+                "  /path/to/axonops-workbench -v --import-workspace=axonops-workbench.json",
+            )
             outputHandler.handleMessage("")
         }
 
@@ -67,9 +69,10 @@ class Start : BaseCommand() {
 
         // Write MCP configuration file for AI agents
         writeMCPConfiguration()
-        // this has to happen last, because we want Cassandra to be available before starting the MCP server.
+        // this has to happen last, because we want Cassandra to be available before starting the
+        // MCP server.
         deployDockerComposeToControlNodes()
-        
+
         // Set up SS4O configuration after Docker services are started
         setupSS4OConfiguration()
     }
@@ -85,15 +88,19 @@ class Start : BaseCommand() {
         if (!dockerComposeFile.exists()) {
             throw RuntimeException("control/docker-compose.yaml not found - required file missing")
         }
-        
+
         if (!otelConfigFile.exists()) {
-            throw RuntimeException("control/otel-collector-config.yaml not found - required file missing")
+            throw RuntimeException(
+                "control/otel-collector-config.yaml not found - required file missing",
+            )
         }
-        
+
         if (!dataPrepperConfigFile.exists()) {
-            throw RuntimeException("control/data-prepper-pipelines.yaml not found - required file missing")
+            throw RuntimeException(
+                "control/data-prepper-pipelines.yaml not found - required file missing",
+            )
         }
-        
+
         if (!ss4oTemplateFile.exists()) {
             throw RuntimeException("control/ss4o_metrics.json not found - required file missing")
         }
@@ -103,13 +110,16 @@ class Start : BaseCommand() {
             try {
                 ClusterState.load()
             } catch (e: Exception) {
-                outputHandler.handleMessage("Warning: Could not load cluster state, using defaults: ${e.message}")
+                outputHandler.handleMessage(
+                    "Warning: Could not load cluster state, using defaults: ${e.message}",
+                )
                 null
             }
 
         // Get datacenter (region) and cassandra host
         val datacenter = clusterState?.initConfig?.region ?: userConfig.region
-        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
+        val cassandraHost =
+            tfstate.getHosts(ServerType.Cassandra).firstOrNull()?.private ?: "cassandra0"
 
         // Create .env file content
         val envContent =
@@ -119,10 +129,14 @@ class Start : BaseCommand() {
             """.trimIndent()
 
         tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
-            outputHandler.handleMessage("Starting Docker Compose services on control node ${host.public}")
+            outputHandler.handleMessage(
+                "Starting Docker Compose services on control node ${host.public}",
+            )
 
             // Create and upload .env file
-            outputHandler.handleMessage("Creating .env file with datacenter=$datacenter and host=$cassandraHost")
+            outputHandler.handleMessage(
+                "Creating .env file with datacenter=$datacenter and host=$cassandraHost",
+            )
             val envFile = File.createTempFile("docker", ".env")
             envFile.writeText(envContent)
             remoteOps.upload(host, envFile.toPath(), "/home/ubuntu/.env")
@@ -131,27 +145,41 @@ class Start : BaseCommand() {
             // Upload required configuration files
             outputHandler.handleMessage("Uploading configuration files to ${host.public}...")
             remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
-            remoteOps.upload(host, otelConfigFile.toPath(), "/home/ubuntu/otel-collector-config.yaml")
-            remoteOps.upload(host, dataPrepperConfigFile.toPath(), "/home/ubuntu/data-prepper-pipelines.yaml")
+            remoteOps.upload(
+                host,
+                otelConfigFile.toPath(),
+                "/home/ubuntu/otel-collector-config.yaml",
+            )
+            remoteOps.upload(
+                host,
+                dataPrepperConfigFile.toPath(),
+                "/home/ubuntu/data-prepper-pipelines.yaml",
+            )
             remoteOps.upload(host, ss4oTemplateFile.toPath(), "/home/ubuntu/ss4o_metrics.json")
 
             // Check if docker and docker compose are available
             try {
-                val dockerCheck = remoteOps.executeRemotely(host, "which docker && docker --version")
+                val dockerCheck =
+                    remoteOps.executeRemotely(host, "which docker && docker --version")
                 outputHandler.handleMessage("Docker check: ${dockerCheck.text}")
             } catch (e: RuntimeException) {
-                outputHandler.handleMessage("Warning: Docker may not be installed on ${host.public}")
+                outputHandler.handleMessage(
+                    "Warning: Docker may not be installed on ${host.public}",
+                )
                 outputHandler.handleMessage("Error: ${e.message}")
             }
 
             // Pull Docker images before starting
             outputHandler.handleMessage("Pulling Docker images on ${host.public}...")
             try {
-                val pullResult = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose pull")
+                val pullResult =
+                    remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose pull")
                 outputHandler.handleMessage("Docker pull output: ${pullResult.text}")
             } catch (e: RuntimeException) {
                 outputHandler.handleMessage("Warning: Failed to pull Docker images: ${e.message}")
-                outputHandler.handleMessage("Will attempt to start anyway (images may be pulled automatically)...")
+                outputHandler.handleMessage(
+                    "Will attempt to start anyway (images may be pulled automatically)...",
+                )
             }
 
             // Run docker compose up in detached mode with retry logic
@@ -169,7 +197,11 @@ class Start : BaseCommand() {
                     }
 
                     // Run docker compose up
-                    val result = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose up -d")
+                    val result =
+                        remoteOps.executeRemotely(
+                            host,
+                            "cd /home/ubuntu && docker compose up -d",
+                        )
                     outputHandler.handleMessage("Docker Compose output: ${result.text}")
                     success = true
                 } catch (e: RuntimeException) {
@@ -177,7 +209,9 @@ class Start : BaseCommand() {
                     retryCount++
                     if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
                         outputHandler.handleMessage("Docker compose failed: ${e.message}")
-                        outputHandler.handleMessage("Will retry in ${DOCKER_COMPOSE_RETRY_DELAY_MS}ms...")
+                        outputHandler.handleMessage(
+                            "Will retry in ${DOCKER_COMPOSE_RETRY_DELAY_MS}ms...",
+                        )
                     }
                 }
             }
@@ -199,10 +233,13 @@ class Start : BaseCommand() {
 
                 // Check service status
                 try {
-                    val statusResult = remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose ps")
+                    val statusResult =
+                        remoteOps.executeRemotely(host, "cd /home/ubuntu && docker compose ps")
                     outputHandler.handleMessage("Service status: ${statusResult.text}")
                 } catch (e: Exception) {
-                    outputHandler.handleMessage("Warning: Could not check service status: ${e.message}")
+                    outputHandler.handleMessage(
+                        "Warning: Could not check service status: ${e.message}",
+                    )
                 }
             }
         }
@@ -211,20 +248,30 @@ class Start : BaseCommand() {
     }
 
     private fun setupSS4OConfiguration() {
-        outputHandler.handleMessage("Setting up SS4O (Simple Schema for Observability) configuration...")
+        outputHandler.handleMessage(
+            "Setting up SS4O (Simple Schema for Observability) configuration...",
+        )
 
         tfstate.withHosts(ServerType.Control, hosts) { host ->
             try {
                 // Wait for OpenSearch to be ready
-                outputHandler.handleMessage("Waiting for OpenSearch to be ready on ${host.public}...")
+                outputHandler.handleMessage(
+                    "Waiting for OpenSearch to be ready on ${host.public}...",
+                )
                 var opensearchReady = false
                 var retryCount = 0
                 val maxRetries = 12 // 2 minutes with 10-second intervals
 
                 while (!opensearchReady && retryCount < maxRetries) {
                     try {
-                        val healthCheck = remoteOps.executeRemotely(host, "curl -s http://127.0.0.1:9200/_cluster/health")
-                        if (healthCheck.text.contains("\"status\":\"yellow\"") || healthCheck.text.contains("\"status\":\"green\"")) {
+                        val healthCheck =
+                            remoteOps.executeRemotely(
+                                host,
+                                "curl -s http://127.0.0.1:9200/_cluster/health",
+                            )
+                        if (healthCheck.text.contains("\"status\":\"yellow\"") ||
+                            healthCheck.text.contains("\"status\":\"green\"")
+                        ) {
                             opensearchReady = true
                             outputHandler.handleMessage("OpenSearch is ready on ${host.public}")
                         } else {
@@ -238,13 +285,16 @@ class Start : BaseCommand() {
                 }
 
                 if (!opensearchReady) {
-                    outputHandler.handleMessage("Warning: OpenSearch did not become ready on ${host.public}, skipping SS4O setup")
+                    outputHandler.handleMessage(
+                        "Warning: OpenSearch did not become ready on ${host.public}, skipping SS4O setup",
+                    )
                     return@withHosts
                 }
 
                 // Create SS4O index template
                 outputHandler.handleMessage("Creating SS4O index template on ${host.public}...")
-                val createTemplateCommand = """
+                val createTemplateCommand =
+                    """
                     curl -X PUT "http://127.0.0.1:9200/_index_template/ss4o_metrics" \
                     -H "Content-Type: application/json" \
                     -d '{
@@ -279,26 +329,40 @@ class Start : BaseCommand() {
                             "description": "SS4O metrics index template for OpenSearch Observability"
                         }
                     }'
-                """.trimIndent()
+                    """.trimIndent()
 
                 val templateResult = remoteOps.executeRemotely(host, createTemplateCommand)
                 if (templateResult.text.contains("\"acknowledged\":true")) {
-                    outputHandler.handleMessage("SS4O index template created successfully on ${host.public}")
+                    outputHandler.handleMessage(
+                        "SS4O index template created successfully on ${host.public}",
+                    )
                 } else {
-                    outputHandler.handleMessage("Warning: Failed to create SS4O index template on ${host.public}: ${templateResult.text}")
+                    outputHandler.handleMessage(
+                        "Warning: Failed to create SS4O index template on ${host.public}: ${templateResult.text}",
+                    )
                 }
 
                 // Wait for OpenSearch Dashboards to be ready
-                outputHandler.handleMessage("Waiting for OpenSearch Dashboards to be ready on ${host.public}...")
+                outputHandler.handleMessage(
+                    "Waiting for OpenSearch Dashboards to be ready on ${host.public}...",
+                )
                 var dashboardsReady = false
                 retryCount = 0
 
                 while (!dashboardsReady && retryCount < maxRetries) {
                     try {
-                        val dashboardsCheck = remoteOps.executeRemotely(host, "curl -s http://127.0.0.1:5601/api/status")
-                        if (dashboardsCheck.text.contains("\"level\":\"available\"") || dashboardsCheck.text.contains("overall")) {
+                        val dashboardsCheck =
+                            remoteOps.executeRemotely(
+                                host,
+                                "curl -s http://127.0.0.1:5601/api/status",
+                            )
+                        if (dashboardsCheck.text.contains("\"level\":\"available\"") ||
+                            dashboardsCheck.text.contains("overall")
+                        ) {
                             dashboardsReady = true
-                            outputHandler.handleMessage("OpenSearch Dashboards is ready on ${host.public}")
+                            outputHandler.handleMessage(
+                                "OpenSearch Dashboards is ready on ${host.public}",
+                            )
                         } else {
                             Thread.sleep(10000) // Wait 10 seconds
                             retryCount++
@@ -310,13 +374,18 @@ class Start : BaseCommand() {
                 }
 
                 if (!dashboardsReady) {
-                    outputHandler.handleMessage("Warning: OpenSearch Dashboards did not become ready on ${host.public}, skipping index pattern creation")
+                    outputHandler.handleMessage(
+                        "Warning: OpenSearch Dashboards did not become ready on ${host.public}, skipping index pattern creation",
+                    )
                     return@withHosts
                 }
 
                 // Create index pattern in OpenSearch Dashboards
-                outputHandler.handleMessage("Creating SS4O index pattern in OpenSearch Dashboards on ${host.public}...")
-                val createIndexPatternCommand = """
+                outputHandler.handleMessage(
+                    "Creating SS4O index pattern in OpenSearch Dashboards on ${host.public}...",
+                )
+                val createIndexPatternCommand =
+                    """
                     curl -X POST "http://127.0.0.1:5601/api/saved_objects/index-pattern/ss4o_metrics-*" \
                     -H "Content-Type: application/json" \
                     -H "osd-xsrf: true" \
@@ -326,28 +395,39 @@ class Start : BaseCommand() {
                             "timeFieldName": "@timestamp"
                         }
                     }'
-                """.trimIndent()
+                    """.trimIndent()
 
                 val indexPatternResult = remoteOps.executeRemotely(host, createIndexPatternCommand)
-                if (indexPatternResult.text.contains("\"id\":\"ss4o_metrics-*\"") || indexPatternResult.text.contains("version_conflict_engine_exception")) {
-                    outputHandler.handleMessage("SS4O index pattern created successfully on ${host.public}")
+                if (indexPatternResult.text.contains("\"id\":\"ss4o_metrics-*\"") ||
+                    indexPatternResult.text.contains(
+                        "version_conflict_engine_exception",
+                    )
+                ) {
+                    outputHandler.handleMessage(
+                        "SS4O index pattern created successfully on ${host.public}",
+                    )
                 } else {
-                    outputHandler.handleMessage("Info: Index pattern creation response on ${host.public}: ${indexPatternResult.text}")
+                    outputHandler.handleMessage(
+                        "Info: Index pattern creation response on ${host.public}: ${indexPatternResult.text}",
+                    )
                 }
 
                 // Restart Data Prepper to pick up the new template
-                outputHandler.handleMessage("Restarting Data Prepper to apply SS4O configuration on ${host.public}...")
+                outputHandler.handleMessage(
+                    "Restarting Data Prepper to apply SS4O configuration on ${host.public}...",
+                )
                 remoteOps.executeRemotely(host, "cd /home/ubuntu && docker restart data-prepper")
-                
-                outputHandler.handleMessage("SS4O configuration completed on ${host.public}")
 
+                outputHandler.handleMessage("SS4O configuration completed on ${host.public}")
             } catch (e: Exception) {
                 outputHandler.handleMessage("Error setting up SS4O on ${host.public}: ${e.message}")
             }
         }
 
         outputHandler.handleMessage("SS4O configuration setup completed on all control nodes")
-        outputHandler.handleMessage("Metrics should now be visible in OpenSearch Dashboards -> Observability -> Metrics")
+        outputHandler.handleMessage(
+            "Metrics should now be visible in OpenSearch Dashboards -> Observability -> Metrics",
+        )
     }
 
     private fun startOtelOnCassandraNodes() {
@@ -357,20 +437,26 @@ class Start : BaseCommand() {
         val dockerComposeFile = File("cassandra/docker-compose.yaml")
 
         if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
-            outputHandler.handleMessage("Cassandra OTel config files not found, skipping OTel startup")
+            outputHandler.handleMessage(
+                "Cassandra OTel config files not found, skipping OTel startup",
+            )
             return
         }
 
         // Get the internal IP of the first control node for OTLP endpoint
         val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
         if (controlHost == null) {
-            outputHandler.handleMessage("No control nodes found, skipping OTel startup for Cassandra nodes")
+            outputHandler.handleMessage(
+                "No control nodes found, skipping OTel startup for Cassandra nodes",
+            )
             return
         }
         val controlNodeIp = controlHost.private
 
         tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
-            outputHandler.handleMessage("Starting OTel collector on Cassandra node ${host.alias} (${host.public})")
+            outputHandler.handleMessage(
+                "Starting OTel collector on Cassandra node ${host.alias} (${host.public})",
+            )
 
             // Check if configuration files exist on the remote host
             val configCheckResult =
@@ -381,7 +467,9 @@ class Start : BaseCommand() {
                 )
 
             if (configCheckResult.text.trim() == "not found") {
-                outputHandler.handleMessage("OTel configuration not found on ${host.alias}, skipping...")
+                outputHandler.handleMessage(
+                    "OTel configuration not found on ${host.alias}, skipping...",
+                )
                 return@withHosts
             }
 
@@ -407,10 +495,13 @@ class Start : BaseCommand() {
 
             // Check if docker is available
             try {
-                val dockerCheck = remoteOps.executeRemotely(host, "which docker && docker --version")
+                val dockerCheck =
+                    remoteOps.executeRemotely(host, "which docker && docker --version")
                 outputHandler.handleMessage("Docker check on ${host.alias}: ${dockerCheck.text}")
             } catch (e: Exception) {
-                outputHandler.handleMessage("Warning: Docker may not be installed on ${host.alias}: ${e.message}")
+                outputHandler.handleMessage(
+                    "Warning: Docker may not be installed on ${host.alias}: ${e.message}",
+                )
                 return@withHosts
             }
 
@@ -424,7 +515,9 @@ class Start : BaseCommand() {
                     )
                 outputHandler.handleMessage("Docker pull completed on ${host.alias}")
             } catch (e: Exception) {
-                outputHandler.handleMessage("Warning: Failed to pull OTel image on ${host.alias}: ${e.message}")
+                outputHandler.handleMessage(
+                    "Warning: Failed to pull OTel image on ${host.alias}: ${e.message}",
+                )
             }
 
             // Start OTel collector with docker compose
@@ -454,7 +547,9 @@ class Start : BaseCommand() {
                     lastError = e.message
                     retryCount++
                     if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
-                        outputHandler.handleMessage("OTel startup failed on ${host.alias}: ${e.message}")
+                        outputHandler.handleMessage(
+                            "OTel startup failed on ${host.alias}: ${e.message}",
+                        )
                     }
                 }
             }
@@ -481,7 +576,9 @@ class Start : BaseCommand() {
                         )
                     }
                 } catch (e: Exception) {
-                    outputHandler.handleMessage("Could not verify OTel status on ${host.alias}: ${e.message}")
+                    outputHandler.handleMessage(
+                        "Could not verify OTel status on ${host.alias}: ${e.message}",
+                    )
                 }
             }
         }
@@ -493,7 +590,8 @@ class Start : BaseCommand() {
     private fun writeMCPConfiguration() {
         outputHandler.handleMessage("Writing MCP configuration file for AI agents...")
 
-        val mcpConfig = """{
+        val mcpConfig =
+            """{
   "mcpServers": {
     "easy-cass-lab": {
       "type": "sse",
@@ -507,10 +605,16 @@ class Start : BaseCommand() {
         try {
             configFile.writeText(mcpConfig)
             outputHandler.handleMessage("MCP configuration written to easy-cass-mcp.json")
-            outputHandler.handleMessage("AI agents can now connect to the MCP server at http://localhost:8000")
-            outputHandler.handleMessage("To use with Claude Code, reference this configuration file in your .mcp.json")
+            outputHandler.handleMessage(
+                "AI agents can now connect to the MCP server at http://localhost:8000",
+            )
+            outputHandler.handleMessage(
+                "To use with Claude Code, reference this configuration file in your .mcp.json",
+            )
         } catch (e: Exception) {
-            outputHandler.handleMessage("Warning: Could not write MCP configuration file: ${e.message}")
+            outputHandler.handleMessage(
+                "Warning: Could not write MCP configuration file: ${e.message}",
+            )
         }
     }
 }

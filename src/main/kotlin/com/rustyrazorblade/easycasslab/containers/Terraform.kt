@@ -6,6 +6,7 @@ import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
+import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.providers.aws.AWSCredentialsManager
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
@@ -14,7 +15,8 @@ import org.koin.core.parameter.parametersOf
 
 class Terraform(val context: Context) : KoinComponent {
     private val docker: Docker by inject { parametersOf(context) }
-    private val awsCredentialsManager: AWSCredentialsManager by inject()
+    private val user: User by inject()
+    private val awsCredentialsManager by lazy { AWSCredentialsManager(context.profileDir, user) }
 
     private var localDirectory = Constants.Paths.LOCAL_MOUNT
     private var logger = KotlinLogging.logger {}
@@ -46,8 +48,9 @@ class Terraform(val context: Context) : KoinComponent {
         var mount = "/${awsCredentialsManager.credentialsFileName}"
         logger.info { "Mounting credentials at ${awsCredentialsManager.credentialsPath}:$mount" }
 
-        return docker
-            .addVolume(VolumeMapping(context.cwdPath, Constants.Paths.LOCAL_MOUNT, AccessMode.rw))
+        return docker.addVolume(
+            VolumeMapping(context.cwdPath, Constants.Paths.LOCAL_MOUNT, AccessMode.rw),
+        )
             .addVolume(
                 VolumeMapping(
                     context.terraformCacheDir.absolutePath,
@@ -55,8 +58,12 @@ class Terraform(val context: Context) : KoinComponent {
                     AccessMode.rw,
                 ),
             )
-            .addVolume(VolumeMapping(awsCredentialsManager.credentialsPath, mount, AccessMode.ro))
-            .addEnv("${Constants.Terraform.PLUGIN_CACHE_DIR_ENV}=${Constants.Paths.TERRAFORM_CACHE}")
+            .addVolume(
+                VolumeMapping(awsCredentialsManager.credentialsPath, mount, AccessMode.ro),
+            )
+            .addEnv(
+                "${Constants.Terraform.PLUGIN_CACHE_DIR_ENV}=${Constants.Paths.TERRAFORM_CACHE}",
+            )
             .runContainer(Containers.TERRAFORM, args, localDirectory)
     }
 }

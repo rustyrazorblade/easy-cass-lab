@@ -25,11 +25,8 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 
-/**
- * Registry that manages easy-cass-lab commands as MCP tools.
- */
-open class McpToolRegistry : KoinComponent {
-    private val context: Context by inject()
+/** Registry that manages easy-cass-lab commands as MCP tools. */
+open class McpToolRegistry(private val context: Context) : KoinComponent {
     val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -49,8 +46,8 @@ open class McpToolRegistry : KoinComponent {
     )
 
     /**
-     * Get all available tools from the command registry.
-     * Only includes commands annotated with @McpCommand.
+     * Get all available tools from the command registry. Only includes commands annotated with
+     * @McpCommand.
      */
     open fun getTools(): List<ToolInfo> {
         val parser = CommandLineParser()
@@ -60,14 +57,10 @@ open class McpToolRegistry : KoinComponent {
                 // Only include commands with @McpCommand annotation
                 command.command::class.java.isAnnotationPresent(McpCommand::class.java)
             }
-            .map { command ->
-                createToolInfo(command)
-            }
+            .map { command -> createToolInfo(command) }
     }
 
-    /**
-     * Execute a tool by name with the given arguments.
-     */
+    /** Execute a tool by name with the given arguments. */
     fun executeTool(
         name: String,
         arguments: JsonObject?,
@@ -85,10 +78,27 @@ open class McpToolRegistry : KoinComponent {
         // Create a fresh command instance to avoid state retention
         val freshCommand =
             try {
-                tool.command.command::class.java.getDeclaredConstructor().newInstance()
+                // Try constructor with Context parameter first
+                tool.command.command::class
+                    .java
+                    .getDeclaredConstructor(Context::class.java)
+                    .newInstance(context)
+            } catch (e: NoSuchMethodException) {
+                // Fallback to no-arg constructor (shouldn't happen anymore)
+                try {
+                    tool.command.command::class.java.getDeclaredConstructor().newInstance()
+                } catch (e2: Exception) {
+                    // If we can't create a fresh instance, fall back to the original
+                    log.warn {
+                        "Could not create fresh command instance for ${tool.name}: ${e2.message}"
+                    }
+                    tool.command.command
+                }
             } catch (e: Exception) {
                 // If we can't create a fresh instance, fall back to the original
-                log.warn { "Could not create fresh command instance for ${tool.name}: ${e.message}" }
+                log.warn {
+                    "Could not create fresh command instance for ${tool.name}: ${e.message}"
+                }
                 tool.command.command
             }
 
@@ -141,8 +151,7 @@ open class McpToolRegistry : KoinComponent {
 
     private fun extractDescription(command: ICommand): String {
         val parametersAnnotation = command::class.findAnnotation<Parameters>()
-        return parametersAnnotation?.commandDescription
-            ?: "No description available"
+        return parametersAnnotation?.commandDescription ?: "No description available"
     }
 
     fun generateSchema(command: ICommand): JsonObject {
@@ -178,9 +187,11 @@ open class McpToolRegistry : KoinComponent {
                                         // Get the string representation of the enum
                                         val enumString =
                                             if (enumValue is Enum<*>) {
-                                                // Try to get the 'type' property if it exists (like Arch.type)
+                                                // Try to get the 'type' property if it exists (like
+                                                // Arch.type)
                                                 try {
-                                                    val typeMethod = enumValue.javaClass.getMethod("getType")
+                                                    val typeMethod =
+                                                        enumValue.javaClass.getMethod("getType")
                                                     typeMethod.invoke(enumValue) as String
                                                 } catch (e: Exception) {
                                                     enumValue.name.lowercase()
@@ -204,7 +215,8 @@ open class McpToolRegistry : KoinComponent {
                                     // For enums, get the string representation
                                     val enumString =
                                         try {
-                                            val typeMethod = defaultValue.javaClass.getMethod("getType")
+                                            val typeMethod =
+                                                defaultValue.javaClass.getMethod("getType")
                                             typeMethod.invoke(defaultValue) as String
                                         } catch (e: Exception) {
                                             defaultValue.name.lowercase()
@@ -219,7 +231,8 @@ open class McpToolRegistry : KoinComponent {
             }
 
             // Check for ParametersDelegate
-            val delegateAnnotation = property.javaField?.getAnnotation(ParametersDelegate::class.java)
+            val delegateAnnotation =
+                property.javaField?.getAnnotation(ParametersDelegate::class.java)
             if (delegateAnnotation != null && property.javaField != null) {
                 try {
                     property.javaField!!.isAccessible = true
@@ -235,11 +248,7 @@ open class McpToolRegistry : KoinComponent {
         }
 
         // Return just the properties - MCP SDK will add the wrapper with type, properties, etc.
-        return buildJsonObject {
-            properties.forEach { (key, value) ->
-                put(key, value)
-            }
-        }
+        return buildJsonObject { properties.forEach { (key, value) -> put(key, value) } }
     }
 
     private fun scanDelegateForParameters(
@@ -277,10 +286,14 @@ open class McpToolRegistry : KoinComponent {
         return when {
             type.isEnum -> "string" // Enums are strings with constraints
             type == String::class.java -> "string"
-            type == Int::class.java || type == Integer::class.java ||
-                type == Long::class.java || type == java.lang.Long::class.java ||
-                type == Double::class.java || type == java.lang.Double::class.java ||
-                type == Float::class.java || type == java.lang.Float::class.java -> "number"
+            type == Int::class.java ||
+                type == Integer::class.java ||
+                type == Long::class.java ||
+                type == java.lang.Long::class.java ||
+                type == Double::class.java ||
+                type == java.lang.Double::class.java ||
+                type == Float::class.java ||
+                type == java.lang.Float::class.java -> "number"
             type == Boolean::class.java || type == java.lang.Boolean::class.java -> "boolean"
             else -> "string" // Default to string for unknown types
         }
@@ -309,13 +322,16 @@ open class McpToolRegistry : KoinComponent {
             }
 
             // Handle ParametersDelegate
-            val delegateAnnotation = property.javaField?.getAnnotation(ParametersDelegate::class.java)
+            val delegateAnnotation =
+                property.javaField?.getAnnotation(ParametersDelegate::class.java)
             if (delegateAnnotation != null && property.javaField != null) {
                 try {
                     property.javaField!!.isAccessible = true
                     val delegateObject = property.javaField!!.get(command)
                     if (delegateObject != null) {
-                        log.debug { "Mapping arguments to delegate ${delegateObject::class.simpleName}" }
+                        log.debug {
+                            "Mapping arguments to delegate ${delegateObject::class.simpleName}"
+                        }
                         mapArgumentsToDelegate(delegateObject, arguments)
                     } else {
                         log.debug { "Delegate object is null, skipping" }
@@ -385,7 +401,9 @@ open class McpToolRegistry : KoinComponent {
                     if (enumValue != null) {
                         field.set(target, enumValue)
                     } else {
-                        log.warn { "Unable to find enum value '$enumString' for field '${field.name}'" }
+                        log.warn {
+                            "Unable to find enum value '$enumString' for field '${field.name}'"
+                        }
                     }
                 }
                 field.type == String::class.java -> {
@@ -403,13 +421,16 @@ open class McpToolRegistry : KoinComponent {
                 field.type == Float::class.java || field.type == java.lang.Float::class.java -> {
                     field.set(target, value.jsonPrimitive.content.toFloat())
                 }
-                field.type == Boolean::class.java || field.type == java.lang.Boolean::class.java -> {
+                field.type == Boolean::class.java ||
+                    field.type == java.lang.Boolean::class.java -> {
                     field.set(target, value.jsonPrimitive.content.toBoolean())
                 }
             }
             log.debug { "Set field '${field.name}' on ${target::class.simpleName}" }
         } catch (e: Exception) {
-            log.warn { "Unable to set field '${field.name}' on ${target::class.simpleName}: ${e.message}" }
+            log.warn {
+                "Unable to set field '${field.name}' on ${target::class.simpleName}: ${e.message}"
+            }
         }
     }
 }
