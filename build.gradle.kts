@@ -92,6 +92,7 @@ dependencies {
 
     // Ktor
     implementation(libs.bundles.ktor)
+    implementation(libs.bundles.ktor.client)
 
     // Koin Dependency Injection
     implementation(platform(libs.koin.bom))
@@ -108,6 +109,7 @@ dependencies {
     // Testing
     testImplementation(libs.bundles.testing)
     testImplementation(libs.bundles.koin.test)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
 }
 

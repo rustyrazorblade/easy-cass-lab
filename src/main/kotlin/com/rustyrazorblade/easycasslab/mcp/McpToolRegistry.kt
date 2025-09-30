@@ -32,6 +32,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
 
     // Remote MCP discovery - initialized lazily when needed
     private var remoteMcpDiscovery: RemoteMcpDiscovery? = null
+    private var remoteMcpProxy: RemoteMcpProxy? = null
     private var remoteServers: List<RemoteMcpDiscovery.RemoteServer> = emptyList()
     private val remoteToolMap = mutableMapOf<String, RemoteMcpDiscovery.RemoteServer>()
 
@@ -44,7 +45,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         val name: String,
         val description: String,
         val inputSchema: JsonObject,
-        val command: Command,
+        val command: Command? = null,
     )
 
     data class ToolResult(
@@ -71,24 +72,45 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             return localTools
         }
 
-        // Initialize remote discovery if not already done
+        // Initialize remote discovery and proxy if not already done
         if (remoteMcpDiscovery == null) {
             remoteMcpDiscovery = RemoteMcpDiscovery(context)
+        }
+        if (remoteMcpProxy == null) {
+            remoteMcpProxy = RemoteMcpProxy()
         }
 
         // Discover remote servers
         remoteServers = remoteMcpDiscovery!!.discoverRemoteServers()
         log.info { "Discovered ${remoteServers.size} remote MCP servers" }
 
-        // Create placeholder remote tools (in a real implementation, we'd fetch from servers)
+        // Clear previous remote tool mappings
+        remoteToolMap.clear()
+
+        // Fetch actual tools from remote servers
         val remoteTools = mutableListOf<ToolInfo>()
         for (server in remoteServers) {
-            val serverTools = createRemoteToolsForServer(server)
-            remoteTools.addAll(serverTools)
+            try {
+                val serverTools = remoteMcpProxy!!.fetchToolsFromServer(server)
+                log.info { "Fetched ${serverTools.size} tools from ${server.nodeName}" }
 
-            // Map tool names to servers for proxying
-            serverTools.forEach { tool ->
-                remoteToolMap[tool.name] = server
+                // Convert RemoteToolInfo to ToolInfo with prefixed names
+                serverTools.forEach { remoteTool ->
+                    val prefixedName = "${REMOTE_TOOL_PREFIX}${server.nodeName}_${remoteTool.name}"
+                    val toolInfo = ToolInfo(
+                        name = prefixedName,
+                        description = "[${server.nodeName}] ${remoteTool.description}",
+                        inputSchema = remoteTool.inputSchema?.let { schema ->
+                            // Convert Jackson JsonNode to kotlinx.serialization JsonObject
+                            JsonObject(emptyMap()) // Placeholder for now
+                        } ?: JsonObject(emptyMap()),
+                        command = null
+                    )
+                    remoteTools.add(toolInfo)
+                    remoteToolMap[prefixedName] = server
+                }
+            } catch (e: Exception) {
+                log.warn { "Failed to fetch tools from ${server.nodeName}: ${e.message}" }
             }
         }
 
@@ -115,6 +137,15 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         if (tool == null) {
             return ToolResult(
                 content = listOf("Tool not found: $name"),
+                isError = true,
+            )
+        }
+
+        // Check if this is a remote tool (has no command)
+        if (tool.command == null) {
+            // This shouldn't happen as remote tools are handled above
+            return ToolResult(
+                content = listOf("Remote tool configuration error for: $name"),
                 isError = true,
             )
         }
@@ -479,8 +510,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
     }
 
     /**
-     * Execute a tool on a remote MCP server.
-     * This is a placeholder that will be replaced with actual SSE/HTTP communication.
+     * Execute a tool on a remote MCP server using the RemoteMcpProxy.
      */
     private fun executeRemoteTool(
         toolName: String,
@@ -489,25 +519,26 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
     ): ToolResult {
         log.debug { "Executing remote tool '$toolName' on ${server.nodeName} at ${server.endpoint}" }
 
+        // Initialize proxy if not already done
+        if (remoteMcpProxy == null) {
+            remoteMcpProxy = RemoteMcpProxy()
+        }
+
         try {
-            // In a full implementation, this would:
-            // 1. Establish SSE connection to the remote server
-            // 2. Send the tool execution request
-            // 3. Stream the response back
-            // 4. Return the result
-
-            // For now, return a placeholder result
-            outputHandler.handleMessage("Executing remote tool '$toolName' on ${server.nodeName}")
-
-            return ToolResult(
-                content = listOf("Remote tool execution simulated for '$toolName' on ${server.nodeName}"),
-                isError = false,
-            )
+            // Use the RemoteMcpProxy to execute the tool
+            val result = remoteMcpProxy!!.executeRemoteTool(toolName, arguments, server)
+            
+            // Log success
+            if (!result.isError) {
+                outputHandler.handleMessage("Successfully executed remote tool '$toolName' on ${server.nodeName}")
+            }
+            
+            return result
         } catch (e: Exception) {
             log.error(e) { "Failed to execute remote tool '$toolName' on ${server.nodeName}" }
             return ToolResult(
                 content = listOf("Failed to execute remote tool: ${e.message}"),
-                isError = true,
+                isError = true
             )
         }
     }
