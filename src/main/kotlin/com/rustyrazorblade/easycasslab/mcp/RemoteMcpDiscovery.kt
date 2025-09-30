@@ -40,7 +40,41 @@ open class RemoteMcpDiscovery(
         val host: String,
         val port: Int,
         val endpoint: String,
-    )
+        // Tunneled connection info (populated after SSH tunnel is established)
+        var tunneledHost: String? = null,
+        var tunneledPort: Int? = null,
+        var tunneledEndpoint: String? = null
+    ) {
+        /**
+         * Gets the effective endpoint to use (tunneled if available, direct otherwise).
+         */
+        fun getEffectiveEndpoint(): String {
+            return tunneledEndpoint ?: endpoint
+        }
+
+        /**
+         * Gets the effective host to use (tunneled if available, direct otherwise).
+         */
+        fun getEffectiveHost(): String {
+            return tunneledHost ?: host
+        }
+
+        /**
+         * Gets the effective port to use (tunneled if available, direct otherwise).
+         */
+        fun getEffectivePort(): Int {
+            return tunneledPort ?: port
+        }
+
+        /**
+         * Updates tunnel information after SSH tunnel is established.
+         */
+        fun updateTunnelInfo(localPort: Int) {
+            tunneledHost = "localhost"
+            tunneledPort = localPort
+            tunneledEndpoint = "http://localhost:$localPort/sse"
+        }
+    }
 
     // Inject TFStateProvider if not provided in constructor
     private val tfState by lazy {

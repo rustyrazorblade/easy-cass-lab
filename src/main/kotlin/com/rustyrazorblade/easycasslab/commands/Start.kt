@@ -15,6 +15,8 @@ import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.mcp.RemoteMcpDiscovery
+import com.rustyrazorblade.easycasslab.mcp.SshTunnelManager
+import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import java.io.File
@@ -624,7 +626,7 @@ class Start(context: Context) : BaseCommand(context) {
 
     /**
      * Post-execution hook that runs after the Start command completes.
-     * When in MCP mode, this discovers remote MCP servers on control nodes.
+     * When in MCP mode, this discovers remote MCP servers on control nodes and establishes SSH tunnels.
      */
     @PostExecute
     fun discoverRemoteMcpServers() {
@@ -640,15 +642,35 @@ class Start(context: Context) : BaseCommand(context) {
 
             if (remoteServers.isEmpty()) {
                 log.warn { "No remote MCP servers discovered on control nodes" }
+                return
+            }
+
+            log.info { "Discovered ${remoteServers.size} remote MCP servers:" }
+            remoteServers.forEach { server ->
+                log.info { "  - ${server.nodeName} at ${server.endpoint}" }
+            }
+
+            // Establish SSH tunnels for remote MCP communication
+            log.info { "Establishing SSH tunnels for remote MCP servers..." }
+            val tunnelManager: SshTunnelManager by inject()
+            val tunnels = tunnelManager.establishTunnels(remoteServers)
+
+            if (tunnels.isEmpty()) {
+                log.warn { "No SSH tunnels were established" }
             } else {
-                log.info { "Discovered ${remoteServers.size} remote MCP servers:" }
-                remoteServers.forEach { server ->
-                    log.info { "  - ${server.nodeName} at ${server.endpoint}" }
+                log.info { "Established ${tunnels.size} SSH tunnels:" }
+                tunnels.forEach { (nodeName, tunnel) ->
+                    log.info {
+                        "  - $nodeName: localhost:${tunnel.localPort} -> " +
+                            "${tunnel.remoteHost}:${tunnel.remotePort}"
+                    }
                 }
+
+                log.info { "SSH tunnels established and ready for MCP communication" }
             }
         } catch (e: Exception) {
-            log.error(e) { "Failed to discover remote MCP servers" }
-            // Don't fail the Start command if MCP discovery fails
+            log.error(e) { "Failed to discover remote MCP servers or establish tunnels" }
+            // Don't fail the Start command if MCP discovery/tunnel setup fails
         }
     }
 }

@@ -19,18 +19,20 @@ import io.ktor.http.contentType
 import io.ktor.serialization.jackson.jackson
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.net.ConnectException
 import java.time.Duration
 
 /**
- * Handles actual communication with remote MCP servers using HTTP/SSE.
+ * Handles actual communication with remote MCP servers using HTTP/SSE over SSH tunnels.
  * This class is responsible for:
- * 1. Establishing connections to remote MCP servers
+ * 1. Establishing connections to remote MCP servers through SSH tunnels
  * 2. Fetching available tools from remote servers
  * 3. Forwarding tool execution requests to remote servers
  * 4. Handling SSE streaming responses
  */
-open class RemoteMcpProxy {
+open class RemoteMcpProxy : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
         private const val CONNECTION_TIMEOUT_SECONDS = 10L
@@ -38,6 +40,8 @@ open class RemoteMcpProxy {
         private const val TOOLS_ENDPOINT = "/tools/list"
         private const val EXECUTE_ENDPOINT = "/tools/call"
     }
+
+    private val tunnelManager: SshTunnelManager by inject()
 
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -54,17 +58,34 @@ open class RemoteMcpProxy {
     private val objectMapper = ObjectMapper()
 
     /**
+     * Get the tunneled URL for a remote server.
+     * If SSH tunneling is enabled, returns localhost URL with the tunneled port.
+     * Otherwise, returns the direct URL to the remote server.
+     */
+    private fun getTunneledUrl(server: RemoteMcpDiscovery.RemoteServer, endpoint: String): String {
+        val localPort = tunnelManager.getLocalPort(server.nodeName)
+        if (localPort != null) {
+            log.debug { "Using SSH tunnel for ${server.nodeName}: localhost:$localPort" }
+            return "http://localhost:$localPort$endpoint"
+        }
+
+        // Fallback to direct connection if no tunnel is available
+        log.debug { "Using direct connection for ${server.nodeName}: ${server.host}:${server.port}" }
+        return "http://${server.host}:${server.port}$endpoint"
+    }
+
+    /**
      * Fetch the list of available tools from a remote MCP server.
      *
      * @param server The remote server to query
      * @return List of tool information from the remote server
      */
     open fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
-        log.info { "Fetching tools from remote server ${server.nodeName} at ${server.host}:${server.port}" }
+        log.info { "Fetching tools from remote server ${server.nodeName}" }
 
         return runBlocking {
             try {
-                val url = "http://${server.host}:${server.port}$TOOLS_ENDPOINT"
+                val url = getTunneledUrl(server, TOOLS_ENDPOINT)
                 val response: HttpResponse = httpClient.get(url)
 
                 if (response.status == HttpStatusCode.OK) {
@@ -89,7 +110,7 @@ open class RemoteMcpProxy {
                     emptyList()
                 }
             } catch (e: ConnectException) {
-                log.warn { "Failed to connect to ${server.nodeName} at ${server.host}:${server.port}: ${e.message}" }
+                log.warn { "Failed to connect to ${server.nodeName}: ${e.message}" }
                 emptyList()
             } catch (e: Exception) {
                 log.error(e) { "Unexpected error fetching tools from ${server.nodeName}" }
@@ -115,7 +136,7 @@ open class RemoteMcpProxy {
 
         return runBlocking {
             try {
-                val url = "http://${server.host}:${server.port}$EXECUTE_ENDPOINT"
+                val url = getTunneledUrl(server, EXECUTE_ENDPOINT)
 
                 // Prepare the request body
                 val requestBody = objectMapper.createObjectNode().apply {
@@ -177,7 +198,7 @@ open class RemoteMcpProxy {
     open fun testConnection(server: RemoteMcpDiscovery.RemoteServer): Boolean {
         return runBlocking {
             try {
-                val url = "http://${server.host}:${server.port}/health"
+                val url = getTunneledUrl(server, "/health")
                 val response: HttpResponse = httpClient.get(url)
                 response.status == HttpStatusCode.OK
             } catch (e: Exception) {
