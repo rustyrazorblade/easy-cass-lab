@@ -10,6 +10,9 @@ import java.io.File
 data class Context(val easycasslabUserDirectory: File) : KoinComponent {
     val log = KotlinLogging.logger {}
 
+    // MCP mode flag - set to true when running the MCP server command
+    var isMcpMode: Boolean = false
+
     /**
      * Profile setup.  User can override the default profile using a env var.
      * Long term, should probably make this something they can do via a command.

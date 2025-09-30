@@ -18,6 +18,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.getValue
@@ -29,8 +30,14 @@ import kotlin.reflect.jvm.javaField
 open class McpToolRegistry(private val context: Context) : KoinComponent {
     val outputHandler: OutputHandler by inject()
 
+    // Remote MCP discovery - initialized lazily when needed
+    private var remoteMcpDiscovery: RemoteMcpDiscovery? = null
+    private var remoteServers: List<RemoteMcpDiscovery.RemoteServer> = emptyList()
+    private val remoteToolMap = mutableMapOf<String, RemoteMcpDiscovery.RemoteServer>()
+
     companion object {
         private val log = KotlinLogging.logger {}
+        private const val REMOTE_TOOL_PREFIX = "remote_"
     }
 
     data class ToolInfo(
@@ -47,25 +54,62 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
 
     /**
      * Get all available tools from the command registry. Only includes commands annotated with
-     * @McpCommand.
+     * @McpCommand. Also includes remote tools when in MCP mode.
      */
     open fun getTools(): List<ToolInfo> {
         val parser = CommandLineParser(context)
 
-        return parser.commands
+        val localTools = parser.commands
             .filter { command ->
                 // Only include commands with @McpCommand annotation
                 command.command::class.java.isAnnotationPresent(McpCommand::class.java)
             }
             .map { command -> createToolInfo(command) }
+
+        // Add remote tools if in MCP mode
+        if (!context.isMcpMode) {
+            return localTools
+        }
+
+        // Initialize remote discovery if not already done
+        if (remoteMcpDiscovery == null) {
+            remoteMcpDiscovery = RemoteMcpDiscovery(context)
+        }
+
+        // Discover remote servers
+        remoteServers = remoteMcpDiscovery!!.discoverRemoteServers()
+        log.info { "Discovered ${remoteServers.size} remote MCP servers" }
+
+        // Create placeholder remote tools (in a real implementation, we'd fetch from servers)
+        val remoteTools = mutableListOf<ToolInfo>()
+        for (server in remoteServers) {
+            val serverTools = createRemoteToolsForServer(server)
+            remoteTools.addAll(serverTools)
+
+            // Map tool names to servers for proxying
+            serverTools.forEach { tool ->
+                remoteToolMap[tool.name] = server
+            }
+        }
+
+        return localTools + remoteTools
     }
 
     /** Execute a tool by name with the given arguments. */
-    fun executeTool(
+    open fun executeTool(
         name: String,
         arguments: JsonObject?,
     ): ToolResult {
         log.debug { "executeTool called with name='$name', arguments=$arguments" }
+
+        // Check if this is a remote tool
+        val remoteServer = remoteToolMap[name]
+        if (remoteServer != null) {
+            log.info { "Proxying tool '$name' to remote server ${remoteServer.nodeName}" }
+            return executeRemoteTool(name, arguments, remoteServer)
+        }
+
+        // Local tool execution
         val tool = getTools().find { it.name == name }
 
         if (tool == null) {
@@ -431,6 +475,100 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             log.warn {
                 "Unable to set field '${field.name}' on ${target::class.simpleName}: ${e.message}"
             }
+        }
+    }
+
+    /**
+     * Execute a tool on a remote MCP server.
+     * This is a placeholder that will be replaced with actual SSE/HTTP communication.
+     */
+    private fun executeRemoteTool(
+        toolName: String,
+        arguments: JsonObject?,
+        server: RemoteMcpDiscovery.RemoteServer,
+    ): ToolResult {
+        log.debug { "Executing remote tool '$toolName' on ${server.nodeName} at ${server.endpoint}" }
+
+        try {
+            // In a full implementation, this would:
+            // 1. Establish SSE connection to the remote server
+            // 2. Send the tool execution request
+            // 3. Stream the response back
+            // 4. Return the result
+
+            // For now, return a placeholder result
+            outputHandler.handleMessage("Executing remote tool '$toolName' on ${server.nodeName}")
+
+            return ToolResult(
+                content = listOf("Remote tool execution simulated for '$toolName' on ${server.nodeName}"),
+                isError = false,
+            )
+        } catch (e: Exception) {
+            log.error(e) { "Failed to execute remote tool '$toolName' on ${server.nodeName}" }
+            return ToolResult(
+                content = listOf("Failed to execute remote tool: ${e.message}"),
+                isError = true,
+            )
+        }
+    }
+
+    /**
+     * Create placeholder remote tools for a server.
+     * In a full implementation, this would fetch the actual tool list from the remote server.
+     */
+    private fun createRemoteToolsForServer(server: RemoteMcpDiscovery.RemoteServer): List<ToolInfo> {
+        val tools = mutableListOf<ToolInfo>()
+
+        // Example: Remote Cassandra status tool
+        tools.add(
+            ToolInfo(
+                name = "${REMOTE_TOOL_PREFIX}${server.nodeName}_nodetool_status",
+                description = "Get Cassandra cluster status from ${server.nodeName}",
+                inputSchema = buildJsonObject {
+                    putJsonArray("required") {}
+                    putJsonObject("properties") {}
+                    put("type", "object")
+                },
+                command = Command(
+                    name = "remote_nodetool_status",
+                    command = DummyRemoteCommand(context),
+                ),
+            ),
+        )
+
+        // Example: Remote system metrics tool
+        tools.add(
+            ToolInfo(
+                name = "${REMOTE_TOOL_PREFIX}${server.nodeName}_system_metrics",
+                description = "Get system metrics from ${server.nodeName}",
+                inputSchema = buildJsonObject {
+                    putJsonArray("required") { add("metric") }
+                    putJsonObject("properties") {
+                        putJsonObject("metric") {
+                            put("type", "string")
+                            put("description", "Type of metric (cpu, memory, disk)")
+                        }
+                    }
+                    put("type", "object")
+                },
+                command = Command(
+                    name = "remote_system_metrics",
+                    command = DummyRemoteCommand(context),
+                ),
+            ),
+        )
+
+        return tools
+    }
+
+    /**
+     * Dummy command implementation for remote tools.
+     * Remote tools are proxied to remote servers, not executed locally.
+     */
+    private class DummyRemoteCommand(private val ctx: Context) : ICommand {
+        override fun execute() {
+            // This should never be called directly
+            throw UnsupportedOperationException("Remote commands should be proxied, not executed locally")
         }
     }
 }

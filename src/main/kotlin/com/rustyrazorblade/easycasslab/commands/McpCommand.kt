@@ -30,6 +30,9 @@ class McpCommand(context: Context) : BaseCommand(context) {
     override fun execute() {
         log.info { "Starting easy-cass-lab MCP server..." }
 
+        // Set MCP mode in context to enable remote MCP features
+        context.isMcpMode = true
+
         try {
             // Create and start the MCP server with SDK
             val server = McpServer(context)

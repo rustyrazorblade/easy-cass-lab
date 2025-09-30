@@ -7,12 +7,15 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.PostExecute
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.mcp.RemoteMcpDiscovery
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import java.io.File
 
@@ -24,6 +27,7 @@ class Start(context: Context) : BaseCommand(context) {
     private val userConfig: User by inject()
 
     companion object {
+        private val log = KotlinLogging.logger {}
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
         private const val DOCKER_COMPOSE_STARTUP_DELAY_MS = 5000L
         private const val DOCKER_COMPOSE_RETRY_DELAY_MS = 2000L
@@ -615,6 +619,36 @@ class Start(context: Context) : BaseCommand(context) {
             outputHandler.handleMessage(
                 "Warning: Could not write MCP configuration file: ${e.message}",
             )
+        }
+    }
+
+    /**
+     * Post-execution hook that runs after the Start command completes.
+     * When in MCP mode, this discovers remote MCP servers on control nodes.
+     */
+    @PostExecute
+    fun discoverRemoteMcpServers() {
+        if (!context.isMcpMode) {
+            return
+        }
+
+        try {
+            log.info { "Starting remote MCP server discovery (MCP mode is active)" }
+
+            val discovery = RemoteMcpDiscovery(context)
+            val remoteServers = discovery.discoverRemoteServers()
+
+            if (remoteServers.isEmpty()) {
+                log.warn { "No remote MCP servers discovered on control nodes" }
+            } else {
+                log.info { "Discovered ${remoteServers.size} remote MCP servers:" }
+                remoteServers.forEach { server ->
+                    log.info { "  - ${server.nodeName} at ${server.endpoint}" }
+                }
+            }
+        } catch (e: Exception) {
+            log.error(e) { "Failed to discover remote MCP servers" }
+            // Don't fail the Start command if MCP discovery fails
         }
     }
 }
