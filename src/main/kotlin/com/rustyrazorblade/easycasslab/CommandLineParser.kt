@@ -134,7 +134,7 @@ class CommandLineParser : KoinComponent {
                     exitProcess(1)
                 }
             }
-            this.command.execute()
+            this.command.executeAll()
         }
             ?: run { jc.usage() }
     }

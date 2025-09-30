@@ -115,7 +115,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             outputHandler.handleMessage("Starting execution of tool: $name")
 
             // Execute the command
-            freshCommand.execute()
+            freshCommand.executeAll()
 
             // Stream completion message
             outputHandler.handleMessage("Tool '$name' completed successfully")
