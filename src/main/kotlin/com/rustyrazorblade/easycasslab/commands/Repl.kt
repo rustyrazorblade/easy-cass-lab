@@ -35,7 +35,7 @@ class Repl(context: Context) : BaseCommand(context) {
         // just to prove this out
         // todo: add cluster names, C* configuration options
         // also make it context aware
-        val parser = CommandLineParser()
+        val parser = CommandLineParser(context)
         val commands = parser.commands.map { it.name }
 
         return LineReaderBuilder.builder()
@@ -76,7 +76,7 @@ class Repl(context: Context) : BaseCommand(context) {
     private fun processCommand(line: String) {
         // we have to create a new parser every time due to a jcommander limitation
         // See https://github.com/cbeust/jcommander/issues/271
-        val parser = CommandLineParser()
+        val parser = CommandLineParser(context)
         parser.eval(line)
     }
 

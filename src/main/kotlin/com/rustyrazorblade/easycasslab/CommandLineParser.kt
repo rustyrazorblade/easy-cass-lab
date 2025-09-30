@@ -46,9 +46,7 @@ class MainArgs {
     var help = false
 }
 
-class CommandLineParser : KoinComponent {
-    private val contextFactory: ContextFactory by inject()
-    val context: Context = contextFactory.getDefault()
+class CommandLineParser(val context: Context) : KoinComponent {
     private val userConfig: User by inject()
     val commands: List<Command>
 

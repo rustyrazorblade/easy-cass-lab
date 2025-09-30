@@ -50,7 +50,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
      * @McpCommand.
      */
     open fun getTools(): List<ToolInfo> {
-        val parser = CommandLineParser()
+        val parser = CommandLineParser(context)
 
         return parser.commands
             .filter { command ->

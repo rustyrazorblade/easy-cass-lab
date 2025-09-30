@@ -24,7 +24,7 @@ fun main(arguments: Array<String>) {
             KoinModules.getAllModules(defaultContext) + contextModule(contextFactory),
         )
     }
-    val parser = CommandLineParser()
+    val parser = CommandLineParser(defaultContext)
     try {
         parser.eval(arguments)
     } catch (e: DockerException) {
