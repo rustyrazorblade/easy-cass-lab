@@ -9,7 +9,9 @@ import java.io.File
 
 class McpCommandTest : BaseKoinTest() {
     @Test
-    fun `McpCommand should set isMcpMode to true in context`(@TempDir tempDir: File) {
+    fun `McpCommand should set isMcpMode to true in context`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val context = Context(tempDir)
         assertThat(context.isMcpMode).isFalse // Verify initial state
@@ -31,7 +33,9 @@ class McpCommandTest : BaseKoinTest() {
     }
 
     @Test
-    fun `McpCommand should accept custom port parameter`(@TempDir tempDir: File) {
+    fun `McpCommand should accept custom port parameter`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val context = Context(tempDir)
         val mcpCommand = McpCommand(context)
@@ -44,7 +48,9 @@ class McpCommandTest : BaseKoinTest() {
     }
 
     @Test
-    fun `McpCommand should have default port from Constants`(@TempDir tempDir: File) {
+    fun `McpCommand should have default port from Constants`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val context = Context(tempDir)
         val mcpCommand = McpCommand(context)

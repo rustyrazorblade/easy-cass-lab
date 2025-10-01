@@ -16,7 +16,6 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.mcp.RemoteMcpDiscovery
 import com.rustyrazorblade.easycasslab.mcp.SshTunnelManager
-import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import java.io.File

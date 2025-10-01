@@ -8,9 +8,12 @@ import java.io.File
 
 class DockerComposeParserTest : BaseKoinTest() {
     @Test
-    fun `should parse MCP service with port from healthcheck`(@TempDir tempDir: File) {
+    fun `should parse MCP service with port from healthcheck`(
+        @TempDir tempDir: File,
+    ) {
         // Given
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 image: rustyrazorblade/easy-cass-mcp:latest
@@ -30,7 +33,7 @@ class DockerComposeParserTest : BaseKoinTest() {
               opensearch:
                 image: opensearchproject/opensearch:latest
                 container_name: opensearch
-        """.trimIndent()
+            """.trimIndent()
 
         val dockerComposeFile = File(tempDir, "docker-compose.yaml")
         dockerComposeFile.writeText(dockerComposeContent)
@@ -48,9 +51,12 @@ class DockerComposeParserTest : BaseKoinTest() {
     }
 
     @Test
-    fun `should return null when MCP service not found`(@TempDir tempDir: File) {
+    fun `should return null when MCP service not found`(
+        @TempDir tempDir: File,
+    ) {
         // Given
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               opensearch:
                 image: opensearchproject/opensearch:latest
@@ -59,7 +65,7 @@ class DockerComposeParserTest : BaseKoinTest() {
               data-prepper:
                 image: opensearchproject/data-prepper:latest
                 container_name: data-prepper
-        """.trimIndent()
+            """.trimIndent()
 
         val dockerComposeFile = File(tempDir, "docker-compose.yaml")
         dockerComposeFile.writeText(dockerComposeContent)
@@ -74,7 +80,9 @@ class DockerComposeParserTest : BaseKoinTest() {
     }
 
     @Test
-    fun `should return null when file does not exist`(@TempDir tempDir: File) {
+    fun `should return null when file does not exist`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val nonExistentFile = File(tempDir, "nonexistent.yaml")
         val parser = DockerComposeParser()
@@ -87,9 +95,12 @@ class DockerComposeParserTest : BaseKoinTest() {
     }
 
     @Test
-    fun `should handle malformed YAML gracefully`(@TempDir tempDir: File) {
+    fun `should handle malformed YAML gracefully`(
+        @TempDir tempDir: File,
+    ) {
         // Given
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 image: rustyrazorblade/easy-cass-mcp:latest
@@ -97,7 +108,7 @@ class DockerComposeParserTest : BaseKoinTest() {
                 healthcheck:
                   - this is not valid yaml structure
                   test: [missing closing bracket
-        """.trimIndent()
+            """.trimIndent()
 
         val dockerComposeFile = File(tempDir, "docker-compose.yaml")
         dockerComposeFile.writeText(dockerComposeContent)
@@ -112,9 +123,12 @@ class DockerComposeParserTest : BaseKoinTest() {
     }
 
     @Test
-    fun `should parse port from healthcheck with curl command`(@TempDir tempDir: File) {
+    fun `should parse port from healthcheck with curl command`(
+        @TempDir tempDir: File,
+    ) {
         // Given
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 image: rustyrazorblade/easy-cass-mcp:latest
@@ -122,7 +136,7 @@ class DockerComposeParserTest : BaseKoinTest() {
                 healthcheck:
                   test: ["CMD", "curl", "-f", "http://localhost:9999/health"]
                   interval: 30s
-        """.trimIndent()
+            """.trimIndent()
 
         val dockerComposeFile = File(tempDir, "docker-compose.yaml")
         dockerComposeFile.writeText(dockerComposeContent)
@@ -139,9 +153,12 @@ class DockerComposeParserTest : BaseKoinTest() {
     }
 
     @Test
-    fun `should use default port when healthcheck does not contain port`(@TempDir tempDir: File) {
+    fun `should use default port when healthcheck does not contain port`(
+        @TempDir tempDir: File,
+    ) {
         // Given
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 image: rustyrazorblade/easy-cass-mcp:latest
@@ -149,7 +166,7 @@ class DockerComposeParserTest : BaseKoinTest() {
                 healthcheck:
                   test: ["CMD", "echo", "healthy"]
                   interval: 30s
-        """.trimIndent()
+            """.trimIndent()
 
         val dockerComposeFile = File(tempDir, "docker-compose.yaml")
         dockerComposeFile.writeText(dockerComposeContent)

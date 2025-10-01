@@ -77,23 +77,25 @@ class DockerComposeParser {
         val test = healthcheck["test"] ?: return DEFAULT_MCP_PORT
 
         // Convert test array to string for pattern matching
-        val testString = when {
-            test.isArray -> test.joinToString(" ") { it.asText() }
-            test.isTextual -> test.asText()
-            else -> return DEFAULT_MCP_PORT
-        }
+        val testString =
+            when {
+                test.isArray -> test.joinToString(" ") { it.asText() }
+                test.isTextual -> test.asText()
+                else -> return DEFAULT_MCP_PORT
+            }
 
         // Try to extract port from various patterns
-        val patterns = listOf(
-            // Pattern for /dev/tcp/localhost/8000
-            Regex("""/dev/tcp/localhost/(\d+)"""),
-            // Pattern for http://localhost:9999/health
-            Regex("""http://localhost:(\d+)"""),
-            // Pattern for 127.0.0.1:8000
-            Regex("""127\.0\.0\.1:(\d+)"""),
-            // Pattern for 0.0.0.0:8000
-            Regex("""0\.0\.0\.0:(\d+)"""),
-        )
+        val patterns =
+            listOf(
+                // Pattern for /dev/tcp/localhost/8000
+                Regex("""/dev/tcp/localhost/(\d+)"""),
+                // Pattern for http://localhost:9999/health
+                Regex("""http://localhost:(\d+)"""),
+                // Pattern for 127.0.0.1:8000
+                Regex("""127\.0\.0\.1:(\d+)"""),
+                // Pattern for 0.0.0.0:8000
+                Regex("""0\.0\.0\.0:(\d+)"""),
+            )
 
         for (pattern in patterns) {
             val match = pattern.find(testString)
@@ -116,19 +118,21 @@ class DockerComposeParser {
         val test = healthcheck["test"] ?: return null
 
         // Convert test array to string for pattern matching
-        val testString = when {
-            test.isArray -> test.joinToString(" ") { it.asText() }
-            test.isTextual -> test.asText()
-            else -> return null
-        }
+        val testString =
+            when {
+                test.isArray -> test.joinToString(" ") { it.asText() }
+                test.isTextual -> test.asText()
+                else -> return null
+            }
 
         // Look for URL patterns
-        val urlPatterns = listOf(
-            // Pattern for /dev/tcp/localhost/8000
-            Regex("""/dev/tcp/localhost/\d+"""),
-            // Pattern for http://localhost:9999/health
-            Regex("""http://localhost:\d+[/\w-]*"""),
-        )
+        val urlPatterns =
+            listOf(
+                // Pattern for /dev/tcp/localhost/8000
+                Regex("""/dev/tcp/localhost/\d+"""),
+                // Pattern for http://localhost:9999/health
+                Regex("""http://localhost:\d+[/\w-]*"""),
+            )
 
         for (pattern in urlPatterns) {
             val match = pattern.find(testString)

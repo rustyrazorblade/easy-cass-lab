@@ -43,17 +43,18 @@ open class RemoteMcpProxy : KoinComponent {
 
     private val tunnelManager: SshTunnelManager by inject()
 
-    private val httpClient = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            jackson {
-                // Configure Jackson if needed
+    private val httpClient =
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                jackson {
+                    // Configure Jackson if needed
+                }
+            }
+            install(HttpTimeout) {
+                connectTimeoutMillis = Duration.ofSeconds(CONNECTION_TIMEOUT_SECONDS).toMillis()
+                requestTimeoutMillis = Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS).toMillis()
             }
         }
-        install(HttpTimeout) {
-            connectTimeoutMillis = Duration.ofSeconds(CONNECTION_TIMEOUT_SECONDS).toMillis()
-            requestTimeoutMillis = Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS).toMillis()
-        }
-    }
 
     private val objectMapper = ObjectMapper()
 
@@ -62,7 +63,10 @@ open class RemoteMcpProxy : KoinComponent {
      * If SSH tunneling is enabled, returns localhost URL with the tunneled port.
      * Otherwise, returns the direct URL to the remote server.
      */
-    private fun getTunneledUrl(server: RemoteMcpDiscovery.RemoteServer, endpoint: String): String {
+    private fun getTunneledUrl(
+        server: RemoteMcpDiscovery.RemoteServer,
+        endpoint: String,
+    ): String {
         val localPort = tunnelManager.getLocalPort(server.nodeName)
         if (localPort != null) {
             log.debug { "Using SSH tunnel for ${server.nodeName}: localhost:$localPort" }
@@ -98,7 +102,7 @@ open class RemoteMcpProxy : KoinComponent {
                             RemoteToolInfo(
                                 name = toolNode.get("name")?.asText() ?: return@mapNotNull null,
                                 description = toolNode.get("description")?.asText() ?: "",
-                                inputSchema = toolNode.get("inputSchema")
+                                inputSchema = toolNode.get("inputSchema"),
                             )
                         } catch (e: Exception) {
                             log.warn { "Failed to parse tool from ${server.nodeName}: ${e.message}" }
@@ -130,7 +134,7 @@ open class RemoteMcpProxy : KoinComponent {
     open fun executeRemoteTool(
         toolName: String,
         arguments: JsonObject?,
-        server: RemoteMcpDiscovery.RemoteServer
+        server: RemoteMcpDiscovery.RemoteServer,
     ): McpToolRegistry.ToolResult {
         log.info { "Executing remote tool '$toolName' on ${server.nodeName}" }
 
@@ -139,17 +143,19 @@ open class RemoteMcpProxy : KoinComponent {
                 val url = getTunneledUrl(server, EXECUTE_ENDPOINT)
 
                 // Prepare the request body
-                val requestBody = objectMapper.createObjectNode().apply {
-                    put("name", toolName)
-                    if (arguments != null) {
-                        set<ObjectNode>("arguments", objectMapper.readTree(arguments.toString()))
+                val requestBody =
+                    objectMapper.createObjectNode().apply {
+                        put("name", toolName)
+                        if (arguments != null) {
+                            set<ObjectNode>("arguments", objectMapper.readTree(arguments.toString()))
+                        }
                     }
-                }
 
-                val response: HttpResponse = httpClient.post(url) {
-                    contentType(ContentType.Application.Json)
-                    setBody(requestBody.toString())
-                }
+                val response: HttpResponse =
+                    httpClient.post(url) {
+                        contentType(ContentType.Application.Json)
+                        setBody(requestBody.toString())
+                    }
 
                 if (response.status == HttpStatusCode.OK) {
                     val responseBody = response.bodyAsText()
@@ -161,14 +167,14 @@ open class RemoteMcpProxy : KoinComponent {
 
                     McpToolRegistry.ToolResult(
                         content = listOf(content),
-                        isError = isError
+                        isError = isError,
                     )
                 } else {
                     val errorMessage = "Failed to execute tool on ${server.nodeName}: HTTP ${response.status}"
                     log.warn { errorMessage }
                     McpToolRegistry.ToolResult(
                         content = listOf(errorMessage),
-                        isError = true
+                        isError = true,
                     )
                 }
             } catch (e: ConnectException) {
@@ -176,14 +182,14 @@ open class RemoteMcpProxy : KoinComponent {
                 log.warn { errorMessage }
                 McpToolRegistry.ToolResult(
                     content = listOf(errorMessage),
-                    isError = true
+                    isError = true,
                 )
             } catch (e: Exception) {
                 val errorMessage = "Unexpected error executing tool on ${server.nodeName}: ${e.message}"
                 log.error(e) { errorMessage }
                 McpToolRegistry.ToolResult(
                     content = listOf(errorMessage),
-                    isError = true
+                    isError = true,
                 )
             }
         }
@@ -221,6 +227,6 @@ open class RemoteMcpProxy : KoinComponent {
     data class RemoteToolInfo(
         val name: String,
         val description: String,
-        val inputSchema: JsonNode? = null
+        val inputSchema: JsonNode? = null,
     )
 }

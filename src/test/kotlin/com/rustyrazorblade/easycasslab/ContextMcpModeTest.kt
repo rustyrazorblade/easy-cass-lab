@@ -7,7 +7,9 @@ import java.io.File
 
 class ContextMcpModeTest {
     @Test
-    fun `context should have isMcpMode false by default`(@TempDir tempDir: File) {
+    fun `context should have isMcpMode false by default`(
+        @TempDir tempDir: File,
+    ) {
         // Given/When
         val context = Context(tempDir)
 
@@ -16,7 +18,9 @@ class ContextMcpModeTest {
     }
 
     @Test
-    fun `context isMcpMode should be mutable`(@TempDir tempDir: File) {
+    fun `context isMcpMode should be mutable`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val context = Context(tempDir)
 
@@ -34,7 +38,9 @@ class ContextMcpModeTest {
     }
 
     @Test
-    fun `multiple context instances should have independent isMcpMode values`(@TempDir tempDir: File) {
+    fun `multiple context instances should have independent isMcpMode values`(
+        @TempDir tempDir: File,
+    ) {
         // Given
         val context1 = Context(tempDir)
         val context2 = Context(tempDir)

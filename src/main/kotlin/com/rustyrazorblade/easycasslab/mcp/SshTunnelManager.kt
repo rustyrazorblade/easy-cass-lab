@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class SshTunnelManager(
     private val context: Context,
-    private val sshConnectionProvider: SSHConnectionProvider
+    private val sshConnectionProvider: SSHConnectionProvider,
 ) {
     private val log = KotlinLogging.logger {}
 
@@ -37,7 +37,7 @@ class SshTunnelManager(
         val remoteHost: String,
         val remotePort: Int,
         val localPort: Int,
-        val localAddress: org.apache.sshd.common.util.net.SshdSocketAddress? = null
+        val localAddress: org.apache.sshd.common.util.net.SshdSocketAddress? = null,
     )
 
     /**
@@ -74,8 +74,9 @@ class SshTunnelManager(
 
         // Get the control node host information
         val controlHosts = context.tfstate.getHosts(ServerType.Control)
-        val controlHost = controlHosts.find { it.alias == server.nodeName }
-            ?: throw IllegalArgumentException("Control host ${server.nodeName} not found in terraform state")
+        val controlHost =
+            controlHosts.find { it.alias == server.nodeName }
+                ?: throw IllegalArgumentException("Control host ${server.nodeName} not found in terraform state")
 
         log.debug { "Creating SSH tunnel for ${server.nodeName}: localhost:$localPort -> localhost:${server.port}" }
 
@@ -84,22 +85,24 @@ class SshTunnelManager(
 
         // For SSHClient, we need to access the underlying session
         // This is a bit of a hack, but we need the ClientSession for port forwarding
-        val session = if (sshClient is SSHClient) {
-            // Use reflection to get the private session field
-            val sessionField = SSHClient::class.java.getDeclaredField("session")
-            sessionField.isAccessible = true
-            sessionField.get(sshClient) as ClientSession
-        } else {
-            error("SSH client is not a SSHClient instance, cannot create tunnel")
-        }
+        val session =
+            if (sshClient is SSHClient) {
+                // Use reflection to get the private session field
+                val sessionField = SSHClient::class.java.getDeclaredField("session")
+                sessionField.isAccessible = true
+                sessionField.get(sshClient) as ClientSession
+            } else {
+                error("SSH client is not a SSHClient instance, cannot create tunnel")
+            }
 
         // Create local port forward using Apache Mina
         // Format: localPort -> remoteHost:remotePort
         // We're forwarding to localhost on the remote machine since MCP runs in Docker there
-        val localAddress = session.startLocalPortForwarding(
-            localPort,
-            org.apache.sshd.common.util.net.SshdSocketAddress("localhost", server.port)
-        )
+        val localAddress =
+            session.startLocalPortForwarding(
+                localPort,
+                org.apache.sshd.common.util.net.SshdSocketAddress("localhost", server.port),
+            )
 
         log.info { "SSH tunnel established: localhost:$localPort -> ${controlHost.public}:localhost:${server.port}" }
 
@@ -108,7 +111,7 @@ class SshTunnelManager(
             remoteHost = server.host,
             remotePort = server.port,
             localPort = localPort,
-            localAddress = localAddress
+            localAddress = localAddress,
         )
     }
 
@@ -175,19 +178,21 @@ class SshTunnelManager(
         try {
             // Get the control node host
             val controlHosts = context.tfstate.getHosts(ServerType.Control)
-            val controlHost = controlHosts.find { it.alias == tunnel.nodeName }
-                ?: throw IllegalArgumentException("Control host ${tunnel.nodeName} not found")
+            val controlHost =
+                controlHosts.find { it.alias == tunnel.nodeName }
+                    ?: throw IllegalArgumentException("Control host ${tunnel.nodeName} not found")
 
             val sshClient = sshConnectionProvider.getConnection(controlHost)
 
             // Access the underlying session
-            val session = if (sshClient is SSHClient) {
-                val sessionField = SSHClient::class.java.getDeclaredField("session")
-                sessionField.isAccessible = true
-                sessionField.get(sshClient) as ClientSession
-            } else {
-                error("SSH client is not a SSHClient instance")
-            }
+            val session =
+                if (sshClient is SSHClient) {
+                    val sessionField = SSHClient::class.java.getDeclaredField("session")
+                    sessionField.isAccessible = true
+                    sessionField.get(sshClient) as ClientSession
+                } else {
+                    error("SSH client is not a SSHClient instance")
+                }
 
             // Stop the port forwarding
             if (tunnel.localAddress != null) {

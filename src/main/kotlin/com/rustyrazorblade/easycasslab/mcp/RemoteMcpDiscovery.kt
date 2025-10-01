@@ -43,7 +43,7 @@ open class RemoteMcpDiscovery(
         // Tunneled connection info (populated after SSH tunnel is established)
         var tunneledHost: String? = null,
         var tunneledPort: Int? = null,
-        var tunneledEndpoint: String? = null
+        var tunneledEndpoint: String? = null,
     ) {
         /**
          * Gets the effective endpoint to use (tunneled if available, direct otherwise).
@@ -117,21 +117,23 @@ open class RemoteMcpDiscovery(
 
         // Check connectivity to each control node's MCP server
         val availableServers = mutableListOf<RemoteServer>()
-        val httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(HEALTH_CHECK_TIMEOUT_SECONDS))
-            .build()
+        val httpClient =
+            HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(HEALTH_CHECK_TIMEOUT_SECONDS))
+                .build()
 
         for (node in controlNodes) {
             val healthCheckUrl = "http://${node.private}:${mcpServiceInfo.port}$HEALTH_CHECK_PATH"
             log.debug { "Checking MCP server health at $healthCheckUrl" }
 
             if (isServerHealthy(httpClient, healthCheckUrl)) {
-                val server = RemoteServer(
-                    nodeName = node.alias,
-                    host = node.private,
-                    port = mcpServiceInfo.port,
-                    endpoint = "http://${node.private}:${mcpServiceInfo.port}$SSE_PATH",
-                )
+                val server =
+                    RemoteServer(
+                        nodeName = node.alias,
+                        host = node.private,
+                        port = mcpServiceInfo.port,
+                        endpoint = "http://${node.private}:${mcpServiceInfo.port}$SSE_PATH",
+                    )
                 availableServers.add(server)
                 log.info { "MCP server available on ${node.alias} at ${server.endpoint}" }
             } else {
@@ -155,11 +157,12 @@ open class RemoteMcpDiscovery(
         healthCheckUrl: String,
     ): Boolean {
         return try {
-            val request = HttpRequest.newBuilder()
-                .uri(URI.create(healthCheckUrl))
-                .timeout(Duration.ofSeconds(HEALTH_CHECK_TIMEOUT_SECONDS))
-                .GET()
-                .build()
+            val request =
+                HttpRequest.newBuilder()
+                    .uri(URI.create(healthCheckUrl))
+                    .timeout(Duration.ofSeconds(HEALTH_CHECK_TIMEOUT_SECONDS))
+                    .GET()
+                    .build()
 
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             val isHealthy = response.statusCode() == 200

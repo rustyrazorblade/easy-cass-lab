@@ -26,16 +26,20 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     fun setup() {
         // Create a minimal Context with mocked TFState
         mockTfState = mock()
-        testContext = Context(
-            easycasslabUserDirectory = File("/tmp/test-user-dir")
-        )
+        testContext =
+            Context(
+                easycasslabUserDirectory = File("/tmp/test-user-dir"),
+            )
 
         // Create a mock TFStateProvider
-        val mockProvider = object : TFStateProvider {
-            override fun parseFromFile(file: File) = mockTfState
-            override fun parseFromStream(stream: java.io.InputStream) = mockTfState
-            override fun getDefault() = mockTfState
-        }
+        val mockProvider =
+            object : TFStateProvider {
+                override fun parseFromFile(file: File) = mockTfState
+
+                override fun parseFromStream(stream: java.io.InputStream) = mockTfState
+
+                override fun getDefault() = mockTfState
+            }
 
         // Create real instances for integration testing
         discovery = RemoteMcpDiscovery(testContext, mockProvider)
@@ -49,42 +53,47 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
         whenever(mockTfState.getHosts(ServerType.Control)).thenReturn(listOf(controlHost))
 
         // Mock docker-compose.yaml content
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 ports:
                   - "8000:3000"
-        """.trimIndent()
+            """.trimIndent()
 
         // Create a mock provider
-        val mockProvider = object : TFStateProvider {
-            override fun parseFromFile(file: File) = mockTfState
-            override fun parseFromStream(stream: java.io.InputStream) = mockTfState
-            override fun getDefault() = mockTfState
-        }
+        val mockProvider =
+            object : TFStateProvider {
+                override fun parseFromFile(file: File) = mockTfState
+
+                override fun parseFromStream(stream: java.io.InputStream) = mockTfState
+
+                override fun getDefault() = mockTfState
+            }
 
         // Create a mock discovery that returns our test content
-        val mockDiscovery = object : RemoteMcpDiscovery(testContext, mockProvider) {
-            override fun discoverRemoteServers(): List<RemoteMcpDiscovery.RemoteServer> {
-                // Override to inject our test docker-compose content
-                val controlHosts = mockTfState.getHosts(ServerType.Control)
-                return controlHosts.mapNotNull { host ->
-                    // Write content to temp file for parsing
-                    val tempFile = File.createTempFile("docker-compose-", ".yaml")
-                    tempFile.writeText(dockerComposeContent)
-                    tempFile.deleteOnExit()
+        val mockDiscovery =
+            object : RemoteMcpDiscovery(testContext, mockProvider) {
+                override fun discoverRemoteServers(): List<RemoteMcpDiscovery.RemoteServer> {
+                    // Override to inject our test docker-compose content
+                    val controlHosts = mockTfState.getHosts(ServerType.Control)
+                    return controlHosts.mapNotNull { host ->
+                        // Write content to temp file for parsing
+                        val tempFile = File.createTempFile("docker-compose-", ".yaml")
+                        tempFile.writeText(dockerComposeContent)
+                        tempFile.deleteOnExit()
 
-                    val parser = DockerComposeParser()
-                    val mcpService = parser.parseMcpService(tempFile) ?: return@mapNotNull null
-                    RemoteMcpDiscovery.RemoteServer(
-                        nodeName = host.alias,
-                        host = host.private,
-                        port = mcpService.port,
-                        endpoint = "http://${host.private}:${mcpService.port}/sse"
-                    )
+                        val parser = DockerComposeParser()
+                        val mcpService = parser.parseMcpService(tempFile) ?: return@mapNotNull null
+                        RemoteMcpDiscovery.RemoteServer(
+                            nodeName = host.alias,
+                            host = host.private,
+                            port = mcpService.port,
+                            endpoint = "http://${host.private}:${mcpService.port}/sse",
+                        )
+                    }
                 }
             }
-        }
 
         // When - Discover remote servers
         val remoteServers = mockDiscovery.discoverRemoteServers()
@@ -99,36 +108,38 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should handle tool execution through proxy`() {
         // Given - A remote server with tools
-        val server = RemoteMcpDiscovery.RemoteServer(
-            nodeName = "control0",
-            host = "192.168.1.100",
-            port = 8000,
-            endpoint = "http://192.168.1.100:8000/sse"
-        )
+        val server =
+            RemoteMcpDiscovery.RemoteServer(
+                nodeName = "control0",
+                host = "192.168.1.100",
+                port = 8000,
+                endpoint = "http://192.168.1.100:8000/sse",
+            )
 
         // Create a mock proxy that simulates successful tool fetch and execution
-        val mockProxy = object : RemoteMcpProxy() {
-            override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
-                return listOf(
-                    RemoteToolInfo(
-                        name = "test-tool",
-                        description = "A test tool",
-                        inputSchema = null
+        val mockProxy =
+            object : RemoteMcpProxy() {
+                override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
+                    return listOf(
+                        RemoteToolInfo(
+                            name = "test-tool",
+                            description = "A test tool",
+                            inputSchema = null,
+                        ),
                     )
-                )
-            }
+                }
 
-            override fun executeRemoteTool(
-                toolName: String,
-                arguments: JsonObject?,
-                server: RemoteMcpDiscovery.RemoteServer
-            ): McpToolRegistry.ToolResult {
-                return McpToolRegistry.ToolResult(
-                    content = listOf("Tool executed successfully"),
-                    isError = false
-                )
+                override fun executeRemoteTool(
+                    toolName: String,
+                    arguments: JsonObject?,
+                    server: RemoteMcpDiscovery.RemoteServer,
+                ): McpToolRegistry.ToolResult {
+                    return McpToolRegistry.ToolResult(
+                        content = listOf("Tool executed successfully"),
+                        isError = false,
+                    )
+                }
             }
-        }
 
         // When - Fetch tools
         val tools = mockProxy.fetchToolsFromServer(server)
@@ -138,11 +149,12 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
         assertThat(tools.first().name).isEqualTo("test-tool")
 
         // When - Execute the tool
-        val result = mockProxy.executeRemoteTool(
-            "test-tool",
-            JsonObject(mapOf("param" to JsonPrimitive("value"))),
-            server
-        )
+        val result =
+            mockProxy.executeRemoteTool(
+                "test-tool",
+                JsonObject(mapOf("param" to JsonPrimitive("value"))),
+                server,
+            )
 
         // Then - Verify execution result
         assertThat(result.content).contains("Tool executed successfully")
@@ -152,28 +164,33 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should handle multiple control nodes with different tools`() {
         // Given - Multiple control nodes
-        val controlHosts = listOf(
-            Host("192.168.1.100", "10.0.1.100", "control0", "us-west-2a"),
-            Host("192.168.1.101", "10.0.1.101", "control1", "us-west-2b")
-        )
+        val controlHosts =
+            listOf(
+                Host("192.168.1.100", "10.0.1.100", "control0", "us-west-2a"),
+                Host("192.168.1.101", "10.0.1.101", "control1", "us-west-2b"),
+            )
         whenever(mockTfState.getHosts(ServerType.Control)).thenReturn(controlHosts)
 
         // Create a mock provider
-        val mockProvider = object : TFStateProvider {
-            override fun parseFromFile(file: File) = mockTfState
-            override fun parseFromStream(stream: java.io.InputStream) = mockTfState
-            override fun getDefault() = mockTfState
-        }
+        val mockProvider =
+            object : TFStateProvider {
+                override fun parseFromFile(file: File) = mockTfState
+
+                override fun parseFromStream(stream: java.io.InputStream) = mockTfState
+
+                override fun getDefault() = mockTfState
+            }
 
         // Create mock discovery with different docker-compose for each host
-        val mockDiscovery = object : RemoteMcpDiscovery(testContext, mockProvider) {
-            override fun discoverRemoteServers(): List<RemoteMcpDiscovery.RemoteServer> {
-                return listOf(
-                    RemoteMcpDiscovery.RemoteServer("control0", "10.0.1.100", 8000, "http://10.0.1.100:8000/sse"),
-                    RemoteMcpDiscovery.RemoteServer("control1", "10.0.1.101", 8001, "http://10.0.1.101:8001/sse")
-                )
+        val mockDiscovery =
+            object : RemoteMcpDiscovery(testContext, mockProvider) {
+                override fun discoverRemoteServers(): List<RemoteMcpDiscovery.RemoteServer> {
+                    return listOf(
+                        RemoteMcpDiscovery.RemoteServer("control0", "10.0.1.100", 8000, "http://10.0.1.100:8000/sse"),
+                        RemoteMcpDiscovery.RemoteServer("control1", "10.0.1.101", 8001, "http://10.0.1.101:8001/sse"),
+                    )
+                }
             }
-        }
 
         // When - Discover all remote servers
         val remoteServers = mockDiscovery.discoverRemoteServers()
@@ -187,24 +204,26 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should handle connection failures gracefully`() {
         // Given - A remote server
-        val server = RemoteMcpDiscovery.RemoteServer(
-            nodeName = "control0",
-            host = "192.168.1.100",
-            port = 8000,
-            endpoint = "http://192.168.1.100:8000/sse"
-        )
+        val server =
+            RemoteMcpDiscovery.RemoteServer(
+                nodeName = "control0",
+                host = "192.168.1.100",
+                port = 8000,
+                endpoint = "http://192.168.1.100:8000/sse",
+            )
 
         // Create a mock proxy that simulates connection failure
-        val mockProxy = object : RemoteMcpProxy() {
-            override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
-                // Simulate connection failure
-                return emptyList()
-            }
+        val mockProxy =
+            object : RemoteMcpProxy() {
+                override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
+                    // Simulate connection failure
+                    return emptyList()
+                }
 
-            override fun testConnection(server: RemoteMcpDiscovery.RemoteServer): Boolean {
-                return false
+                override fun testConnection(server: RemoteMcpDiscovery.RemoteServer): Boolean {
+                    return false
+                }
             }
-        }
 
         // When - Test connection
         val isConnected = mockProxy.testConnection(server)
@@ -226,17 +245,19 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
         val server2 = RemoteMcpDiscovery.RemoteServer("control1", "10.0.1.101", 8001, "http://10.0.1.101:8001/sse")
 
         // Create mock proxy with mixed results
-        val mockProxy = object : RemoteMcpProxy() {
-            override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
-                return when (server.nodeName) {
-                    "control0" -> listOf(
-                        RemoteToolInfo("tool1", "Tool 1", null)
-                    )
-                    "control1" -> emptyList() // Simulate failure
-                    else -> emptyList()
+        val mockProxy =
+            object : RemoteMcpProxy() {
+                override fun fetchToolsFromServer(server: RemoteMcpDiscovery.RemoteServer): List<RemoteToolInfo> {
+                    return when (server.nodeName) {
+                        "control0" ->
+                            listOf(
+                                RemoteToolInfo("tool1", "Tool 1", null),
+                            )
+                        "control1" -> emptyList() // Simulate failure
+                        else -> emptyList()
+                    }
                 }
             }
-        }
 
         // When - Fetch tools from both servers
         val tools1 = mockProxy.fetchToolsFromServer(server1)
@@ -251,14 +272,15 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should parse MCP service from docker-compose`() {
         // Given - Docker compose content
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               easy-cass-mcp:
                 ports:
                   - "8000:3000"
                 healthcheck:
                   test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-        """.trimIndent()
+            """.trimIndent()
 
         // When - Parse the MCP service
         val tempFile = File.createTempFile("docker-compose-", ".yaml")
@@ -295,12 +317,13 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should handle missing easy-cass-mcp service gracefully`() {
         // Given - Docker compose without easy-cass-mcp service
-        val dockerComposeContent = """
+        val dockerComposeContent =
+            """
             services:
               other-service:
                 ports:
                   - "9000:9000"
-        """.trimIndent()
+            """.trimIndent()
 
         // When - Parse the content
         val tempFile = File.createTempFile("docker-compose-", ".yaml")
@@ -317,12 +340,13 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should create RemoteServer with correct endpoint format`() {
         // Given
-        val server = RemoteMcpDiscovery.RemoteServer(
-            nodeName = "control0",
-            host = "192.168.1.100",
-            port = 8000,
-            endpoint = "http://192.168.1.100:8000/sse"
-        )
+        val server =
+            RemoteMcpDiscovery.RemoteServer(
+                nodeName = "control0",
+                host = "192.168.1.100",
+                port = 8000,
+                endpoint = "http://192.168.1.100:8000/sse",
+            )
 
         // Then
         assertThat(server.nodeName).isEqualTo("control0")
@@ -334,11 +358,12 @@ class RemoteMcpIntegrationTest : BaseKoinTest() {
     @Test
     fun `should create RemoteToolInfo correctly`() {
         // Given & When
-        val toolInfo = RemoteMcpProxy.RemoteToolInfo(
-            name = "test-tool",
-            description = "Test tool description",
-            inputSchema = null
-        )
+        val toolInfo =
+            RemoteMcpProxy.RemoteToolInfo(
+                name = "test-tool",
+                description = "Test tool description",
+                inputSchema = null,
+            )
 
         // Then
         assertThat(toolInfo.name).isEqualTo("test-tool")

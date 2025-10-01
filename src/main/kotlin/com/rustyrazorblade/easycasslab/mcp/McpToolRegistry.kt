@@ -60,12 +60,13 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
     open fun getTools(): List<ToolInfo> {
         val parser = CommandLineParser(context)
 
-        val localTools = parser.commands
-            .filter { command ->
-                // Only include commands with @McpCommand annotation
-                command.command::class.java.isAnnotationPresent(McpCommand::class.java)
-            }
-            .map { command -> createToolInfo(command) }
+        val localTools =
+            parser.commands
+                .filter { command ->
+                    // Only include commands with @McpCommand annotation
+                    command.command::class.java.isAnnotationPresent(McpCommand::class.java)
+                }
+                .map { command -> createToolInfo(command) }
 
         // Add remote tools if in MCP mode
         if (!context.isMcpMode) {
@@ -97,15 +98,17 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
                 // Convert RemoteToolInfo to ToolInfo with prefixed names
                 serverTools.forEach { remoteTool ->
                     val prefixedName = "${REMOTE_TOOL_PREFIX}${server.nodeName}_${remoteTool.name}"
-                    val toolInfo = ToolInfo(
-                        name = prefixedName,
-                        description = "[${server.nodeName}] ${remoteTool.description}",
-                        inputSchema = remoteTool.inputSchema?.let { schema ->
-                            // Convert Jackson JsonNode to kotlinx.serialization JsonObject
-                            JsonObject(emptyMap()) // Placeholder for now
-                        } ?: JsonObject(emptyMap()),
-                        command = null
-                    )
+                    val toolInfo =
+                        ToolInfo(
+                            name = prefixedName,
+                            description = "[${server.nodeName}] ${remoteTool.description}",
+                            inputSchema =
+                                remoteTool.inputSchema?.let { schema ->
+                                    // Convert Jackson JsonNode to kotlinx.serialization JsonObject
+                                    JsonObject(emptyMap()) // Placeholder for now
+                                } ?: JsonObject(emptyMap()),
+                            command = null,
+                        )
                     remoteTools.add(toolInfo)
                     remoteToolMap[prefixedName] = server
                 }
@@ -527,18 +530,18 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         try {
             // Use the RemoteMcpProxy to execute the tool
             val result = remoteMcpProxy!!.executeRemoteTool(toolName, arguments, server)
-            
+
             // Log success
             if (!result.isError) {
                 outputHandler.handleMessage("Successfully executed remote tool '$toolName' on ${server.nodeName}")
             }
-            
+
             return result
         } catch (e: Exception) {
             log.error(e) { "Failed to execute remote tool '$toolName' on ${server.nodeName}" }
             return ToolResult(
                 content = listOf("Failed to execute remote tool: ${e.message}"),
-                isError = true
+                isError = true,
             )
         }
     }
@@ -555,15 +558,17 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             ToolInfo(
                 name = "${REMOTE_TOOL_PREFIX}${server.nodeName}_nodetool_status",
                 description = "Get Cassandra cluster status from ${server.nodeName}",
-                inputSchema = buildJsonObject {
-                    putJsonArray("required") {}
-                    putJsonObject("properties") {}
-                    put("type", "object")
-                },
-                command = Command(
-                    name = "remote_nodetool_status",
-                    command = DummyRemoteCommand(context),
-                ),
+                inputSchema =
+                    buildJsonObject {
+                        putJsonArray("required") {}
+                        putJsonObject("properties") {}
+                        put("type", "object")
+                    },
+                command =
+                    Command(
+                        name = "remote_nodetool_status",
+                        command = DummyRemoteCommand(context),
+                    ),
             ),
         )
 
@@ -572,20 +577,22 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             ToolInfo(
                 name = "${REMOTE_TOOL_PREFIX}${server.nodeName}_system_metrics",
                 description = "Get system metrics from ${server.nodeName}",
-                inputSchema = buildJsonObject {
-                    putJsonArray("required") { add("metric") }
-                    putJsonObject("properties") {
-                        putJsonObject("metric") {
-                            put("type", "string")
-                            put("description", "Type of metric (cpu, memory, disk)")
+                inputSchema =
+                    buildJsonObject {
+                        putJsonArray("required") { add("metric") }
+                        putJsonObject("properties") {
+                            putJsonObject("metric") {
+                                put("type", "string")
+                                put("description", "Type of metric (cpu, memory, disk)")
+                            }
                         }
-                    }
-                    put("type", "object")
-                },
-                command = Command(
-                    name = "remote_system_metrics",
-                    command = DummyRemoteCommand(context),
-                ),
+                        put("type", "object")
+                    },
+                command =
+                    Command(
+                        name = "remote_system_metrics",
+                        command = DummyRemoteCommand(context),
+                    ),
             ),
         )
 
