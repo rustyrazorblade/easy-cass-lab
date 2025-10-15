@@ -9,6 +9,8 @@ import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.sse.heartbeat
+import io.ktor.sse.ServerSentEvent
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.GetPromptResult
@@ -31,6 +33,7 @@ import org.koin.core.component.inject
 import java.util.concurrent.Semaphore
 import kotlin.concurrent.thread
 import kotlin.getValue
+import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class StatusResponse(
@@ -318,8 +321,15 @@ class McpServer(private val context: Context) : KoinComponent {
 
             // Create a KTor application here
             // register the SSE plugin
-            embeddedServer(Netty, host = "0.0.0.0", port = port) { mcp { server } }
-                .start(wait = true)
+            embeddedServer(Netty, host = "0.0.0.0", port = port) {
+                mcp {
+                    heartbeat {
+                        period = 5.seconds
+                        event = ServerSentEvent("heartbeat")
+                    }
+                    server
+                }
+            }.start(wait = true)
 
             log.info { "MCP server stopped" }
         } catch (e: IllegalStateException) {
