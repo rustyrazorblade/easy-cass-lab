@@ -50,7 +50,7 @@ commons-io = "2.7"
 
 # Other
 guava = "33.4.8-jre"
-reflections = "0.10.2"
+classgraph = "4.8.179"
 
 # Gradle Plugins
 shadow = "8.1.1"
@@ -109,12 +109,12 @@ commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 
 # Other
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
-reflections = { module = "org.reflections:reflections", version.ref = "reflections" }
+classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
 
 # Kotlinx Serialization
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 
-# Kotlinx Coroutines  
+# Kotlinx Coroutines
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 

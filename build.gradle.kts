@@ -75,7 +75,7 @@ dependencies {
     implementation(libs.bundles.awssdk)
 
     // Utilities
-    implementation(libs.reflections)
+    implementation(libs.classgraph)
     implementation(libs.commons.io)
 
     // Docker
