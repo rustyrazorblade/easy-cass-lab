@@ -141,3 +141,5 @@ easy-cass-mcp.json
 /plans
 .leann/
 .zed
+.aider*
+.mcp.json

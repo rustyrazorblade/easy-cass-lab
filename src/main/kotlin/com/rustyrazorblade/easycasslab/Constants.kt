@@ -30,6 +30,10 @@ object Constants {
     // Network configuration
     object Network {
         const val DEFAULT_MCP_PORT = 8888
+        const val EASY_CASS_MCP_PORT = 8000
+        const val CASSANDRA_EASY_STRESS_PORT = 9000
+        const val OPENSEARCH_PORT = 9200
+        const val OPENSEARCH_DASHBOARDS_PORT = 5601
     }
 
     // Docker configuration

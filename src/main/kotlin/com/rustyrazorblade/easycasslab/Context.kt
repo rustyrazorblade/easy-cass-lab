@@ -7,7 +7,26 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import java.io.File
 
-data class Context(val easycasslabUserDirectory: File) : KoinComponent {
+data class Context(
+    val easycasslabUserDirectory: File,
+    val isMcp: Boolean = false
+) : KoinComponent {
+    companion object {
+        /**
+         * Create a Context for regular CLI execution
+         */
+        fun forCli(easycasslabUserDirectory: File): Context {
+            return Context(easycasslabUserDirectory, isMcp = false)
+        }
+
+        /**
+         * Create a Context for MCP server execution
+         */
+        fun forMcp(easycasslabUserDirectory: File): Context {
+            return Context(easycasslabUserDirectory, isMcp = true)
+        }
+    }
+
     val log = KotlinLogging.logger {}
 
     /**

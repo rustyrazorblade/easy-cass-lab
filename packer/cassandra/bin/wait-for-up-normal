@@ -19,6 +19,17 @@ while true; do
 
   if [[ $CPID -eq 0 ]]; then
     echo "CASSANDRA HAS SHUT DOWN: FAIL"
+
+    # Check systemctl status to determine why Cassandra failed
+    if systemctl is-active --quiet cassandra; then
+      echo "Systemctl reports cassandra is active, but no process found"
+    else
+      echo "Systemctl status:"
+      systemctl status cassandra --no-pager
+      echo ""
+      echo "Cassandra service failed. Check logs with: journalctl -u cassandra -n 100"
+    fi
+
     exit 1
   fi
 
@@ -33,5 +44,3 @@ while true; do
   sleep 1
 
 done
-
-

@@ -1,40 +1,7 @@
 # Data Prepper pipelines configuration for ingesting OTLP data into OpenSearch
-# Receives traces, metrics, and logs from OTEL collector and indexes them into OpenSearch
+# Receives traces and logs from OTEL collector and indexes them into OpenSearch
 
-# Metrics pipeline - receives OTLP metrics and indexes them
-otel-metrics-pipeline:
-  delay: "100"
-  source:
-    otel_metrics_source:
-      # Receive OTLP metrics from OTEL collector
-      port: 21891
-      ssl: false
-  buffer:
-    bounded_blocking:
-      buffer_size: 10240
-      batch_size: 160
-  processor:
-    - otel_metrics:
-        calculate_histogram_buckets: true
-        calculate_exponential_histogram_buckets: true
-        exponential_histogram_max_allowed_scale: 10
-        flatten_attributes: false
-    - rename_keys:
-        entries:
-          - from_key: "time"
-            to_key: "@timestamp"
-          - from_key: "observedTime" 
-            to_key: "observedTimestamp"
-  sink:
-    - opensearch:
-        hosts: ["http://127.0.0.1:9200"]
-        index: ss4o_metrics-otel-%{yyyy.MM.dd}
-        index_type: custom
-        template_file: "/usr/share/data-prepper/config/ss4o_metrics.json"
-        insecure: true
-        bulk_size: 100
-
-# TODO: Add traces pipelines once metrics are working
+# TODO: Add traces pipelines
 # # Traces entry pipeline - receives OTLP traces and routes to processing pipelines
 # otel-traces-entry:
 #   delay: "100"

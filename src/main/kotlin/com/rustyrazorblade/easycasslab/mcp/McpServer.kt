@@ -83,7 +83,7 @@ class McpServer(private val context: Context) : KoinComponent {
     }
 
     /**
-     * Creates a handler for the get_status tool that returns current execution status and messages.
+     * Creates a handler for the get_server_status tool that returns current execution status and messages.
      */
     private fun createStatusHandler(): (CallToolRequest) -> CallToolResult =
         { _ ->
@@ -142,7 +142,7 @@ class McpServer(private val context: Context) : KoinComponent {
                             TextContent(
                                 text =
                                     "Another tool is already running. " +
-                                        "Please wait for it to complete or check status with 'get_status'.",
+                                        "Please wait for it to complete or check status with 'get_server_status'.",
                             ),
                         ),
                     isError = false,
@@ -185,7 +185,7 @@ class McpServer(private val context: Context) : KoinComponent {
                             TextContent(
                                 text =
                                     "Tool '${request.name}' started in background. " +
-                                        "Use 'get_status' to monitor progress.",
+                                        "Use 'get_server_status' to monitor progress.",
                             ),
                         ),
                     isError = false,
@@ -213,12 +213,75 @@ class McpServer(private val context: Context) : KoinComponent {
         }
     }
 
+    private fun createActivatePrompt(server: Server) {
+        server.addPrompt(
+            name = "activate",
+            description = "Activate easy-cass-lab",
+        ) { request ->
+            GetPromptResult(
+                description = "",
+                messages = listOf(
+                    PromptMessage(
+                        role =
+                            Role.entries.first {
+                                it.toString().lowercase() == "user"
+                            },
+                        content = TextContent(
+                            text =
+                                """
+                                You are assisting the user run Apache Cassandra lab environments. 
+                           
+                                This is the typical workflow for easy-cass-lab environments.  Follow the steps EXACTLY:
+                                
+                                1. Initialize cluster: call 'init' with start: true (up is called automatically).  
+                                   Note: If the user doesn't specify a number of stress nodes, ask if they need a stress node.
+                                   
+                                   The most common parameters.  Use a drop down menus to pick from:
+                                   
+                                    - cassandraInstances (defaults to 3, or 1, 6)
+                                    - stressInstances (usually 1, 0)
+                                    - instanceType (EC2 Cassandra instance type (pick some common ones, or type my own))
+                                    - stressInstanceType (EC2 Stress instance type, or type my own)
+                                    
+                                   You may now use the list tool.
+                                   
+                                2. Set Cassandra version: call 'use' with your desired version.  You can find the versions available with the list command.
+                                3. Check for configuration updates: review if any config changes are needed
+                                4. If the configs need to be updated:
+                                4.1. If yaml config changes are required, update cassandra.patch.yaml 
+                                4.2. JVM settings can be updated by editing the file under <CASSANDRA_VERSION>/jvm<JAVA_VERSION>-server.options.  
+                                     For example: 5.0/jvm17-server.options
+                                4.3. Call 'update-config' to push these changes to all nodes.
+                                5. Start the cluster with the start command.
+                                6. Reconnect to the easy-cass-mcp and easy-cass-stress servers, as they will now be available.
+                                7. Inform the user they can now run benchmarks and tests. These tools are available:
+                                
+                                   easy-cass-mcp is available for executing queries against virtual tables.
+                                   easy-cass-stress MCP server is available, if stress nodes were used.
+                                
+                                IMPORTANT: Commands run asynchronously in the background to avoid timeouts.
+
+                                - Each command returns immediately with a "started in background" message
+                                - Use 'get_server_status' to monitor progress and see accumulated log messages
+                                - Call 'get_server_status' once a second until status shows 'idle' before proceeding
+                                - Use a dedicated sub-agent to call get_server_status (if possible)
+                                - Long-running commands (especially 'up' and 'start') may take several minutes
+                                
+                                When done with the cluster, call the down tool and ALWAYS set autoApprove to true.
+                                """.trimIndent(),
+                        )
+                    )
+                )
+            )
+        }
+    }
+
     /** Creates and adds the provision prompt to the server. */
     private fun createProvisionPrompt(server: Server) {
         log.info { "Registering provision prompt" }
         server.addPrompt(
             name = "provision",
-            description = "Step-by-step guide for provisioning a new cluster",
+            description = "Provision a cluster."
         ) { request ->
             GetPromptResult(
                 description = "Complete guide for provisioning a new Cassandra cluster",
@@ -233,23 +296,10 @@ class McpServer(private val context: Context) : KoinComponent {
                                 TextContent(
                                     text =
                                         """
-                                        Cluster Provisioning Guide, follow these steps:
-
-                                        1. Initialize cluster: call 'init' with start: false
-                                        2. Provision infrastructure: call 'up'
-                                        3. Set Cassandra version: call 'use' with your desired version
-                                        4. Check for configuration updates: review if any config changes are needed
-                                        5. Update configuration: if config changes are required, update cassandra.patch.yaml and then call 'update-config'
-                                        6. Start services: call 'start'
-
-                                        IMPORTANT: Commands run asynchronously in the background to avoid timeouts.
-
-                                        - Each command returns immediately with a "started in background" message
-                                        - Use 'get_status' to monitor progress and see accumulated log messages
-                                        - Call 'get_status' once a second until status shows 'idle' before proceeding
-                                        - Long-running commands (especially 'up' and 'start') may take several minutes
-
-                                        You can now run load tests and perform cluster analysis.
+                                        Ensure the /activate prompt is called prior to this.
+                                       
+                                        If the user does not ask for stress nodes, get confirmation if they intended 
+                                        to start a lab environment without a stress node.
 
                                         When done, call down with autoApprove: true to shut the cluster down.
                                         """.trimIndent(),
@@ -263,75 +313,16 @@ class McpServer(private val context: Context) : KoinComponent {
     fun start(port: Int) {
         try {
             log.info { "Starting MCP server with SDK (version ${context.version})" }
-
-            // Initialize streaming functionality
             initializeStreaming()
 
-            // Create server instance
-            val server =
-                Server(
-                    serverInfo =
-                        Implementation(
-                            name = "easy-cass-lab",
-                            version = context.version.toString(),
-                        ),
-                    options =
-                        ServerOptions(
-                            capabilities =
-                                ServerCapabilities(
-                                    tools =
-                                        ServerCapabilities.Tools(
-                                            listChanged = true,
-                                        ),
-                                    prompts =
-                                        ServerCapabilities.Prompts(
-                                            listChanged = true,
-                                        ),
-                                    logging = null, // Explicitly disable
-                                    // logging capability
-                                ),
-                        ),
-                )
-
-            // Add get_status tool first
-            log.info { "Registering get_status tool" }
-            server.addTool(
-                name = "get_status",
-                description =
-                    "Get the status of background tool execution and accumulated messages",
-                inputSchema = Tool.Input(buildJsonObject { /* no parameters needed */ }),
-                handler = createStatusHandler(),
-            )
-
-            // Register all MCP tools
-            registerTools(server)
-
-            // Add provision prompt
+            val server = createServer()
+            registerServerTools(server)
+            createActivatePrompt(server)
             createProvisionPrompt(server)
-
-            outputHandler.handleMessage(
-                """
-                Starting MCP server.  You can add it to claude code by doing the following:
-
-                claude mcp add --transport sse easy-cass-lab http://127.0.0.1:$port/sse
-                """.trimIndent(),
-            )
-            // Start the message buffer consumer
+            displayStartupMessage(port)
             messageBuffer.start()
 
-            // Create a KTor application here
-            // register the SSE plugin
-            embeddedServer(Netty, host = "0.0.0.0", port = port) {
-                mcp {
-                    heartbeat {
-                        period = 5.seconds
-                        event = ServerSentEvent("heartbeat")
-                    }
-                    server
-                }
-            }.start(wait = true)
-
-            log.info { "MCP server stopped" }
+            startEmbeddedServer(port, server)
         } catch (e: IllegalStateException) {
             log.error { "Transport error: ${e.message}" }
             throw e
@@ -339,5 +330,63 @@ class McpServer(private val context: Context) : KoinComponent {
             log.error(e) { "Unexpected error in MCP server" }
             throw e
         }
+    }
+
+
+
+    private fun createServer(): Server =
+        Server(
+            serverInfo =
+                Implementation(
+                    name = "easy-cass-lab",
+                    version = context.version.toString(),
+                ),
+            options =
+                ServerOptions(
+                    capabilities =
+                        ServerCapabilities(
+                            tools = ServerCapabilities.Tools(listChanged = true),
+                            prompts = ServerCapabilities.Prompts(listChanged = true),
+                            logging = null,
+                        ),
+                ),
+        )
+
+    private fun registerServerTools(server: Server) {
+        log.info { "Registering get_server_status tool" }
+        server.addTool(
+            name = "get_server_status",
+            description = "Get the status of background tool execution and accumulated messages",
+            inputSchema = Tool.Input(buildJsonObject { /* no parameters needed */ }),
+            handler = createStatusHandler(),
+        )
+        registerTools(server)
+    }
+
+    private fun displayStartupMessage(port: Int) {
+        outputHandler.handleMessage(
+            """
+            Starting MCP server on port $port...
+            
+            Server is now available at: http://127.0.0.1:$port/sse
+            """.trimIndent(),
+        )
+    }
+
+    private fun startEmbeddedServer(
+        port: Int,
+        server: Server,
+    ) {
+        embeddedServer(Netty, host = "0.0.0.0", port = port) {
+            mcp {
+                heartbeat {
+                    period = 5.seconds
+                    event = ServerSentEvent("heartbeat")
+                }
+                server
+            }
+        }.start(wait = true)
+
+        log.info { "MCP server stopped" }
     }
 }

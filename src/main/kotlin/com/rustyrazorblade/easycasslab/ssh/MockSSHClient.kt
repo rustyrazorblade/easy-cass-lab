@@ -15,6 +15,10 @@ import java.nio.file.attribute.PosixFilePermission
  * Mock implementation of ISSHClient for testing
  */
 class MockSSHClient : ISSHClient {
+    companion object {
+        private const val DEFAULT_MOCK_PORT = 12345
+    }
+
     private val log = KotlinLogging.logger {}
     val executedCommands = mutableListOf<String>()
     val uploadedFiles = mutableListOf<Pair<Path, String>>()
@@ -180,6 +184,20 @@ class MockSSHClient : ISSHClient {
                 return true
             }
         }
+    }
+
+    override fun createLocalPortForward(
+        localPort: Int,
+        remoteHost: String,
+        remotePort: Int
+    ): Int {
+        log.debug { "Mock: Creating port forward localhost:$localPort -> $remoteHost:$remotePort" }
+        // Return the requested port or a mock port if auto-assign
+        return if (localPort == 0) DEFAULT_MOCK_PORT else localPort
+    }
+
+    override fun closeLocalPortForward(localPort: Int) {
+        log.debug { "Mock: Closing port forward on localhost:$localPort" }
     }
 
     override fun close() {

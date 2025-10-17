@@ -1,0 +1,9 @@
+[Unit]
+Description=Cassandra Easy Stress Server
+
+[Service]
+ExecStart=/usr/local/cassandra-easy-stress/bin/cassandra-easy-stress server
+User=cassandra
+
+[Install]
+WantedBy=multi-user.target

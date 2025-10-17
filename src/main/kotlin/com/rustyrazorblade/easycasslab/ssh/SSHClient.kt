@@ -3,6 +3,8 @@ package com.rustyrazorblade.easycasslab.ssh
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
+import org.apache.sshd.client.session.forward.ExplicitPortForwardingTracker
+import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
 import org.koin.core.component.KoinComponent
@@ -172,11 +174,56 @@ class SSHClient(
         return scpClient
     }
 
+    // Track active port forwards for cleanup
+    private val activePortForwards = mutableMapOf<Int, ExplicitPortForwardingTracker>()
+
+    override fun createLocalPortForward(
+        localPort: Int,
+        remoteHost: String,
+        remotePort: Int
+    ): Int {
+        val localAddress = SshdSocketAddress("", localPort) // Empty string binds to all interfaces
+        val remoteAddress = SshdSocketAddress(remoteHost, remotePort)
+
+        log.info { "Creating port forward: localhost:$localPort -> $remoteHost:$remotePort" }
+
+        val tracker = session.createLocalPortForwardingTracker(localAddress, remoteAddress)
+        val actualPort = tracker.boundAddress.port
+
+        activePortForwards[actualPort] = tracker
+
+        log.info { "Port forward created: localhost:$actualPort -> $remoteHost:$remotePort" }
+        return actualPort
+    }
+
+    override fun closeLocalPortForward(localPort: Int) {
+        activePortForwards[localPort]?.let { tracker ->
+            try {
+                tracker.close()
+                activePortForwards.remove(localPort)
+                log.info { "Closed port forward on localhost:$localPort" }
+            } catch (e: Exception) {
+                log.error(e) { "Error closing port forward on localhost:$localPort" }
+            }
+        }
+    }
+
     /**
      * Stop the SSH client
      */
     override fun close() {
         log.debug { "Stopping SSH client" }
+
+        // Close all active port forwards
+        activePortForwards.values.toList().forEach { tracker ->
+            try {
+                tracker.close()
+            } catch (e: Exception) {
+                log.debug(e) { "Error closing port forward during session cleanup" }
+            }
+        }
+        activePortForwards.clear()
+
         session.close()
     }
 }

@@ -1,5 +1,4 @@
 ---
-
 # the version uniquely identifes the cassandra version
 # and will be used as the name in /usr/local/cassandra-<version>
 
@@ -31,6 +30,7 @@
   java: "11"
   java_build: "11"
   python: "3.10.6"
+  ant_flags: "-Dant.gen-doc.skip=true"
 
 - version: "trunk"
   url: https://github.com/apache/cassandra.git
@@ -38,4 +38,4 @@
   java: "17"
   java_build: "11"
   python: "3.10.6"
-
+  ant_flags: "-Dant.gen-doc.skip=true"

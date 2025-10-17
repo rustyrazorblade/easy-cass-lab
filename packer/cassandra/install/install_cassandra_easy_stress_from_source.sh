@@ -9,12 +9,34 @@ if ! command -v git &> /dev/null; then
     sudo apt-get install -y git
 fi
 
+# Detect CPU architecture for Java path
+cpu_arch=$(uname -m)
+if [[ "$cpu_arch" == "x86_64" ]]; then
+    ARCH="amd64"
+elif [[ "$cpu_arch" == "aarch64" ]]; then
+    ARCH="arm64"
+else
+    echo "Unsupported architecture: $cpu_arch"
+    exit 1
+fi
+
+# Save current Java version to restore later
+CURRENT_JAVA=$(update-alternatives --query java | grep 'Value:' | awk '{print $2}')
+echo "Current Java: $CURRENT_JAVA"
+
+# Switch to Java 17 for the build (cassandra-easy-stress requires Java 17)
+echo "Switching to Java 17 for build..."
+sudo update-java-alternatives -s java-1.17.0-openjdk-$ARCH
+
+# Verify Java version
+java -version
+
 # Clone the Apache cassandra-easy-stress repository
 echo "Cloning Apache cassandra-easy-stress repository..."
 git clone https://github.com/apache/cassandra-easy-stress.git
 cd cassandra-easy-stress
 
-# Build using Gradle wrapper
+# Build using Gradle wrapper with Java 17
 echo "Building cassandra-easy-stress with Gradle..."
 ./gradlew shadowJar
 

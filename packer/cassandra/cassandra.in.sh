@@ -5,7 +5,7 @@
 ### This is automatically appended to the end of every cassandra.in.sh
 
 # Extract Cassandra version from jar filename
-ECL_CASSANDRA_JAR=$(find /usr/local/cassandra/current/lib -name "apache-cassandra-[0-9]*.jar" | head -n 1)
+ECL_CASSANDRA_JAR=$(find /usr/local/cassandra/current/ -name "apache-cassandra-[0-9]*.jar" | head -n 1)
 if [ -n "$ECL_CASSANDRA_JAR" ]; then
     # Extract X.Y.Z from filename and then get X.Y
     ECL_CASSANDRA_VERSION=$(basename "$ECL_CASSANDRA_JAR" | sed -E 's/apache-cassandra-([0-9]+\.[0-9]+)\.[0-9]+\.jar/\1/')

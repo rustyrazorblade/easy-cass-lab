@@ -1,4 +1,7 @@
 - This is a command line tool.  The user interacts by reading the output.  Do not suggest replacing print statements with logging, because it breaks the UX.
+- Commands should use `outputHandler.handleMessage()` for user-facing output, not logging frameworks.
+- Do not add logging frameworks to command classes unless there is a specific internal debugging need separate from user output.
+- When logging is needed, use: `import io.github.oshai.kotlinlogging.KotlinLogging` and create a logger with `private val log = KotlinLogging.logger {}`
 
 ## Development Rules
 

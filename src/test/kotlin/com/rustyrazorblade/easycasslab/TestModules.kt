@@ -16,6 +16,8 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.MockSSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
+import com.rustyrazorblade.easycasslab.ssh.tunnel.MockSSHTunnelManager
+import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
@@ -235,5 +237,15 @@ object TestModules {
 
             // Provide a factory for TFState (for backward compatibility)
             factory { get<TFStateProvider>().getDefault() }
+        }
+
+    /**
+     * Creates a test SSH tunnel module with mock implementation.
+     * This provides a mock SSHTunnelManager for testing tunnel functionality
+     * without creating actual SSH connections.
+     */
+    fun testSSHTunnelModule() =
+        module {
+            single<SSHTunnelManager> { MockSSHTunnelManager() }
         }
 }

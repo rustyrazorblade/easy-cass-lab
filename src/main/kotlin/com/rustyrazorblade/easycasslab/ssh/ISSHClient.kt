@@ -63,6 +63,27 @@ interface ISSHClient {
     fun getScpClient(): CloseableScpClient
 
     /**
+     * Create a local port forward (SSH tunnel)
+     *
+     * @param localPort Local port to bind to (0 for auto-assign)
+     * @param remoteHost Remote host to forward to
+     * @param remotePort Remote port to forward to
+     * @return The actual local port that was bound
+     */
+    fun createLocalPortForward(
+        localPort: Int = 0,
+        remoteHost: String = "localhost",
+        remotePort: Int
+    ): Int
+
+    /**
+     * Close a local port forward
+     *
+     * @param localPort The local port of the forward to close
+     */
+    fun closeLocalPortForward(localPort: Int)
+
+    /**
      * Close the connection
      */
     fun close() {}

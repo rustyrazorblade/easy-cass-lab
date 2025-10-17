@@ -1,5 +1,3 @@
-@file:Suppress("VariableNaming")
-
 package com.rustyrazorblade.easycasslab.commands
 
 import com.beust.jcommander.DynamicParameter
@@ -301,7 +299,6 @@ class Init(val context: Context) : ICommand, KoinComponent {
         extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
         extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
         extractResourceFile("data-prepper-pipelines.yaml", "control/data-prepper-pipelines.yaml")
-        extractResourceFile("ss4o_metrics.json", "control/ss4o_metrics.json")
 
         // Create cassandra directory and extract OTel configs for Cassandra nodes
         outputHandler.handleMessage(

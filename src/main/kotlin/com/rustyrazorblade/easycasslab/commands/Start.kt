@@ -7,12 +7,15 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.PostExecute
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnel
+import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.core.component.inject
 import java.io.File
 
@@ -67,14 +70,9 @@ class Start(context: Context) : BaseCommand(context) {
         // Start OTel collectors on Cassandra nodes
         startOtelOnCassandraNodes()
 
-        // Write MCP configuration file for AI agents
-        writeMCPConfiguration()
         // this has to happen last, because we want Cassandra to be available before starting the
         // MCP server.
         deployDockerComposeToControlNodes()
-
-        // Set up SS4O configuration after Docker services are started
-        setupSS4OConfiguration()
     }
 
     private fun deployDockerComposeToControlNodes() {
@@ -83,7 +81,6 @@ class Start(context: Context) : BaseCommand(context) {
         val dockerComposeFile = File("control/docker-compose.yaml")
         val otelConfigFile = File("control/otel-collector-config.yaml")
         val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
-        val ss4oTemplateFile = File("control/ss4o_metrics.json")
 
         if (!dockerComposeFile.exists()) {
             throw RuntimeException("control/docker-compose.yaml not found - required file missing")
@@ -99,10 +96,6 @@ class Start(context: Context) : BaseCommand(context) {
             throw RuntimeException(
                 "control/data-prepper-pipelines.yaml not found - required file missing",
             )
-        }
-
-        if (!ss4oTemplateFile.exists()) {
-            throw RuntimeException("control/ss4o_metrics.json not found - required file missing")
         }
 
         // Load cluster state to get InitConfig
@@ -155,8 +148,6 @@ class Start(context: Context) : BaseCommand(context) {
                 dataPrepperConfigFile.toPath(),
                 "/home/ubuntu/data-prepper-pipelines.yaml",
             )
-            remoteOps.upload(host, ss4oTemplateFile.toPath(), "/home/ubuntu/ss4o_metrics.json")
-
             // Check if docker and docker compose are available
             try {
                 val dockerCheck =
@@ -247,188 +238,7 @@ class Start(context: Context) : BaseCommand(context) {
         outputHandler.handleMessage("Docker Compose services started on control nodes")
     }
 
-    private fun setupSS4OConfiguration() {
-        outputHandler.handleMessage(
-            "Setting up SS4O (Simple Schema for Observability) configuration...",
-        )
 
-        tfstate.withHosts(ServerType.Control, hosts) { host ->
-            try {
-                // Wait for OpenSearch to be ready
-                outputHandler.handleMessage(
-                    "Waiting for OpenSearch to be ready on ${host.public}...",
-                )
-                var opensearchReady = false
-                var retryCount = 0
-                val maxRetries = 12 // 2 minutes with 10-second intervals
-
-                while (!opensearchReady && retryCount < maxRetries) {
-                    try {
-                        val healthCheck =
-                            remoteOps.executeRemotely(
-                                host,
-                                "curl -s http://127.0.0.1:9200/_cluster/health",
-                            )
-                        if (healthCheck.text.contains("\"status\":\"yellow\"") ||
-                            healthCheck.text.contains("\"status\":\"green\"")
-                        ) {
-                            opensearchReady = true
-                            outputHandler.handleMessage("OpenSearch is ready on ${host.public}")
-                        } else {
-                            Thread.sleep(10000) // Wait 10 seconds
-                            retryCount++
-                        }
-                    } catch (e: Exception) {
-                        Thread.sleep(10000) // Wait 10 seconds
-                        retryCount++
-                    }
-                }
-
-                if (!opensearchReady) {
-                    outputHandler.handleMessage(
-                        "Warning: OpenSearch did not become ready on ${host.public}, skipping SS4O setup",
-                    )
-                    return@withHosts
-                }
-
-                // Create SS4O index template
-                outputHandler.handleMessage("Creating SS4O index template on ${host.public}...")
-                val createTemplateCommand =
-                    """
-                    curl -X PUT "http://127.0.0.1:9200/_index_template/ss4o_metrics" \
-                    -H "Content-Type: application/json" \
-                    -d '{
-                        "index_patterns": ["ss4o_metrics-*"],
-                        "template": {
-                            "settings": {
-                                "number_of_shards": 1,
-                                "number_of_replicas": 0,
-                                "index": {
-                                    "refresh_interval": "5s"
-                                }
-                            },
-                            "mappings": {
-                                "properties": {
-                                    "@timestamp": { "type": "date" },
-                                    "observedTimestamp": { "type": "date" },
-                                    "serviceName": { "type": "keyword" },
-                                    "name": { "type": "keyword" },
-                                    "description": { "type": "text" },
-                                    "unit": { "type": "keyword" },
-                                    "value": { "type": "double" },
-                                    "kind": { "type": "keyword" },
-                                    "aggregationTemporality": { "type": "keyword" },
-                                    "startTime": { "type": "date" },
-                                    "schemaUrl": { "type": "keyword" }
-                                }
-                            }
-                        },
-                        "priority": 100,
-                        "version": 1,
-                        "_meta": {
-                            "description": "SS4O metrics index template for OpenSearch Observability"
-                        }
-                    }'
-                    """.trimIndent()
-
-                val templateResult = remoteOps.executeRemotely(host, createTemplateCommand)
-                if (templateResult.text.contains("\"acknowledged\":true")) {
-                    outputHandler.handleMessage(
-                        "SS4O index template created successfully on ${host.public}",
-                    )
-                } else {
-                    outputHandler.handleMessage(
-                        "Warning: Failed to create SS4O index template on ${host.public}: ${templateResult.text}",
-                    )
-                }
-
-                // Wait for OpenSearch Dashboards to be ready
-                outputHandler.handleMessage(
-                    "Waiting for OpenSearch Dashboards to be ready on ${host.public}...",
-                )
-                var dashboardsReady = false
-                retryCount = 0
-
-                while (!dashboardsReady && retryCount < maxRetries) {
-                    try {
-                        val dashboardsCheck =
-                            remoteOps.executeRemotely(
-                                host,
-                                "curl -s http://127.0.0.1:5601/api/status",
-                            )
-                        if (dashboardsCheck.text.contains("\"level\":\"available\"") ||
-                            dashboardsCheck.text.contains("overall")
-                        ) {
-                            dashboardsReady = true
-                            outputHandler.handleMessage(
-                                "OpenSearch Dashboards is ready on ${host.public}",
-                            )
-                        } else {
-                            Thread.sleep(10000) // Wait 10 seconds
-                            retryCount++
-                        }
-                    } catch (e: Exception) {
-                        Thread.sleep(10000) // Wait 10 seconds
-                        retryCount++
-                    }
-                }
-
-                if (!dashboardsReady) {
-                    outputHandler.handleMessage(
-                        "Warning: OpenSearch Dashboards did not become ready on ${host.public}, skipping index pattern creation",
-                    )
-                    return@withHosts
-                }
-
-                // Create index pattern in OpenSearch Dashboards
-                outputHandler.handleMessage(
-                    "Creating SS4O index pattern in OpenSearch Dashboards on ${host.public}...",
-                )
-                val createIndexPatternCommand =
-                    """
-                    curl -X POST "http://127.0.0.1:5601/api/saved_objects/index-pattern/ss4o_metrics-*" \
-                    -H "Content-Type: application/json" \
-                    -H "osd-xsrf: true" \
-                    -d '{
-                        "attributes": {
-                            "title": "ss4o_metrics-*",
-                            "timeFieldName": "@timestamp"
-                        }
-                    }'
-                    """.trimIndent()
-
-                val indexPatternResult = remoteOps.executeRemotely(host, createIndexPatternCommand)
-                if (indexPatternResult.text.contains("\"id\":\"ss4o_metrics-*\"") ||
-                    indexPatternResult.text.contains(
-                        "version_conflict_engine_exception",
-                    )
-                ) {
-                    outputHandler.handleMessage(
-                        "SS4O index pattern created successfully on ${host.public}",
-                    )
-                } else {
-                    outputHandler.handleMessage(
-                        "Info: Index pattern creation response on ${host.public}: ${indexPatternResult.text}",
-                    )
-                }
-
-                // Restart Data Prepper to pick up the new template
-                outputHandler.handleMessage(
-                    "Restarting Data Prepper to apply SS4O configuration on ${host.public}...",
-                )
-                remoteOps.executeRemotely(host, "cd /home/ubuntu && docker restart data-prepper")
-
-                outputHandler.handleMessage("SS4O configuration completed on ${host.public}")
-            } catch (e: Exception) {
-                outputHandler.handleMessage("Error setting up SS4O on ${host.public}: ${e.message}")
-            }
-        }
-
-        outputHandler.handleMessage("SS4O configuration setup completed on all control nodes")
-        outputHandler.handleMessage(
-            "Metrics should now be visible in OpenSearch Dashboards -> Observability -> Metrics",
-        )
-    }
 
     private fun startOtelOnCassandraNodes() {
         outputHandler.handleMessage("Starting OTel collectors on Cassandra nodes...")
@@ -586,35 +396,100 @@ class Start(context: Context) : BaseCommand(context) {
         outputHandler.handleMessage("OTel collectors startup completed on Cassandra nodes")
     }
 
-    @Suppress("TooGenericExceptionCaught")
-    private fun writeMCPConfiguration() {
-        outputHandler.handleMessage("Writing MCP configuration file for AI agents...")
 
-        val mcpConfig =
-            """{
-  "mcpServers": {
-    "easy-cass-lab": {
-      "type": "sse",
-      "url": "http://localhost:8000/mcp",
-      "description": "Easy Cass Lab MCP server for Cassandra cluster management"
-    }
-  }
-}"""
+    /**
+     * Called automatically, ignore that it's unused.
+     */
+    @PostExecute
+    @Suppress("TooGenericExceptionCaught", "UnusedPrivateMember", "LongMethod")
+    fun setupMcpTunnels() {
+        if (!context.isMcp) {
+            return
+        }
 
-        val configFile = File("easy-cass-mcp.json")
+        outputHandler.handleMessage("Setting up SSH tunnels for MCP mode...")
+
+        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
+        if (controlHost == null) {
+            outputHandler.handleMessage("Warning: No control nodes found, cannot create MCP tunnels")
+            return
+        }
+
+        val tunnelManager: SSHTunnelManager by inject()
+        val tunnels = mutableListOf<SSHTunnel>()
+
+        // Create MCP tunnel with error handling
         try {
-            configFile.writeText(mcpConfig)
-            outputHandler.handleMessage("MCP configuration written to easy-cass-mcp.json")
+            val mcpTunnel =
+                tunnelManager.createTunnel(
+                    host = controlHost,
+                    remotePort = Constants.Network.EASY_CASS_MCP_PORT,
+                    remoteHost = "localhost",
+                    localPort = Constants.Network.EASY_CASS_MCP_PORT,
+                )
+            tunnels.add(mcpTunnel)
+            val mcpTunnelInfo =
+                "✓ MCP tunnel: localhost:${mcpTunnel.localPort} -> " +
+                    "${controlHost.public}:${Constants.Network.EASY_CASS_MCP_PORT}"
+            outputHandler.handleMessage(mcpTunnelInfo)
             outputHandler.handleMessage(
-                "AI agents can now connect to the MCP server at http://localhost:8000",
+                "  MCP server accessible at http://localhost:${mcpTunnel.localPort}/sse",
             )
+
+        } catch (e: Exception) {
+            outputHandler.handleMessage("Error: Could not create MCP tunnel: ${e.message}")
+        }
+
+        // Create OpenSearch tunnel with error handling
+        try {
+            val opensearchTunnel =
+                tunnelManager.createTunnel(
+                    host = controlHost,
+                    remotePort = Constants.Network.OPENSEARCH_PORT,
+                    remoteHost = "localhost",
+                    localPort = Constants.Network.OPENSEARCH_PORT,
+                )
+            tunnels.add(opensearchTunnel)
+            val opensearchTunnelInfo =
+                "✓ OpenSearch tunnel: localhost:${opensearchTunnel.localPort} -> " +
+                    "${controlHost.public}:${Constants.Network.OPENSEARCH_PORT}"
+            outputHandler.handleMessage(opensearchTunnelInfo)
             outputHandler.handleMessage(
-                "To use with Claude Code, reference this configuration file in your .mcp.json",
+                "  OpenSearch accessible at http://localhost:${opensearchTunnel.localPort}",
             )
         } catch (e: Exception) {
+            outputHandler.handleMessage("Error: Could not create OpenSearch tunnel: ${e.message}")
+        }
+
+        // Create OpenSearch Dashboards tunnel with error handling
+        try {
+            val dashboardsTunnel =
+                tunnelManager.createTunnel(
+                    host = controlHost,
+                    remotePort = Constants.Network.OPENSEARCH_DASHBOARDS_PORT,
+                    remoteHost = "localhost",
+                    localPort = Constants.Network.OPENSEARCH_DASHBOARDS_PORT,
+                )
+            tunnels.add(dashboardsTunnel)
+            val dashboardsTunnelInfo =
+                "✓ OpenSearch Dashboards tunnel: localhost:${dashboardsTunnel.localPort} -> " +
+                    "${controlHost.public}:${Constants.Network.OPENSEARCH_DASHBOARDS_PORT}"
+            outputHandler.handleMessage(dashboardsTunnelInfo)
+            val dashboardsUrl = "http://localhost:${dashboardsTunnel.localPort}"
+            outputHandler.handleMessage("  OpenSearch Dashboards accessible at $dashboardsUrl")
+        } catch (e: Exception) {
             outputHandler.handleMessage(
-                "Warning: Could not write MCP configuration file: ${e.message}",
+                "Error: Could not create OpenSearch Dashboards tunnel: ${e.message}",
             )
+        }
+
+        // Summary
+        if (tunnels.isNotEmpty()) {
+            outputHandler.handleMessage("")
+            outputHandler.handleMessage("SSH tunnels established successfully (${tunnels.size}/3)")
+            outputHandler.handleMessage("Tunnels will remain active until easy-cass-lab process exits")
+        } else {
+            outputHandler.handleMessage("Warning: Failed to create any SSH tunnels")
         }
     }
 }
