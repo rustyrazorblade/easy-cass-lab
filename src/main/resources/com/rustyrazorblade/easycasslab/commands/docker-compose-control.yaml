@@ -14,68 +14,6 @@ services:
       retries: 3
       start_period: 40s
 
-  opensearch:
-    image: opensearchproject/opensearch:latest
-    container_name: opensearch
-    environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - DISABLE_SECURITY_PLUGIN=true
-      # To install additional plugins, uncomment and add plugin names:
-      - OPENSEARCH_PLUGINS_INSTALL=analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-phonetic
-      - cluster.name=easy-cass-lab
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    restart: unless-stopped
-    network_mode: host
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:latest
-    container_name: opensearch-dashboards
-    environment:
-      - OPENSEARCH_HOSTS=http://localhost:9200
-      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
-    volumes:
-      - opensearch_dashboards_data:/usr/share/opensearch-dashboards/data
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      opensearch:
-        condition: service_healthy
-
-  data-prepper:
-    image: opensearchproject/data-prepper:latest
-    container_name: data-prepper
-    volumes:
-      - ./data-prepper-pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
-    environment:
-      - JAVA_OPTS=-Xms512m -Xmx512m
-    restart: unless-stopped
-    network_mode: host
-    depends_on:
-      opensearch:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4900/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otel-collector
@@ -86,12 +24,3 @@ services:
       - GOMEMLIMIT=256MiB
     restart: unless-stopped
     network_mode: host
-    depends_on:
-      opensearch:
-        condition: service_healthy
-      data-prepper:
-        condition: service_healthy
-
-volumes:
-  opensearch_data:
-  opensearch_dashboards_data:

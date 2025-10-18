@@ -115,46 +115,46 @@ PORT_FORWARD_PIDS=""
 # Start SSH port forwarding for monitoring services
 start-port-forwarding() {
   echo "Starting SSH port forwarding for monitoring services..."
-  
+
   # Check if control0 exists in SSH config
   if ! grep -q "^Host control0" "$SSH_CONFIG" 2>/dev/null; then
     echo -e "${YELLOW}Warning: control0 not found in SSH config. Monitoring services may not be available.${NC}"
     return 1
   fi
-  
+
   # Stop any existing port forwarding first
   stop-port-forwarding 2>/dev/null
-  
+
   # Port forwarding for OpenSearch (9200)
   ssh -F "$SSH_CONFIG" -N -L 9200:localhost:9200 control0 &
   local OS_PID=$!
   PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OS_PID"
   echo "  - OpenSearch forwarding started (localhost:9200 -> control0:9200) [PID: $OS_PID]"
-  
+
   # Port forwarding for OpenSearch Dashboards (5601)
   ssh -F "$SSH_CONFIG" -N -L 5601:localhost:5601 control0 &
   local OSD_PID=$!
   PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OSD_PID"
   echo "  - OpenSearch Dashboards forwarding started (localhost:5601 -> control0:5601) [PID: $OSD_PID]"
-  
+
   # Port forwarding for MCP server (8000)
   ssh -F "$SSH_CONFIG" -N -L 8000:localhost:8000 control0 &
   local MCP_PID=$!
   PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $MCP_PID"
   echo "  - MCP server forwarding started (localhost:8000 -> control0:8000) [PID: $MCP_PID]"
-  
+
   # Port forwarding for OTLP gRPC (4317) - for sending traces/metrics/logs
   ssh -F "$SSH_CONFIG" -N -L 4317:localhost:4317 control0 &
   local OTLP_GRPC_PID=$!
   PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OTLP_GRPC_PID"
   echo "  - OTLP gRPC forwarding started (localhost:4317 -> control0:4317) [PID: $OTLP_GRPC_PID]"
-  
+
   # Port forwarding for OTLP HTTP (4318) - for sending traces/metrics/logs via HTTP
   ssh -F "$SSH_CONFIG" -N -L 4318:localhost:4318 control0 &
   local OTLP_HTTP_PID=$!
   PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OTLP_HTTP_PID"
   echo "  - OTLP HTTP forwarding started (localhost:4318 -> control0:4318) [PID: $OTLP_HTTP_PID]"
-  
+
   echo -e "\n${NC_BOLD}Monitoring services are now accessible at:${NC}"
   echo "  - OpenSearch:            http://localhost:9200"
   echo "  - OpenSearch Dashboards: http://localhost:5601"
@@ -168,7 +168,7 @@ start-port-forwarding() {
 # Stop SSH port forwarding
 stop-port-forwarding() {
   echo "Stopping SSH port forwarding..."
-  
+
   if [ -z "$PORT_FORWARD_PIDS" ]; then
     # Try to find existing SSH port forwarding processes
     local PIDS=$(ps aux | grep -E "ssh.*-L.*(9200|5601|8000|4317|4318).*control0" | grep -v grep | awk '{print $2}')
@@ -190,7 +190,7 @@ stop-port-forwarding() {
     done
     PORT_FORWARD_PIDS=""
   fi
-  
+
   echo "Port forwarding stopped."
 }
 
@@ -201,7 +201,7 @@ alias pf-stop="stop-port-forwarding"
 # Check port forwarding status
 port-forwarding-status() {
   echo "Checking port forwarding status..."
-  
+
   local PIDS=$(ps aux | grep -E "ssh.*-L.*(9200|5601|8000|4317|4318).*control0" | grep -v grep)
   if [ -n "$PIDS" ]; then
     echo -e "${NC_BOLD}Active port forwarding:${NC}"
@@ -225,8 +225,3 @@ port-forwarding-status() {
 }
 
 alias pf-status="port-forwarding-status"
-
-# Automatically start port forwarding when sourcing env.sh
-echo ""
-echo -e "${NC_BOLD}Starting port forwarding for monitoring services...${NC}"
-start-port-forwarding

@@ -17,12 +17,20 @@ import java.nio.file.Path
 /**
  * Main class for SSH operations
  * Acts as a facade for all SSH-related functionality
+ * 
+ * Thread-safety: All operations are synchronized to prevent concurrent access
+ * to the underlying Apache SSHD ClientSession, which is not thread-safe.
  */
 class SSHClient(
     private val session: ClientSession,
 ) : ISSHClient, KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val log = KotlinLogging.logger {}
+    
+    // Synchronization lock to ensure thread-safe access to the session
+    // This allows multiple SSHClient instances (different hosts) to operate in parallel
+    // while serializing operations on the same session (same host)
+    private val operationLock = Any()
 
     /**
      * Execute a command on a remote host
@@ -36,7 +44,7 @@ class SSHClient(
         command: String,
         output: Boolean,
         secret: Boolean,
-    ): Response {
+    ): Response = synchronized(operationLock) {
         // Create connection for this host
         if (!secret) {
             outputHandler.handleMessage("Executing remote command: $command")
@@ -51,7 +59,7 @@ class SSHClient(
             outputHandler.handleMessage(result)
         }
 
-        return Response(result, stderrStream.toString())
+        return@synchronized Response(result, stderrStream.toString())
     }
 
     /**
@@ -60,7 +68,7 @@ class SSHClient(
     override fun uploadFile(
         local: Path,
         remote: String,
-    ) {
+    ): Unit = synchronized(operationLock) {
         outputHandler.handleMessage("Uploading file ${local.toAbsolutePath()} to $session:$remote")
         getScpClient().upload(local, remote)
     }
@@ -71,10 +79,10 @@ class SSHClient(
     override fun uploadDirectory(
         localDir: File,
         remoteDir: String,
-    ) {
+    ): Unit = synchronized(operationLock) {
         if (!localDir.exists() || !localDir.isDirectory) {
             log.error { "Local directory $localDir does not exist or is not a directory" }
-            return
+            return@synchronized
         }
 
         outputHandler.handleMessage("Uploading directory ${localDir.absolutePath} to $session:$remoteDir")
@@ -102,7 +110,7 @@ class SSHClient(
     override fun downloadFile(
         remote: String,
         local: Path,
-    ) {
+    ): Unit = synchronized(operationLock) {
         log.debug { "Downloading file from $session $remote to ${local.toAbsolutePath()}" }
         getScpClient().download(remote, local)
     }
@@ -120,7 +128,7 @@ class SSHClient(
         localDir: File,
         includeFilters: List<String>,
         excludeFilters: List<String>,
-    ) {
+    ): Unit = synchronized(operationLock) {
         if (!localDir.exists()) {
             localDir.mkdirs()
         }
@@ -167,11 +175,11 @@ class SSHClient(
         return !isExcluded && !isNotIncluded
     }
 
-    override fun getScpClient(): CloseableScpClient {
+    override fun getScpClient(): CloseableScpClient = synchronized(operationLock) {
         val creator = ScpClientCreator.instance()
         val client = creator.createScpClient(session)
         val scpClient = CloseableScpClient.singleSessionInstance(client)
-        return scpClient
+        return@synchronized scpClient
     }
 
     // Track active port forwards for cleanup
@@ -181,7 +189,7 @@ class SSHClient(
         localPort: Int,
         remoteHost: String,
         remotePort: Int
-    ): Int {
+    ): Int = synchronized(operationLock) {
         val localAddress = SshdSocketAddress("", localPort) // Empty string binds to all interfaces
         val remoteAddress = SshdSocketAddress(remoteHost, remotePort)
 
@@ -193,10 +201,10 @@ class SSHClient(
         activePortForwards[actualPort] = tracker
 
         log.info { "Port forward created: localhost:$actualPort -> $remoteHost:$remotePort" }
-        return actualPort
+        return@synchronized actualPort
     }
 
-    override fun closeLocalPortForward(localPort: Int) {
+    override fun closeLocalPortForward(localPort: Int): Unit = synchronized(operationLock) {
         activePortForwards[localPort]?.let { tracker ->
             try {
                 tracker.close()
@@ -211,7 +219,7 @@ class SSHClient(
     /**
      * Stop the SSH client
      */
-    override fun close() {
+    override fun close(): Unit = synchronized(operationLock) {
         log.debug { "Stopping SSH client" }
 
         // Close all active port forwards

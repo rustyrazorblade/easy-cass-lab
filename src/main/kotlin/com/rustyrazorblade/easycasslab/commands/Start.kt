@@ -51,6 +51,9 @@ class Start(context: Context) : BaseCommand(context) {
             }
         }
 
+        // Start cassandra-easy-stress on stress nodes
+        startCassandraEasyStress()
+
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
             StartAxonOps(context).execute()
         }
@@ -75,12 +78,31 @@ class Start(context: Context) : BaseCommand(context) {
         deployDockerComposeToControlNodes()
     }
 
+    /**
+     * Start cassandra-easy-stress service on stress nodes
+     */
+    private fun startCassandraEasyStress() {
+        outputHandler.handleMessage("Starting cassandra-easy-stress on stress nodes...")
+        
+        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+            outputHandler.handleMessage("Starting cassandra-easy-stress on ${host.alias} (${host.public})")
+            
+            try {
+                val result = remoteOps.executeRemotely(host, "sudo systemctl start cassandra-easy-stress")
+                outputHandler.handleMessage("cassandra-easy-stress started on ${host.alias}")
+            } catch (e: RuntimeException) {
+                outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
+            }
+        }
+        
+        outputHandler.handleMessage("cassandra-easy-stress startup completed on stress nodes")
+    }
+
     private fun deployDockerComposeToControlNodes() {
         outputHandler.handleMessage("Starting Docker Compose services on control nodes...")
 
         val dockerComposeFile = File("control/docker-compose.yaml")
         val otelConfigFile = File("control/otel-collector-config.yaml")
-        val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
 
         if (!dockerComposeFile.exists()) {
             throw RuntimeException("control/docker-compose.yaml not found - required file missing")
@@ -89,12 +111,6 @@ class Start(context: Context) : BaseCommand(context) {
         if (!otelConfigFile.exists()) {
             throw RuntimeException(
                 "control/otel-collector-config.yaml not found - required file missing",
-            )
-        }
-
-        if (!dataPrepperConfigFile.exists()) {
-            throw RuntimeException(
-                "control/data-prepper-pipelines.yaml not found - required file missing",
             )
         }
 
@@ -143,11 +159,7 @@ class Start(context: Context) : BaseCommand(context) {
                 otelConfigFile.toPath(),
                 "/home/ubuntu/otel-collector-config.yaml",
             )
-            remoteOps.upload(
-                host,
-                dataPrepperConfigFile.toPath(),
-                "/home/ubuntu/data-prepper-pipelines.yaml",
-            )
+
             // Check if docker and docker compose are available
             try {
                 val dockerCheck =
@@ -178,6 +190,7 @@ class Start(context: Context) : BaseCommand(context) {
             var retryCount = 0
             var lastError: String? = null
 
+            // replace this will resilience4j retries
             while (!success && retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
                 try {
                     if (retryCount > 0) {
@@ -433,60 +446,43 @@ class Start(context: Context) : BaseCommand(context) {
                     "${controlHost.public}:${Constants.Network.EASY_CASS_MCP_PORT}"
             outputHandler.handleMessage(mcpTunnelInfo)
             outputHandler.handleMessage(
-                "  MCP server accessible at http://localhost:${mcpTunnel.localPort}/sse",
+                "  easy-cass-mcp MCP server accessible at http://localhost:${mcpTunnel.localPort}/mcp",
             )
 
         } catch (e: Exception) {
             outputHandler.handleMessage("Error: Could not create MCP tunnel: ${e.message}")
         }
 
-        // Create OpenSearch tunnel with error handling
-        try {
-            val opensearchTunnel =
-                tunnelManager.createTunnel(
-                    host = controlHost,
-                    remotePort = Constants.Network.OPENSEARCH_PORT,
-                    remoteHost = "localhost",
-                    localPort = Constants.Network.OPENSEARCH_PORT,
+        // Create stress node tunnel
+        val stressHost = tfstate.getHosts(ServerType.Stress).firstOrNull()
+        if (stressHost != null) {
+            try {
+                val stressTunnel =
+                    tunnelManager.createTunnel(
+                        host = stressHost,
+                        remotePort = Constants.Network.CASSANDRA_EASY_STRESS_PORT,
+                        remoteHost = "localhost",
+                        localPort = Constants.Network.CASSANDRA_EASY_STRESS_PORT,
+                    )
+                tunnels.add(stressTunnel)
+                val stressTunnelInfo =
+                    "✓ Stress tunnel: localhost:${stressTunnel.localPort} -> " +
+                        "${stressHost.public}:${Constants.Network.CASSANDRA_EASY_STRESS_PORT}"
+                outputHandler.handleMessage(stressTunnelInfo)
+                outputHandler.handleMessage(
+                    "  cassandra-easy-stress MCP server accessible at http://localhost:${stressTunnel.localPort}/mcp",
                 )
-            tunnels.add(opensearchTunnel)
-            val opensearchTunnelInfo =
-                "✓ OpenSearch tunnel: localhost:${opensearchTunnel.localPort} -> " +
-                    "${controlHost.public}:${Constants.Network.OPENSEARCH_PORT}"
-            outputHandler.handleMessage(opensearchTunnelInfo)
-            outputHandler.handleMessage(
-                "  OpenSearch accessible at http://localhost:${opensearchTunnel.localPort}",
-            )
-        } catch (e: Exception) {
-            outputHandler.handleMessage("Error: Could not create OpenSearch tunnel: ${e.message}")
-        }
-
-        // Create OpenSearch Dashboards tunnel with error handling
-        try {
-            val dashboardsTunnel =
-                tunnelManager.createTunnel(
-                    host = controlHost,
-                    remotePort = Constants.Network.OPENSEARCH_DASHBOARDS_PORT,
-                    remoteHost = "localhost",
-                    localPort = Constants.Network.OPENSEARCH_DASHBOARDS_PORT,
-                )
-            tunnels.add(dashboardsTunnel)
-            val dashboardsTunnelInfo =
-                "✓ OpenSearch Dashboards tunnel: localhost:${dashboardsTunnel.localPort} -> " +
-                    "${controlHost.public}:${Constants.Network.OPENSEARCH_DASHBOARDS_PORT}"
-            outputHandler.handleMessage(dashboardsTunnelInfo)
-            val dashboardsUrl = "http://localhost:${dashboardsTunnel.localPort}"
-            outputHandler.handleMessage("  OpenSearch Dashboards accessible at $dashboardsUrl")
-        } catch (e: Exception) {
-            outputHandler.handleMessage(
-                "Error: Could not create OpenSearch Dashboards tunnel: ${e.message}",
-            )
+            } catch (e: Exception) {
+                outputHandler.handleMessage("Error: Could not create stress tunnel: ${e.message}")
+            }
+        } else {
+            outputHandler.handleMessage("Warning: No stress nodes found, skipping stress tunnel creation")
         }
 
         // Summary
         if (tunnels.isNotEmpty()) {
             outputHandler.handleMessage("")
-            outputHandler.handleMessage("SSH tunnels established successfully (${tunnels.size}/3)")
+            outputHandler.handleMessage("SSH tunnels established successfully (${tunnels.size}/2)")
             outputHandler.handleMessage("Tunnels will remain active until easy-cass-lab process exits")
         } else {
             outputHandler.handleMessage("Warning: Failed to create any SSH tunnels")

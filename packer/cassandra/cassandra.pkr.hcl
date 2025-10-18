@@ -169,7 +169,8 @@ build {
     inline = [
        "sudo mv services/* /etc/systemd/system/",
        "sudo systemctl enable cassandra.service",
-       "sudo systemctl enable cassandra-sidecar.service"
+       "sudo systemctl enable cassandra-sidecar.service",
+       "sudo systemctl enable cassandra-easy-stress.service"
     ]
   }
 
