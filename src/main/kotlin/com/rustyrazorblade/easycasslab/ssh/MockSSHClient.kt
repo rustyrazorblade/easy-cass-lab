@@ -200,6 +200,11 @@ class MockSSHClient : ISSHClient {
         log.debug { "Mock: Closing port forward on localhost:$localPort" }
     }
 
+    override fun isSessionOpen(): Boolean {
+        // Mock client is always considered open unless explicitly set otherwise
+        return true
+    }
+
     override fun close() {
         log.debug { "MOCK: Stopping SSH client" }
     }

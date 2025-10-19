@@ -136,18 +136,14 @@ class Up(context: Context) : BaseCommand(context) {
     }
 
     private fun writeStressEnvironmentVariables() {
+        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
+
         val stressEnvironmentVars = File("environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
         stressEnvironmentVars.newLine()
-        val host = tfstate.getHosts(ServerType.Cassandra).first().private
-        stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$host")
+        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$cassandraHost")
         stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write("export  CASSANDRA_EASY_STRESS_PROM_PORT=0")
-        stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write(
-            "export CASSANDRA_EASY_STRESS_DEFAULT_DC=\$(curl -s " +
-                "http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region)",
-        )
+        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_PROM_PORT=0")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()

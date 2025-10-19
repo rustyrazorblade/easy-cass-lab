@@ -84,6 +84,13 @@ interface ISSHClient {
     fun closeLocalPortForward(localPort: Int)
 
     /**
+     * Check if the underlying SSH session is still open and authenticated.
+     *
+     * @return true if the session is open and authenticated, false otherwise
+     */
+    fun isSessionOpen(): Boolean
+
+    /**
      * Close the connection
      */
     fun close() {}

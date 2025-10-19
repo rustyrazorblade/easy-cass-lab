@@ -8,6 +8,8 @@ interface SSHConfiguration {
     companion object {
         const val DEFAULT_CONNECTION_TIMEOUT_SECONDS = 60L
         const val DEFAULT_SSH_PORT = 22
+        const val DEFAULT_KEEPALIVE_INTERVAL_SECONDS = 30L
+        const val DEFAULT_SESSION_TIMEOUT_MINUTES = 10L
     }
 
     /**
@@ -35,4 +37,20 @@ interface SSHConfiguration {
      */
     val sshUsername: String
         get() = "ubuntu"
+
+    /**
+     * Keepalive interval in seconds.
+     * Sends heartbeat messages to prevent session timeout.
+     * Default: 30 seconds
+     */
+    val keepAliveIntervalSeconds: Long
+        get() = DEFAULT_KEEPALIVE_INTERVAL_SECONDS
+
+    /**
+     * Session idle timeout in minutes.
+     * Sessions idle longer than this will be considered dead.
+     * Default: 10 minutes
+     */
+    val sessionTimeoutMinutes: Long
+        get() = DEFAULT_SESSION_TIMEOUT_MINUTES
 }

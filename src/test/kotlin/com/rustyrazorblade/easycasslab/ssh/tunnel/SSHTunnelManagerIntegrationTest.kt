@@ -583,6 +583,11 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             throw UnsupportedOperationException("Not implemented for test")
         }
 
+        override fun isSessionOpen(): Boolean {
+            // For testing purposes, always return true
+            return true
+        }
+
         override fun close() {
             activeForwards.keys.toList().forEach { closeLocalPortForward(it) }
         }

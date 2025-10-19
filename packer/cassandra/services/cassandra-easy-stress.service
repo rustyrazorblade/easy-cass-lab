@@ -2,6 +2,7 @@
 Description=Cassandra Easy Stress Server
 
 [Service]
+EnvironmentFile=/etc/cassandra-easy-stress/stress.env
 ExecStart=/usr/local/cassandra-easy-stress/bin/cassandra-easy-stress server
 User=cassandra
 

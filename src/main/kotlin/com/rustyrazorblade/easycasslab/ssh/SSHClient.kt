@@ -381,6 +381,20 @@ class SSHClient(
     }
 
     /**
+     * Check if the underlying SSH session is still open and authenticated.
+     *
+     * @return true if the session is open and authenticated, false otherwise
+     */
+    override fun isSessionOpen(): Boolean = synchronized(operationLock) {
+        return@synchronized try {
+            session.isOpen && session.isAuthenticated
+        } catch (e: Exception) {
+            log.debug(e) { "Error checking session status for $remoteAddress" }
+            false
+        }
+    }
+
+    /**
      * Stop the SSH client and clean up all resources
      *
      * This method:
