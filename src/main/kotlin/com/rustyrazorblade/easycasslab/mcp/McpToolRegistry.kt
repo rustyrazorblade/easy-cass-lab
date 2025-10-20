@@ -70,13 +70,10 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
     ): ToolResult {
         log.debug { "executeTool called with name='$name', arguments=$arguments" }
         val tool = getTools().find { it.name == name }
-
-        if (tool == null) {
-            return ToolResult(
+            ?: return ToolResult(
                 content = listOf("Tool not found: $name"),
                 isError = true,
             )
-        }
 
         // Create a fresh command instance to avoid state retention
         // Create an MCP context for command execution
@@ -108,12 +105,10 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             }
 
         // Map JSON arguments to command parameters
-        if (arguments != null) {
-            log.debug { "Mapping arguments to command: $arguments" }
-            mapArgumentsToCommand(freshCommand, arguments)
-        } else {
-            log.debug { "No arguments to map (arguments is null)" }
-        }
+        arguments?.let {
+            log.debug { "Mapping arguments to command: $it" }
+            mapArgumentsToCommand(freshCommand, it)
+        } ?: log.debug { "No arguments to map (arguments is null)" }
 
         try {
             // Stream start message via outputHandler
@@ -348,12 +343,10 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         val fieldName = property.name
         val value = arguments[fieldName]
 
-        if (value != null && value !is JsonNull) {
+        value?.takeIf { it !is JsonNull }?.let {
             log.debug { "Setting field '$fieldName'" }
-            setFieldValue(command, javaField, value)
-        } else {
-            log.debug { "Skipping field '$fieldName' (null)" }
-        }
+            setFieldValue(command, javaField, it)
+        } ?: log.debug { "Skipping field '$fieldName' (null)" }
     }
 
     private fun mapDelegateArguments(
@@ -368,12 +361,10 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             javaField.isAccessible = true
             val delegateObject = javaField.get(command)
 
-            if (delegateObject != null) {
-                log.debug { "Mapping arguments to delegate ${delegateObject::class.simpleName}" }
-                mapArgumentsToDelegate(delegateObject, arguments)
-            } else {
-                log.debug { "Delegate object is null, skipping" }
-            }
+            delegateObject?.let {
+                log.debug { "Mapping arguments to delegate ${it::class.simpleName}" }
+                mapArgumentsToDelegate(it, arguments)
+            } ?: log.debug { "Delegate object is null, skipping" }
         } catch (e: Exception) {
             log.warn { "Unable to process delegate: ${e.message}" }
         }
@@ -400,12 +391,10 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         val fieldName = property.name
         val value = arguments[fieldName]
 
-        if (value != null && value !is JsonNull) {
+        value?.takeIf { it !is JsonNull }?.let {
             log.debug { "Setting delegate field '$fieldName'" }
-            setFieldValue(delegate, javaField, value)
-        } else {
-            log.debug { "Skipping delegate field '$fieldName' (null)" }
-        }
+            setFieldValue(delegate, javaField, it)
+        } ?: log.debug { "Skipping delegate field '$fieldName' (null)" }
     }
 
     private fun setFieldValue(
@@ -440,11 +429,9 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         val enumString = value.jsonPrimitive.content
         val enumValue = findMatchingEnumValue(field.type, enumString)
 
-        if (enumValue != null) {
-            field.set(target, enumValue)
-        } else {
-            log.warn { "Unable to find enum value '$enumString' for field '${field.name}'" }
-        }
+        enumValue?.let {
+            field.set(target, it)
+        } ?: log.warn { "Unable to find enum value '$enumString' for field '${field.name}'" }
     }
 
     private fun findMatchingEnumValue(

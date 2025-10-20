@@ -153,6 +153,8 @@ tasks.test {
 //        html.isEnabled = true
 //    }
     testLogging.showStandardStreams = true
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+
 }
 
 tasks.register("buildAll") {
