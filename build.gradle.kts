@@ -148,13 +148,31 @@ tasks.register<Test>("integrationTest") {
 
 tasks.test {
     useJUnitPlatform()
-//    reports {
-//        junitXml.isEnabled = true
-//        html.isEnabled = true
-//    }
-    testLogging.showStandardStreams = true
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 
+    // Enable HTML and XML reports
+    reports {
+        junitXml.required.set(true)
+        html.required.set(true)
+    }
+
+    // Configure parallel test execution
+    val processors = Runtime.getRuntime().availableProcessors()
+    maxParallelForks = (processors / 2).coerceAtLeast(1)
+
+    // Show test execution times and detailed output
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showCauses = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+
+    doFirst {
+        println("========================================")
+        println("Test Execution Configuration:")
+        println("  Available processors: $processors")
+        println("  Max parallel forks: $maxParallelForks")
+        println("========================================")
+    }
 }
 
 tasks.register("buildAll") {
