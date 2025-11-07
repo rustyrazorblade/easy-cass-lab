@@ -25,17 +25,11 @@
   python: "3.10.6"
 
 - version: "5.0-HEAD"
-  url: https://github.com/apache/cassandra.git
-  branch: cassandra-5.0
+  url: https://github.com/rustyrazorblade/easy-cass-lab/releases/download/nightly/apache-cassandra-5.0-HEAD-bin.tar.gz
   java: "11"
-  java_build: "11"
   python: "3.10.6"
-  ant_flags: "-Dant.gen-doc.skip=true"
 
 - version: "trunk"
-  url: https://github.com/apache/cassandra.git
-  branch: trunk
+  url: https://github.com/rustyrazorblade/easy-cass-lab/releases/download/nightly/apache-cassandra-trunk-bin.tar.gz
   java: "17"
-  java_build: "11"
   python: "3.10.6"
-  ant_flags: "-Dant.gen-doc.skip=true"
