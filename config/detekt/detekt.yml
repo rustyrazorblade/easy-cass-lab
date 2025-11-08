@@ -283,18 +283,7 @@ exceptions:
   ThrowingNewInstanceOfSameException:
     active: true
   TooGenericExceptionCaught:
-    active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
-    exceptionNames:
-      - 'ArrayIndexOutOfBoundsException'
-      - 'Error'
-      - 'Exception'
-      - 'IllegalMonitorStateException'
-      - 'IndexOutOfBoundsException'
-      - 'NullPointerException'
-      - 'RuntimeException'
-      - 'Throwable'
-    allowedExceptionNameRegex: '_|(ignore|expected).*'
+    active: false
   TooGenericExceptionThrown:
     active: true
     exceptionNames:
@@ -646,7 +635,6 @@ style:
   MultilineRawStringIndentation:
     active: false
     indentSize: 4
-    trimmingMethod: 'trimIndent'
   NestedClassesVisibility:
     active: true
   NewLineAtEndOfFile:
@@ -660,8 +648,6 @@ style:
   OptionalAbstractKeyword:
     active: true
   OptionalUnit:
-    active: false
-  OptionalWhenBraces:
     active: false
   PreferToOverPairSyntax:
     active: false
@@ -699,7 +685,6 @@ style:
     active: false
   TrimMultilineRawString:
     active: false
-    trimmingMethod: 'trimIndent'
   UnderscoresInNumericLiterals:
     active: false
     acceptableLength: 4
