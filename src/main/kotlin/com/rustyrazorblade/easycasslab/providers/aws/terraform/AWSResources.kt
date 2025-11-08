@@ -1,4 +1,4 @@
-@file:Suppress("ConstructorParameterNaming", "VariableNaming")
+@file:Suppress("ConstructorParameterNaming", "VariableNaming", "PropertyName")
 
 package com.rustyrazorblade.easycasslab.providers.aws.terraform
 
