@@ -386,7 +386,7 @@ class TerraformConfig(
 
     @JsonIgnore
     fun getAmi(arch: Arch): String {
-        val defaultAmi = "rustyrazorblade/images/easy-cass-lab-cassandra-$arch-*"
+        val defaultAmi = "rustyrazorblade/images/easy-cass-lab-cassandra-${arch.type}-*"
         return System.getProperty("easycasslab.ami.name", defaultAmi)
     }
 
