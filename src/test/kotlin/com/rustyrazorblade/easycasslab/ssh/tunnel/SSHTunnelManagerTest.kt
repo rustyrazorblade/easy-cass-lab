@@ -3,27 +3,29 @@ package com.rustyrazorblade.easycasslab.ssh.tunnel
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.configuration.Host
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.ConcurrentHashMap
 
 class SSHTunnelManagerTest : BaseKoinTest() {
     private lateinit var tunnelManager: MockSSHTunnelManager
-    private val host1 = Host(
-        public = "54.1.2.3",
-        private = "10.0.0.1",
-        alias = "cassandra0",
-        availabilityZone = "us-west-2a"
-    )
-    private val host2 = Host(
-        public = "54.1.2.4",
-        private = "10.0.0.2",
-        alias = "cassandra1",
-        availabilityZone = "us-west-2a"
-    )
+    private val host1 =
+        Host(
+            public = "54.1.2.3",
+            private = "10.0.0.1",
+            alias = "cassandra0",
+            availabilityZone = "us-west-2a",
+        )
+    private val host2 =
+        Host(
+            public = "54.1.2.4",
+            private = "10.0.0.2",
+            alias = "cassandra1",
+            availabilityZone = "us-west-2a",
+        )
 
     @BeforeEach
     fun setup() {

@@ -83,10 +83,10 @@ class Start(context: Context) : BaseCommand(context) {
      */
     private fun startCassandraEasyStress() {
         outputHandler.handleMessage("Starting cassandra-easy-stress on stress nodes...")
-        
+
         tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
             outputHandler.handleMessage("Starting cassandra-easy-stress on ${host.alias} (${host.public})")
-            
+
             try {
                 val result = remoteOps.executeRemotely(host, "sudo systemctl start cassandra-easy-stress")
                 outputHandler.handleMessage("cassandra-easy-stress started on ${host.alias}")
@@ -94,7 +94,7 @@ class Start(context: Context) : BaseCommand(context) {
                 outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
             }
         }
-        
+
         outputHandler.handleMessage("cassandra-easy-stress startup completed on stress nodes")
     }
 
@@ -250,8 +250,6 @@ class Start(context: Context) : BaseCommand(context) {
 
         outputHandler.handleMessage("Docker Compose services started on control nodes")
     }
-
-
 
     private fun startOtelOnCassandraNodes() {
         outputHandler.handleMessage("Starting OTel collectors on Cassandra nodes...")
@@ -409,7 +407,6 @@ class Start(context: Context) : BaseCommand(context) {
         outputHandler.handleMessage("OTel collectors startup completed on Cassandra nodes")
     }
 
-
     /**
      * Called automatically, ignore that it's unused.
      */
@@ -448,7 +445,6 @@ class Start(context: Context) : BaseCommand(context) {
             outputHandler.handleMessage(
                 "  easy-cass-mcp MCP server accessible at http://localhost:${mcpTunnel.localPort}/mcp",
             )
-
         } catch (e: Exception) {
             outputHandler.handleMessage("Error: Could not create MCP tunnel: ${e.message}")
         }

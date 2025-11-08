@@ -1,30 +1,24 @@
 package com.rustyrazorblade.easycasslab.ssh
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.apache.sshd.client.session.ClientSession
 import org.apache.sshd.client.session.forward.ExplicitPortForwardingTracker
 import org.apache.sshd.common.io.IoSession
 import org.apache.sshd.common.util.net.SshdSocketAddress
-import org.apache.sshd.scp.client.CloseableScpClient
-import org.apache.sshd.scp.client.ScpClient
-import org.apache.sshd.scp.client.ScpClientCreator
-import java.net.InetSocketAddress
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.io.File
+import java.net.InetSocketAddress
 import java.nio.charset.Charset
-import java.nio.file.Path
 
 /**
  * Unit tests for SSHClient
@@ -338,16 +332,17 @@ class SSHClientTest : BaseKoinTest(), KoinComponent {
         whenever(
             mockSession.createLocalPortForwardingTracker(
                 any<SshdSocketAddress>(),
-                any<SshdSocketAddress>()
-            )
+                any<SshdSocketAddress>(),
+            ),
         ).thenReturn(mockTracker)
 
         // When
-        val actualPort = sshClient.createLocalPortForward(
-            localPort = 9042,
-            remoteHost = "10.0.1.5",
-            remotePort = 9042
-        )
+        val actualPort =
+            sshClient.createLocalPortForward(
+                localPort = 9042,
+                remoteHost = "10.0.1.5",
+                remotePort = 9042,
+            )
 
         // Then
         assertThat(actualPort).isEqualTo(9042)
@@ -363,8 +358,8 @@ class SSHClientTest : BaseKoinTest(), KoinComponent {
         whenever(
             mockSession.createLocalPortForwardingTracker(
                 any<SshdSocketAddress>(),
-                any<SshdSocketAddress>()
-            )
+                any<SshdSocketAddress>(),
+            ),
         ).thenReturn(mockTracker)
 
         val actualPort = sshClient.createLocalPortForward(9042, "localhost", 9042)
@@ -401,8 +396,8 @@ class SSHClientTest : BaseKoinTest(), KoinComponent {
         whenever(
             mockSession.createLocalPortForwardingTracker(
                 any<SshdSocketAddress>(),
-                any<SshdSocketAddress>()
-            )
+                any<SshdSocketAddress>(),
+            ),
         ).thenReturn(mockTracker)
 
         sshClient.createLocalPortForward(9042, "localhost", 9042)

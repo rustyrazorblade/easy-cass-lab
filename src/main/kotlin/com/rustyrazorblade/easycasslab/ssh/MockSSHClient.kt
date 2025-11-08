@@ -189,7 +189,7 @@ class MockSSHClient : ISSHClient {
     override fun createLocalPortForward(
         localPort: Int,
         remoteHost: String,
-        remotePort: Int
+        remotePort: Int,
     ): Int {
         log.debug { "Mock: Creating port forward localhost:$localPort -> $remoteHost:$remotePort" }
         // Return the requested port or a mock port if auto-assign

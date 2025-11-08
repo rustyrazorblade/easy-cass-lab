@@ -43,22 +43,27 @@ class McpCommand(context: Context) : BaseCommand(context) {
     )
 
     private fun generateMcpConfig(): File {
-        val config = McpConfiguration(
-            mcpServers = mapOf(
-                "easy-cass-mcp" to McpServerConfig(
-                    type = "http",
-                    url = "http://localhost:${Constants.Network.EASY_CASS_MCP_PORT}/mcp"
-                ),
-                "easy-cass-lab" to McpServerConfig(
-                    type = "sse",
-                    url = "http://localhost:$port/sse"
-                ),
-                "cassandra-easy-stress" to McpServerConfig(
-                    type = "sse",
-                    url = "http://localhost:${Constants.Network.CASSANDRA_EASY_STRESS_PORT}/sse"
-                )
+        val config =
+            McpConfiguration(
+                mcpServers =
+                    mapOf(
+                        "easy-cass-mcp" to
+                            McpServerConfig(
+                                type = "http",
+                                url = "http://localhost:${Constants.Network.EASY_CASS_MCP_PORT}/mcp",
+                            ),
+                        "easy-cass-lab" to
+                            McpServerConfig(
+                                type = "sse",
+                                url = "http://localhost:$port/sse",
+                            ),
+                        "cassandra-easy-stress" to
+                            McpServerConfig(
+                                type = "sse",
+                                url = "http://localhost:${Constants.Network.CASSANDRA_EASY_STRESS_PORT}/sse",
+                            ),
+                    ),
             )
-        )
 
         val json = Json { prettyPrint = true }
         val configFile = File(".mcp.json")
@@ -76,7 +81,7 @@ class McpCommand(context: Context) : BaseCommand(context) {
             """
             MCP configuration saved to: ${configFile.absolutePath}
 
-            """.trimIndent()
+            """.trimIndent(),
         )
 
         try {

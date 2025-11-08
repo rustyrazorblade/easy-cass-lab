@@ -2,10 +2,11 @@ package com.rustyrazorblade.easycasslab.ssh.tunnel
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.configuration.Host
+import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
-import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.server.SshServer
 import org.apache.sshd.server.auth.password.PasswordAuthenticator
 import org.apache.sshd.server.forward.AcceptAllForwardingFilter
@@ -21,7 +22,6 @@ import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.apache.sshd.scp.client.CloseableScpClient
 import java.io.File
 import java.net.ServerSocket
 import java.net.Socket
@@ -38,7 +38,6 @@ private val logger = KotlinLogging.logger {}
  * Tests actual SSH port forwarding functionality.
  */
 class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
-
     private lateinit var sshServer: SshServer
     private lateinit var targetServer: ServerSocket
     private var sshPort: Int = 0
@@ -108,9 +107,10 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         server.keyPairProvider = SimpleGeneratorHostKeyProvider(hostKeyFile.toPath())
 
         // Setup password authentication
-        server.passwordAuthenticator = PasswordAuthenticator { username, password, _ ->
-            username == testUser && password == testPassword
-        }
+        server.passwordAuthenticator =
+            PasswordAuthenticator { username, password, _ ->
+                username == testUser && password == testPassword
+            }
 
         // Enable port forwarding
         server.forwardingFilter = AcceptAllForwardingFilter.INSTANCE
@@ -137,46 +137,48 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         }
     }
 
-    private fun createIntegrationTestModule() = module {
-        // Create test host pointing to our SSH server
-        factory {
-            Host(
-                public = "localhost",
-                private = "localhost",
-                alias = "testhost",
-                availabilityZone = "test-az"
-            )
-        }
+    private fun createIntegrationTestModule() =
+        module {
+            // Create test host pointing to our SSH server
+            factory {
+                Host(
+                    public = "localhost",
+                    private = "localhost",
+                    alias = "testhost",
+                    availabilityZone = "test-az",
+                )
+            }
 
-        // SSH connection provider for testing
-        single<SSHConnectionProvider> {
-            object : SSHConnectionProvider {
-                override fun getConnection(host: Host): ISSHClient {
-                    return TestSSHClient(host, sshPort, testUser, testPassword)
-                }
+            // SSH connection provider for testing
+            single<SSHConnectionProvider> {
+                object : SSHConnectionProvider {
+                    override fun getConnection(host: Host): ISSHClient {
+                        return TestSSHClient(host, sshPort, testUser, testPassword)
+                    }
 
-                override fun stop() {
-                    // No-op for testing
+                    override fun stop() {
+                        // No-op for testing
+                    }
                 }
             }
-        }
 
-        // Real SSH tunnel manager
-        single<SSHTunnelManager> {
-            IntegrationTestSSHTunnelManager(get())
+            // Real SSH tunnel manager
+            single<SSHTunnelManager> {
+                IntegrationTestSSHTunnelManager(get())
+            }
         }
-    }
 
     @Test
     @Timeout(30, unit = TimeUnit.SECONDS)
     fun `creates working SSH tunnel that forwards data`() {
         val tunnelManager: SSHTunnelManager by inject()
-        val host = Host(
-            public = "localhost",
-            private = "localhost",
-            alias = "testhost",
-            availabilityZone = "test-az"
-        )
+        val host =
+            Host(
+                public = "localhost",
+                private = "localhost",
+                alias = "testhost",
+                availabilityZone = "test-az",
+            )
 
         // Create tunnel to our target server
         val tunnel = tunnelManager.createTunnel(host, targetPort)
@@ -210,12 +212,13 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
     @Timeout(30, unit = TimeUnit.SECONDS)
     fun `handles multiple concurrent tunnels to different ports`() {
         val tunnelManager: SSHTunnelManager by inject()
-        val host = Host(
-            public = "localhost",
-            private = "localhost",
-            alias = "testhost",
-            availabilityZone = "test-az"
-        )
+        val host =
+            Host(
+                public = "localhost",
+                private = "localhost",
+                alias = "testhost",
+                availabilityZone = "test-az",
+            )
 
         // Create additional target servers
         val targetServer2 = ServerSocket(0)
@@ -274,7 +277,6 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             // Cleanup
             tunnelManager.closeTunnel(tunnel1)
             tunnelManager.closeTunnel(tunnel2)
-
         } finally {
             targetServer2.close()
         }
@@ -284,12 +286,13 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
     @Timeout(30, unit = TimeUnit.SECONDS)
     fun `reuses cached tunnel for same host and port`() {
         val tunnelManager: SSHTunnelManager by inject()
-        val host = Host(
-            public = "localhost",
-            private = "localhost",
-            alias = "testhost",
-            availabilityZone = "test-az"
-        )
+        val host =
+            Host(
+                public = "localhost",
+                private = "localhost",
+                alias = "testhost",
+                availabilityZone = "test-az",
+            )
 
         // Create first tunnel
         val tunnel1 = tunnelManager.createTunnel(host, targetPort)
@@ -316,12 +319,13 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
     @Timeout(30, unit = TimeUnit.SECONDS)
     fun `closes all tunnels on manager close`() {
         val tunnelManager: SSHTunnelManager by inject()
-        val host = Host(
-            public = "localhost",
-            private = "localhost",
-            alias = "testhost",
-            availabilityZone = "test-az"
-        )
+        val host =
+            Host(
+                public = "localhost",
+                private = "localhost",
+                alias = "testhost",
+                availabilityZone = "test-az",
+            )
 
         // Create multiple tunnels
         val tunnel1 = tunnelManager.createTunnel(host, targetPort)
@@ -342,7 +346,10 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         assertThat(tunnelManager.getTunnel(host, targetPort + 1000)).isNull()
     }
 
-    private fun testTunnelConnection(localPort: Int, testData: String) {
+    private fun testTunnelConnection(
+        localPort: Int,
+        testData: String,
+    ) {
         Socket("localhost", localPort).use { client ->
             val output = client.getOutputStream()
             val input = client.getInputStream()
@@ -363,9 +370,8 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
      * Integration test implementation of SSHTunnelManager that creates actual port forwards
      */
     private inner class IntegrationTestSSHTunnelManager(
-        private val sshConnectionProvider: SSHConnectionProvider
+        private val sshConnectionProvider: SSHConnectionProvider,
     ) : SSHTunnelManager {
-
         private val tunnelCache = mutableMapOf<TunnelKey, SSHTunnel>()
         private val portForwards = mutableMapOf<SSHTunnel, Int>()
 
@@ -373,7 +379,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             host: Host,
             remotePort: Int,
             remoteHost: String,
-            localPort: Int
+            localPort: Int,
         ): SSHTunnel {
             val key = TunnelKey(host, remotePort)
 
@@ -381,32 +387,37 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             tunnelCache[key]?.let { return it }
 
             // Create new tunnel with actual port forwarding
-            val actualLocalPort = if (localPort == 0) {
-                ServerSocket(0).use { it.localPort }
-            } else {
-                localPort
-            }
+            val actualLocalPort =
+                if (localPort == 0) {
+                    ServerSocket(0).use { it.localPort }
+                } else {
+                    localPort
+                }
 
             // Get SSH client and create actual port forward
             val sshClient = sshConnectionProvider.getConnection(host)
             val actualPort = sshClient.createLocalPortForward(actualLocalPort, remoteHost, remotePort)
 
             // Create and cache the tunnel
-            val tunnel = SSHTunnel(
-                host = host,
-                remotePort = remotePort,
-                localPort = actualPort,
-                remoteHost = remoteHost,
-                isActive = true
-            )
+            val tunnel =
+                SSHTunnel(
+                    host = host,
+                    remotePort = remotePort,
+                    localPort = actualPort,
+                    remoteHost = remoteHost,
+                    isActive = true,
+                )
 
             tunnelCache[key] = tunnel
-            portForwards[tunnel] = actualPort  // Store the local port for cleanup
+            portForwards[tunnel] = actualPort // Store the local port for cleanup
 
             return tunnel
         }
 
-        override fun getTunnel(host: Host, remotePort: Int): SSHTunnel? {
+        override fun getTunnel(
+            host: Host,
+            remotePort: Int,
+        ): SSHTunnel? {
             return tunnelCache[TunnelKey(host, remotePort)]
         }
 
@@ -437,9 +448,8 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         private val host: Host,
         private val sshPort: Int,
         private val username: String,
-        private val password: String
+        private val password: String,
     ) : ISSHClient {
-
         private val activeForwards = mutableMapOf<Int, PortForwardInfo>()
         private val forwardCounter = AtomicInteger(0)
 
@@ -459,17 +469,18 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         override fun createLocalPortForward(
             localPort: Int,
             remoteHost: String,
-            remotePort: Int
+            remotePort: Int,
         ): Int {
             val actualLocalPort = if (localPort == 0) findAvailablePort() else localPort
 
             // Create a simple forward that proves the concept
-            val forward = PortForwardInfo(
-                id = forwardCounter.incrementAndGet(),
-                localPort = actualLocalPort,
-                remoteHost = remoteHost,
-                remotePort = remotePort
-            )
+            val forward =
+                PortForwardInfo(
+                    id = forwardCounter.incrementAndGet(),
+                    localPort = actualLocalPort,
+                    remoteHost = remoteHost,
+                    remotePort = remotePort,
+                )
 
             activeForwards[actualLocalPort] = forward
             logger.info { "Created port forward: localhost:$actualLocalPort -> $remoteHost:$remotePort" }
@@ -524,18 +535,23 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             }
         }
 
-        private fun handleForward(localClient: Socket, forward: PortForwardInfo) {
+        private fun handleForward(
+            localClient: Socket,
+            forward: PortForwardInfo,
+        ) {
             try {
                 // Connect to remote through tunnel (simplified)
                 Socket(forward.remoteHost, forward.remotePort).use { remote ->
                     localClient.use { local ->
                         // Bidirectional forwarding
-                        val t1 = Thread {
-                            local.getInputStream().copyTo(remote.getOutputStream())
-                        }
-                        val t2 = Thread {
-                            remote.getInputStream().copyTo(local.getOutputStream())
-                        }
+                        val t1 =
+                            Thread {
+                                local.getInputStream().copyTo(remote.getOutputStream())
+                            }
+                        val t2 =
+                            Thread {
+                                remote.getInputStream().copyTo(local.getOutputStream())
+                            }
                         t1.start()
                         t2.start()
                         t1.join()
@@ -554,19 +570,32 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         }
 
         // ISSHClient interface implementations (stub for testing)
-        override fun executeRemoteCommand(command: String, output: Boolean, secret: Boolean): Response {
+        override fun executeRemoteCommand(
+            command: String,
+            output: Boolean,
+            secret: Boolean,
+        ): Response {
             return Response("Test", "")
         }
 
-        override fun uploadFile(local: Path, remote: String) {
+        override fun uploadFile(
+            local: Path,
+            remote: String,
+        ) {
             // Stub implementation
         }
 
-        override fun uploadDirectory(localDir: File, remoteDir: String) {
+        override fun uploadDirectory(
+            localDir: File,
+            remoteDir: String,
+        ) {
             // Stub implementation
         }
 
-        override fun downloadFile(remote: String, local: Path) {
+        override fun downloadFile(
+            remote: String,
+            local: Path,
+        ) {
             // Stub implementation
         }
 
@@ -574,7 +603,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             remoteDir: String,
             localDir: File,
             includeFilters: List<String>,
-            excludeFilters: List<String>
+            excludeFilters: List<String>,
         ) {
             // Stub implementation
         }
@@ -599,6 +628,6 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         val localPort: Int,
         val remoteHost: String,
         val remotePort: Int,
-        var serverSocket: ServerSocket? = null
+        var serverSocket: ServerSocket? = null,
     )
 }

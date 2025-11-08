@@ -4,7 +4,6 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.SSHClient
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.apache.sshd.client.ClientFactoryManager
 import org.apache.sshd.client.SshClient
 import org.apache.sshd.common.PropertyResolverUtils
 import org.apache.sshd.common.keyprovider.KeyIdentityProvider

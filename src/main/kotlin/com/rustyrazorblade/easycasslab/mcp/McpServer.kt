@@ -216,7 +216,10 @@ class McpServer(private val context: Context) : KoinComponent {
     /**
      * Registers a prompt from a PromptResource by creating the MCP prompt handler.
      */
-    private fun registerPromptResource(server: Server, promptResource: PromptResource) {
+    private fun registerPromptResource(
+        server: Server,
+        promptResource: PromptResource,
+    ) {
         log.info { "Registering prompt: ${promptResource.name}" }
         server.addPrompt(
             name = promptResource.name,
@@ -271,8 +274,6 @@ class McpServer(private val context: Context) : KoinComponent {
             throw e
         }
     }
-
-
 
     private fun createServer(): Server =
         Server(

@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger
  * Provides the same caching behavior without actual SSH connections.
  */
 class MockSSHTunnelManager : SSHTunnelManager {
-
     val tunnels = ConcurrentHashMap<TunnelKey, SSHTunnel>()
     private val portCounter = AtomicInteger(10000)
 
@@ -17,7 +16,7 @@ class MockSSHTunnelManager : SSHTunnelManager {
         host: Host,
         remotePort: Int,
         remoteHost: String,
-        localPort: Int
+        localPort: Int,
     ): SSHTunnel {
         val key = TunnelKey(host, remotePort)
         return tunnels.computeIfAbsent(key) {
@@ -26,12 +25,15 @@ class MockSSHTunnelManager : SSHTunnelManager {
                 remotePort = remotePort,
                 localPort = if (localPort == 0) portCounter.getAndIncrement() else localPort,
                 remoteHost = remoteHost,
-                isActive = true
+                isActive = true,
             )
         }
     }
 
-    override fun getTunnel(host: Host, remotePort: Int): SSHTunnel? {
+    override fun getTunnel(
+        host: Host,
+        remotePort: Int,
+    ): SSHTunnel? {
         return tunnels[TunnelKey(host, remotePort)]
     }
 

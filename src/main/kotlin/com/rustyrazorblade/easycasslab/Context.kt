@@ -9,7 +9,7 @@ import java.io.File
 
 data class Context(
     val easycasslabUserDirectory: File,
-    val isMcp: Boolean = false
+    val isMcp: Boolean = false,
 ) : KoinComponent {
     companion object {
         /**

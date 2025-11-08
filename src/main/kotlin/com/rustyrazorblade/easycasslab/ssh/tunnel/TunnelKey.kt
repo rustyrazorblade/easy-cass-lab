@@ -8,5 +8,5 @@ import com.rustyrazorblade.easycasslab.configuration.Host
  */
 data class TunnelKey(
     val host: Host,
-    val remotePort: Int
+    val remotePort: Int,
 )

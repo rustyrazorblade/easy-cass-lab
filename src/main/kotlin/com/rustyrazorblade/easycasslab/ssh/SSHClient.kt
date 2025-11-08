@@ -68,25 +68,26 @@ class SSHClient(
         command: String,
         output: Boolean,
         secret: Boolean,
-    ): Response = synchronized(operationLock) {
-        require(command.isNotBlank()) { "Command cannot be blank" }
+    ): Response =
+        synchronized(operationLock) {
+            require(command.isNotBlank()) { "Command cannot be blank" }
 
-        // Create connection for this host
-        if (!secret) {
-            outputHandler.handleMessage("Executing remote command: $command")
-        } else {
-            outputHandler.handleMessage("Executing remote command: [hidden]")
+            // Create connection for this host
+            if (!secret) {
+                outputHandler.handleMessage("Executing remote command: $command")
+            } else {
+                outputHandler.handleMessage("Executing remote command: [hidden]")
+            }
+
+            val stderrStream = ByteArrayOutputStream()
+            val result = session.executeRemoteCommand(command, stderrStream, Charset.defaultCharset())
+
+            if (output) {
+                outputHandler.handleMessage(result)
+            }
+
+            return@synchronized Response(result, stderrStream.toString())
         }
-
-        val stderrStream = ByteArrayOutputStream()
-        val result = session.executeRemoteCommand(command, stderrStream, Charset.defaultCharset())
-
-        if (output) {
-            outputHandler.handleMessage(result)
-        }
-
-        return@synchronized Response(result, stderrStream.toString())
-    }
 
     /**
      * Upload a file to a remote host
@@ -94,14 +95,15 @@ class SSHClient(
     override fun uploadFile(
         local: Path,
         remote: String,
-    ): Unit = synchronized(operationLock) {
-        require(remote.isNotBlank()) { "Remote path cannot be blank" }
-        require(local.toFile().exists()) { "Local file does not exist: ${local.toAbsolutePath()}" }
-        require(local.toFile().isFile) { "Local path is not a file: ${local.toAbsolutePath()}" }
+    ): Unit =
+        synchronized(operationLock) {
+            require(remote.isNotBlank()) { "Remote path cannot be blank" }
+            require(local.toFile().exists()) { "Local file does not exist: ${local.toAbsolutePath()}" }
+            require(local.toFile().isFile) { "Local path is not a file: ${local.toAbsolutePath()}" }
 
-        outputHandler.handleMessage("Uploading file ${local.toAbsolutePath()} to $remoteAddress:$remote")
-        getScpClient().upload(local, remote)
-    }
+            outputHandler.handleMessage("Uploading file ${local.toAbsolutePath()} to $remoteAddress:$remote")
+            getScpClient().upload(local, remote)
+        }
 
     /**
      * Upload a directory to a remote host
@@ -121,7 +123,7 @@ class SSHClient(
     override fun uploadDirectory(
         localDir: File,
         remoteDir: String,
-    ): Unit {
+    ) {
         require(remoteDir.isNotBlank()) { "Remote directory path cannot be blank" }
         require(localDir.exists()) { "Local directory does not exist: ${localDir.absolutePath}" }
         require(localDir.isDirectory) { "Local path is not a directory: ${localDir.absolutePath}" }
@@ -134,9 +136,10 @@ class SSHClient(
         if (directoriesToCreate.isNotEmpty()) {
             synchronized(operationLock) {
                 // Sort to ensure parent directories are created before children
-                val mkdirCommand = directoriesToCreate
-                    .sorted()
-                    .joinToString(" && ") { dir -> "mkdir -p '$dir'" }
+                val mkdirCommand =
+                    directoriesToCreate
+                        .sorted()
+                        .joinToString(" && ") { dir -> "mkdir -p '$dir'" }
                 executeRemoteCommand(mkdirCommand, false, false)
             }
         }
@@ -210,12 +213,13 @@ class SSHClient(
     override fun downloadFile(
         remote: String,
         local: Path,
-    ): Unit = synchronized(operationLock) {
-        require(remote.isNotBlank()) { "Remote path cannot be blank" }
+    ): Unit =
+        synchronized(operationLock) {
+            require(remote.isNotBlank()) { "Remote path cannot be blank" }
 
-        log.debug { "Downloading file from $remoteAddress:$remote to ${local.toAbsolutePath()}" }
-        getScpClient().download(remote, local)
-    }
+            log.debug { "Downloading file from $remoteAddress:$remote to ${local.toAbsolutePath()}" }
+            getScpClient().download(remote, local)
+        }
 
     /**
      * Download a directory from a remote host
@@ -230,30 +234,31 @@ class SSHClient(
         localDir: File,
         includeFilters: List<String>,
         excludeFilters: List<String>,
-    ): Unit = synchronized(operationLock) {
-        require(remoteDir.isNotBlank()) { "Remote directory path cannot be blank" }
+    ): Unit =
+        synchronized(operationLock) {
+            require(remoteDir.isNotBlank()) { "Remote directory path cannot be blank" }
 
-        if (!localDir.exists()) {
-            localDir.mkdirs()
-        }
+            if (!localDir.exists()) {
+                localDir.mkdirs()
+            }
 
-        log.debug { "Downloading directory from $remoteAddress:$remoteDir to ${localDir.absolutePath}" }
+            log.debug { "Downloading directory from $remoteAddress:$remoteDir to ${localDir.absolutePath}" }
 
-        val fileListOutput = executeRemoteCommand("find $remoteDir -type f", false, false)
-        val remoteFiles = fileListOutput.text.split("\n").filter { it.isNotEmpty() }
+            val fileListOutput = executeRemoteCommand("find $remoteDir -type f", false, false)
+            val remoteFiles = fileListOutput.text.split("\n").filter { it.isNotEmpty() }
 
-        // Download each file
-        for (remoteFile in remoteFiles) {
-            val relativePath = remoteFile.removePrefix("$remoteDir/")
+            // Download each file
+            for (remoteFile in remoteFiles) {
+                val relativePath = remoteFile.removePrefix("$remoteDir/")
 
-            if (shouldDownloadFile(relativePath, includeFilters, excludeFilters)) {
-                val localFile = File(localDir, relativePath)
-                // Ensure parent directory exists
-                localFile.parentFile.mkdirs()
-                downloadFile(remoteFile, localFile.toPath())
+                if (shouldDownloadFile(relativePath, includeFilters, excludeFilters)) {
+                    val localFile = File(localDir, relativePath)
+                    // Ensure parent directory exists
+                    localFile.parentFile.mkdirs()
+                    downloadFile(remoteFile, localFile.toPath())
+                }
             }
         }
-    }
 
     /**
      * Determines whether a file should be downloaded based on include/exclude filters
@@ -271,21 +276,25 @@ class SSHClient(
         val fileName = relativePath.substringAfterLast("/")
 
         // Convert glob patterns to regex patterns once
-        val excludeRegexes = excludeFilters.map { pattern ->
-            pattern.replace("*", ".*").toRegex()
-        }
+        val excludeRegexes =
+            excludeFilters.map { pattern ->
+                pattern.replace("*", ".*").toRegex()
+            }
 
-        val includeRegexes = includeFilters.map { pattern ->
-            pattern.replace("*", ".*").toRegex()
-        }
+        val includeRegexes =
+            includeFilters.map { pattern ->
+                pattern.replace("*", ".*").toRegex()
+            }
 
         // Check exclude filters
-        val isExcluded = excludeRegexes.isNotEmpty() &&
-            excludeRegexes.any { regex -> fileName.matches(regex) }
+        val isExcluded =
+            excludeRegexes.isNotEmpty() &&
+                excludeRegexes.any { regex -> fileName.matches(regex) }
 
         // Check include filters
-        val isNotIncluded = includeRegexes.isNotEmpty() &&
-            !includeRegexes.any { regex -> fileName.matches(regex) }
+        val isNotIncluded =
+            includeRegexes.isNotEmpty() &&
+                !includeRegexes.any { regex -> fileName.matches(regex) }
 
         return !isExcluded && !isNotIncluded
     }
@@ -298,15 +307,16 @@ class SSHClient(
      *
      * @return A CloseableScpClient instance for this session
      */
-    override fun getScpClient(): CloseableScpClient = synchronized(operationLock) {
-        // Return cached client if available, otherwise create new one
-        if (cachedScpClient == null) {
-            val creator = ScpClientCreator.instance()
-            val client = creator.createScpClient(session)
-            cachedScpClient = CloseableScpClient.singleSessionInstance(client)
+    override fun getScpClient(): CloseableScpClient =
+        synchronized(operationLock) {
+            // Return cached client if available, otherwise create new one
+            if (cachedScpClient == null) {
+                val creator = ScpClientCreator.instance()
+                val client = creator.createScpClient(session)
+                cachedScpClient = CloseableScpClient.singleSessionInstance(client)
+            }
+            return@synchronized cachedScpClient!!
         }
-        return@synchronized cachedScpClient!!
-    }
 
     // Track active port forwards for cleanup
     private val activePortForwards = mutableMapOf<Int, ExplicitPortForwardingTracker>()
@@ -340,25 +350,26 @@ class SSHClient(
     override fun createLocalPortForward(
         localPort: Int,
         remoteHost: String,
-        remotePort: Int
-    ): Int = synchronized(operationLock) {
-        require(localPort >= 0) { "Local port must be non-negative (0 for auto-assign)" }
-        require(remoteHost.isNotBlank()) { "Remote host cannot be blank" }
-        require(remotePort in 1..MAX_PORT_NUMBER) { "Remote port must be between 1 and $MAX_PORT_NUMBER" }
+        remotePort: Int,
+    ): Int =
+        synchronized(operationLock) {
+            require(localPort >= 0) { "Local port must be non-negative (0 for auto-assign)" }
+            require(remoteHost.isNotBlank()) { "Remote host cannot be blank" }
+            require(remotePort in 1..MAX_PORT_NUMBER) { "Remote port must be between 1 and $MAX_PORT_NUMBER" }
 
-        val localAddress = SshdSocketAddress("", localPort) // Empty string binds to all interfaces
-        val remoteAddress = SshdSocketAddress(remoteHost, remotePort)
+            val localAddress = SshdSocketAddress("", localPort) // Empty string binds to all interfaces
+            val remoteAddress = SshdSocketAddress(remoteHost, remotePort)
 
-        log.info { "Creating port forward via $remoteAddress: localhost:$localPort -> $remoteHost:$remotePort" }
+            log.info { "Creating port forward via $remoteAddress: localhost:$localPort -> $remoteHost:$remotePort" }
 
-        val tracker = session.createLocalPortForwardingTracker(localAddress, remoteAddress)
-        val actualPort = tracker.boundAddress.port
+            val tracker = session.createLocalPortForwardingTracker(localAddress, remoteAddress)
+            val actualPort = tracker.boundAddress.port
 
-        activePortForwards[actualPort] = tracker
+            activePortForwards[actualPort] = tracker
 
-        log.info { "Port forward created via $remoteAddress: localhost:$actualPort -> $remoteHost:$remotePort" }
-        return@synchronized actualPort
-    }
+            log.info { "Port forward created via $remoteAddress: localhost:$actualPort -> $remoteHost:$remotePort" }
+            return@synchronized actualPort
+        }
 
     /**
      * Close a local port forward
@@ -368,31 +379,33 @@ class SSHClient(
      *
      * @param localPort The local port of the forward to close
      */
-    override fun closeLocalPortForward(localPort: Int): Unit = synchronized(operationLock) {
-        activePortForwards[localPort]?.let { tracker ->
-            try {
-                tracker.close()
-                activePortForwards.remove(localPort)
-                log.info { "Closed port forward via $remoteAddress on localhost:$localPort" }
-            } catch (e: java.io.IOException) {
-                log.error(e) { "Error closing port forward via $remoteAddress on localhost:$localPort" }
+    override fun closeLocalPortForward(localPort: Int): Unit =
+        synchronized(operationLock) {
+            activePortForwards[localPort]?.let { tracker ->
+                try {
+                    tracker.close()
+                    activePortForwards.remove(localPort)
+                    log.info { "Closed port forward via $remoteAddress on localhost:$localPort" }
+                } catch (e: java.io.IOException) {
+                    log.error(e) { "Error closing port forward via $remoteAddress on localhost:$localPort" }
+                }
             }
         }
-    }
 
     /**
      * Check if the underlying SSH session is still open and authenticated.
      *
      * @return true if the session is open and authenticated, false otherwise
      */
-    override fun isSessionOpen(): Boolean = synchronized(operationLock) {
-        return@synchronized try {
-            session.isOpen && session.isAuthenticated
-        } catch (e: Exception) {
-            log.debug(e) { "Error checking session status for $remoteAddress" }
-            false
+    override fun isSessionOpen(): Boolean =
+        synchronized(operationLock) {
+            return@synchronized try {
+                session.isOpen && session.isAuthenticated
+            } catch (e: Exception) {
+                log.debug(e) { "Error checking session status for $remoteAddress" }
+                false
+            }
         }
-    }
 
     /**
      * Stop the SSH client and clean up all resources
@@ -404,29 +417,30 @@ class SSHClient(
      *
      * It is safe to call this method multiple times.
      */
-    override fun close(): Unit = synchronized(operationLock) {
-        log.debug { "Stopping SSH client for $remoteAddress" }
+    override fun close(): Unit =
+        synchronized(operationLock) {
+            log.debug { "Stopping SSH client for $remoteAddress" }
 
-        // Close all active port forwards
-        activePortForwards.values.toList().forEach { tracker ->
-            try {
-                tracker.close()
-            } catch (e: java.io.IOException) {
-                log.debug(e) { "Error closing port forward for $remoteAddress during session cleanup" }
+            // Close all active port forwards
+            activePortForwards.values.toList().forEach { tracker ->
+                try {
+                    tracker.close()
+                } catch (e: java.io.IOException) {
+                    log.debug(e) { "Error closing port forward for $remoteAddress during session cleanup" }
+                }
             }
-        }
-        activePortForwards.clear()
+            activePortForwards.clear()
 
-        // Close cached SCP client if it exists
-        cachedScpClient?.let {
-            try {
-                it.close()
-                cachedScpClient = null
-            } catch (e: java.io.IOException) {
-                log.debug(e) { "Error closing SCP client for $remoteAddress during session cleanup" }
+            // Close cached SCP client if it exists
+            cachedScpClient?.let {
+                try {
+                    it.close()
+                    cachedScpClient = null
+                } catch (e: java.io.IOException) {
+                    log.debug(e) { "Error closing SCP client for $remoteAddress during session cleanup" }
+                }
             }
-        }
 
-        session.close()
-    }
+            session.close()
+        }
 }

@@ -73,7 +73,7 @@ interface ISSHClient {
     fun createLocalPortForward(
         localPort: Int = 0,
         remoteHost: String = "localhost",
-        remotePort: Int
+        remotePort: Int,
     ): Int
 
     /**

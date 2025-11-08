@@ -50,7 +50,10 @@ class PromptLoader {
      * @return PromptResource containing the parsed prompt data
      * @throws IllegalArgumentException if the file format is invalid or required fields are missing
      */
-    fun loadPromptFromStream(inputStream: InputStream, resourceName: String): PromptResource {
+    fun loadPromptFromStream(
+        inputStream: InputStream,
+        resourceName: String,
+    ): PromptResource {
         val content = inputStream.bufferedReader().use { it.readText() }
         return parsePromptContent(content, resourceName)
     }
@@ -58,7 +61,10 @@ class PromptLoader {
     /**
      * Parses prompt content from markdown string.
      */
-    private fun parsePromptContent(content: String, resourceName: String): PromptResource {
+    private fun parsePromptContent(
+        content: String,
+        resourceName: String,
+    ): PromptResource {
         val parts = validateAndSplitContent(resourceName, content)
         val frontmatterText = parts[0].trim()
         val promptContent = parts[1].trim()
@@ -77,7 +83,10 @@ class PromptLoader {
     /**
      * Validates content format and splits into frontmatter and body.
      */
-    private fun validateAndSplitContent(resourceName: String, content: String): List<String> {
+    private fun validateAndSplitContent(
+        resourceName: String,
+        content: String,
+    ): List<String> {
         if (!content.startsWith(FRONTMATTER_DELIMITER)) {
             throw IllegalArgumentException(
                 "Resource $resourceName does not contain valid YAML frontmatter. " +
@@ -101,7 +110,10 @@ class PromptLoader {
      * Parses YAML frontmatter text into a map.
      */
     @Suppress("TooGenericExceptionCaught", "ThrowsCount")
-    private fun parseFrontmatter(resourceName: String, frontmatterText: String): Map<String, Any> {
+    private fun parseFrontmatter(
+        resourceName: String,
+        frontmatterText: String,
+    ): Map<String, Any> {
         try {
             @Suppress("UNCHECKED_CAST")
             return yaml.load(frontmatterText) as? Map<String, Any>
@@ -119,7 +131,11 @@ class PromptLoader {
     /**
      * Extracts a required field from frontmatter.
      */
-    private fun extractRequiredField(resourceName: String, frontmatter: Map<String, Any>, fieldName: String): String {
+    private fun extractRequiredField(
+        resourceName: String,
+        frontmatter: Map<String, Any>,
+        fieldName: String,
+    ): String {
         return frontmatter[fieldName] as? String
             ?: throw IllegalArgumentException(
                 "Missing required '$fieldName' field in frontmatter of $resourceName",

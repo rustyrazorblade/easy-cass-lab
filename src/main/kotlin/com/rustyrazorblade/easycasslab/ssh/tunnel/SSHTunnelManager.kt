@@ -21,7 +21,7 @@ interface SSHTunnelManager : AutoCloseable {
         host: Host,
         remotePort: Int,
         remoteHost: String = "localhost",
-        localPort: Int = 0
+        localPort: Int = 0,
     ): SSHTunnel
 
     /**
@@ -31,7 +31,10 @@ interface SSHTunnelManager : AutoCloseable {
      * @param remotePort The remote port
      * @return The cached tunnel or null if not found
      */
-    fun getTunnel(host: Host, remotePort: Int): SSHTunnel?
+    fun getTunnel(
+        host: Host,
+        remotePort: Int,
+    ): SSHTunnel?
 
     /**
      * Close a specific tunnel and remove from cache.

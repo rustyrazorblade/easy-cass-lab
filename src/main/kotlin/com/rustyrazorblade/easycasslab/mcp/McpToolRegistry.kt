@@ -69,11 +69,12 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
         arguments: JsonObject?,
     ): ToolResult {
         log.debug { "executeTool called with name='$name', arguments=$arguments" }
-        val tool = getTools().find { it.name == name }
-            ?: return ToolResult(
-                content = listOf("Tool not found: $name"),
-                isError = true,
-            )
+        val tool =
+            getTools().find { it.name == name }
+                ?: return ToolResult(
+                    content = listOf("Tool not found: $name"),
+                    isError = true,
+                )
 
         // Create a fresh command instance to avoid state retention
         // Create an MCP context for command execution
@@ -464,19 +465,13 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             enumConstant.name.equals(enumString, ignoreCase = true)
         }
 
-    private fun isIntType(type: Class<*>): Boolean =
-        type == Int::class.java || type == Integer::class.java
+    private fun isIntType(type: Class<*>): Boolean = type == Int::class.java || type == Integer::class.java
 
-    private fun isLongType(type: Class<*>): Boolean =
-        type == Long::class.java || type == java.lang.Long::class.java
+    private fun isLongType(type: Class<*>): Boolean = type == Long::class.java || type == java.lang.Long::class.java
 
-    private fun isDoubleType(type: Class<*>): Boolean =
-        type == Double::class.java || type == java.lang.Double::class.java
+    private fun isDoubleType(type: Class<*>): Boolean = type == Double::class.java || type == java.lang.Double::class.java
 
-    private fun isFloatType(type: Class<*>): Boolean =
-        type == Float::class.java || type == java.lang.Float::class.java
+    private fun isFloatType(type: Class<*>): Boolean = type == Float::class.java || type == java.lang.Float::class.java
 
-    private fun isBooleanType(type: Class<*>): Boolean =
-        type == Boolean::class.java || type == java.lang.Boolean::class.java
+    private fun isBooleanType(type: Class<*>): Boolean = type == Boolean::class.java || type == java.lang.Boolean::class.java
 }
-

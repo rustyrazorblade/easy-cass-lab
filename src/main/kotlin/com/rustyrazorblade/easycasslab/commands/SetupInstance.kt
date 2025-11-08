@@ -18,7 +18,11 @@ class SetupInstance(context: Context) : BaseCommand(context) {
             remoteOps.executeRemotely(host, "sudo mv environment.sh /etc/profile.d/stress.sh").text
         }
 
-        fun setupStressSystemdEnv(host: Host, cassandraHost: String, datacenter: String) {
+        fun setupStressSystemdEnv(
+            host: Host,
+            cassandraHost: String,
+            datacenter: String,
+        ) {
             // Create systemd environment file locally
             val envFile = java.io.File.createTempFile("stress", ".env")
             try {
@@ -42,15 +46,17 @@ class SetupInstance(context: Context) : BaseCommand(context) {
 
         // Get datacenter once from the first stress instance (all instances are in the same DC)
         val stressHosts = tfstate.getHosts(ServerType.Stress)
-        val datacenter = if (stressHosts.isNotEmpty()) {
-            val datacenterResponse = remoteOps.executeRemotely(
-                stressHosts.first(),
-                "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region"
-            )
-            datacenterResponse.text.trim()
-        } else {
-            ""
-        }
+        val datacenter =
+            if (stressHosts.isNotEmpty()) {
+                val datacenterResponse =
+                    remoteOps.executeRemotely(
+                        stressHosts.first(),
+                        "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | yq .region",
+                    )
+                datacenterResponse.text.trim()
+            } else {
+                ""
+            }
 
         val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
 

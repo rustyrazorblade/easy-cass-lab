@@ -51,11 +51,6 @@ object TestModules {
         )
 
     /**
-     * Creates a test output module with buffered output handler. This captures all output for
-     * verification in tests.
-     */
-
-    /**
      * Test module that provides a fresh Context instance for each test. Creates a new temporary
      * directory and test user configuration. This ensures test isolation and allows safe cleanup.
      *
@@ -73,6 +68,10 @@ object TestModules {
         }
     }
 
+    /**
+     * Creates a test output module with buffered output handler. This captures all output for
+     * verification in tests.
+     */
     fun testOutputModule() =
         module {
             // Use CompositeOutputHandler with BufferedOutputHandler for tests

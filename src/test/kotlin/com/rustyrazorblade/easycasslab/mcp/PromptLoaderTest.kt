@@ -8,13 +8,12 @@ import java.io.ByteArrayInputStream
 
 /**
  * Tests for PromptLoader using InputStream-based API for resource loading.
- * 
+ *
  * These tests verify the prompt parsing logic using in-memory streams,
  * which is appropriate since the actual implementation uses ClassGraph
  * for resource loading from the classpath.
  */
 class PromptLoaderTest : BaseKoinTest() {
-
     @Test
     fun `should parse prompt with valid YAML frontmatter`() {
         // Given

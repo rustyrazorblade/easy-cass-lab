@@ -18,5 +18,6 @@ data class SSHTunnel(
     val localPort: Int,
     val remoteHost: String = "localhost",
     @Volatile var isActive: Boolean = true,
-    internal val tracker: Any? = null  // Apache MINA SSHD PortForwardingTracker
+    // Apache MINA SSHD PortForwardingTracker
+    internal val tracker: Any? = null,
 )

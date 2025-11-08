@@ -6,7 +6,6 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -14,10 +13,10 @@ import java.util.concurrent.ConcurrentHashMap
  * Uses Apache MINA SSHD for actual SSH port forwarding.
  */
 class DefaultSSHTunnelManager(
-    private val sshConnectionProvider: SSHConnectionProvider
+    private val sshConnectionProvider: SSHConnectionProvider,
 ) : SSHTunnelManager, KoinComponent {
-
     private val tunnelCache = ConcurrentHashMap<TunnelKey, SSHTunnel>()
+
     // Map to track which SSH client is handling each tunnel for cleanup
     private val tunnelClients = ConcurrentHashMap<TunnelKey, Host>()
     private val outputHandler: OutputHandler by inject()
@@ -27,31 +26,32 @@ class DefaultSSHTunnelManager(
         host: Host,
         remotePort: Int,
         remoteHost: String,
-        localPort: Int
+        localPort: Int,
     ): SSHTunnel {
         val key = TunnelKey(host, remotePort)
 
         return tunnelCache.computeIfAbsent(key) {
             log.debug { "Creating new SSH tunnel through ${host.alias} to port $remotePort" }
             outputHandler.handleMessage(
-                "Creating SSH tunnel through ${host.alias} to $remoteHost:$remotePort"
+                "Creating SSH tunnel through ${host.alias} to $remoteHost:$remotePort",
             )
 
             // Create actual SSH port forward
             val sshClient = sshConnectionProvider.getConnection(host)
-            val actualLocalPort = try {
-                val requestedPort = if (localPort == 0) 0 else localPort
-                sshClient.createLocalPortForward(requestedPort, remoteHost, remotePort)
-            } catch (e: Exception) {
-                outputHandler.handleError("Failed to create tunnel: ${e.message}")
-                throw e
-            }
+            val actualLocalPort =
+                try {
+                    val requestedPort = if (localPort == 0) 0 else localPort
+                    sshClient.createLocalPortForward(requestedPort, remoteHost, remotePort)
+                } catch (e: Exception) {
+                    outputHandler.handleError("Failed to create tunnel: ${e.message}")
+                    throw e
+                }
 
             // Store the client reference for cleanup
             tunnelClients[key] = host
 
             outputHandler.handleMessage(
-                "Tunnel created: localhost:$actualLocalPort -> ${host.alias} -> $remoteHost:$remotePort"
+                "Tunnel created: localhost:$actualLocalPort -> ${host.alias} -> $remoteHost:$remotePort",
             )
 
             SSHTunnel(
@@ -60,12 +60,16 @@ class DefaultSSHTunnelManager(
                 localPort = actualLocalPort,
                 remoteHost = remoteHost,
                 isActive = true,
-                tracker = actualLocalPort  // Store the local port as the tracker for cleanup
+                // Store the local port as the tracker for cleanup
+                tracker = actualLocalPort,
             )
         }
     }
 
-    override fun getTunnel(host: Host, remotePort: Int): SSHTunnel? {
+    override fun getTunnel(
+        host: Host,
+        remotePort: Int,
+    ): SSHTunnel? {
         val key = TunnelKey(host, remotePort)
         return tunnelCache[key]
     }
@@ -91,7 +95,7 @@ class DefaultSSHTunnelManager(
 
         log.debug { "Closed tunnel through ${tunnel.host.alias} to port ${tunnel.remotePort}" }
         outputHandler.handleMessage(
-            "Closed tunnel through ${tunnel.host.alias} to ${tunnel.remoteHost}:${tunnel.remotePort}"
+            "Closed tunnel through ${tunnel.host.alias} to ${tunnel.remoteHost}:${tunnel.remotePort}",
         )
     }
 
