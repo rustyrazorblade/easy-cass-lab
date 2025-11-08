@@ -166,13 +166,20 @@ do
     }
 
     rm -f "$archive_file"
-    f=$(basename "$URL" -bin.tar.gz)
+
+    # Find the extracted directory (should be the only directory created)
+    # Look for directories starting with 'apache-cassandra' or 'cassandra'
+    f=$(find . -maxdepth 1 -type d -name '*cassandra*' ! -name '.' -printf '%f\n' | head -n 1)
 
     # Verify extracted directory exists
-    if [[ ! -d "$f" ]]; then
-        echo "ERROR: Extracted directory $f not found for version $version"
+    if [[ -z "$f" || ! -d "$f" ]]; then
+        echo "ERROR: Could not find extracted Cassandra directory for version $version"
+        echo "Available directories:"
+        ls -la
         exit 1
     fi
+
+    echo "Found extracted directory: $f"
 
     sudo mv "$f" "/usr/local/cassandra/$version" || {
         echo "ERROR: Failed to move $f to /usr/local/cassandra/$version"
