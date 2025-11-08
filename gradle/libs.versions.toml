@@ -19,7 +19,7 @@ jackson-kotlin = "2.9.+"
 kotlinx-serialization = "1.9.0"
 
 # Kotlinx Coroutines
-kotlinx-coroutines = "1.8.1"
+kotlinx-coroutines = "1.10.2"
 
 # Testing
 jupiter = "5.5.2"
