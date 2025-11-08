@@ -40,10 +40,12 @@ class Prometheus(
         @JsonProperty("file_sd_configs")
         var fileSdConfigs: List<Map<String, MutableList<String>>> = listOf(mapOf("files" to mutableListOf())),
     ) {
+        @Suppress("FunctionName")
         fun static_config(block: StaticConfig.() -> Unit) {
             staticConfigList.add(StaticConfig().apply(block))
         }
 
+        @Suppress("FunctionName")
         fun relabel_config(block: RelabelConfig.() -> Unit) {
             relabelConfigList.add(RelabelConfig().apply(block))
         }
@@ -82,6 +84,7 @@ class Prometheus(
      *
      * @see com.rustyrazorblade.easycasslab.configuration.PrometheusTest for usage
      */
+    @Suppress("FunctionName")
     fun scrape_config(block: ScrapeConfig.() -> Unit) {
         val config = ScrapeConfig().apply(block)
         scrape_configs.add(config)

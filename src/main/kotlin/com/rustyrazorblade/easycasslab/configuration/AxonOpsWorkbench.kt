@@ -45,9 +45,12 @@ data class AxonOpsWorkbenchConfig(
                     BasicConfig(
                         workspaceId = "",
                         name = clusterName,
-                        datacenter = "datacenter1", // Default Cassandra datacenter name
-                        hostname = host.private, // Use private IP for internal connectivity
-                        port = "9042", // Default Cassandra CQL port
+                        // Default Cassandra datacenter name
+                        datacenter = "datacenter1",
+                        // Use private IP for internal connectivity
+                        hostname = host.private,
+                        // Default Cassandra CQL port
+                        port = "9042",
                         timestampGenerator = "",
                         cqlshrc = "",
                     ),
@@ -66,14 +69,19 @@ data class AxonOpsWorkbenchConfig(
                     ),
                 ssh =
                     SshConfig(
-                        host = host.public, // Use public IP for SSH connectivity
-                        port = "22", // Default SSH port
-                        username = "ubuntu", // Default EC2 user
+                        // Use public IP for SSH connectivity
+                        host = host.public,
+                        // Default SSH port
+                        port = "22",
+                        // Default EC2 user
+                        username = "ubuntu",
                         password = "",
                         privatekey = userConfig.sshKeyPath,
                         passphrase = "",
-                        destaddr = host.private, // Destination is the private IP
-                        destport = "9042", // Destination port is CQL port
+                        // Destination is the private IP
+                        destaddr = host.private,
+                        // Destination port is CQL port
+                        destport = "9042",
                     ),
             )
         }

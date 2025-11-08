@@ -10,8 +10,8 @@ import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
-import java.util.*
 import java.util.HashSet
+import java.util.UUID
 
 data class User(
     var email: String,
@@ -99,8 +99,9 @@ data class User(
                     region.toString(),
                     keyName,
                     secret.absolutePath,
-                    "", // future compatibility, when we start allowing people to use their
+                    // future compatibility, when we start allowing people to use their
                     // existing AWS creds they've already set up.
+                    "",
                     awsAccessKey,
                     awsSecret,
                     axonOpsOrg,

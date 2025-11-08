@@ -119,7 +119,7 @@ class Init(val context: Context) : ICommand, KoinComponent {
     var name = "test"
 
     @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
-    var arch = Arch.amd64
+    var arch = Arch.AMD64
 
     @ParametersDelegate var spark = SparkInitParams()
 
@@ -232,8 +232,10 @@ class Init(val context: Context) : ICommand, KoinComponent {
                 ebsThroughput = ebsThroughput,
                 ebsOptimized = ebsOptimized,
                 open = open,
-                controlInstances = 1, // Control instances are currently hardcoded to 1
-                controlInstanceType = "t3.xlarge", // Default control instance type
+                // Control instances are currently hardcoded to 1
+                controlInstances = 1,
+                // Default control instance type
+                controlInstanceType = "t3.xlarge",
                 tags = tags,
             )
 

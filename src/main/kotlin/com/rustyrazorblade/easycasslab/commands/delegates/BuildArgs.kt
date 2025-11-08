@@ -8,8 +8,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 enum class Arch(val type: String) {
-    amd64("amd64"),
-    arm64("arm64"),
+    AMD64("amd64"),
+    ARM64("arm64"),
 }
 
 class BuildArgs : KoinComponent {
@@ -22,5 +22,5 @@ class BuildArgs : KoinComponent {
     var region = userConfig.region
 
     @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
-    var arch = Arch.amd64
+    var arch = Arch.AMD64
 }

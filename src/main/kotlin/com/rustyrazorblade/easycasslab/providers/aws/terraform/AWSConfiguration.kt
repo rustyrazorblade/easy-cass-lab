@@ -35,7 +35,7 @@ class AWSConfiguration(
     var cassandraInstanceType: String = "m5d.xlarge",
     var numStressInstances: Int = 0,
     var stressInstanceType: String = "c7i.2xlarge",
-    var arch: Arch = Arch.amd64,
+    var arch: Arch = Arch.AMD64,
     var sparkParams: SparkInitParams,
 ) {
     val logger = KotlinLogging.logger {}
@@ -251,7 +251,8 @@ class AWSConfiguration(
                 root_block_device =
                     InstanceRootBlockDevice(
                         volume_type = "gp3",
-                        volume_size = 30, // Increased from default 8GB to 30GB for Docker images
+                        // Increased from default 8GB to 30GB for Docker images
+                        volume_size = 30,
                         iops = 3000,
                         throughput = 125,
                     ),

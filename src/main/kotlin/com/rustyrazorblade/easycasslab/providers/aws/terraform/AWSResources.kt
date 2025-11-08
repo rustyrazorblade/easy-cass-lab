@@ -74,9 +74,11 @@ data class InstanceRootBlockDevice(
 )
 
 data class InstanceEBSBlockDevice(
-    val volume_type: String = "", // TODO (jwest): what default to use?
+    // TODO (jwest): what default to use?
+    val volume_type: String = "",
     val volume_size: Int = 256,
-    val device_name: String = "/dev/xvdb", // TODO (jwest): probably not the right volume name to use
+    // TODO (jwest): probably not the right volume name to use
+    val device_name: String = "/dev/xvdb",
     val iops: Int = 0,
     val throughput: Int = 0,
     val delete_on_termination: Boolean = true,
