@@ -45,7 +45,7 @@ awssdk-kotlin = "1.4.92"
 docker-java = "3.6.0"
 
 # Apache
-sshd = "2.12.1"
+sshd = "2.16.0"
 commons-io = "2.7"
 
 # Other
