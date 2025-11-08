@@ -23,7 +23,7 @@ kotlinx-coroutines = "1.8.1"
 
 # Testing
 jupiter = "5.5.2"
-assertj = "3.11.1"
+assertj = "3.27.6"
 mockito-kotlin = "5.4.0"
 
 # CLI and UI
