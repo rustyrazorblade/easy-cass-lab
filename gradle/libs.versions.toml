@@ -9,7 +9,7 @@ kotlinx-io = "0.7.0"
 
 # Logging
 logback = "1.5.18"
-kotlin-logging = "7.0.7"
+kotlin-logging = "7.0.13"
 
 # Jackson
 jackson-dataformat = "2.15.2"
