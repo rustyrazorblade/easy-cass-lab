@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
@@ -135,8 +136,26 @@ class Up(context: Context) : BaseCommand(context) {
         }
     }
 
+    /**
+     * Writes environment variables for stress nodes to environment.sh file.
+     *
+     * This file is uploaded to stress nodes and sourced to provide runtime configuration
+     * for stress testing tools. The datacenter value is retrieved from ClusterState if
+     * available, falling back to the user's configured region.
+     */
     private fun writeStressEnvironmentVariables() {
         val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
+
+        // Load cluster state to get datacenter (region) configuration
+        val clusterState =
+            try {
+                ClusterState.load()
+            } catch (e: Exception) {
+                null
+            }
+
+        // Get datacenter, preferring ClusterState over userConfig
+        val datacenter = clusterState?.initConfig?.region ?: userConfig.region
 
         val stressEnvironmentVars = File("environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
@@ -144,6 +163,8 @@ class Up(context: Context) : BaseCommand(context) {
         stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$cassandraHost")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_PROM_PORT=0")
+        stressEnvironmentVars.newLine()
+        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_DEFAULT_DC=$datacenter")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.flush()
         stressEnvironmentVars.close()
