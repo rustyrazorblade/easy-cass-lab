@@ -17,5 +17,5 @@ annotation class ConfigField(
     val prompt: String,
     val default: String = "",
     val secret: Boolean = false,
-    val skippable: Boolean = false
+    val skippable: Boolean = false,
 )

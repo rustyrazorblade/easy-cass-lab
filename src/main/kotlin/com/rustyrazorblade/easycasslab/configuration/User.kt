@@ -16,31 +16,23 @@ import java.util.UUID
 data class User(
     @ConfigField(order = 1, prompt = "What's your email?", default = "")
     var email: String,
-    
     @ConfigField(order = 2, prompt = "What AWS region do you use?", default = "us-west-2")
     var region: String,
-    
     @ConfigField(order = 10, prompt = "EC2 Key Name", default = "", skippable = true)
     var keyName: String,
-    
     @ConfigField(order = 11, prompt = "SSH Key Path", default = "", skippable = true)
     var sshKeyPath: String,
-    
     // if true we'll load the profile from the AWS credentials rather than this file
     // can over
     @ConfigField(order = 12, prompt = "AWS Profile", default = "", skippable = true)
     var awsProfile: String,
-    
     // fallback for people who haven't set up the aws cli
     @ConfigField(order = 3, prompt = "Please enter your AWS Access Key", default = "")
     var awsAccessKey: String,
-    
     @ConfigField(order = 4, prompt = "Please enter your AWS Secret Access Key", default = "", secret = true)
     var awsSecret: String,
-    
     @ConfigField(order = 5, prompt = "AxonOps Org", default = "")
     var axonOpsOrg: String = "",
-    
     @ConfigField(order = 6, prompt = "AxonOps Key", default = "")
     var axonOpsKey: String = "",
 ) {
@@ -62,7 +54,10 @@ data class User(
         /**
          * Loads existing YAML as Map or returns empty map if file doesn't exist
          */
-        private fun loadExistingConfig(context: Context, location: File): Map<String, Any> {
+        private fun loadExistingConfig(
+            context: Context,
+            location: File,
+        ): Map<String, Any> {
             return if (location.exists()) {
                 @Suppress("UNCHECKED_CAST")
                 context.yaml.readValue(location, Map::class.java) as Map<String, Any>
@@ -70,10 +65,10 @@ data class User(
                 emptyMap()
             }
         }
-        
+
         private fun showWelcomeMessageOnce(
             outputHandler: OutputHandler,
-            hasShownWelcome: Boolean
+            hasShownWelcome: Boolean,
         ): Boolean {
             return if (!hasShownWelcome) {
                 outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
@@ -97,20 +92,20 @@ data class User(
             val existingConfig = loadExistingConfig(context, location)
             val configFields = getConfigFields()
             val fieldValues = mutableMapOf<String, Any>()
-            
+
             // Copy existing values first
             fieldValues.putAll(existingConfig)
-            
+
             // Process fields in order, only prompting for missing ones
             var region: Region? = null
             var awsAccessKey = ""
             var awsSecret = ""
             var hasShownWelcome = false
-            
+
             for (field in configFields) {
                 val configField = field.annotations.find { it is ConfigField } as ConfigField
                 val fieldName = field.name
-                
+
                 // Skip if field already exists in config
                 if (existingConfig.containsKey(fieldName)) {
                     // Capture needed values for AWS operations
@@ -121,18 +116,18 @@ data class User(
                     }
                     continue
                 }
-                
+
                 // Skip if field is marked as skippable (auto-generated)
                 if (configField.skippable) {
                     continue
                 }
 
                 hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
-                
+
                 // Prompt for missing field
                 val value = Utils.prompt(configField.prompt, configField.default, configField.secret)
                 fieldValues[fieldName] = value
-                
+
                 // Capture needed values for AWS operations
                 when (fieldName) {
                     "region" -> region = Region.of(value)
@@ -140,20 +135,21 @@ data class User(
                     "awsSecret" -> awsSecret = value
                 }
             }
-            
+
             // Generate AWS keys only when both keyName and sshKeyPath are missing
             // This preserves the original behavior where keys are auto-generated
             if (!existingConfig.containsKey("keyName") || !existingConfig.containsKey("sshKeyPath")) {
                 hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
-                
+
                 outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
-                
+
                 val ec2 = EC2(awsAccessKey, awsSecret, region!!)
                 val ec2Client = ec2.client
 
                 val keyName = "easy-cass-lab-${UUID.randomUUID()}"
-                val request = CreateKeyPairRequest.builder()
-                    .keyName(keyName).build()
+                val request =
+                    CreateKeyPairRequest.builder()
+                        .keyName(keyName).build()
 
                 val response = ec2Client.createKeyPair(request)
 
@@ -168,11 +164,11 @@ data class User(
 
                 log.info { "Setting secret file permissions $perms" }
                 Files.setPosixFilePermissions(secretFile.toPath(), perms)
-                
+
                 fieldValues["keyName"] = keyName
                 fieldValues["sshKeyPath"] = secretFile.absolutePath
             }
-            
+
             // Set awsProfile to empty string if not already present (preserving original behavior)
             if (!existingConfig.containsKey("awsProfile")) {
                 fieldValues["awsProfile"] = ""
@@ -182,7 +178,11 @@ data class User(
             if (!existingConfig.containsKey("axonOpsOrg") || !existingConfig.containsKey("axonOpsKey")) {
                 showWelcomeMessageOnce(outputHandler, hasShownWelcome)
 
-                val axonOpsChoice = Utils.prompt("Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]", default = "N")
+                val axonOpsChoice =
+                    Utils.prompt(
+                        "Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]",
+                        default = "N",
+                    )
                 val useAxonOps = axonOpsChoice.equals("y", true)
 
                 if (useAxonOps) {
@@ -199,17 +199,18 @@ data class User(
             }
 
             // Create User object from collected values
-            val user = User(
-                fieldValues["email"] as String,
-                fieldValues["region"] as String,
-                fieldValues["keyName"] as String,
-                fieldValues["sshKeyPath"] as String,
-                fieldValues["awsProfile"] as String,
-                fieldValues["awsAccessKey"] as String,
-                fieldValues["awsSecret"] as String,
-                fieldValues["axonOpsOrg"] as String,
-                fieldValues["axonOpsKey"] as String,
-            )
+            val user =
+                User(
+                    fieldValues["email"] as String,
+                    fieldValues["region"] as String,
+                    fieldValues["keyName"] as String,
+                    fieldValues["sshKeyPath"] as String,
+                    fieldValues["awsProfile"] as String,
+                    fieldValues["awsAccessKey"] as String,
+                    fieldValues["awsSecret"] as String,
+                    fieldValues["axonOpsOrg"] as String,
+                    fieldValues["axonOpsKey"] as String,
+                )
 
             context.yaml.writeValue(location, user)
         }
