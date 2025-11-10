@@ -56,7 +56,12 @@ internal class PrometheusTest {
 
     @Test
     fun testStaticConfigs() {
-        val targets = config.scrape_configs.first().staticConfigList.first().targets
+        val targets =
+            config.scrape_configs
+                .first()
+                .staticConfigList
+                .first()
+                .targets
         assertThat(targets).containsExactly("127.0.0.1:8000", "192.168.1:8000")
     }
 
@@ -73,9 +78,7 @@ internal class PrometheusTest {
 
     @Test
     fun testFullExecution() {
-        fun stream(): OutputStream {
-            return ByteBufferBackedOutputStream(ByteBuffer.allocate(1024))
-        }
+        fun stream(): OutputStream = ByteBufferBackedOutputStream(ByteBuffer.allocate(1024))
         val c = listOf(HostInfo("192.168.1.1", name = "test1"), HostInfo("192.168.1.2", name = "test2"))
         val s = listOf(HostInfo("192.168.2.1"), HostInfo("192.168.2.2"))
         val out = stream()

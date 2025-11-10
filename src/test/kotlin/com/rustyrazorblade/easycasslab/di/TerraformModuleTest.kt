@@ -14,7 +14,9 @@ import org.koin.dsl.module
 import java.io.ByteArrayInputStream
 import java.io.File
 
-class TerraformModuleTest : BaseKoinTest(), KoinComponent {
+class TerraformModuleTest :
+    BaseKoinTest(),
+    KoinComponent {
     @TempDir lateinit var tempDir: File
 
     @TempDir lateinit var profileDir: File
@@ -112,7 +114,9 @@ class TerraformModuleTest : BaseKoinTest(), KoinComponent {
     }
 }
 
-class TerraformModuleIntegrationTest : BaseKoinTest(), KoinComponent {
+class TerraformModuleIntegrationTest :
+    BaseKoinTest(),
+    KoinComponent {
     override fun additionalTestModules() =
         listOf(
             module {

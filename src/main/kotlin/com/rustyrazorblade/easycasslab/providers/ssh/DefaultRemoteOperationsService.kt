@@ -18,7 +18,8 @@ import java.nio.file.Path
  */
 class DefaultRemoteOperationsService(
     private val connectionProvider: SSHConnectionProvider,
-) : RemoteOperationsService, KoinComponent {
+) : RemoteOperationsService,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -92,12 +93,11 @@ class DefaultRemoteOperationsService(
     override fun getRemoteVersion(
         host: Host,
         inputVersion: String,
-    ): Version {
-        return if (inputVersion == "current") {
+    ): Version =
+        if (inputVersion == "current") {
             val path = executeRemotely(host, "readlink -f /usr/local/cassandra/current").text.trim()
             Version(path)
         } else {
             Version.fromString(inputVersion)
         }
-    }
 }

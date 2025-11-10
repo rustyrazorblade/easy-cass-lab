@@ -29,7 +29,9 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 
 /** Registry that manages easy-cass-lab commands as MCP tools. */
-open class McpToolRegistry(private val context: Context) : KoinComponent {
+open class McpToolRegistry(
+    private val context: Context,
+) : KoinComponent {
     val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -59,8 +61,7 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             .filter { command ->
                 // Only include commands with @McpCommand annotation
                 command.command::class.java.isAnnotationPresent(McpCommand::class.java)
-            }
-            .map { command -> createToolInfo(command) }
+            }.map { command -> createToolInfo(command) }
     }
 
     /** Execute a tool by name with the given arguments. */
@@ -305,8 +306,8 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             put("description", getFieldDescription(paramAnnotation, fieldName))
         }
 
-    private fun determineJsonType(type: Class<*>): String {
-        return when {
+    private fun determineJsonType(type: Class<*>): String =
+        when {
             type.isEnum -> "string" // Enums are strings with constraints
             type == String::class.java -> "string"
             type == Int::class.java ||
@@ -320,7 +321,6 @@ open class McpToolRegistry(private val context: Context) : KoinComponent {
             type == Boolean::class.java || type == java.lang.Boolean::class.java -> "boolean"
             else -> "string" // Default to string for unknown types
         }
-    }
 
     private fun mapArgumentsToCommand(
         command: ICommand,

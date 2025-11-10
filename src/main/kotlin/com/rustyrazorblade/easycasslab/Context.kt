@@ -15,16 +15,12 @@ data class Context(
         /**
          * Create a Context for regular CLI execution
          */
-        fun forCli(easycasslabUserDirectory: File): Context {
-            return Context(easycasslabUserDirectory, isMcp = false)
-        }
+        fun forCli(easycasslabUserDirectory: File): Context = Context(easycasslabUserDirectory, isMcp = false)
 
         /**
          * Create a Context for MCP server execution
          */
-        fun forMcp(easycasslabUserDirectory: File): Context {
-            return Context(easycasslabUserDirectory, isMcp = true)
-        }
+        fun forMcp(easycasslabUserDirectory: File): Context = Context(easycasslabUserDirectory, isMcp = true)
     }
 
     val log = KotlinLogging.logger {}

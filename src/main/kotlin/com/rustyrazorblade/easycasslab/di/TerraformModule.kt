@@ -24,13 +24,9 @@ class DefaultTFStateProvider(
 ) : TFStateProvider {
     private val defaultStateFile by lazy { File(context.cwdPath, "terraform.tfstate") }
 
-    override fun parseFromFile(file: File): TFState {
-        return TFState(context, file.inputStream())
-    }
+    override fun parseFromFile(file: File): TFState = TFState(context, file.inputStream())
 
-    override fun parseFromStream(stream: InputStream): TFState {
-        return TFState(context, stream)
-    }
+    override fun parseFromStream(stream: InputStream): TFState = TFState(context, stream)
 
     override fun getDefault(): TFState {
         if (!defaultStateFile.exists()) {

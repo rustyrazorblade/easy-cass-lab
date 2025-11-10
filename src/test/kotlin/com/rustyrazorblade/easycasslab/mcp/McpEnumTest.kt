@@ -45,11 +45,11 @@ class McpEnumTest {
 
         // Use reflection to call createToolInfo
         val createToolInfoMethod =
-            McpToolRegistry::class.java.getDeclaredMethod(
-                "createToolInfo",
-                Command::class.java,
-            )
-                .apply { isAccessible = true }
+            McpToolRegistry::class.java
+                .getDeclaredMethod(
+                    "createToolInfo",
+                    Command::class.java,
+                ).apply { isAccessible = true }
 
         val toolInfo = createToolInfoMethod.invoke(registry, command) as McpToolRegistry.ToolInfo
 
@@ -80,12 +80,12 @@ class McpEnumTest {
 
         // Map arguments to command
         val mapArgumentsMethod =
-            McpToolRegistry::class.java.getDeclaredMethod(
-                "mapArgumentsToCommand",
-                ICommand::class.java,
-                JsonObject::class.java,
-            )
-                .apply { isAccessible = true }
+            McpToolRegistry::class.java
+                .getDeclaredMethod(
+                    "mapArgumentsToCommand",
+                    ICommand::class.java,
+                    JsonObject::class.java,
+                ).apply { isAccessible = true }
 
         mapArgumentsMethod.invoke(registry, testCommand, arguments)
 
@@ -95,7 +95,9 @@ class McpEnumTest {
     }
 
     // Test enum with type property (like Arch)
-    enum class TestArch(val type: String) {
+    enum class TestArch(
+        val type: String,
+    ) {
         AMD64("amd64"),
         ARM64("arm64"),
     }

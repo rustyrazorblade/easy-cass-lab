@@ -10,7 +10,9 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @McpCommand
 @Parameters(commandDescription = "Restart cassandra", commandNames = ["restart"])
-class Restart(context: Context) : BaseCommand(context) {
+class Restart(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {

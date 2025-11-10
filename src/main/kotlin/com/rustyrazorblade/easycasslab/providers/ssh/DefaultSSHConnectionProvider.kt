@@ -22,7 +22,8 @@ import kotlin.io.path.Path
  */
 class DefaultSSHConnectionProvider(
     private val config: SSHConfiguration,
-) : SSHConnectionProvider, KoinComponent {
+) : SSHConnectionProvider,
+    KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -87,9 +88,7 @@ class DefaultSSHConnectionProvider(
      * @param client The SSH client to check
      * @return true if the session is open and authenticated, false otherwise
      */
-    private fun isSessionValid(client: ISSHClient): Boolean {
-        return client.isSessionOpen()
-    }
+    private fun isSessionValid(client: ISSHClient): Boolean = client.isSessionOpen()
 
     /**
      * Create a new SSH connection to a host.
@@ -101,12 +100,12 @@ class DefaultSSHConnectionProvider(
         log.info { "Creating new SSH connection to ${host.alias} (${host.public})" }
 
         val session =
-            sshClient.connect(
-                config.sshUsername,
-                host.public,
-                config.sshPort,
-            )
-                .verify(Duration.ofSeconds(config.connectionTimeoutSeconds))
+            sshClient
+                .connect(
+                    config.sshUsername,
+                    host.public,
+                    config.sshPort,
+                ).verify(Duration.ofSeconds(config.connectionTimeoutSeconds))
                 .session
 
         session.addPublicKeyIdentity(keyPairs.first())

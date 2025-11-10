@@ -10,7 +10,10 @@ import org.koin.core.component.KoinComponent
 
 @RequireDocker
 @Parameters(commandDescription = "Build the Cassandra image.")
-class BuildCassandraImage(val context: Context) : ICommand, KoinComponent {
+class BuildCassandraImage(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     @ParametersDelegate var buildArgs = BuildArgs()
 
     override fun execute() {

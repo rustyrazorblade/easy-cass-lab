@@ -16,7 +16,9 @@ import org.mockito.kotlin.whenever
  * Example test demonstrating the use of BaseKoinTest.
  * This test verifies that the base test class correctly sets up Koin with core mocks.
  */
-class BaseKoinTestExample : BaseKoinTest(), KoinComponent {
+class BaseKoinTestExample :
+    BaseKoinTest(),
+    KoinComponent {
     // Inject dependencies that should be available from core modules
     private val aws: AWS by inject()
     private val clients: Clients by inject()
@@ -49,7 +51,9 @@ class BaseKoinTestExample : BaseKoinTest(), KoinComponent {
 /**
  * Example test showing SSH is available by default.
  */
-class BaseKoinTestWithSSH : BaseKoinTest(), KoinComponent {
+class BaseKoinTestWithSSH :
+    BaseKoinTest(),
+    KoinComponent {
     @Test
     fun `test SSH module is available by default`() {
         // SSH configuration should be available automatically from core modules
@@ -62,7 +66,9 @@ class BaseKoinTestWithSSH : BaseKoinTest(), KoinComponent {
 /**
  * Example test with custom mock modules.
  */
-class BaseKoinTestWithCustomMocks : BaseKoinTest(), KoinComponent {
+class BaseKoinTestWithCustomMocks :
+    BaseKoinTest(),
+    KoinComponent {
     private val mockService = mock<SomeTestService>()
 
     override fun additionalTestModules(): List<Module> =

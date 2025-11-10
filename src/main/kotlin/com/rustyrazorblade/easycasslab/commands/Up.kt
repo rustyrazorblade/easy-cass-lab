@@ -25,7 +25,9 @@ import kotlin.system.exitProcess
 @McpCommand
 @RequireDocker
 @Parameters(commandDescription = "Starts instances")
-class Up(context: Context) : BaseCommand(context) {
+class Up(
+    context: Context,
+) : BaseCommand(context) {
     private val aws: AWS by inject()
     private val userConfig: User by inject()
 
@@ -73,8 +75,7 @@ class Up(context: Context) : BaseCommand(context) {
                         )}  Rerun ${green("easy-cass-lab up")} to provision the remaining resources.",
                     )
                     exitProcess(1)
-                }
-                .onSuccess {
+                }.onSuccess {
                     outputHandler.handleMessage(
                         """Instances have been provisioned.
 

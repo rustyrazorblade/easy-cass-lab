@@ -16,7 +16,9 @@ import kotlin.io.path.exists
 @Parameters(
     commandDescription = "Upload authorized (public) keys from the ./authorized_keys directory",
 )
-class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
+class UploadAuthorizedKeys(
+    context: Context,
+) : BaseCommand(context) {
     @Parameter(descriptionKey = "Local directory of authorized keys")
     var localDir = "authorized_keys"
 
@@ -60,10 +62,10 @@ class UploadAuthorizedKeys(context: Context) : BaseCommand(context) {
             remoteOps.upload(host, authorizedKeys.toPath(), authorizedKeysExtra)
 
             // Append to authorized_keys
-            remoteOps.executeRemotely(
-                host,
-                "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys",
-            )
-                .text
+            remoteOps
+                .executeRemotely(
+                    host,
+                    "cat $authorizedKeysExtra >> /home/ubuntu/.ssh/authorized_keys",
+                ).text
         }
 }

@@ -23,7 +23,9 @@ import java.io.File
         "Start MCP server for AI assistant integration. " +
             "Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
 )
-class McpCommand(context: Context) : BaseCommand(context) {
+class McpCommand(
+    context: Context,
+) : BaseCommand(context) {
     @Parameter(description = "MCP server port", names = ["--port", "-p"])
     var port: Int = Constants.Network.DEFAULT_MCP_PORT
 

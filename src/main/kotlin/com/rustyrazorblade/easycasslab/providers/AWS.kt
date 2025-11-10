@@ -7,7 +7,9 @@ import software.amazon.awssdk.services.iam.model.CreateInstanceProfileRequest
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 
-class AWS(val clients: Clients) {
+class AWS(
+    val clients: Clients,
+) {
     companion object {
         const val SERVICE_ROLE = "EasyCassLabServiceRole"
     }
@@ -43,7 +45,8 @@ class AWS(val clients: Clients) {
         try {
             // Create the IAM role
             val createRoleRequest =
-                CreateRoleRequest.builder()
+                CreateRoleRequest
+                    .builder()
                     .roleName(SERVICE_ROLE)
                     .assumeRolePolicyDocument(assumeRolePolicy)
                     .description("IAM role for EMR service")
@@ -61,7 +64,8 @@ class AWS(val clients: Clients) {
 
     private fun attachPolicy(policy: String) {
         val attachPolicyRequest =
-            AttachRolePolicyRequest.builder()
+            AttachRolePolicyRequest
+                .builder()
                 .roleName(SERVICE_ROLE)
                 .policyArn(policy)
                 .build()
@@ -73,9 +77,7 @@ class AWS(val clients: Clients) {
         return attachPolicy("arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole")
     }
 
-    private fun attachEMREC2Role() {
-        return attachPolicy("arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role")
-    }
+    private fun attachEMREC2Role() = attachPolicy("arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role")
 
     /**
      * Creates an IAM instance profile for EMR EC2 instances
@@ -84,7 +86,8 @@ class AWS(val clients: Clients) {
         try {
             // Create the instance profile
             val createProfileRequest =
-                CreateInstanceProfileRequest.builder()
+                CreateInstanceProfileRequest
+                    .builder()
                     .instanceProfileName(SERVICE_ROLE)
                     .build()
 
@@ -92,7 +95,8 @@ class AWS(val clients: Clients) {
 
             // Add role to instance profile
             val addRoleRequest =
-                AddRoleToInstanceProfileRequest.builder()
+                AddRoleToInstanceProfileRequest
+                    .builder()
                     .instanceProfileName(SERVICE_ROLE)
                     .roleName(SERVICE_ROLE)
                     .build()

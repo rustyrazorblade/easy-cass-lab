@@ -29,8 +29,9 @@ class TestMcpCommand : ICommand {
 }
 
 // Test registry that includes test commands
-class TestMcpToolRegistry(context: com.rustyrazorblade.easycasslab.Context) :
-    McpToolRegistry(context) {
+class TestMcpToolRegistry(
+    context: com.rustyrazorblade.easycasslab.Context,
+) : McpToolRegistry(context) {
     override fun getTools(): List<ToolInfo> {
         // Create a test command and add it to the list
         val testCommand = TestMcpCommand()

@@ -9,7 +9,10 @@ import java.io.File
  * Manages AWS credentials file creation and access.
  * This was previously handled by the awsConfig lazy property in Context.
  */
-class AWSCredentialsManager(private val profileDir: File, private val user: User) {
+class AWSCredentialsManager(
+    private val profileDir: File,
+    private val user: User,
+) {
     private val logger = KotlinLogging.logger {}
 
     /**

@@ -23,7 +23,9 @@ import java.io.File
 @RequireDocker
 @RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
-class Start(context: Context) : BaseCommand(context) {
+class Start(
+    context: Context,
+) : BaseCommand(context) {
     private val userConfig: User by inject()
 
     companion object {

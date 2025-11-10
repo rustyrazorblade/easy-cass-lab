@@ -15,7 +15,9 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
-class DefaultRemoteOperationsServiceTest : BaseKoinTest(), KoinComponent {
+class DefaultRemoteOperationsServiceTest :
+    BaseKoinTest(),
+    KoinComponent {
     private lateinit var service: DefaultRemoteOperationsService
     private lateinit var mockSSHConnectionProvider: SSHConnectionProvider
     private lateinit var mockSSHClient: ISSHClient

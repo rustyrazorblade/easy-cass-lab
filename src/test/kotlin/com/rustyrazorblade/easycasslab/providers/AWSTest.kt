@@ -15,7 +15,9 @@ import software.amazon.awssdk.services.iam.model.CreateRoleResponse
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 import software.amazon.awssdk.services.iam.model.Role
 
-internal class AWSTest : BaseKoinTest(), KoinComponent {
+internal class AWSTest :
+    BaseKoinTest(),
+    KoinComponent {
     // Inject the mocked AWS service from BaseKoinTest
     private val aws: AWS by inject()
 
@@ -26,13 +28,15 @@ internal class AWSTest : BaseKoinTest(), KoinComponent {
 
         // Setup mock responses
         val mockRole =
-            Role.builder()
+            Role
+                .builder()
                 .roleName(AWS.SERVICE_ROLE)
                 .arn("arn:aws:iam::123456789:role/${AWS.SERVICE_ROLE}")
                 .build()
 
         val createRoleResponse =
-            CreateRoleResponse.builder()
+            CreateRoleResponse
+                .builder()
                 .role(mockRole)
                 .build()
 
@@ -60,7 +64,8 @@ internal class AWSTest : BaseKoinTest(), KoinComponent {
         // Setup mock to throw EntityAlreadyExistsException
         whenever(mockIamClient.createRole(any<CreateRoleRequest>()))
             .thenThrow(
-                EntityAlreadyExistsException.builder()
+                EntityAlreadyExistsException
+                    .builder()
                     .message("Role already exists")
                     .build(),
             )

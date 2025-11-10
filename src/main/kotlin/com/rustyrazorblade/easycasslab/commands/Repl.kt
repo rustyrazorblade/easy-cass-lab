@@ -12,7 +12,9 @@ import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
-class Repl(context: Context) : BaseCommand(context) {
+class Repl(
+    context: Context,
+) : BaseCommand(context) {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -27,9 +29,7 @@ class Repl(context: Context) : BaseCommand(context) {
         }
     }
 
-    private fun createTerminal(): Terminal {
-        return TerminalBuilder.builder().build()
-    }
+    private fun createTerminal(): Terminal = TerminalBuilder.builder().build()
 
     private fun createLineReader(terminal: Terminal): LineReader {
         // just to prove this out
@@ -38,7 +38,8 @@ class Repl(context: Context) : BaseCommand(context) {
         val parser = CommandLineParser(context)
         val commands = parser.commands.map { it.name }
 
-        return LineReaderBuilder.builder()
+        return LineReaderBuilder
+            .builder()
             .terminal(terminal)
             .completer(StringsCompleter(commands))
             .build()
@@ -69,9 +70,7 @@ class Repl(context: Context) : BaseCommand(context) {
         return reader.readLine(prompt)
     }
 
-    private fun shouldExit(line: String): Boolean {
-        return line.equals("exit", ignoreCase = true)
-    }
+    private fun shouldExit(line: String): Boolean = line.equals("exit", ignoreCase = true)
 
     private fun processCommand(line: String) {
         // we have to create a new parser every time due to a jcommander limitation

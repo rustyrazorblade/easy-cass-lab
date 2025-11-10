@@ -12,7 +12,10 @@ import org.koin.core.component.inject
 import java.io.FileNotFoundException
 
 @McpCommand
-class Hosts(val context: Context) : ICommand, KoinComponent {
+class Hosts(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }
@@ -20,7 +23,11 @@ class Hosts(val context: Context) : ICommand, KoinComponent {
     @Parameter(names = ["-c"], description = "Show Cassandra as a comma delimited list")
     var cassandra: Boolean = false
 
-    data class HostOutput(val cassandra: HostList, val stress: HostList, val control: HostList)
+    data class HostOutput(
+        val cassandra: HostList,
+        val stress: HostList,
+        val control: HostList,
+    )
 
     override fun execute() {
         try {

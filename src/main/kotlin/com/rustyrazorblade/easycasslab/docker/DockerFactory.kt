@@ -39,13 +39,12 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Docker {
-        return Docker(
+    ): Docker =
+        Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
         )
-    }
 
     /**
      * Create a Docker instance with logger output.
@@ -60,13 +59,12 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Docker {
-        return Docker(
+    ): Docker =
+        Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
         )
-    }
 
     /**
      * Create a Docker instance with buffered output.
@@ -81,13 +79,12 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Docker {
-        return Docker(
+    ): Docker =
+        Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
         )
-    }
 
     /**
      * Create a Docker instance with composite output.
@@ -103,13 +100,12 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Docker {
-        return Docker(
+    ): Docker =
+        Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
         )
-    }
 
     /**
      * Create a Docker instance with custom output handler.
@@ -125,11 +121,10 @@ object DockerFactory {
         context: Context,
         dockerClient: DockerClientInterface,
         userIdProvider: UserIdProvider = DefaultUserIdProvider(),
-    ): Docker {
-        return Docker(
+    ): Docker =
+        Docker(
             context = context,
             dockerClient = dockerClient,
             userIdProvider = userIdProvider,
         )
-    }
 }

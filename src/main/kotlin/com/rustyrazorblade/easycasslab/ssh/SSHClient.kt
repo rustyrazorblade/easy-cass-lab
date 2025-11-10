@@ -43,7 +43,8 @@ private const val MAX_PORT_NUMBER = 65535
  */
 class SSHClient(
     private val session: ClientSession,
-) : ISSHClient, KoinComponent {
+) : ISSHClient,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val log = KotlinLogging.logger {}
 

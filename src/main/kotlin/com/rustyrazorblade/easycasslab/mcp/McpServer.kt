@@ -45,7 +45,9 @@ data class StatusResponse(
 )
 
 /** MCP server implementation using the official SDK. */
-class McpServer(private val context: Context) : KoinComponent {
+class McpServer(
+    private val context: Context,
+) : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -112,7 +114,10 @@ class McpServer(private val context: Context) : KoinComponent {
                     command = currentCommand ?: "none",
                     runtimeSeconds = runtimeSeconds,
                     messages = messages,
-                    timestamp = java.time.Instant.now().toString(),
+                    timestamp =
+                        java.time.Instant
+                            .now()
+                            .toString(),
                 )
 
             // Clear command tracking if completed

@@ -44,14 +44,22 @@ class OutputModuleTest : KoinTest {
 
     @Test
     fun `named console handler should be ConsoleOutputHandler instance`() {
-        val consoleHandler: OutputHandler by inject(qualifier = org.koin.core.qualifier.named("console"))
+        val consoleHandler: OutputHandler by inject(
+            qualifier =
+                org.koin.core.qualifier
+                    .named("console"),
+        )
 
         assertTrue(consoleHandler is ConsoleOutputHandler, "Named 'console' handler should be ConsoleOutputHandler")
     }
 
     @Test
     fun `named logger handler should be LoggerOutputHandler instance`() {
-        val loggerHandler: OutputHandler by inject(qualifier = org.koin.core.qualifier.named("logger"))
+        val loggerHandler: OutputHandler by inject(
+            qualifier =
+                org.koin.core.qualifier
+                    .named("logger"),
+        )
 
         assertTrue(loggerHandler is LoggerOutputHandler, "Named 'logger' handler should be LoggerOutputHandler")
     }

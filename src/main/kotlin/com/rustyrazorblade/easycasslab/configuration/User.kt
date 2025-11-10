@@ -42,14 +42,14 @@ data class User(
         /**
          * Gets all ConfigField-annotated properties from User class in order
          */
-        private fun getConfigFields(): List<kotlin.reflect.KProperty1<User, *>> {
-            return User::class.members
+        private fun getConfigFields(): List<kotlin.reflect.KProperty1<User, *>> =
+            User::class
+                .members
                 .filterIsInstance<kotlin.reflect.KProperty1<User, *>>()
                 .filter { it.annotations.any { annotation -> annotation is ConfigField } }
                 .sortedBy { property ->
                     (property.annotations.find { it is ConfigField } as ConfigField).order
                 }
-        }
 
         /**
          * Loads existing YAML as Map or returns empty map if file doesn't exist
@@ -57,27 +57,25 @@ data class User(
         private fun loadExistingConfig(
             context: Context,
             location: File,
-        ): Map<String, Any> {
-            return if (location.exists()) {
+        ): Map<String, Any> =
+            if (location.exists()) {
                 @Suppress("UNCHECKED_CAST")
                 context.yaml.readValue(location, Map::class.java) as Map<String, Any>
             } else {
                 emptyMap()
             }
-        }
 
         private fun showWelcomeMessageOnce(
             outputHandler: OutputHandler,
             hasShownWelcome: Boolean,
-        ): Boolean {
-            return if (!hasShownWelcome) {
+        ): Boolean =
+            if (!hasShownWelcome) {
                 outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
                 outputHandler.handleMessage("We just need to know a few things before we get started.")
                 true
             } else {
                 hasShownWelcome
             }
-        }
 
         /**
          * Asks a bunch of questions and generates the user file
@@ -148,8 +146,10 @@ data class User(
 
                 val keyName = "easy-cass-lab-${UUID.randomUUID()}"
                 val request =
-                    CreateKeyPairRequest.builder()
-                        .keyName(keyName).build()
+                    CreateKeyPairRequest
+                        .builder()
+                        .keyName(keyName)
+                        .build()
 
                 val response = ec2Client.createKeyPair(request)
 

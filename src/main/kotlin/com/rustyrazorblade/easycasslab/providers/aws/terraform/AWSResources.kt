@@ -11,7 +11,9 @@ typealias Ami = String
 
 const val TCP = "tcp"
 
-enum class EBSType(val type: String) {
+enum class EBSType(
+    val type: String,
+) {
     NONE(""),
     GP2("gp2"),
     GP3("gp3"),
@@ -116,9 +118,7 @@ data class VPC(
     var cidr_block: String = "10.0.0.0/16",
     var tags: MutableMap<String, String>,
 ) {
-    fun id(): String {
-        return "\${aws_vpc.$name.id}"
-    }
+    fun id(): String = "\${aws_vpc.$name.id}"
 }
 
 /**
@@ -131,9 +131,7 @@ data class IGW(
     @JsonIgnore val vpc: VPC,
     val tags: MutableMap<String, String>,
 ) {
-    fun id(): String {
-        return "\${aws_internet_gateway.${vpc.name}.id}"
-    }
+    fun id(): String = "\${aws_internet_gateway.${vpc.name}.id}"
 
     val vpc_id: String = vpc.id()
 }
@@ -149,9 +147,7 @@ data class Subnet(
     var availability_zone: String,
     var tags: Map<String, String>,
 ) {
-    fun id(): String {
-        return "\${aws_subnet.$name.id}"
-    }
+    fun id(): String = "\${aws_subnet.$name.id}"
 
     val vpc_id = vpc.id()
 }
@@ -243,8 +239,8 @@ data class EMRCluster(
             sparkInitParams: SparkInitParams,
             subnet: Subnet,
             securityGroup: SecurityGroupResource,
-        ): EMRCluster {
-            return EMRCluster(
+        ): EMRCluster =
+            EMRCluster(
                 serviceRole = AWS.SERVICE_ROLE,
                 masterInstanceGroup =
                     MasterInstanceGroup(
@@ -262,7 +258,6 @@ data class EMRCluster(
                         instanceProfile = AWS.SERVICE_ROLE,
                     ),
             )
-        }
     }
 }
 

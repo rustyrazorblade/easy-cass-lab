@@ -89,7 +89,8 @@ class UpTest : BaseKoinTest() {
                 },
             )
         setupKoin()
-        org.koin.core.context.loadKoinModules(customModules)
+        org.koin.core.context
+            .loadKoinModules(customModules)
 
         // Create Up command instance
         val upCommand = Up(context)
@@ -164,7 +165,8 @@ class UpTest : BaseKoinTest() {
                 },
             )
         setupKoin()
-        org.koin.core.context.loadKoinModules(customModules)
+        org.koin.core.context
+            .loadKoinModules(customModules)
 
         // Create Up command instance
         val upCommand = Up(context)
@@ -224,7 +226,8 @@ class UpTest : BaseKoinTest() {
                 },
             )
         setupKoin()
-        org.koin.core.context.loadKoinModules(customModules)
+        org.koin.core.context
+            .loadKoinModules(customModules)
 
         // Create Up command instance
         val upCommand = Up(context)

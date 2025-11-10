@@ -7,7 +7,9 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-enum class Arch(val type: String) {
+enum class Arch(
+    val type: String,
+) {
     AMD64("amd64"),
     ARM64("arm64"),
 }

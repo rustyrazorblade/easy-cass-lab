@@ -19,9 +19,7 @@ class ContextFactory(
      * @param key Unique identifier for the context (e.g., profile name, environment)
      * @return Cached or newly created Context instance
      */
-    fun getContext(key: String): Context {
-        return contextCache.getOrPut(key) { createContext(key) }
-    }
+    fun getContext(key: String): Context = contextCache.getOrPut(key) { createContext(key) }
 
     /**
      * Get the default context (key = "default"). Convenience method for the most common use case.

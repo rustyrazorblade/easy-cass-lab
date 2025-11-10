@@ -33,9 +33,7 @@ class MockSSHTunnelManager : SSHTunnelManager {
     override fun getTunnel(
         host: Host,
         remotePort: Int,
-    ): SSHTunnel? {
-        return tunnels[TunnelKey(host, remotePort)]
-    }
+    ): SSHTunnel? = tunnels[TunnelKey(host, remotePort)]
 
     override fun closeTunnel(tunnel: SSHTunnel) {
         tunnels.remove(TunnelKey(tunnel.host, tunnel.remotePort))
