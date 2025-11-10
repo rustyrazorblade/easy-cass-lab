@@ -73,6 +73,9 @@ class Start(context: Context) : BaseCommand(context) {
         // Start OTel collectors on Cassandra nodes
         startOtelOnCassandraNodes()
 
+        // Start OTel collectors on stress nodes
+        startOtelOnStressNodes()
+
         // this has to happen last, because we want Cassandra to be available before starting the
         // MCP server.
         deployDockerComposeToControlNodes()
@@ -405,6 +408,162 @@ class Start(context: Context) : BaseCommand(context) {
         }
 
         outputHandler.handleMessage("OTel collectors startup completed on Cassandra nodes")
+    }
+
+    private fun startOtelOnStressNodes() {
+        outputHandler.handleMessage("Starting OTel collectors on stress nodes...")
+
+        val otelConfigFile = File("stress/otel-stress-config.yaml")
+        val dockerComposeFile = File("stress/docker-compose.yaml")
+
+        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
+            outputHandler.handleMessage(
+                "Stress OTel config files not found, skipping OTel startup",
+            )
+            return
+        }
+
+        // Get the internal IP of the first control node for OTLP endpoint
+        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
+        if (controlHost == null) {
+            outputHandler.handleMessage(
+                "No control nodes found, skipping OTel startup for stress nodes",
+            )
+            return
+        }
+        val controlNodeIp = controlHost.private
+
+        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+            outputHandler.handleMessage(
+                "Starting OTel collector on stress node ${host.alias} (${host.public})",
+            )
+
+            // Check if configuration files exist on the remote host
+            val configCheckResult =
+                remoteOps.executeRemotely(
+                    host,
+                    "test -f /home/ubuntu/otel-stress-config.yaml && " +
+                        "test -f /home/ubuntu/docker-compose.yaml && echo 'exists' || echo 'not found'",
+                )
+
+            if (configCheckResult.text.trim() == "not found") {
+                outputHandler.handleMessage(
+                    "OTel configuration not found on ${host.alias}, skipping...",
+                )
+                return@withHosts
+            }
+
+            // Check if .env file exists, if not create it
+            val envCheckResult =
+                remoteOps.executeRemotely(
+                    host,
+                    "test -f /home/ubuntu/.env && echo 'exists' || echo 'not found'",
+                )
+
+            if (envCheckResult.text.trim() == "not found") {
+                outputHandler.handleMessage("Creating .env file for ${host.alias}")
+                val envContent =
+                    """
+                    CONTROL_NODE_IP=$controlNodeIp
+                    """.trimIndent()
+
+                remoteOps.executeRemotely(
+                    host,
+                    "cat > /home/ubuntu/.env << 'EOF'\n$envContent\nEOF",
+                )
+            }
+
+            // Check if docker is available
+            try {
+                val dockerCheck =
+                    remoteOps.executeRemotely(host, "which docker && docker --version")
+                outputHandler.handleMessage("Docker check on ${host.alias}: ${dockerCheck.text}")
+            } catch (e: Exception) {
+                outputHandler.handleMessage(
+                    "Warning: Docker may not be installed on ${host.alias}: ${e.message}",
+                )
+                return@withHosts
+            }
+
+            // Pull OTel collector image
+            outputHandler.handleMessage("Pulling OTel collector image on ${host.alias}...")
+            try {
+                val pullResult =
+                    remoteOps.executeRemotely(
+                        host,
+                        "docker pull otel/opentelemetry-collector-contrib:latest",
+                    )
+                outputHandler.handleMessage("Docker pull completed on ${host.alias}")
+            } catch (e: Exception) {
+                outputHandler.handleMessage(
+                    "Warning: Failed to pull OTel image on ${host.alias}: ${e.message}",
+                )
+            }
+
+            // Start OTel collector with docker compose
+            var success = false
+            var retryCount = 0
+            var lastError: String? = null
+
+            while (!success && retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
+                try {
+                    if (retryCount > 0) {
+                        outputHandler.handleMessage(
+                            "Retrying OTel startup on ${host.alias} " +
+                                "(attempt ${retryCount + 1}/${DOCKER_COMPOSE_MAX_RETRIES})...",
+                        )
+                        Thread.sleep(DOCKER_COMPOSE_RETRY_DELAY_MS)
+                    }
+
+                    // Run docker compose up for OTel
+                    val result =
+                        remoteOps.executeRemotely(
+                            host,
+                            "cd /home/ubuntu && docker compose up -d",
+                        )
+                    outputHandler.handleMessage("OTel collector started on ${host.alias}")
+                    success = true
+                } catch (e: RuntimeException) {
+                    lastError = e.message
+                    retryCount++
+                    if (retryCount < DOCKER_COMPOSE_MAX_RETRIES) {
+                        outputHandler.handleMessage(
+                            "OTel startup failed on ${host.alias}: ${e.message}",
+                        )
+                    }
+                }
+            }
+
+            if (!success) {
+                outputHandler.handleMessage(
+                    "ERROR: Failed to start OTel on ${host.alias} after $DOCKER_COMPOSE_MAX_RETRIES attempts",
+                )
+                outputHandler.handleMessage("Last error: $lastError")
+            } else {
+                // Check OTel collector status
+                Thread.sleep(Constants.Time.OTEL_STARTUP_DELAY_MS) // Give it time to start
+                try {
+                    val statusResult =
+                        remoteOps.executeRemotely(
+                            host,
+                            "docker ps | grep otel-collector",
+                        )
+                    if (statusResult.text.contains("Up")) {
+                        outputHandler.handleMessage("OTel collector is running on ${host.alias}")
+                    } else {
+                        outputHandler.handleMessage(
+                            "Warning: OTel collector may not be running properly on ${host.alias}",
+                        )
+                    }
+                } catch (e: Exception) {
+                    outputHandler.handleMessage(
+                        "Could not verify OTel status on ${host.alias}: ${e.message}",
+                    )
+                }
+            }
+        }
+
+        outputHandler.handleMessage("OTel collectors startup completed on stress nodes")
     }
 
     /**

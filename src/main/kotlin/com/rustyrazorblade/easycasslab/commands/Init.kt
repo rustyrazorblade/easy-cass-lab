@@ -308,6 +308,14 @@ class Init(val context: Context) : ICommand, KoinComponent {
         File("cassandra").mkdirs()
         extractResourceFile("otel-cassandra-config.yaml", "cassandra/otel-cassandra-config.yaml")
         extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose.yaml")
+
+        // Create stress directory and extract OTel configs for stress nodes
+        outputHandler.handleMessage(
+            "Creating stress directory and writing OTel configs for stress nodes",
+        )
+        File("stress").mkdirs()
+        extractResourceFile("otel-stress-config.yaml", "stress/otel-stress-config.yaml")
+        extractResourceFile("docker-compose-stress.yaml", "stress/docker-compose.yaml")
     }
 
     private fun extractResourceFile(

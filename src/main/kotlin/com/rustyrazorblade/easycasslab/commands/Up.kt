@@ -55,6 +55,7 @@ class Up(context: Context) : BaseCommand(context) {
         waitForSshAndDownloadVersions()
         uploadDockerComposeToControlNodes()
         uploadOtelConfigsToCassandraNodes()
+        uploadOtelConfigsToStressNodes()
         setupInstancesIfNeeded()
     }
 
@@ -321,6 +322,69 @@ class Up(context: Context) : BaseCommand(context) {
         }
 
         outputHandler.handleMessage("OTel configuration uploaded to all Cassandra nodes")
+    }
+
+    private fun uploadOtelConfigsToStressNodes() {
+        outputHandler.handleMessage("Preparing OTel configuration for stress nodes...")
+
+        val otelConfigFile = File("stress/otel-stress-config.yaml")
+        val dockerComposeFile = File("stress/docker-compose.yaml")
+
+        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
+            outputHandler.handleMessage("Stress OTel config files not found, skipping upload")
+            return
+        }
+
+        // Get the internal IP of the first control node for OTLP endpoint
+        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
+        if (controlHost == null) {
+            outputHandler.handleMessage(
+                "No control nodes found, skipping OTel configuration for stress nodes",
+            )
+            return
+        }
+
+        val controlNodeIp = controlHost.private
+        outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
+
+        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+            outputHandler.handleMessage(
+                "Configuring OTel for stress node ${host.alias} (${host.public})",
+            )
+
+            // Create .env file for docker-compose with environment variables
+            val envContent =
+                """
+                CONTROL_NODE_IP=$controlNodeIp
+                """.trimIndent()
+
+            // Create temporary .env file
+            val tempEnvFile = File.createTempFile("env-", "")
+
+            try {
+                tempEnvFile.writeText(envContent)
+
+                // Upload configuration files to stress node
+                remoteOps.upload(
+                    host,
+                    otelConfigFile.toPath(),
+                    "/home/ubuntu/otel-stress-config.yaml",
+                )
+                remoteOps.upload(
+                    host,
+                    dockerComposeFile.toPath(),
+                    "/home/ubuntu/docker-compose.yaml",
+                )
+                remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
+
+                outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
+            } finally {
+                // Clean up temporary files
+                tempEnvFile.delete()
+            }
+        }
+
+        outputHandler.handleMessage("OTel configuration uploaded to all stress nodes")
     }
 
     private fun setupInstancesIfNeeded() {
