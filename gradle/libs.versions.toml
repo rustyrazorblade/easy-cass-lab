@@ -35,7 +35,7 @@ mordant = "1.2.1"
 ktor = "3.3.2"
 
 # Koin DI
-koin = "3.5.3"
+koin = "4.1.1"
 
 # AWS SDK
 awssdk = "2.38.2"
