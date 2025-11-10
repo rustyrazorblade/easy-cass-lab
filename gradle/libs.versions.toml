@@ -54,7 +54,7 @@ classgraph = "4.8.179"
 
 # Gradle Plugins
 shadow = "8.1.1"
-versions = "0.52.0"
+versions = "0.53.0"
 ktlint = "13.1.0"
 detekt = "1.23.7"
 kover = "0.8.3"
