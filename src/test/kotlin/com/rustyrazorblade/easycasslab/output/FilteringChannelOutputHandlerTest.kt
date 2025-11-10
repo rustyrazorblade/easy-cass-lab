@@ -168,7 +168,8 @@ class FilteringChannelOutputHandlerTest {
 
             // Send mixed events
             handler.handleMessage("start message")
-            repeat(150) { // This should trigger 1 docker activity message
+            repeat(150) {
+                // This should trigger 1 docker activity message
                 handler.handleFrame(Frame(StreamType.STDOUT, "frame $it".toByteArray()))
             }
             handler.handleError("error message", null)

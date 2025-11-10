@@ -12,7 +12,10 @@ import org.koin.core.component.inject
 import java.io.File
 
 @Parameters(commandDescription = "Write a new cassandra configuration patch file")
-class WriteConfig(val context: Context) : ICommand, KoinComponent {
+class WriteConfig(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }
@@ -49,7 +52,8 @@ class WriteConfig(val context: Context) : ICommand, KoinComponent {
                         val parameters =
                             object {
                                 val seeds =
-                                    tfstate.getHosts(ServerType.Cassandra)
+                                    tfstate
+                                        .getHosts(ServerType.Cassandra)
                                         .map { it.private }
                                         .take(1)
                                         .joinToString(",")

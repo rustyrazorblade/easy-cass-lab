@@ -135,12 +135,11 @@ class PromptLoader {
         resourceName: String,
         frontmatter: Map<String, Any>,
         fieldName: String,
-    ): String {
-        return frontmatter[fieldName] as? String
+    ): String =
+        frontmatter[fieldName] as? String
             ?: throw IllegalArgumentException(
                 "Missing required '$fieldName' field in frontmatter of $resourceName",
             )
-    }
 
     /**
      * Loads all prompts from markdown files in the specified package path using ClassGraph.

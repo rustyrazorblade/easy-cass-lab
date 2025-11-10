@@ -55,13 +55,13 @@ interface DockerClientInterface {
 }
 
 // Default implementation that delegates to the actual DockerClient
-class DefaultDockerClient(private val dockerClient: DockerClient) : DockerClientInterface {
+class DefaultDockerClient(
+    private val dockerClient: DockerClient,
+) : DockerClientInterface {
     override fun listImages(
         name: String,
         tag: String,
-    ): List<Image> {
-        return dockerClient.listImagesCmd().withImageNameFilter("$name:$tag").exec()
-    }
+    ): List<Image> = dockerClient.listImagesCmd().withImageNameFilter("$name:$tag").exec()
 
     override fun pullImage(
         name: String,
@@ -77,16 +77,16 @@ class DefaultDockerClient(private val dockerClient: DockerClient) : DockerClient
         pullCommand.exec(callback)
     }
 
-    override fun createContainer(imageTag: String): ContainerCreationCommand {
-        return ContainerCreationCommand(dockerClient.createContainerCmd(imageTag))
-    }
+    override fun createContainer(imageTag: String): ContainerCreationCommand =
+        ContainerCreationCommand(dockerClient.createContainerCmd(imageTag))
 
     override fun attachContainer(
         containerId: String,
         stdin: PipedInputStream,
         callback: ResultCallback.Adapter<Frame>,
     ) {
-        dockerClient.attachContainerCmd(containerId)
+        dockerClient
+            .attachContainerCmd(containerId)
             .withStdIn(stdin)
             .withStdOut(true)
             .withStdErr(true)
@@ -98,22 +98,23 @@ class DefaultDockerClient(private val dockerClient: DockerClient) : DockerClient
         dockerClient.startContainerCmd(containerId).exec()
     }
 
-    override fun inspectContainer(containerId: String): InspectContainerResponse {
-        return dockerClient.inspectContainerCmd(containerId).exec()
-    }
+    override fun inspectContainer(containerId: String): InspectContainerResponse = dockerClient.inspectContainerCmd(containerId).exec()
 
     override fun removeContainer(
         containerId: String,
         removeVolumes: Boolean,
     ) {
-        dockerClient.removeContainerCmd(containerId)
+        dockerClient
+            .removeContainerCmd(containerId)
             .withRemoveVolumes(removeVolumes)
             .exec()
     }
 }
 
 // Wrapper class for container creation commands to make testing easier
-class ContainerCreationCommand(private val command: com.github.dockerjava.api.command.CreateContainerCmd) {
+class ContainerCreationCommand(
+    private val command: com.github.dockerjava.api.command.CreateContainerCmd,
+) {
     fun withCmd(commands: List<String>): ContainerCreationCommand {
         command.withCmd(commands)
         return this
@@ -147,9 +148,7 @@ class ContainerCreationCommand(private val command: com.github.dockerjava.api.co
         return this
     }
 
-    fun exec(): com.github.dockerjava.api.command.CreateContainerResponse {
-        return command.exec()
-    }
+    fun exec(): com.github.dockerjava.api.command.CreateContainerResponse = command.exec()
 }
 
 // Utility for getting user ID, extracted for testability
@@ -161,14 +160,21 @@ class DefaultUserIdProvider : UserIdProvider {
     override fun getUserId(): Int {
         val idQuery =
             ProcessBuilder("id", System.getProperty("user.name"))
-                .start().inputStream.bufferedReader().readLine()
+                .start()
+                .inputStream
+                .bufferedReader()
+                .readLine()
         val matches = "uid=(\\d*)".toRegex().find(idQuery)
 
         return matches?.groupValues?.get(1)?.toInt() ?: 0
     }
 }
 
-data class VolumeMapping(val source: String, val destination: String, val mode: AccessMode) {
+data class VolumeMapping(
+    val source: String,
+    val destination: String,
+    val mode: AccessMode,
+) {
     companion object {
         val log = KotlinLogging.logger {}
     }
@@ -433,4 +439,7 @@ class Docker(
     }
 }
 
-class DockerException(message: String, cause: Throwable) : Exception(message, cause)
+class DockerException(
+    message: String,
+    cause: Throwable,
+) : Exception(message, cause)

@@ -26,7 +26,9 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.io.IOException
 
-class ContainerExecutorTest : BaseKoinTest(), KoinComponent {
+class ContainerExecutorTest :
+    BaseKoinTest(),
+    KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var containerExecutor: ContainerExecutor
@@ -105,7 +107,9 @@ class ContainerExecutorTest : BaseKoinTest(), KoinComponent {
     }
 }
 
-class ContainerIOManagerTest : BaseKoinTest(), KoinComponent {
+class ContainerIOManagerTest :
+    BaseKoinTest(),
+    KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var ioManager: ContainerIOManager
@@ -172,7 +176,9 @@ class ContainerIOManagerTest : BaseKoinTest(), KoinComponent {
     }
 }
 
-class ContainerStateMonitorTest : BaseKoinTest(), KoinComponent {
+class ContainerStateMonitorTest :
+    BaseKoinTest(),
+    KoinComponent {
     private lateinit var mockDockerClient: DockerClientInterface
     private lateinit var bufferedOutputHandler: BufferedOutputHandler
     private lateinit var stateMonitor: ContainerStateMonitor

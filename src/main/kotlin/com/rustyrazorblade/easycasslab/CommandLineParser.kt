@@ -38,14 +38,20 @@ import org.koin.core.component.inject
 import java.io.File
 import kotlin.system.exitProcess
 
-data class Command(val name: String, val command: ICommand, val aliases: List<String> = listOf())
+data class Command(
+    val name: String,
+    val command: ICommand,
+    val aliases: List<String> = listOf(),
+)
 
 class MainArgs {
     @Parameter(names = ["--help", "-h"], description = "Shows this help.")
     var help = false
 }
 
-class CommandLineParser(val context: Context) : KoinComponent {
+class CommandLineParser(
+    val context: Context,
+) : KoinComponent {
     private val userConfig: User by inject()
     val commands: List<Command>
 
@@ -136,8 +142,8 @@ class CommandLineParser(val context: Context) : KoinComponent {
     }
 
     @Suppress("TooGenericExceptionCaught")
-    private fun checkDockerAvailability(): Boolean {
-        return try {
+    private fun checkDockerAvailability(): Boolean =
+        try {
             val dockerClient = dockerClientProvider.getDockerClient()
             // Try to list images as a simple health check
             dockerClient.listImages("", "")
@@ -146,9 +152,6 @@ class CommandLineParser(val context: Context) : KoinComponent {
             logger.error(e) { "Docker availability check failed" }
             false
         }
-    }
 
-    private fun checkSSHKeyAvailability(): Boolean {
-        return File(userConfig.sshKeyPath).exists()
-    }
+    private fun checkSSHKeyAvailability(): Boolean = File(userConfig.sshKeyPath).exists()
 }

@@ -292,7 +292,8 @@ class ChannelMessageBufferTest {
     @Test
     fun `messages preserve insertion order`() {
         buffer.start()
-        repeat(50) { i -> // Reduced from 100
+        repeat(50) { i ->
+            // Reduced from 100
             sendEvent(OutputEvent.MessageEvent("Message $i"))
         }
         Thread.sleep(200) // Give consumer time to process all

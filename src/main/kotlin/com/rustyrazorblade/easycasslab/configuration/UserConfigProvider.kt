@@ -34,9 +34,7 @@ class UserConfigProvider(
      *
      * @return The User configuration
      */
-    fun getUserConfig(): User {
-        return cachedUserConfig ?: loadUserConfig().also { cachedUserConfig = it }
-    }
+    fun getUserConfig(): User = cachedUserConfig ?: loadUserConfig().also { cachedUserConfig = it }
 
     /**
      * Loads the user configuration from the YAML file.

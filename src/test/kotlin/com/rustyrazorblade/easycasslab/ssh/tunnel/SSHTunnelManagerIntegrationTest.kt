@@ -37,7 +37,9 @@ private val logger = KotlinLogging.logger {}
  * Integration tests for SSHTunnelManager using Apache MINA SSHD test server.
  * Tests actual SSH port forwarding functionality.
  */
-class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
+class SSHTunnelManagerIntegrationTest :
+    BaseKoinTest(),
+    KoinComponent {
     private lateinit var sshServer: SshServer
     private lateinit var targetServer: ServerSocket
     private var sshPort: Int = 0
@@ -152,9 +154,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             // SSH connection provider for testing
             single<SSHConnectionProvider> {
                 object : SSHConnectionProvider {
-                    override fun getConnection(host: Host): ISSHClient {
-                        return TestSSHClient(host, sshPort, testUser, testPassword)
-                    }
+                    override fun getConnection(host: Host): ISSHClient = TestSSHClient(host, sshPort, testUser, testPassword)
 
                     override fun stop() {
                         // No-op for testing
@@ -417,9 +417,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
         override fun getTunnel(
             host: Host,
             remotePort: Int,
-        ): SSHTunnel? {
-            return tunnelCache[TunnelKey(host, remotePort)]
-        }
+        ): SSHTunnel? = tunnelCache[TunnelKey(host, remotePort)]
 
         override fun closeTunnel(tunnel: SSHTunnel) {
             val key = TunnelKey(tunnel.host, tunnel.remotePort)
@@ -574,9 +572,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             command: String,
             output: Boolean,
             secret: Boolean,
-        ): Response {
-            return Response("Test", "")
-        }
+        ): Response = Response("Test", "")
 
         override fun uploadFile(
             local: Path,
@@ -608,9 +604,7 @@ class SSHTunnelManagerIntegrationTest : BaseKoinTest(), KoinComponent {
             // Stub implementation
         }
 
-        override fun getScpClient(): CloseableScpClient {
-            throw UnsupportedOperationException("Not implemented for test")
-        }
+        override fun getScpClient(): CloseableScpClient = throw UnsupportedOperationException("Not implemented for test")
 
         override fun isSessionOpen(): Boolean {
             // For testing purposes, always return true

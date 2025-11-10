@@ -9,7 +9,9 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @RequireSSHKey
 @Parameters(commandDescription = "Start axon-agent on all nodes via service command")
-class StartAxonOps(context: Context) : BaseCommand(context) {
+class StartAxonOps(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {

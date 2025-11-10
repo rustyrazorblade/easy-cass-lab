@@ -66,7 +66,9 @@ class Prometheus(
      *     Static Config</a>
      *
      */
-    class StaticConfig(var targets: List<String> = listOf())
+    class StaticConfig(
+        var targets: List<String> = listOf(),
+    )
 
     /**
      * Used as Prometheus.global { }
@@ -154,15 +156,16 @@ class Prometheus(
             yaml.writeValue(stressLabelOut, stressLabels)
         }
 
-        data class HostLabel(val targets: List<String>, val labels: HostInfo) {
+        data class HostLabel(
+            val targets: List<String>,
+            val labels: HostInfo,
+        ) {
             constructor(target: String, host: HostInfo) : this(listOf(target), host)
         }
     }
 }
 
-fun prometheus(block: Prometheus.() -> Unit): Prometheus {
-    return Prometheus().apply(block)
-}
+fun prometheus(block: Prometheus.() -> Unit): Prometheus = Prometheus().apply(block)
 
 /**
  * Convenience for generating sample configs

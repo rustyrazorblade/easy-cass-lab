@@ -17,7 +17,10 @@ import java.net.URL
 /**
  * Terraform variable that gets referenced within the config.
  */
-data class Variable(val default: Any?, val type: String? = null)
+data class Variable(
+    val default: Any?,
+    val type: String? = null,
+)
 
 /**
  * Top level configuration class. Holds the TerraformConfig that's actually written out.
@@ -106,9 +109,7 @@ class AWSConfiguration(
         return this
     }
 
-    private fun getExternalIpAddress(): String {
-        return URL("https://api.ipify.org/").readText()
-    }
+    private fun getExternalIpAddress(): String = URL("https://api.ipify.org/").readText()
 
     private fun build(): AWSConfiguration {
         // use the open CIDR, or just the external address
@@ -142,8 +143,8 @@ class AWSConfiguration(
     private fun createSecurityGroup(
         name: String,
         sshRule: List<String>,
-    ): SecurityGroupResource {
-        return SecurityGroupResource(
+    ): SecurityGroupResource =
+        SecurityGroupResource(
             name,
             description = "easy-cass-lab security group",
             tags = tags,
@@ -176,7 +177,6 @@ class AWSConfiguration(
                     ),
                 ),
         )
-    }
 
     private fun createCassandraInstances(
         instanceSg: SecurityGroupResource,
@@ -303,16 +303,17 @@ class TerraformConfig(
     @JsonIgnore val ig = IGW(vpc, tags = tags)
 
     @JsonIgnore val subnets: Map<String, Subnet> =
-        azs.mapIndexed { index, s ->
-            "sub$index" to
-                Subnet(
-                    name = "sub$index",
-                    vpc = vpc,
-                    cidr_block = "10.0.$index.0/24",
-                    availability_zone = s,
-                    tags = tags,
-                )
-        }.toMap()
+        azs
+            .mapIndexed { index, s ->
+                "sub$index" to
+                    Subnet(
+                        name = "sub$index",
+                        vpc = vpc,
+                        cidr_block = "10.0.$index.0/24",
+                        availability_zone = s,
+                        tags = tags,
+                    )
+            }.toMap()
 
     @JsonIgnore
     val routeTable: RouteTable =
@@ -336,10 +337,10 @@ class TerraformConfig(
 
     @JsonIgnore
     val routeTableAssociation =
-        subnets.map {
-                (name, sub) ->
-            name to RouteTableAssociation(subnet = sub, routeTable = routeTable)
-        }.toMap()
+        subnets
+            .map { (name, sub) ->
+                name to RouteTableAssociation(subnet = sub, routeTable = routeTable)
+            }.toMap()
 
     fun setSpark(spark: EMRCluster?) {
         spark?.let {

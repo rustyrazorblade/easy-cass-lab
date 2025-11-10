@@ -8,7 +8,10 @@ import org.koin.core.component.inject
 import java.io.File
 
 @McpCommand
-class Clean(val context: Context) : ICommand, KoinComponent {
+class Clean(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {

@@ -14,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class DefaultSSHTunnelManager(
     private val sshConnectionProvider: SSHConnectionProvider,
-) : SSHTunnelManager, KoinComponent {
+) : SSHTunnelManager,
+    KoinComponent {
     private val tunnelCache = ConcurrentHashMap<TunnelKey, SSHTunnel>()
 
     // Map to track which SSH client is handling each tunnel for cleanup

@@ -14,7 +14,9 @@ import kotlin.concurrent.thread
  * This class processes OutputEvent messages from a channel and stores them in a thread-safe buffer
  * with timestamps. It manages its own consumer thread internally.
  */
-class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
+class ChannelMessageBuffer(
+    private val outputChannel: Channel<OutputEvent>,
+) {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -139,9 +141,7 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
      *
      * @return List of timestamped messages
      */
-    fun getMessages(): List<String> {
-        return messageBuffer.toList()
-    }
+    fun getMessages(): List<String> = messageBuffer.toList()
 
     /**
      * Clears all messages from the buffer.
@@ -171,16 +171,12 @@ class ChannelMessageBuffer(private val outputChannel: Channel<OutputEvent>) {
      *
      * @return The number of messages currently buffered
      */
-    fun size(): Int {
-        return messageBuffer.size
-    }
+    fun size(): Int = messageBuffer.size
 
     /**
      * Checks if the buffer is empty.
      *
      * @return true if the buffer contains no messages, false otherwise
      */
-    fun isEmpty(): Boolean {
-        return messageBuffer.isEmpty()
-    }
+    fun isEmpty(): Boolean = messageBuffer.isEmpty()
 }

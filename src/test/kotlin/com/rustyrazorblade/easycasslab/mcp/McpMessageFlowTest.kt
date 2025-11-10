@@ -158,11 +158,13 @@ class McpMessageFlowTest : KoinComponent {
         )
         assertTrue(outputChannel.trySend(OutputEvent.MessageEvent("Processing data...")).isSuccess)
         assertTrue(
-            outputChannel.trySend(OutputEvent.ErrorEvent("Warning: High memory usage", null))
+            outputChannel
+                .trySend(OutputEvent.ErrorEvent("Warning: High memory usage", null))
                 .isSuccess,
         )
         assertTrue(
-            outputChannel.trySend(OutputEvent.MessageEvent("Tool execution completed"))
+            outputChannel
+                .trySend(OutputEvent.MessageEvent("Tool execution completed"))
                 .isSuccess,
         )
 

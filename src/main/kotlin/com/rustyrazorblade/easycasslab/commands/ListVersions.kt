@@ -7,7 +7,9 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @McpCommand
 @Parameters(commandDescription = "List available versions", commandNames = ["list", "ls"])
-class ListVersions(context: Context) : BaseCommand(context) {
+class ListVersions(
+    context: Context,
+) : BaseCommand(context) {
     override fun execute() {
         tfstate.getHosts(ServerType.Cassandra).first().let {
             val response = remoteOps.executeRemotely(it, "ls /usr/local/cassandra", output = false)

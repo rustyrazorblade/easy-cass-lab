@@ -12,7 +12,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 @Parameters(commandDescription = "Start server mode")
-class Server(val context: Context) : ICommand, KoinComponent {
+class Server(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {
@@ -24,7 +27,6 @@ class Server(val context: Context) : ICommand, KoinComponent {
         outputHandler.handleMessage("Starting Ktor server on port $port...")
         embeddedServer(Netty, port = port) {
             routing { get("/") { call.respondText("Easy Cass Lab Server is running!") } }
-        }
-            .start(wait = true)
+        }.start(wait = true)
     }
 }

@@ -11,7 +11,9 @@ import kotlin.io.path.exists
 
 /** Downloads configuration. */
 @Parameters(commandDescription = "Download JVM and YAML config files.")
-class DownloadConfig(context: Context) : BaseCommand(context) {
+class DownloadConfig(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     @Parameter(names = ["--version"], description = "Version to download, default is current")

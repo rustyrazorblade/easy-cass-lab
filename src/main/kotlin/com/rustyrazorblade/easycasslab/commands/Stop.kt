@@ -10,7 +10,9 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 // @McpCommand
 @RequireSSHKey
 @Parameters(commandDescription = "Stop cassandra on all nodes via service command")
-class Stop(context: Context) : BaseCommand(context) {
+class Stop(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {

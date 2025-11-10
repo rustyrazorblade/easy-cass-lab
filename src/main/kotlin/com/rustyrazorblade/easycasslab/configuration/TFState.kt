@@ -20,7 +20,9 @@ class TFState(
     val file: InputStream,
 ) {
     @JsonIgnoreProperties
-    data class StateFile(val resources: List<Resource>)
+    data class StateFile(
+        val resources: List<Resource>,
+    )
 
     data class Resource(
         val mode: String,
@@ -31,10 +33,9 @@ class TFState(
     data class Instance(
         val attributes: Attributes,
     ) {
-        fun getName(): String {
-            return attributes.tags?.get("Name")
+        fun getName(): String =
+            attributes.tags?.get("Name")
                 ?: error("Instance has no 'Name' tag")
-        }
     }
 
     // security groups don't have an IP.
@@ -52,9 +53,7 @@ class TFState(
         fun parse(
             context: Context,
             path: File,
-        ): TFState {
-            return TFState(context, path.inputStream())
-        }
+        ): TFState = TFState(context, path.inputStream())
     }
 
     // we put this here for two reasons
@@ -70,7 +69,8 @@ class TFState(
 
     fun getHosts(serverType: ServerType): HostList {
         val instances =
-            state.resources.filter { it.name.startsWith(serverType.serverType) }
+            state.resources
+                .filter { it.name.startsWith(serverType.serverType) }
                 .flatMap { it.instances }
         log.info { "Matching $serverType to $instances" }
 
@@ -97,7 +97,11 @@ class TFState(
         parallel: Boolean = false,
         withHost: (h: Host) -> Unit,
     ) {
-        val hostSet = hostFilter.hostList.split(",").filter { it.isNotBlank() }.toSet()
+        val hostSet =
+            hostFilter.hostList
+                .split(",")
+                .filter { it.isNotBlank() }
+                .toSet()
         val hosts =
             getHosts(serverType).filter {
                 hostSet.isEmpty() || it.alias in hostSet

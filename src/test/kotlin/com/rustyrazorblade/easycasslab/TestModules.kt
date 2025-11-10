@@ -188,13 +188,12 @@ object TestModules {
                     override fun getRemoteVersion(
                         host: Host,
                         inputVersion: String,
-                    ): Version {
-                        return if (inputVersion == "current") {
+                    ): Version =
+                        if (inputVersion == "current") {
                             Version("/usr/local/cassandra/5.0")
                         } else {
                             Version.fromString(inputVersion)
                         }
-                    }
                 }
             }
         }
@@ -224,13 +223,9 @@ object TestModules {
                         return TFState(get(), ByteArrayInputStream(json.toByteArray()))
                     }
 
-                    override fun parseFromStream(stream: InputStream): TFState {
-                        return TFState(get(), stream)
-                    }
+                    override fun parseFromStream(stream: InputStream): TFState = TFState(get(), stream)
 
-                    override fun getDefault(): TFState {
-                        return parseFromFile(File("terraform.tfstate"))
-                    }
+                    override fun getDefault(): TFState = parseFromFile(File("terraform.tfstate"))
                 }
             }
 

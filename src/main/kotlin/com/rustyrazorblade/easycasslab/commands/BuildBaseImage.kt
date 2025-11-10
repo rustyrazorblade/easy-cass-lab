@@ -10,7 +10,10 @@ import org.koin.core.component.KoinComponent
 
 @RequireDocker
 @Parameters(commandDescription = "Build the base image.")
-class BuildBaseImage(val context: Context) : ICommand, KoinComponent {
+class BuildBaseImage(
+    val context: Context,
+) : ICommand,
+    KoinComponent {
     @ParametersDelegate var buildArgs = BuildArgs()
 
     override fun execute() {

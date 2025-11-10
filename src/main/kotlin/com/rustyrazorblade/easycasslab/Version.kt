@@ -8,7 +8,9 @@ import java.nio.file.Path
  *
  * @param path The full path to the Cassandra installation
  */
-data class Version(val path: String) {
+data class Version(
+    val path: String,
+) {
     /**
      * Gets just the version component from the path
      */
@@ -24,13 +26,9 @@ data class Version(val path: String) {
          * @param version The version string (e.g. "5.0")
          * @return A Version instance with the appropriate path
          */
-        fun fromString(version: String): Version {
-            return Version("/usr/local/cassandra/$version")
-        }
+        fun fromString(version: String): Version = Version("/usr/local/cassandra/$version")
 
-        fun fromRemotePath(path: String): Version {
-            return Version(path)
-        }
+        fun fromRemotePath(path: String): Version = Version(path)
     }
 
     val localDir: Path get() = Path.of(versionString)

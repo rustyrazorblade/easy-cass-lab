@@ -49,17 +49,24 @@ sealed interface OutputEvent {
     /**
      * Event representing Docker container frame output (stdout/stderr).
      */
-    data class FrameEvent(val frame: Frame) : OutputEvent
+    data class FrameEvent(
+        val frame: Frame,
+    ) : OutputEvent
 
     /**
      * Event representing a generic message (e.g., status updates).
      */
-    data class MessageEvent(val message: String) : OutputEvent
+    data class MessageEvent(
+        val message: String,
+    ) : OutputEvent
 
     /**
      * Event representing an error message with optional throwable.
      */
-    data class ErrorEvent(val message: String, val throwable: Throwable? = null) : OutputEvent
+    data class ErrorEvent(
+        val message: String,
+        val throwable: Throwable? = null,
+    ) : OutputEvent
 
     /**
      * Event indicating that output handling is complete.
@@ -242,11 +249,10 @@ class CompositeOutputHandler(
      * @param handler The OutputHandler to remove
      * @return true if handler was removed, false if it wasn't present
      */
-    fun removeHandler(handler: OutputHandler): Boolean {
-        return synchronized(handlers) {
+    fun removeHandler(handler: OutputHandler): Boolean =
+        synchronized(handlers) {
             handlers.remove(handler)
         }
-    }
 
     /**
      * Remove all handlers from the composite.
@@ -263,11 +269,10 @@ class CompositeOutputHandler(
      *
      * @return The number of active handlers
      */
-    fun getHandlerCount(): Int {
-        return synchronized(handlers) {
+    fun getHandlerCount(): Int =
+        synchronized(handlers) {
             handlers.size
         }
-    }
 
     /**
      * Check if a specific handler is present in the composite.
@@ -275,11 +280,10 @@ class CompositeOutputHandler(
      * @param handler The OutputHandler to check for
      * @return true if handler is present, false otherwise
      */
-    fun hasHandler(handler: OutputHandler): Boolean {
-        return synchronized(handlers) {
+    fun hasHandler(handler: OutputHandler): Boolean =
+        synchronized(handlers) {
             handlers.contains(handler)
         }
-    }
 
     /**
      * Get a copy of all current handlers.
@@ -287,11 +291,10 @@ class CompositeOutputHandler(
      *
      * @return List of current handlers
      */
-    fun getHandlers(): List<OutputHandler> {
-        return synchronized(handlers) {
+    fun getHandlers(): List<OutputHandler> =
+        synchronized(handlers) {
             handlers.toList()
         }
-    }
 
     override fun handleFrame(frame: Frame) {
         val currentHandlers =

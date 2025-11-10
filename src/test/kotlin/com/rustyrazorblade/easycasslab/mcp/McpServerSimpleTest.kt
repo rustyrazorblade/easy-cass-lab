@@ -27,11 +27,11 @@ class McpServerSimpleTest : BaseKoinTest() {
 
         // Use reflection to call createToolInfo
         val createToolInfoMethod =
-            McpToolRegistry::class.java.getDeclaredMethod(
-                "createToolInfo",
-                Command::class.java,
-            )
-                .apply { isAccessible = true }
+            McpToolRegistry::class.java
+                .getDeclaredMethod(
+                    "createToolInfo",
+                    Command::class.java,
+                ).apply { isAccessible = true }
 
         val toolInfo = createToolInfoMethod.invoke(registry, command) as McpToolRegistry.ToolInfo
 

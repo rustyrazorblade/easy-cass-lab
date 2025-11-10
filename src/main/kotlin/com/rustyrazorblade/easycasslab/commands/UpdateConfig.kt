@@ -21,7 +21,9 @@ import kotlin.io.path.inputStream
         "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +
             " Done automatically after use-cassandra.",
 )
-class UpdateConfig(context: Context) : BaseCommand(context) {
+class UpdateConfig(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     @Parameter(descriptionKey = "Patch file to upload")
@@ -72,11 +74,11 @@ class UpdateConfig(context: Context) : BaseCommand(context) {
             remoteOps.executeRemotely(it, "sudo cp -R $tempDir/* ${resolvedVersion.conf}/").text
 
             // Change ownership of all files
-            remoteOps.executeRemotely(
-                it,
-                "sudo chown -R cassandra:cassandra ${resolvedVersion.conf}",
-            )
-                .text
+            remoteOps
+                .executeRemotely(
+                    it,
+                    "sudo chown -R cassandra:cassandra ${resolvedVersion.conf}",
+                ).text
 
             // Clean up the temporary directory
             remoteOps.executeRemotely(it, "rm -rf $tempDir").text

@@ -31,7 +31,9 @@ import java.nio.charset.Charset
  * - Resource cleanup
  * - Input validation
  */
-class SSHClientTest : BaseKoinTest(), KoinComponent {
+class SSHClientTest :
+    BaseKoinTest(),
+    KoinComponent {
     @TempDir
     lateinit var tempDir: File
 

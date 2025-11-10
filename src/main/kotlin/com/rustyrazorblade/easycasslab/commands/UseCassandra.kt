@@ -16,7 +16,9 @@ import kotlin.system.exitProcess
 
 @McpCommand
 @Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
-class UseCassandra(context: Context) : BaseCommand(context) {
+class UseCassandra(
+    context: Context,
+) : BaseCommand(context) {
     @Parameter(description = "Cassandra version", required = true)
     var version: String = ""
 

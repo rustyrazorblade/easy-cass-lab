@@ -12,7 +12,9 @@ import org.koin.core.component.inject
 
 @RequireSSHKey
 @Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
-class ConfigureAxonOps(context: Context) : BaseCommand(context) {
+class ConfigureAxonOps(
+    context: Context,
+) : BaseCommand(context) {
     private val userConfig: User by inject()
 
     @Parameter(description = "AxonOps Organization Name", names = ["--org"])
@@ -34,12 +36,12 @@ class ConfigureAxonOps(context: Context) : BaseCommand(context) {
         tfstate.withHosts(ServerType.Cassandra, hosts) {
             outputHandler.handleMessage("Configure axonops on $it")
 
-            remoteOps.executeRemotely(
-                it,
-                "/usr/local/bin/setup-axonops $axonOrg $axonKey",
-                secret = true,
-            )
-                .text
+            remoteOps
+                .executeRemotely(
+                    it,
+                    "/usr/local/bin/setup-axonops $axonOrg $axonKey",
+                    secret = true,
+                ).text
         }
     }
 }

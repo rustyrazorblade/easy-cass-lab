@@ -9,7 +9,9 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import java.nio.file.Path
 
 @Parameters(commandDescription = "Runs setup_instance.sh on all Cassandra instances")
-class SetupInstance(context: Context) : BaseCommand(context) {
+class SetupInstance(
+    context: Context,
+) : BaseCommand(context) {
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {

@@ -24,11 +24,13 @@ class DefaultDockerClientProvider : DockerClientProvider {
         log.info { "Initializing Docker client" }
 
         val dockerConfig =
-            DefaultDockerClientConfig.createDefaultConfigBuilder()
+            DefaultDockerClientConfig
+                .createDefaultConfigBuilder()
                 .build()
 
         val httpClient =
-            ApacheDockerHttpClient.Builder()
+            ApacheDockerHttpClient
+                .Builder()
                 .dockerHost(dockerConfig.dockerHost)
                 .sslConfig(dockerConfig.sslConfig)
                 .build()

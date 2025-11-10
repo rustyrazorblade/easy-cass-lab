@@ -7,7 +7,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
 import java.io.InputStream
 
-class CassandraYaml(val parser: JsonNode) {
+class CassandraYaml(
+    val parser: JsonNode,
+) {
     companion object {
         val mapper = ObjectMapper(YAMLFactory())
 
@@ -31,7 +33,12 @@ class CassandraYaml(val parser: JsonNode) {
     }
 
     fun setSeeds(seeds: List<String>) {
-        val seedNode = parser.get("seed_provider").first().get("parameters").first()
+        val seedNode =
+            parser
+                .get("seed_provider")
+                .first()
+                .get("parameters")
+                .first()
         val tmp = seedNode as ObjectNode
         val seedList = seeds.joinToString(",")
         tmp.put("seeds", seedList)

@@ -39,8 +39,8 @@ data class AxonOpsWorkbenchConfig(
             host: Host,
             userConfig: User,
             clusterName: String = "easy-cass-lab",
-        ): AxonOpsWorkbenchConfig {
-            return AxonOpsWorkbenchConfig(
+        ): AxonOpsWorkbenchConfig =
+            AxonOpsWorkbenchConfig(
                 basic =
                     BasicConfig(
                         workspaceId = "",
@@ -84,7 +84,6 @@ data class AxonOpsWorkbenchConfig(
                         destport = "9042",
                     ),
             )
-        }
 
         /**
          * Writes the configuration to a JSON file

@@ -8,7 +8,9 @@ import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 
 @RequireDocker
 @Parameters(commandDescription = "Build both the base and Cassandra image.")
-class BuildImage(val context: Context) : ICommand {
+class BuildImage(
+    val context: Context,
+) : ICommand {
     @ParametersDelegate var buildArgs = BuildArgs()
 
     override fun execute() {
