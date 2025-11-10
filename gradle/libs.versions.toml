@@ -49,7 +49,7 @@ sshd = "2.16.0"
 commons-io = "2.7"
 
 # Other
-guava = "33.4.8-jre"
+guava = "33.5.0-jre"
 classgraph = "4.8.184"
 
 # Gradle Plugins
