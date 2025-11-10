@@ -3,6 +3,58 @@
 - Do not add logging frameworks to command classes unless there is a specific internal debugging need separate from user output.
 - When logging is needed, use: `import io.github.oshai.kotlinlogging.KotlinLogging` and create a logger with `private val log = KotlinLogging.logger {}`
 
+## Development Setup
+
+### Pre-commit Hook Installation
+
+Install the ktlint pre-commit hook to automatically check code style before commits:
+
+```bash
+./gradlew addKtlintCheckGitPreCommitHook
+```
+
+**Important**: Pre-commit hooks are stored in `.git/hooks/` which is local-only and not tracked by Git. Each developer must run this command individually to install the hook on their machine.
+
+The hook automatically runs `ktlintCheck` on staged Kotlin files before each commit, preventing style violations from being committed.
+
+### Configuration Cache
+
+The project uses Gradle configuration cache for faster builds, enabled via `gradle.properties`:
+- `org.gradle.configuration-cache=true` - Enables configuration caching
+- `org.gradle.caching=true` - Enables build caching
+
+**When to clear the cache**:
+- After modifying `.editorconfig` or ktlint rules
+- After changing Gradle plugins or build scripts
+- When encountering unexpected build behavior
+
+```bash
+# Clear configuration cache
+rm -rf .gradle/configuration-cache
+
+# Or clean everything
+./gradlew clean
+```
+
+**Why this matters**: If you modify `.editorconfig` (which configures ktlint rules), the configuration cache may prevent ktlint from seeing the new rules. This can cause local builds to pass while CI fails with style violations.
+
+### Local Validation
+
+Before pushing code, verify it passes all checks:
+
+```bash
+# Run all checks (matches CI)
+./gradlew check
+
+# Run only ktlint check (verify style compliance)
+./gradlew ktlintCheck
+
+# Auto-fix ktlint violations (when possible)
+./gradlew ktlintFormat
+```
+
+**Note**: `ktlintFormat` auto-fixes many violations but can't fix all issues (e.g., line length). Always run `ktlintCheck` after formatting to catch remaining issues.
+
 ## Development Rules
 
 - All tests should pass before committing.
@@ -13,7 +65,7 @@
 - ABSOLUTE RULE: Never try to commit without explicit instruction to do so.
 - activate kotlin and java for context7
 - activate the serena MCP server
-- ABSOLUTE RULE: NEVER attribute commit messages to Claude.  
+- ABSOLUTE RULE: NEVER attribute commit messages to Claude.
 - Do not use wildcard imports.
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
 - Always ensure files end with a newline
