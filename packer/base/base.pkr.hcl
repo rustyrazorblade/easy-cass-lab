@@ -93,6 +93,11 @@ build {
     script = "install/install_docker.sh"
   }
 
+  # install k3s (disabled, not auto-started)
+  provisioner "shell" {
+    script = "install/install_k3s.sh"
+  }
+
   provisioner "shell" {
     inline = [
       "sudo apt install openjdk-8-jdk openjdk-8-dbg openjdk-11-jdk openjdk-11-dbg openjdk-17-jdk openjdk-17-dbg -y",
