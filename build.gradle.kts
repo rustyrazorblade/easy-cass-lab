@@ -90,6 +90,9 @@ dependencies {
     // SSH
     implementation(libs.bundles.sshd)
 
+    // Resilience4j
+    implementation(libs.bundles.resilience4j)
+
     // Ktor
     implementation(libs.bundles.ktor)
 

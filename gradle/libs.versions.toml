@@ -51,6 +51,7 @@ commons-io = "2.7"
 # Other
 guava = "33.4.8-jre"
 classgraph = "4.8.184"
+resilience4j = "2.2.0"
 
 # Gradle Plugins
 shadow = "8.1.1"
@@ -122,6 +123,10 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 mcp-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-sdk" }
 kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 
+# Resilience4j
+resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
+resilience4j-kotlin = { module = "io.github.resilience4j:resilience4j-kotlin", version.ref = "resilience4j" }
+
 
 [bundles]
 # Logging bundle
@@ -148,6 +153,9 @@ docker = ["docker-java", "docker-java-transport-httpclient5"]
 
 # SSH bundle
 sshd = ["sshd-core", "sshd-scp"]
+
+# Resilience4j bundle
+resilience4j = ["resilience4j-retry", "resilience4j-kotlin"]
 
 
 [plugins]

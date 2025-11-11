@@ -5,26 +5,50 @@ import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
+import io.github.resilience4j.retry.RetryConfig
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+import java.io.IOException
 import java.nio.file.Path
+import java.time.Duration
 
 /**
- * Default implementation of RemoteOperationsService.
- * Provides high-level SSH operations using an SSHConnectionProvider.
+ * Default implementation of RemoteOperationsService with automatic retry logic.
+ * Provides high-level SSH operations using an SSHConnectionProvider with resilience4j retry support
+ * to handle transient network failures and SSH connection issues.
  *
  * @param connectionProvider Provider for SSH connections
+ * @param retryConfig Optional retry configuration (defaults to 3 attempts, 2s wait, exponential backoff)
  */
 class DefaultRemoteOperationsService(
     private val connectionProvider: SSHConnectionProvider,
+    retryConfig: RetryConfig = defaultRetryConfig,
 ) : RemoteOperationsService,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
+
+        /**
+         * Default retry configuration for SSH operations:
+         * - Max 3 attempts
+         * - 2 second initial wait
+         * - Exponential backoff (1.5x multiplier)
+         * - Retries on IOException and RuntimeException
+         */
+        val defaultRetryConfig: RetryConfig =
+            RetryConfig
+                .custom<Any>()
+                .maxAttempts(3)
+                .waitDuration(Duration.ofMillis(2000))
+                .retryExceptions(IOException::class.java, RuntimeException::class.java)
+                .build()
     }
+
+    private val retry = Retry.of("ssh-operations", retryConfig)
 
     override fun executeRemotely(
         host: Host,
@@ -33,7 +57,10 @@ class DefaultRemoteOperationsService(
         secret: Boolean,
     ): Response {
         log.debug { "Executing command on ${host.alias}: ${if (secret) "[REDACTED]" else command}" }
-        return connectionProvider.getConnection(host).executeRemoteCommand(command, output, secret)
+        return Retry
+            .decorateSupplier(retry) {
+                connectionProvider.getConnection(host).executeRemoteCommand(command, output, secret)
+            }.get()
     }
 
     override fun upload(
@@ -42,7 +69,10 @@ class DefaultRemoteOperationsService(
         remote: String,
     ) {
         log.info { "Uploading $local to ${host.alias}:$remote" }
-        connectionProvider.getConnection(host).uploadFile(local, remote)
+        Retry
+            .decorateRunnable(retry) {
+                connectionProvider.getConnection(host).uploadFile(local, remote)
+            }.run()
     }
 
     override fun uploadDirectory(
@@ -52,7 +82,10 @@ class DefaultRemoteOperationsService(
     ) {
         log.info { "Uploading directory $localDir to ${host.alias}:$remoteDir" }
         outputHandler.handleMessage("Uploading directory $localDir to $remoteDir")
-        connectionProvider.getConnection(host).uploadDirectory(localDir, remoteDir)
+        Retry
+            .decorateRunnable(retry) {
+                connectionProvider.getConnection(host).uploadDirectory(localDir, remoteDir)
+            }.run()
     }
 
     override fun uploadDirectory(
@@ -68,7 +101,10 @@ class DefaultRemoteOperationsService(
         local: Path,
     ) {
         log.info { "Downloading ${host.alias}:$remote to $local" }
-        connectionProvider.getConnection(host).downloadFile(remote, local)
+        Retry
+            .decorateRunnable(retry) {
+                connectionProvider.getConnection(host).downloadFile(remote, local)
+            }.run()
     }
 
     override fun downloadDirectory(
@@ -82,12 +118,15 @@ class DefaultRemoteOperationsService(
             "Downloading directory ${host.alias}:$remoteDir to $localDir " +
                 "(include: $includeFilters, exclude: $excludeFilters)"
         }
-        connectionProvider.getConnection(host).downloadDirectory(
-            remoteDir,
-            localDir,
-            includeFilters,
-            excludeFilters,
-        )
+        Retry
+            .decorateRunnable(retry) {
+                connectionProvider.getConnection(host).downloadDirectory(
+                    remoteDir,
+                    localDir,
+                    includeFilters,
+                    excludeFilters,
+                )
+            }.run()
     }
 
     override fun getRemoteVersion(
