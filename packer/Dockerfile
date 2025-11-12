@@ -17,9 +17,13 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Create ubuntu user (matches packer SSH user)
+# Create docker group with standard GID (matches most host systems)
+RUN groupadd -g 999 docker || true
+
+# Create ubuntu user (matches packer SSH user) and add to docker group
 RUN useradd -m -s /bin/bash ubuntu && \
-    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    usermod -aG docker ubuntu
 
 # Create cassandra user (used by cassandra services)
 RUN useradd -m -s /bin/bash cassandra && \

@@ -7,6 +7,7 @@ services:
     image: easy-cass-lab-packer-test
     volumes:
       - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /home/ubuntu
     user: ubuntu
     stdin_open: true
@@ -25,6 +26,7 @@ services:
     image: easy-cass-lab-packer-test
     volumes:
       - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /home/ubuntu
     user: ubuntu
     environment:
@@ -46,6 +48,7 @@ services:
     image: easy-cass-lab-packer-test
     volumes:
       - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /home/ubuntu
     user: ubuntu
     environment:

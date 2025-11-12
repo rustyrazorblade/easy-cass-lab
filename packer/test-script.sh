@@ -89,6 +89,7 @@ fi
 DOCKER_OPTS=(
     --rm
     -v "$SCRIPT_DIR:/packer:ro"
+    -v /var/run/docker.sock:/var/run/docker.sock
     -w /home/ubuntu
     --user ubuntu
 )
