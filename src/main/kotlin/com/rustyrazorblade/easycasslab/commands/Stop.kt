@@ -6,6 +6,8 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.services.CassandraService
+import org.koin.core.component.inject
 
 // @McpCommand
 @RequireSSHKey
@@ -13,13 +15,15 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 class Stop(
     context: Context,
 ) : BaseCommand(context) {
+    private val cassandraService: CassandraService by inject()
+
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {
         outputHandler.handleMessage("Stopping cassandra service on all nodes.")
 
         tfstate.withHosts(ServerType.Cassandra, hosts) {
-            remoteOps.executeRemotely(it, "sudo systemctl stop cassandra").text
+            cassandraService.stop(it).getOrThrow()
         }
     }
 }

@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.di
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.providers.docker.dockerModule
 import com.rustyrazorblade.easycasslab.providers.ssh.sshModule
+import com.rustyrazorblade.easycasslab.services.servicesModule
 import org.koin.core.module.Module
 
 /**
@@ -22,6 +23,7 @@ object KoinModules {
             sshModule,
             awsModule,
             terraformModule(context),
+            servicesModule,
             // Add more modules here as the refactoring progresses
             // e.g., configurationModule
         )

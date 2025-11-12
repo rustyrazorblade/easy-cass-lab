@@ -6,6 +6,8 @@ import com.rustyrazorblade.easycasslab.providers.ssh.SSHConnectionProvider
 import com.rustyrazorblade.easycasslab.ssh.ISSHClient
 import com.rustyrazorblade.easycasslab.ssh.Response
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
+import io.github.resilience4j.retry.RetryConfig
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.server.SshServer
 import org.apache.sshd.server.auth.password.PasswordAuthenticator
@@ -23,6 +25,7 @@ import org.koin.core.context.unloadKoinModules
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import java.io.File
+import java.net.ConnectException
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.file.Files
@@ -185,8 +188,8 @@ class SSHTunnelManagerIntegrationTest :
         assertThat(tunnel.localPort).isGreaterThan(0)
         assertThat(tunnel.isActive).isTrue()
 
-        // Test data flow through tunnel
-        Socket("localhost", tunnel.localPort).use { client ->
+        // Test data flow through tunnel (with retry logic to handle ServerSocket race condition)
+        connectWithRetry(tunnel.localPort).use { client ->
             val output = client.getOutputStream()
             val input = client.getInputStream()
 
@@ -346,11 +349,50 @@ class SSHTunnelManagerIntegrationTest :
         assertThat(tunnelManager.getTunnel(host, targetPort + 1000)).isNull()
     }
 
+    companion object {
+        /**
+         * Retry configuration for socket connections to tunnels.
+         * This handles race conditions where the ServerSocket may not be immediately ready.
+         *
+         * Configuration:
+         * - Max 3 attempts
+         * - 2 second initial wait
+         * - Exponential backoff (2x multiplier)
+         * - Retries on ConnectException
+         */
+        private val socketRetryConfig: RetryConfig =
+            RetryConfig
+                .custom<Socket>()
+                .maxAttempts(3)
+                .retryExceptions(ConnectException::class.java)
+                .intervalFunction { attemptCount ->
+                    // Exponential backoff: 2s, 4s, 8s
+                    2000L * (1L shl (attemptCount - 1))
+                }.build()
+
+        private val socketRetry = Retry.of("socket-connection", socketRetryConfig)
+    }
+
+    /**
+     * Attempts to connect to a local port with retry logic using resilience4j.
+     * This handles race conditions where the ServerSocket may not be immediately ready.
+     *
+     * @param port The local port to connect to
+     * @return Connected Socket
+     * @throws ConnectException if all connection attempts fail
+     */
+    private fun connectWithRetry(port: Int): Socket =
+        Retry
+            .decorateSupplier(socketRetry) {
+                logger.debug { "Attempting connection to localhost:$port" }
+                Socket("localhost", port)
+            }.get()
+
     private fun testTunnelConnection(
         localPort: Int,
         testData: String,
     ) {
-        Socket("localhost", localPort).use { client ->
+        connectWithRetry(localPort).use { client ->
             val output = client.getOutputStream()
             val input = client.getInputStream()
 
