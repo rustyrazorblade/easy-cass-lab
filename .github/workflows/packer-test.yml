@@ -80,6 +80,13 @@ jobs:
           for script in $CHANGED_SCRIPTS; do
             # Remove 'packer/' prefix if present
             script_path="${script#packer/}"
+
+            # Skip deleted files
+            if [ ! -f "$script" ]; then
+              echo "⊘ $script_path was deleted, skipping test"
+              continue
+            fi
+
             echo "Testing: $script_path"
 
             if ./test-script.sh "$script_path"; then
