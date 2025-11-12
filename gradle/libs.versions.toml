@@ -28,7 +28,7 @@ mockito-kotlin = "5.4.0"
 
 # CLI and UI
 jcommander = "1.82"
-jline = "3.25.0"
+jline = "3.30.6"
 mordant = "1.2.1"
 
 # Ktor
