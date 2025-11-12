@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.services.CassandraService
+import com.rustyrazorblade.easycasslab.services.EasyStressService
 import org.koin.core.component.inject
 
 @McpCommand
@@ -16,6 +17,7 @@ class Restart(
     context: Context,
 ) : BaseCommand(context) {
     private val cassandraService: CassandraService by inject()
+    private val easyStressService: EasyStressService by inject()
 
     @ParametersDelegate var hosts = Hosts()
 
@@ -26,5 +28,24 @@ class Restart(
                 cassandraService.restart(it).getOrThrow()
             }
         }
+
+        restartCassandraEasyStress()
+    }
+
+    /**
+     * Restart cassandra-easy-stress service on stress nodes
+     */
+    private fun restartCassandraEasyStress() {
+        outputHandler.handleMessage("Restarting cassandra-easy-stress on stress nodes...")
+
+        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+            easyStressService
+                .restart(host)
+                .onFailure { e ->
+                    outputHandler.handleMessage("Warning: Failed to restart cassandra-easy-stress on ${host.alias}: ${e.message}")
+                }
+        }
+
+        outputHandler.handleMessage("cassandra-easy-stress restart completed on stress nodes")
     }
 }
