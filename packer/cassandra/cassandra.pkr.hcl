@@ -100,7 +100,7 @@ build {
 
 
   provisioner "shell" {
-    script = "install/install_cassandra_easy_stress_from_source.sh"
+    script = "install/install_cassandra_easy_stress.sh"
   }
 
   # the cassandra_versions.yaml file is used to define all the version of cassandra we want

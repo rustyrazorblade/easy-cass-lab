@@ -1,15 +1,17 @@
 #!/bin/bash
+set -ex
 
-set -x
+# Ensure non-interactive mode for apt
+export DEBIAN_FRONTEND=noninteractive
 
 # Install Docker on Ubuntu 22.04
 # Based on official Docker installation guide
 
 # Update apt package index
-sudo apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
 
 # Install packages to allow apt to use a repository over HTTPS
-sudo apt-get install -y \
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
     ca-certificates \
     curl \
     gnupg \
@@ -25,10 +27,10 @@ echo \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 # Update apt package index again
-sudo apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
 
 # Install Docker Engine
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Add ubuntu user to docker group
 sudo usermod -aG docker ubuntu

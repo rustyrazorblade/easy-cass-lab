@@ -1,0 +1,24 @@
+# ShellCheck configuration for packer scripts
+# https://github.com/koalaman/shellcheck/wiki/Directive
+
+# Require explicit shell specification at the top of scripts
+shell=bash
+
+# Specify the minimum severity level
+# error, warning, info, style
+severity=warning
+
+# Disabled checks (comma-separated list of codes)
+# Uncomment and modify if you need to disable specific checks
+# disable=SC2034,SC2086
+
+# Enable all optional checks
+enable=all
+
+# Source path for scripts that use 'source' command
+# This helps shellcheck find sourced files
+# source-path=SCRIPTDIR
+
+# External sources that shellcheck should not complain about
+# Useful for sourced files that may not exist in the repo
+# external-sources=true
