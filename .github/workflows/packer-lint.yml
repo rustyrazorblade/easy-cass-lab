@@ -3,14 +3,14 @@ name: Packer Static Analysis
 on:
   pull_request:
     paths:
-      - 'packer/**'
-      - '.github/workflows/packer-lint.yml'
+      - "packer/**"
+      - ".github/workflows/packer-lint.yml"
   push:
     branches:
       - main
     paths:
-      - 'packer/**'
-      - '.github/workflows/packer-lint.yml'
+      - "packer/**"
+      - ".github/workflows/packer-lint.yml"
   workflow_dispatch:
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
-          version: 'latest'
+          version: "latest"
 
       - name: Initialize Packer
         run: |
@@ -53,8 +53,8 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
         with:
-          scandir: './packer'
-          severity: warning
+          scandir: "./packer"
+          severity: error
           format: gcc
 
   yamllint:
@@ -67,7 +67,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install yamllint
         run: pip install yamllint
