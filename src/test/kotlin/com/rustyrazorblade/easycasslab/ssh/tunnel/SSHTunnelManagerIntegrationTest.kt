@@ -185,8 +185,8 @@ class SSHTunnelManagerIntegrationTest :
         assertThat(tunnel.localPort).isGreaterThan(0)
         assertThat(tunnel.isActive).isTrue()
 
-        // Test data flow through tunnel
-        Socket("localhost", tunnel.localPort).use { client ->
+        // Test data flow through tunnel (with retry logic to handle ServerSocket race condition)
+        connectWithRetry(tunnel.localPort).use { client ->
             val output = client.getOutputStream()
             val input = client.getInputStream()
 
@@ -346,11 +346,45 @@ class SSHTunnelManagerIntegrationTest :
         assertThat(tunnelManager.getTunnel(host, targetPort + 1000)).isNull()
     }
 
+    /**
+     * Attempts to connect to a local port with retry logic and exponential backoff.
+     * This handles race conditions where the ServerSocket may not be immediately ready.
+     *
+     * @param port The local port to connect to
+     * @param maxAttempts Maximum number of connection attempts (default: 3)
+     * @param initialDelayMs Initial delay in milliseconds before first retry (default: 2000)
+     * @return Connected Socket
+     * @throws Exception if all connection attempts fail
+     */
+    private fun connectWithRetry(
+        port: Int,
+        maxAttempts: Int = 3,
+        initialDelayMs: Long = 2000,
+    ): Socket {
+        var lastException: Exception? = null
+        var delayMs = initialDelayMs
+
+        repeat(maxAttempts) { attempt ->
+            try {
+                return Socket("localhost", port)
+            } catch (e: Exception) {
+                lastException = e
+                if (attempt < maxAttempts - 1) {
+                    logger.debug { "Connection attempt ${attempt + 1}/$maxAttempts failed, retrying after ${delayMs}ms: ${e.message}" }
+                    Thread.sleep(delayMs)
+                    delayMs *= 2 // Exponential backoff
+                }
+            }
+        }
+
+        throw lastException ?: Exception("Failed to connect after $maxAttempts attempts")
+    }
+
     private fun testTunnelConnection(
         localPort: Int,
         testData: String,
     ) {
-        Socket("localhost", localPort).use { client ->
+        connectWithRetry(localPort).use { client ->
             val output = client.getOutputStream()
             val input = client.getInputStream()
 
