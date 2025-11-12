@@ -24,20 +24,20 @@ data class CassandraVersion(
     @JsonIgnoreProperties(ignoreUnknown = true)
     val axonops: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonProperty("jvm_options")
+    @param:JsonProperty("jvm_options")
     val jvmOptions: String?,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonProperty("ant_flags")
+    @param:JsonProperty("ant_flags")
     val antFlags: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
     val url: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
     val branch: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonProperty("java_build")
+    @param:JsonProperty("java_build")
     val javaBuild: String? = null,
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonProperty("jvm_config")
+    @param:JsonProperty("jvm_config")
     val jvmConfig: String? = null,
 ) {
     companion object {
