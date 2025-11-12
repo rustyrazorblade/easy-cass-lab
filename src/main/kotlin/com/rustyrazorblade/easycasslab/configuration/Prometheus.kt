@@ -26,18 +26,18 @@ class Prometheus(
      *     Prometheus Scrape Config</a>
      */
     class ScrapeConfig(
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        @param:JsonInclude(JsonInclude.Include.NON_EMPTY)
         var job_name: String = "",
-        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @param:JsonInclude(JsonInclude.Include.NON_NULL)
         var scrape_interval: String? = null,
-        @JsonProperty("static_configs")
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        @param:JsonProperty("static_configs")
+        @param:JsonInclude(JsonInclude.Include.NON_EMPTY)
         var staticConfigList: MutableList<StaticConfig> = mutableListOf(),
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        @JsonProperty("relabel_configs")
+        @param:JsonInclude(JsonInclude.Include.NON_EMPTY)
+        @param:JsonProperty("relabel_configs")
         var relabelConfigList: MutableList<RelabelConfig> = mutableListOf(),
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        @JsonProperty("file_sd_configs")
+        @param:JsonInclude(JsonInclude.Include.NON_EMPTY)
+        @param:JsonProperty("file_sd_configs")
         var fileSdConfigs: List<Map<String, MutableList<String>>> = listOf(mapOf("files" to mutableListOf())),
     ) {
         @Suppress("FunctionName")

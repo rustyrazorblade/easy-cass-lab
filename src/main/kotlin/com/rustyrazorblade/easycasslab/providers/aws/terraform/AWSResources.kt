@@ -207,13 +207,13 @@ data class CoreInstanceGroup(
 data class Ec2Attributes(
     @JsonIgnore
     val securityGroup: SecurityGroupResource,
-    @JsonProperty("subnet_id")
+    @param:JsonProperty("subnet_id")
     val subnetId: String,
-    @JsonProperty("emr_managed_master_security_group")
+    @param:JsonProperty("emr_managed_master_security_group")
     val masterSecurityGroupId: String = securityGroup.id(),
-    @JsonProperty("emr_managed_slave_security_group")
+    @param:JsonProperty("emr_managed_slave_security_group")
     val slaveSecurityGroupId: String = securityGroup.id(),
-    @JsonProperty("instance_profile")
+    @param:JsonProperty("instance_profile")
     val instanceProfile: String,
 )
 
@@ -223,15 +223,15 @@ data class Ec2Attributes(
 data class EMRCluster(
     val name: String = "cluster",
     val applications: List<String> = listOf("Spark"),
-    @JsonProperty("service_role")
+    @param:JsonProperty("service_role")
     val serviceRole: String = AWS.SERVICE_ROLE,
-    @JsonProperty("release_label")
+    @param:JsonProperty("release_label")
     val releaseLabel: String = "emr-7.9.0",
-    @JsonProperty("master_instance_group")
+    @param:JsonProperty("master_instance_group")
     val masterInstanceGroup: MasterInstanceGroup,
-    @JsonProperty("core_instance_group")
+    @param:JsonProperty("core_instance_group")
     val coreInstanceGroup: CoreInstanceGroup,
-    @JsonProperty("ec2_attributes")
+    @param:JsonProperty("ec2_attributes")
     val ec2Attributes: Ec2Attributes,
 ) {
     companion object {
