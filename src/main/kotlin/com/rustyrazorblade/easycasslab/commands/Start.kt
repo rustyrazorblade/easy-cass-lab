@@ -27,6 +27,7 @@ class Start(
     context: Context,
 ) : BaseCommand(context) {
     private val userConfig: User by inject()
+    private val cassandraService: com.rustyrazorblade.easycasslab.services.CassandraService by inject()
 
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
@@ -42,9 +43,8 @@ class Start(
         with(TermColors()) {
             tfstate.withHosts(ServerType.Cassandra, hosts) {
                 outputHandler.handleMessage(green("Starting $it"))
-                remoteOps.executeRemotely(it, "sudo systemctl start cassandra").text
-                outputHandler.handleMessage("Cassandra started, waiting for up/normal")
-                remoteOps.executeRemotely(it, "sudo wait-for-up-normal").text
+                // start() defaults to wait=true, which includes waiting for UP/NORMAL
+                cassandraService.start(it).getOrThrow()
             }
             tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
                 remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
