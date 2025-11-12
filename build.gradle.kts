@@ -178,6 +178,39 @@ tasks.test {
     }
 }
 
+// Packer testing tasks
+tasks.register<Exec>("testPackerBase") {
+    group = "Verification"
+    description = "Test base packer provisioning scripts using Docker"
+    workingDir = file("packer")
+    commandLine = listOf("docker", "compose", "up", "--force-recreate", "--exit-code-from", "test-base", "test-base")
+}
+
+tasks.register<Exec>("testPackerCassandra") {
+    group = "Verification"
+    description = "Test Cassandra packer provisioning scripts using Docker"
+    workingDir = file("packer")
+    commandLine = listOf("docker", "compose", "up", "--force-recreate", "--exit-code-from", "test-cassandra", "test-cassandra")
+}
+
+tasks.register("testPacker") {
+    group = "Verification"
+    description = "Run all packer provisioning tests"
+    dependsOn("testPackerBase", "testPackerCassandra")
+}
+
+tasks.register<Exec>("testPackerScript") {
+    group = "Verification"
+    description = "Test a specific packer script (use -Pscript=path/to/script.sh)"
+    workingDir = file("packer")
+    doFirst {
+        val scriptPath =
+            project.findProperty("script")?.toString()
+                ?: throw GradleException("Please specify script path with -Pscript=path/to/script.sh")
+        commandLine = listOf("./test-script.sh", scriptPath)
+    }
+}
+
 tasks.register("buildAll") {
     group = "Publish"
 //    dependsOn("buildDeb")

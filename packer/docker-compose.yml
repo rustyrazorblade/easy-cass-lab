@@ -1,11 +1,62 @@
 services:
-  ecl:
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
+  # Interactive test environment for packer scripts
+  test:
     build:
       context: .
       dockerfile: Dockerfile
+    image: easy-cass-lab-packer-test
     volumes:
-      - ./:/app
-    working_dir: /app
+      - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /home/ubuntu
+    user: ubuntu
+    stdin_open: true
+    tty: true
     entrypoint: ["/bin/bash"]
+    environment:
+      - PACKER_DIR=/packer
+      - PS1=packer-test:\w\$
+      - DEBIAN_FRONTEND=noninteractive
+
+  # Run specific provisioner scripts in sequence (for testing full builds)
+  test-base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: easy-cass-lab-packer-test
+    volumes:
+      - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /home/ubuntu
+    user: ubuntu
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    command: >
+      bash -c "
+      echo 'Running base provisioning scripts...' &&
+      bash /packer/base/install/prepare_instance.sh &&
+      bash /packer/base/install/install_python.sh &&
+      bash /packer/base/install/install_fio.sh &&
+      echo 'Base provisioning complete!'
+      "
+
+  # Test cassandra-specific scripts
+  test-cassandra:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: easy-cass-lab-packer-test
+    volumes:
+      - ./:/packer:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /home/ubuntu
+    user: ubuntu
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+    command: >
+      bash -c "
+      echo 'Running cassandra provisioning scripts...' &&
+      bash /packer/cassandra/install/prepare_instance.sh &&
+      bash /packer/cassandra/install/install_cassandra_easy_stress.sh &&
+      echo 'Cassandra provisioning complete!'
+      "

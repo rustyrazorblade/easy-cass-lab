@@ -55,6 +55,26 @@ Before pushing code, verify it passes all checks:
 
 **Note**: `ktlintFormat` auto-fixes many violations but can't fix all issues (e.g., line length). Always run `ktlintCheck` after formatting to catch remaining issues.
 
+### Packer Script Testing
+
+Test packer provisioning scripts locally using Docker (no AWS required):
+
+```bash
+# Test base provisioning scripts
+./gradlew testPackerBase
+
+# Test Cassandra provisioning scripts
+./gradlew testPackerCassandra
+
+# Run all packer tests
+./gradlew testPacker
+
+# Test a specific script
+./gradlew testPackerScript -Pscript=cassandra/install/install_cassandra_easy_stress.sh
+```
+
+For more details, see [packer/README.md](packer/README.md) and [packer/TESTING.md](packer/TESTING.md).
+
 ## Development Rules
 
 - All tests should pass before committing.

@@ -1,4 +1,8 @@
 #!/bin/bash
+set -e
+
+# Ensure non-interactive mode for apt
+export DEBIAN_FRONTEND=noninteractive
 
 # needed early on before we do anything with /mnt
 if mountpoint -q /mnt; then
@@ -8,16 +12,16 @@ else
   echo "/mnt is not a mount point."
 fi
 
-sudo apt update
-sudo apt upgrade -y
-sudo apt update
+sudo DEBIAN_FRONTEND=noninteractive apt update
+sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y
+sudo DEBIAN_FRONTEND=noninteractive apt update
 
-sudo apt install -y wget sysstat unzip ripgrep ant ant-optional tree zfsutils-linux  nicstat
+sudo DEBIAN_FRONTEND=noninteractive apt install -y wget sysstat unzip ripgrep ant ant-optional tree zfsutils-linux  nicstat
 
 cpu_arch=$(uname -m)
 # Set ARCH based on the CPU architecture
 if [[ "$cpu_arch" == "x86_64" ]]; then
-    sudo apt install -y cpuid
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y cpuid
 elif [[ "$cpu_arch" == "aarch64" ]]; then
   echo "No additional packages needed for ARM64"
 else

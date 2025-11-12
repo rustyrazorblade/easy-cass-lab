@@ -1,0 +1,41 @@
+---
+# yamllint configuration for packer YAML files
+# https://yamllint.readthedocs.io/en/stable/configuration.html
+
+extends: default
+
+rules:
+  # Line length - allow longer lines for readability
+  line-length:
+    max: 120
+    level: warning
+
+  # Indentation - 2 spaces
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  # Allow empty values
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+
+  # Comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Document start (---) is optional
+  document-start:
+    present: false
+
+  # Trailing spaces
+  trailing-spaces: enable
+
+  # Truthy values (yes/no vs true/false)
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']
+    check-keys: false
+
+# Files to ignore
+ignore: |
+  *.json
