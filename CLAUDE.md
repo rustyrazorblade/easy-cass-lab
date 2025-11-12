@@ -90,6 +90,38 @@ For more details, see [packer/README.md](packer/README.md) and [packer/TESTING.m
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
 - Always ensure files end with a newline
 - Tests should extend BaseKoinTest to use Koin DI
+- Use resilience4j for retry logic instead of custom retry loops
+
+### Retry Logic with Resilience4j
+
+The project uses resilience4j for all retry operations. Never implement custom retry loops.
+
+Example:
+```kotlin
+import io.github.resilience4j.retry.Retry
+import io.github.resilience4j.retry.RetryConfig
+import java.time.Duration
+
+// Configure retry behavior
+val retryConfig = RetryConfig
+    .custom<ResultType>()
+    .maxAttempts(3)
+    .retryExceptions(IOException::class.java)
+    .intervalFunction { attemptCount ->
+        // Exponential backoff: 2s, 4s, 8s
+        2000L * (1L shl (attemptCount - 1))
+    }
+    .build()
+
+val retry = Retry.of("operation-name", retryConfig)
+
+// Use the retry
+val result = Retry.decorateSupplier(retry) {
+    // Operation that may fail and need retry
+}.get()
+```
+
+See `DefaultRemoteOperationsService` for production examples.
 
 ## Testing Guidelines
 
