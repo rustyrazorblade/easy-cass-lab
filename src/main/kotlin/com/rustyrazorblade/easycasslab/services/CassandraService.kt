@@ -83,7 +83,6 @@ class DefaultCassandraService(
         wait: Boolean,
     ): Result<Unit> =
         runCatching {
-            log.info { "Starting Cassandra on ${host.alias}" }
             outputHandler.handleMessage("Starting Cassandra on ${host.alias}...")
 
             remoteOps.executeRemotely(
@@ -92,7 +91,6 @@ class DefaultCassandraService(
             )
 
             if (wait) {
-                log.info { "Cassandra started on ${host.alias}, waiting for UP/NORMAL" }
                 outputHandler.handleMessage("Cassandra started, waiting for ${host.alias} to become UP/NORMAL...")
                 remoteOps.executeRemotely(
                     host,
@@ -106,7 +104,6 @@ class DefaultCassandraService(
 
     override fun stop(host: Host): Result<Unit> =
         runCatching {
-            log.info { "Stopping Cassandra on ${host.alias}" }
             outputHandler.handleMessage("Stopping Cassandra on ${host.alias}...")
 
             remoteOps.executeRemotely(
@@ -119,7 +116,6 @@ class DefaultCassandraService(
 
     override fun restart(host: Host): Result<Unit> =
         runCatching {
-            log.info { "Restarting Cassandra on ${host.alias}" }
             outputHandler.handleMessage("Restarting Cassandra on ${host.alias}...")
 
             remoteOps.executeRemotely(
@@ -132,7 +128,6 @@ class DefaultCassandraService(
 
     override fun waitForUpNormal(host: Host): Result<Unit> =
         runCatching {
-            log.info { "Waiting for ${host.alias} to become UP/NORMAL" }
             outputHandler.handleMessage("Waiting for ${host.alias} to become UP/NORMAL...")
 
             remoteOps.executeRemotely(
