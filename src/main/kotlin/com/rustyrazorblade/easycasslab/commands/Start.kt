@@ -14,6 +14,8 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.services.CassandraService
+import com.rustyrazorblade.easycasslab.services.EasyStressService
 import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnel
 import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.core.component.inject
@@ -27,7 +29,8 @@ class Start(
     context: Context,
 ) : BaseCommand(context) {
     private val userConfig: User by inject()
-    private val cassandraService: com.rustyrazorblade.easycasslab.services.CassandraService by inject()
+    private val cassandraService: CassandraService by inject()
+    private val easyStressService: EasyStressService by inject()
 
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
@@ -88,14 +91,11 @@ class Start(
         outputHandler.handleMessage("Starting cassandra-easy-stress on stress nodes...")
 
         tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
-            outputHandler.handleMessage("Starting cassandra-easy-stress on ${host.alias} (${host.public})")
-
-            try {
-                val result = remoteOps.executeRemotely(host, "sudo systemctl start cassandra-easy-stress")
-                outputHandler.handleMessage("cassandra-easy-stress started on ${host.alias}")
-            } catch (e: RuntimeException) {
-                outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
-            }
+            easyStressService
+                .start(host)
+                .onFailure { e ->
+                    outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
+                }
         }
 
         outputHandler.handleMessage("cassandra-easy-stress startup completed on stress nodes")

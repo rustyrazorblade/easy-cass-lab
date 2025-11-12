@@ -14,4 +14,5 @@ import org.koin.dsl.module
 val servicesModule =
     module {
         factoryOf(::DefaultCassandraService) bind CassandraService::class
+        factoryOf(::DefaultEasyStressService) bind EasyStressService::class
     }
