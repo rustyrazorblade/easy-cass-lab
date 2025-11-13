@@ -8,7 +8,6 @@ import com.rustyrazorblade.easycasslab.di.contextModule
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
-import com.rustyrazorblade.easycasslab.providers.aws.Clients
 import com.rustyrazorblade.easycasslab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConfiguration
@@ -101,18 +100,13 @@ object TestModules {
                 )
             }
 
-            // Mock AWS Clients
-            single {
-                val mockIamClient = mock<IamClient>()
-                val mockClients = mock<Clients>()
-                whenever(mockClients.iam).thenReturn(mockIamClient)
-                mockClients
-            }
+            // Mock individual AWS SDK clients
+            single { mock<IamClient>() }
 
-            // AWS service with mocked clients
-            // Using real AWS class with mocked clients ensures the service logic
+            // AWS service with mocked IAM client
+            // Using real AWS class with mocked client ensures the service logic
             // is tested while preventing actual AWS API calls
-            single { AWS(get<Clients>()) }
+            single { AWS(get<IamClient>()) }
         }
 
     /** Creates a test SSH module with mock implementations. */
