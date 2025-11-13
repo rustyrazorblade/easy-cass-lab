@@ -311,6 +311,7 @@ class Init(
         File("cassandra").mkdirs()
         extractResourceFile("otel-cassandra-config.yaml", "cassandra/otel-cassandra-config.yaml")
         extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose.yaml")
+        extractResourceFile("cassandra-sidecar.yaml", "cassandra/cassandra-sidecar.yaml")
 
         // Create stress directory and extract OTel configs for stress nodes
         outputHandler.handleMessage(

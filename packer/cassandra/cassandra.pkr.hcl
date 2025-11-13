@@ -72,13 +72,6 @@ build {
     destination = "environment"
   }
 
-  provisioner "file" {
-    source = "config"
-    destination = "config"
-  }
-
-
-
   provisioner "shell" {
     inline = ["sudo mv environment /etc/environment"]
   }
@@ -117,7 +110,11 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["sudo mv config/cassandra-sidecar.yaml /usr/local/cassandra-sidecar/conf/sidecar.yaml"]
+    inline = [
+      "sudo mkdir -p /etc/cassandra-sidecar",
+      "sudo mkdir -p /mnt/cassandra/import",
+      "sudo chown ubuntu:ubuntu /mnt/cassandra/import"
+    ]
   }
 
   provisioner "shell" {
