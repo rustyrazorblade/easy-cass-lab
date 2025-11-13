@@ -95,11 +95,20 @@ object Constants {
         const val CASSANDRA_DOCKER_COMPOSE = "cassandra/docker-compose.yaml"
         const val CASSANDRA_OTEL_CONFIG = "cassandra/otel-cassandra-config.yaml"
         const val CASSANDRA_REMOTE_OTEL_CONFIG = "otel-cassandra-config.yaml"
+        const val CASSANDRA_SIDECAR_CONFIG = "cassandra/cassandra-sidecar.yaml"
+        const val CASSANDRA_REMOTE_SIDECAR_DIR = "/etc/cassandra-sidecar"
+        const val CASSANDRA_REMOTE_SIDECAR_CONFIG = "$CASSANDRA_REMOTE_SIDECAR_DIR/cassandra-sidecar.yaml"
 
         // Stress node configs
         const val STRESS_DOCKER_COMPOSE = "stress/docker-compose.yaml"
         const val STRESS_OTEL_CONFIG = "stress/otel-stress-config.yaml"
         const val STRESS_REMOTE_OTEL_CONFIG = "otel-stress-config.yaml"
+    }
+
+    // Cassandra Sidecar configuration
+    object Sidecar {
+        const val STORAGE_DIR = "/mnt/cassandra/data"
+        const val STAGING_DIR = "/mnt/cassandra/import"
     }
 
     // Remote file existence checks
