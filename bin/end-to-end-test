@@ -8,6 +8,9 @@ echo "=== Building project ==="
 echo "=== Initializing cluster ==="
 bin/easy-cass-lab init -c 2 -i t3a.xlarge test --clean --up
 
+echo "=== Updating configuration ==="
+bin/easy-cass-lab update-config
+
 echo "=== Setting Cassandra version to 5.0 ==="
 bin/easy-cass-lab use 5.0
 
