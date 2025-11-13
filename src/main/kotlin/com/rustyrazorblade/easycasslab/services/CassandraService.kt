@@ -3,9 +3,8 @@ package com.rustyrazorblade.easycasslab.services
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
+import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
-
-private val log = KotlinLogging.logger {}
 
 /**
  * Service for managing Cassandra database lifecycle operations.
@@ -67,17 +66,25 @@ interface CassandraService {
 /**
  * Default implementation of CassandraService using SSH for remote operations.
  *
- * This implementation uses systemctl for service management and relies on
- * provisioned scripts (wait-for-up-normal, restart-cassandra-and-wait) on
- * the remote hosts.
+ * This implementation extends AbstractSystemDServiceManager to leverage common
+ * systemd service management functionality while providing Cassandra-specific
+ * customizations.
+ *
+ * Key customizations:
+ * - start() method supports optional wait parameter for UP/NORMAL status
+ * - restart() uses custom restart script that includes waiting logic
+ * - Additional waitForUpNormal() method for explicit status waiting
  *
  * @property remoteOps Service for executing SSH commands on remote hosts
  * @property outputHandler Handler for user-facing output messages
  */
 class DefaultCassandraService(
-    private val remoteOps: RemoteOperationsService,
-    private val outputHandler: OutputHandler,
-) : CassandraService {
+    remoteOps: RemoteOperationsService,
+    outputHandler: OutputHandler,
+) : AbstractSystemDServiceManager("cassandra", remoteOps, outputHandler),
+    CassandraService {
+    override val log: KLogger = KotlinLogging.logger {}
+
     override fun start(
         host: Host,
         wait: Boolean,
@@ -87,7 +94,7 @@ class DefaultCassandraService(
 
             remoteOps.executeRemotely(
                 host,
-                "sudo systemctl start cassandra",
+                "sudo systemctl start $serviceName",
             )
 
             if (wait) {
@@ -100,18 +107,6 @@ class DefaultCassandraService(
             } else {
                 log.info { "Successfully started Cassandra on ${host.alias} (not waiting for UP/NORMAL)" }
             }
-        }
-
-    override fun stop(host: Host): Result<Unit> =
-        runCatching {
-            outputHandler.handleMessage("Stopping Cassandra on ${host.alias}...")
-
-            remoteOps.executeRemotely(
-                host,
-                "sudo systemctl stop cassandra",
-            )
-
-            log.info { "Successfully stopped Cassandra on ${host.alias}" }
         }
 
     override fun restart(host: Host): Result<Unit> =
@@ -138,44 +133,6 @@ class DefaultCassandraService(
             log.info { "${host.alias} is now UP/NORMAL" }
         }
 
-    override fun isRunning(host: Host): Result<Boolean> =
-        runCatching {
-            log.debug { "Checking if Cassandra is running on ${host.alias}" }
-
-            val response =
-                remoteOps.executeRemotely(
-                    host,
-                    "sudo systemctl is-active cassandra",
-                    output = false,
-                )
-
-            // systemctl is-active returns "active" if the service is running
-            // Any other response (inactive, failed, etc.) means it's not running normally
-            val isActive = response.text.trim().equals("active", ignoreCase = true)
-
-            log.debug {
-                if (isActive) {
-                    "Cassandra is active on ${host.alias}"
-                } else {
-                    "Cassandra is not active on ${host.alias}: ${response.text.trim()}"
-                }
-            }
-
-            isActive
-        }
+    // stop() and isRunning() are inherited from AbstractSystemDServiceManager
+    // getStatus() is also inherited but not exposed through CassandraService interface
 }
-
-/**
- * Exception thrown when a Cassandra service operation fails.
- *
- * @property message Description of the failure
- * @property host The host where the operation failed
- * @property exitCode The exit code from the failed command (if applicable)
- * @property cause The underlying exception that caused this failure (if any)
- */
-class CassandraServiceException(
-    message: String,
-    val host: Host? = null,
-    val exitCode: Int? = null,
-    cause: Throwable? = null,
-) : Exception(message, cause)
