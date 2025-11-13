@@ -72,13 +72,6 @@ build {
     destination = "environment"
   }
 
-  provisioner "file" {
-    source = "config"
-    destination = "config"
-  }
-
-
-
   provisioner "shell" {
     inline = ["sudo mv environment /etc/environment"]
   }
