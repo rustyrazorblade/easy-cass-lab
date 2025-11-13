@@ -32,7 +32,7 @@ internal class PruneAMIsTest : BaseKoinTest() {
         verify(mockAMIService).pruneAMIs(
             namePattern = "rustyrazorblade/images/easy-cass-lab-*",
             keepCount = 2,
-            dryRun = false,
+            dryRun = true,
             typeFilter = null,
         )
     }
@@ -58,7 +58,7 @@ internal class PruneAMIsTest : BaseKoinTest() {
         verify(mockAMIService).pruneAMIs(
             namePattern = "rustyrazorblade/images/easy-cass-lab-*",
             keepCount = 5,
-            dryRun = false,
+            dryRun = true,
             typeFilter = null,
         )
     }
@@ -110,7 +110,7 @@ internal class PruneAMIsTest : BaseKoinTest() {
         verify(mockAMIService).pruneAMIs(
             namePattern = "rustyrazorblade/images/easy-cass-lab-*",
             keepCount = 2,
-            dryRun = false,
+            dryRun = true,
             typeFilter = "cassandra",
         )
     }
@@ -136,7 +136,7 @@ internal class PruneAMIsTest : BaseKoinTest() {
         verify(mockAMIService).pruneAMIs(
             namePattern = "custom-pattern-*",
             keepCount = 2,
-            dryRun = false,
+            dryRun = true,
             typeFilter = null,
         )
     }

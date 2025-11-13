@@ -15,9 +15,8 @@ import org.koin.core.component.inject
 )
 class PruneAMIs(
     context: Context,
-    amiService: AMIService? = null,
 ) : BaseCommand(context) {
-    private val service: AMIService = amiService ?: inject<AMIService>().value
+    private val service: AMIService by inject()
     private val ec2Service: EC2Service by inject()
 
     @Parameter(
