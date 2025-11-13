@@ -4,7 +4,7 @@ kotlin = "2.2.21"
 
 # MCP SDK
 mcp-sdk = "0.7.2"
-kotlinx-io = "0.7.0"
+kotlinx-io = "0.8.0"
 
 
 # Logging
