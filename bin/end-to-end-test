@@ -20,6 +20,9 @@ bin/easy-cass-lab use 5.0
 echo "=== Starting Cassandra ==="
 bin/easy-cass-lab start
 
+echo "=== Restarting Cassandra ==="
+bin/easy-cass-lab restart
+
 echo "=== Tearing down cluster ==="
 bin/easy-cass-lab down --yes
 
