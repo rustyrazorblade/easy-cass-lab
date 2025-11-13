@@ -16,6 +16,7 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
+import com.rustyrazorblade.easycasslab.services.SidecarService
 import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnel
 import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.core.component.inject
@@ -31,6 +32,7 @@ class Start(
     private val userConfig: User by inject()
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
+    private val sidecarService: SidecarService by inject()
 
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
@@ -49,8 +51,14 @@ class Start(
                 // start() defaults to wait=true, which includes waiting for UP/NORMAL
                 cassandraService.start(it).getOrThrow()
             }
-            tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
-                remoteOps.executeRemotely(it, "sudo systemctl start cassandra-sidecar").text
+
+            // Start cassandra-sidecar on Cassandra nodes
+            tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+                sidecarService
+                    .start(host)
+                    .onFailure { e ->
+                        outputHandler.handleMessage("Warning: Failed to start cassandra-sidecar on ${host.alias}: ${e.message}")
+                    }
             }
         }
 

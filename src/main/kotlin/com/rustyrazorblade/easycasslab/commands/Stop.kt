@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
+import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
 
 // @McpCommand
@@ -18,6 +19,7 @@ class Stop(
 ) : BaseCommand(context) {
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
+    private val sidecarService: SidecarService by inject()
 
     @ParametersDelegate var hosts = Hosts()
 
@@ -28,7 +30,25 @@ class Stop(
             cassandraService.stop(it).getOrThrow()
         }
 
+        stopSidecar()
         stopCassandraEasyStress()
+    }
+
+    /**
+     * Stop cassandra-sidecar service on Cassandra nodes
+     */
+    private fun stopSidecar() {
+        outputHandler.handleMessage("Stopping cassandra-sidecar on Cassandra nodes...")
+
+        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+            sidecarService
+                .stop(host)
+                .onFailure { e ->
+                    outputHandler.handleMessage("Warning: Failed to stop cassandra-sidecar on ${host.alias}: ${e.message}")
+                }
+        }
+
+        outputHandler.handleMessage("cassandra-sidecar shutdown completed on Cassandra nodes")
     }
 
     /**
