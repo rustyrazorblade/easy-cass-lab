@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.providers
 
-import com.rustyrazorblade.easycasslab.providers.aws.Clients
+import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.iam.model.AddRoleToInstanceProfileRequest
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyRequest
 import software.amazon.awssdk.services.iam.model.CreateInstanceProfileRequest
@@ -8,7 +8,7 @@ import software.amazon.awssdk.services.iam.model.CreateRoleRequest
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 
 class AWS(
-    val clients: Clients,
+    private val iamClient: IamClient,
 ) {
     companion object {
         const val SERVICE_ROLE = "EasyCassLabServiceRole"
@@ -52,7 +52,7 @@ class AWS(
                     .description("IAM role for EMR service")
                     .build()
 
-            clients.iam.createRole(createRoleRequest)
+            iamClient.createRole(createRoleRequest)
 
             attachEMRRole()
         } catch (ignored: EntityAlreadyExistsException) {
@@ -69,7 +69,7 @@ class AWS(
                 .roleName(SERVICE_ROLE)
                 .policyArn(policy)
                 .build()
-        clients.iam.attachRolePolicy(attachPolicyRequest)
+        iamClient.attachRolePolicy(attachPolicyRequest)
     }
 
     private fun attachEMRRole() {
@@ -91,7 +91,7 @@ class AWS(
                     .instanceProfileName(SERVICE_ROLE)
                     .build()
 
-            clients.iam.createInstanceProfile(createProfileRequest)
+            iamClient.createInstanceProfile(createProfileRequest)
 
             // Add role to instance profile
             val addRoleRequest =
@@ -101,7 +101,7 @@ class AWS(
                     .roleName(SERVICE_ROLE)
                     .build()
 
-            clients.iam.addRoleToInstanceProfile(addRoleRequest)
+            iamClient.addRoleToInstanceProfile(addRoleRequest)
         } catch (ignored: EntityAlreadyExistsException) {
             // Instance profile already exists, continue
         }
