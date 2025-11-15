@@ -79,7 +79,9 @@ class PruneAMIs(
         if (dryRun) {
             outputHandler.handleMessage("DRY RUN - Would delete ${preview.deleted.size} AMIs:")
             for (ami in preview.deleted) {
+                val visibility = if (ami.isPublic) "public" else "private"
                 outputHandler.handleMessage("  × ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
+                outputHandler.handleMessage("    Owner: ${ami.ownerId}, Visibility: $visibility")
                 if (ami.snapshotIds.isNotEmpty()) {
                     outputHandler.handleMessage("    Snapshots: ${ami.snapshotIds.joinToString(", ")}")
                 }
@@ -95,11 +97,14 @@ class PruneAMIs(
         val skipped = mutableListOf<String>()
 
         for (ami in amisToDelete) {
+            val visibility = if (ami.isPublic) "public" else "private"
             outputHandler.handleMessage("")
             outputHandler.handleMessage("AMI: ${ami.id}")
             outputHandler.handleMessage("  Name: ${ami.name}")
             outputHandler.handleMessage("  Architecture: ${ami.architecture}")
             outputHandler.handleMessage("  Created: ${ami.creationDate}")
+            outputHandler.handleMessage("  Owner: ${ami.ownerId}")
+            outputHandler.handleMessage("  Visibility: $visibility")
             if (ami.snapshotIds.isNotEmpty()) {
                 outputHandler.handleMessage("  Snapshots: ${ami.snapshotIds.joinToString(", ")}")
             }

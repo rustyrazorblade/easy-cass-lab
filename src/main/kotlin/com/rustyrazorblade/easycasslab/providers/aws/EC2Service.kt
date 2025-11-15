@@ -54,7 +54,8 @@ class EC2Service(
                     name = image.name(),
                     architecture = normalizeArchitecture(image.architecture().toString()),
                     creationDate = Instant.parse(image.creationDate()),
-                    // Private AMIs queried by owner="self" should not have public launch permissions
+                    ownerId = image.ownerId(),
+                    // AMIs owned by "self" are typically private unless explicitly made public
                     isPublic = false,
                     snapshotIds =
                         image

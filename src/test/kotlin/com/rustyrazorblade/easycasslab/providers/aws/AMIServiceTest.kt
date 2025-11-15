@@ -292,13 +292,16 @@ internal class AMIServiceTest {
         architecture: String,
         creationDate: String,
         snapshotIds: List<String> = emptyList(),
+        ownerId: String = "123456789012",
+        isPublic: Boolean = false,
     ): AMI =
         AMI(
             id = id,
             name = name,
             architecture = architecture,
             creationDate = Instant.parse(creationDate),
-            isPublic = false,
+            ownerId = ownerId,
+            isPublic = isPublic,
             snapshotIds = snapshotIds,
         )
 }

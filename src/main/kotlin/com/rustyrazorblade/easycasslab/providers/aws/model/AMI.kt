@@ -13,6 +13,7 @@ import java.time.Instant
  * @property name The AMI name following pattern: rustyrazorblade/images/easy-cass-lab-{type}-{arch}-{version}
  * @property architecture The CPU architecture (amd64 or arm64)
  * @property creationDate The timestamp when the AMI was created
+ * @property ownerId The AWS account ID that owns this AMI
  * @property isPublic Whether the AMI is publicly accessible (true) or private (false)
  * @property snapshotIds List of EBS snapshot IDs associated with this AMI
  */
@@ -21,6 +22,7 @@ data class AMI(
     val name: String,
     val architecture: String,
     val creationDate: Instant,
+    val ownerId: String,
     val isPublic: Boolean,
     val snapshotIds: List<String>,
 ) : Comparable<AMI> {

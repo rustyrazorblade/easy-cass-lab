@@ -34,6 +34,7 @@ internal class EC2ServiceTest {
                 .name("rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101")
                 .architecture("x86_64")
                 .creationDate("2024-01-01T00:00:00.000Z")
+                .ownerId("123456789012")
                 .blockDeviceMappings(
                     BlockDeviceMapping
                         .builder()
@@ -78,6 +79,7 @@ internal class EC2ServiceTest {
                 .name("rustyrazorblade/images/easy-cass-lab-base-amd64-20240101")
                 .architecture("x86_64")
                 .creationDate("2024-01-01T00:00:00.000Z")
+                .ownerId("123456789012")
                 .blockDeviceMappings(emptyList())
                 .build()
 
@@ -103,6 +105,7 @@ internal class EC2ServiceTest {
                 .name("rustyrazorblade/images/easy-cass-lab-base-arm64-20240101")
                 .architecture("arm64")
                 .creationDate("2024-01-01T00:00:00.000Z")
+                .ownerId("123456789012")
                 .blockDeviceMappings(emptyList())
                 .build()
 
@@ -128,6 +131,7 @@ internal class EC2ServiceTest {
                 .name("rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101")
                 .architecture("x86_64")
                 .creationDate("2024-01-01T00:00:00.000Z")
+                .ownerId("123456789012")
                 .blockDeviceMappings(
                     BlockDeviceMapping
                         .builder()

@@ -13,6 +13,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.parse("2024-01-01T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = listOf("snap-111"),
             )
@@ -23,6 +24,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240102",
                 architecture = "amd64",
                 creationDate = Instant.parse("2024-01-02T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = listOf("snap-222"),
             )
@@ -42,6 +44,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.now(),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -52,6 +55,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-base-arm64-20240101",
                 architecture = "arm64",
                 creationDate = Instant.now(),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -68,6 +72,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.now(),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -78,6 +83,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.now(),
+                ownerId = "123456789012",
                 isPublic = true,
                 snapshotIds = emptyList(),
             )
@@ -94,6 +100,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.parse("2024-01-01T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -104,6 +111,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240102",
                 architecture = "amd64",
                 creationDate = Instant.parse("2024-01-02T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -114,6 +122,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-cassandra-arm64-20240101",
                 architecture = "arm64",
                 creationDate = Instant.parse("2024-01-01T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
@@ -124,6 +133,7 @@ internal class AMITest {
                 name = "rustyrazorblade/images/easy-cass-lab-base-amd64-20240101",
                 architecture = "amd64",
                 creationDate = Instant.parse("2024-01-01T00:00:00Z"),
+                ownerId = "123456789012",
                 isPublic = false,
                 snapshotIds = emptyList(),
             )
