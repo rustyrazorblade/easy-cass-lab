@@ -20,7 +20,6 @@ import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 import software.amazon.awssdk.services.iam.IamClient
 import java.io.ByteArrayInputStream
 import java.io.File
