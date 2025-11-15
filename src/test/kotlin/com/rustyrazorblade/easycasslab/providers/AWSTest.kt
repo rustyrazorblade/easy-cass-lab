@@ -8,6 +8,7 @@ import org.koin.core.component.inject
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyRequest
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyResponse
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest
@@ -18,13 +19,13 @@ import software.amazon.awssdk.services.iam.model.Role
 internal class AWSTest :
     BaseKoinTest(),
     KoinComponent {
-    // Inject the mocked AWS service from BaseKoinTest
+    // Inject the mocked AWS service and IAM client from BaseKoinTest
     private val aws: AWS by inject()
+    private val mockIamClient: IamClient by inject()
 
     @Test
     fun createEMRServiceRoleSuccess() {
-        // Get the mocked IAM client from the injected AWS service
-        val mockIamClient = aws.clients.iam
+        // mockIamClient is already injected from BaseKoinTest
 
         // Setup mock responses
         val mockRole =
@@ -58,8 +59,7 @@ internal class AWSTest :
 
     @Test
     fun createEMRServiceRoleAlreadyExists() {
-        // Get the mocked IAM client from the injected AWS service
-        val mockIamClient = aws.clients.iam
+        // mockIamClient is already injected from BaseKoinTest
 
         // Setup mock to throw EntityAlreadyExistsException
         whenever(mockIamClient.createRole(any<CreateRoleRequest>()))
