@@ -262,7 +262,7 @@ internal class AMIServiceTest {
     }
 
     @Test
-    fun `pruneAMIs should return deleted AMIs sorted by creation date descending`() {
+    fun `pruneAMIs should return deleted AMIs sorted by creation date ascending`() {
         val amis =
             listOf(
                 // Create AMIs in random order to verify sorting
@@ -276,14 +276,14 @@ internal class AMIServiceTest {
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = true)
 
-        // Verify deleted AMIs are sorted by creation date descending (oldest first for deletion)
-        // Should keep ami-4 (newest), delete ami-3, ami-2, ami-1 in that order (descending)
+        // Verify deleted AMIs are sorted by creation date ascending (oldest first for deletion)
+        // Should keep ami-4 (newest), delete ami-1, ami-2, ami-3 in that order (ascending/oldest first)
         assertThat(result.deleted).hasSize(3)
-        assertThat(result.deleted.map { it.id }).containsExactly("ami-3", "ami-2", "ami-1")
+        assertThat(result.deleted.map { it.id }).containsExactly("ami-1", "ami-2", "ami-3")
 
-        // Verify the dates are in descending order
-        assertThat(result.deleted[0].creationDate).isAfter(result.deleted[1].creationDate)
-        assertThat(result.deleted[1].creationDate).isAfter(result.deleted[2].creationDate)
+        // Verify the dates are in ascending order (oldest first)
+        assertThat(result.deleted[0].creationDate).isBefore(result.deleted[1].creationDate)
+        assertThat(result.deleted[1].creationDate).isBefore(result.deleted[2].creationDate)
     }
 
     private fun createAMI(
