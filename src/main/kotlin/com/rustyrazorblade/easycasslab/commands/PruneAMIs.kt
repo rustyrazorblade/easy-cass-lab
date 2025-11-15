@@ -43,12 +43,6 @@ class PruneAMIs(
     )
     var type: String? = null
 
-    @Parameter(
-        names = ["--yes", "-y"],
-        description = "Skip confirmation prompts and delete all identified AMIs",
-    )
-    var skipConfirmation: Boolean = false
-
     override fun execute() {
         outputHandler.handleMessage("Pruning AMIs matching pattern: $pattern")
         if (type != null) {
@@ -110,14 +104,9 @@ class PruneAMIs(
                 outputHandler.handleMessage("  Snapshots: ${ami.snapshotIds.joinToString(", ")}")
             }
 
-            val shouldDelete =
-                if (skipConfirmation) {
-                    true
-                } else {
-                    print("Delete this AMI? [y/N]: ")
-                    val response = readLine()?.trim()?.lowercase() ?: "n"
-                    response == "y" || response == "yes"
-                }
+            print("Delete this AMI? [y/N]: ")
+            val response = readLine()?.trim()?.lowercase() ?: "n"
+            val shouldDelete = response == "y" || response == "yes"
 
             if (shouldDelete) {
                 try {
