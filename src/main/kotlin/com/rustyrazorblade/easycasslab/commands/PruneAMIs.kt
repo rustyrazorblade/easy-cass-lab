@@ -63,7 +63,7 @@ class PruneAMIs(
         // Show what will be kept
         if (preview.kept.isNotEmpty()) {
             outputHandler.handleMessage("Will keep ${preview.kept.size} AMIs:")
-            for (ami in preview.kept.sortedBy { it.groupKey }) {
+            for (ami in preview.kept) {
                 outputHandler.handleMessage("  ✓ ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
             }
             outputHandler.handleMessage("")
@@ -78,7 +78,7 @@ class PruneAMIs(
         // If dry-run mode, just show what would be deleted and exit
         if (dryRun) {
             outputHandler.handleMessage("DRY RUN - Would delete ${preview.deleted.size} AMIs:")
-            for (ami in preview.deleted.sortedByDescending { it.creationDate }) {
+            for (ami in preview.deleted) {
                 outputHandler.handleMessage("  × ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
                 if (ami.snapshotIds.isNotEmpty()) {
                     outputHandler.handleMessage("    Snapshots: ${ami.snapshotIds.joinToString(", ")}")
@@ -87,9 +87,9 @@ class PruneAMIs(
             return
         }
 
-        // Delete AMIs with confirmation (oldest first)
+        // Delete AMIs with confirmation (already sorted oldest first by AMIService)
         outputHandler.handleMessage("Found ${preview.deleted.size} AMIs to delete")
-        val amisToDelete = preview.deleted.sortedByDescending { it.creationDate } // Oldest first
+        val amisToDelete = preview.deleted
 
         val actuallyDeleted = mutableListOf<String>()
         val skipped = mutableListOf<String>()

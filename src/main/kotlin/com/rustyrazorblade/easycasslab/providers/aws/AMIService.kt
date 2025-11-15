@@ -17,8 +17,9 @@ class AMIService(
     /**
      * Result of a pruning operation.
      *
-     * @property kept List of AMIs that were kept (not deleted)
-     * @property deleted List of AMIs that were deleted (or would be deleted in dry-run mode)
+     * @property kept List of AMIs that were kept (not deleted), sorted by groupKey for display
+     * @property deleted List of AMIs that were deleted (or would be deleted in dry-run mode),
+     *                   sorted by creation date descending (oldest first)
      */
     data class PruneResult(
         val kept: List<AMI>,
@@ -87,6 +88,12 @@ class AMIService(
             }
         }
 
-        return PruneResult(kept = keptAMIs, deleted = deletedAMIs)
+        // Sort kept AMIs by groupKey for display purposes
+        val sortedKept = keptAMIs.sortedBy { it.groupKey }
+
+        // Sort deleted AMIs by creation date descending (oldest first) for deletion order
+        val sortedDeleted = deletedAMIs.sortedByDescending { it.creationDate }
+
+        return PruneResult(kept = sortedKept, deleted = sortedDeleted)
     }
 }

@@ -241,6 +241,51 @@ internal class AMIServiceTest {
         verify(mockEc2Service, never()).deregisterAMI("ami-3")
     }
 
+    @Test
+    fun `pruneAMIs should return kept AMIs sorted by groupKey`() {
+        val amis =
+            listOf(
+                // Create AMIs in random order to verify sorting
+                createAMI("ami-4", "rustyrazorblade/images/easy-cass-lab-cassandra-arm64-20240103", "arm64", "2024-01-03T00:00:00Z"),
+                createAMI("ami-1", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
+                createAMI("ami-3", "rustyrazorblade/images/easy-cass-lab-base-arm64-20240103", "arm64", "2024-01-03T00:00:00Z"),
+                createAMI("ami-2", "rustyrazorblade/images/easy-cass-lab-base-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
+            )
+
+        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+
+        val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = true)
+
+        // Verify kept AMIs are sorted by groupKey (base-amd64, base-arm64, cassandra-amd64, cassandra-arm64)
+        assertThat(result.kept).hasSize(4)
+        assertThat(result.kept.map { it.id }).containsExactly("ami-2", "ami-3", "ami-1", "ami-4")
+    }
+
+    @Test
+    fun `pruneAMIs should return deleted AMIs sorted by creation date descending`() {
+        val amis =
+            listOf(
+                // Create AMIs in random order to verify sorting
+                createAMI("ami-2", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240102", "amd64", "2024-01-02T00:00:00Z"),
+                createAMI("ami-4", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240104", "amd64", "2024-01-04T00:00:00Z"),
+                createAMI("ami-1", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101", "amd64", "2024-01-01T00:00:00Z"),
+                createAMI("ami-3", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
+            )
+
+        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+
+        val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = true)
+
+        // Verify deleted AMIs are sorted by creation date descending (oldest first for deletion)
+        // Should keep ami-4 (newest), delete ami-3, ami-2, ami-1 in that order (descending)
+        assertThat(result.deleted).hasSize(3)
+        assertThat(result.deleted.map { it.id }).containsExactly("ami-3", "ami-2", "ami-1")
+
+        // Verify the dates are in descending order
+        assertThat(result.deleted[0].creationDate).isAfter(result.deleted[1].creationDate)
+        assertThat(result.deleted[1].creationDate).isAfter(result.deleted[2].creationDate)
+    }
+
     private fun createAMI(
         id: String,
         name: String,
