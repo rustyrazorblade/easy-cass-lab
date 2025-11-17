@@ -12,6 +12,7 @@ import com.rustyrazorblade.easycasslab.commands.Clean
 import com.rustyrazorblade.easycasslab.commands.ConfigureAxonOps
 import com.rustyrazorblade.easycasslab.commands.Down
 import com.rustyrazorblade.easycasslab.commands.DownloadConfig
+import com.rustyrazorblade.easycasslab.commands.Exec
 import com.rustyrazorblade.easycasslab.commands.Hosts
 import com.rustyrazorblade.easycasslab.commands.ICommand
 import com.rustyrazorblade.easycasslab.commands.Init
@@ -76,6 +77,7 @@ class CommandLineParser(
                 Command("clean", Clean(context)),
                 Command("down", Down(context)),
                 Command("download-config", DownloadConfig(context), listOf("dc")),
+                Command("exec", Exec(context)),
                 Command("hosts", Hosts(context)),
                 Command("init", Init(context)),
                 Command("list", ListVersions(context), listOf("ls")),

@@ -23,6 +23,15 @@ bin/easy-cass-lab start
 echo "=== Restarting Cassandra ==="
 bin/easy-cass-lab restart
 
+echo "=== Testing exec command (sequential) ==="
+bin/easy-cass-lab exec -t cassandra hostname
+
+echo "=== Testing exec command (parallel) ==="
+bin/easy-cass-lab exec -t cassandra -p uptime
+
+echo "=== Testing exec command (with host filter) ==="
+bin/easy-cass-lab exec -t cassandra --hosts cassandra0,cassandra1 date
+
 echo "=== Tearing down cluster ==="
 bin/easy-cass-lab down --yes
 
