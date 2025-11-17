@@ -6,7 +6,7 @@ echo "=== Building project ==="
 ./gradlew clean test shadowJar installDist
 
 echo "=== Initializing cluster ==="
-bin/easy-cass-lab init -c 2 -i t3a.xlarge test --clean --up
+bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up
 
 echo "=== Updating configuration ==="
 bin/easy-cass-lab update-config

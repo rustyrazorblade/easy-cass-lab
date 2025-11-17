@@ -85,5 +85,6 @@ sudo chmod 0644 /etc/axonops/axon-agent.yml
 sudo usermod -aG cassandra axonops
 sudo usermod -aG axonops cassandra
 
-
-
+# Disable axon-agent from auto-starting on boot
+# The service should be manually started via the StartAxonOps command
+sudo systemctl disable axon-agent

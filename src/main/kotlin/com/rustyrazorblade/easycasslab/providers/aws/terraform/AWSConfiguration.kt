@@ -243,8 +243,8 @@ class AWSConfiguration(
         val control =
             InstanceResource(
                 ami = ami,
-                // 4 vCPUs, 16 GiB RAM
-                instance_type = "t3.xlarge",
+                // 8 vCPUs, 16 GiB RAM
+                instance_type = "c5.2xlarge",
                 tags = tags + Pair("Name", controlInstanceName),
                 vpc_security_group_ids = listOf(instanceSg.id()),
                 count = 1,
