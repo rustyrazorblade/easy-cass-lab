@@ -245,18 +245,6 @@ class Up(
                     "/home/ubuntu/otel-collector-config.yaml",
                 )
             }
-
-            // Upload data-prepper-pipelines.yaml if it exists
-            if (dataPrepperConfigFile.exists()) {
-                outputHandler.handleMessage(
-                    "Uploading data-prepper-pipelines.yaml to control node ${host.public}",
-                )
-                remoteOps.upload(
-                    host,
-                    dataPrepperConfigFile.toPath(),
-                    "/home/ubuntu/data-prepper-pipelines.yaml",
-                )
-            }
         }
 
         outputHandler.handleMessage("Docker Compose configuration uploaded to control nodes")
