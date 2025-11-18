@@ -69,7 +69,7 @@ build {
     ]
   }
 
-  # install pyenv and python
+  # install python via deadsnakes PPA
   provisioner "shell" {
     script = "install/install_python.sh"
   }
