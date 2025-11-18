@@ -1,6 +1,6 @@
 # Test environment for packer scripts
-# Mimics Ubuntu 22.04 AMI environment used by packer
-FROM ubuntu:22.04
+# Mimics Ubuntu 24.04 AMI environment used by packer
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -17,16 +17,16 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Create docker group with standard GID (matches most host systems)
-RUN groupadd -g 999 docker || true
-
 # Create ubuntu user (matches packer SSH user) and add to docker group
-RUN useradd -m -s /bin/bash ubuntu && \
+# Ubuntu 24.04 may already have ubuntu user, so check first
+# Ensure docker group exists immediately before adding user to it to avoid caching issues
+RUN id -u ubuntu &>/dev/null || useradd -m -s /bin/bash ubuntu && \
     echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    (getent group docker || groupadd docker) && \
     usermod -aG docker ubuntu
 
 # Create cassandra user (used by cassandra services)
-RUN useradd -m -s /bin/bash cassandra && \
+RUN id -u cassandra &>/dev/null || useradd -m -s /bin/bash cassandra && \
     echo "cassandra ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Install Java versions (matches base packer setup)

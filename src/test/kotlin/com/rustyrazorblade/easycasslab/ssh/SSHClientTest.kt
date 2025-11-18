@@ -2,9 +2,7 @@ package com.rustyrazorblade.easycasslab.ssh
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import org.apache.sshd.client.session.ClientSession
-import org.apache.sshd.client.session.forward.ExplicitPortForwardingTracker
 import org.apache.sshd.common.io.IoSession
-import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -27,7 +25,6 @@ import java.nio.charset.Charset
  * - Command execution
  * - File operations (upload/download)
  * - Directory operations
- * - Port forwarding
  * - Resource cleanup
  * - Input validation
  */
@@ -294,91 +291,6 @@ class SSHClientTest :
         assertThat(localDir.isDirectory).isTrue()
     }
 
-    // ========== Port Forwarding Tests ==========
-
-    @Test
-    fun `createLocalPortForward should reject negative local port`() {
-        assertThatThrownBy {
-            sshClient.createLocalPortForward(localPort = -1, remoteHost = "localhost", remotePort = 9042)
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("Local port must be non-negative")
-    }
-
-    @Test
-    fun `createLocalPortForward should reject blank remote host`() {
-        assertThatThrownBy {
-            sshClient.createLocalPortForward(localPort = 9042, remoteHost = "", remotePort = 9042)
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("Remote host cannot be blank")
-    }
-
-    @Test
-    fun `createLocalPortForward should reject invalid remote port`() {
-        assertThatThrownBy {
-            sshClient.createLocalPortForward(localPort = 9042, remoteHost = "localhost", remotePort = 0)
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("Remote port must be between 1 and 65535")
-
-        assertThatThrownBy {
-            sshClient.createLocalPortForward(localPort = 9042, remoteHost = "localhost", remotePort = 70000)
-        }.isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("Remote port must be between")
-    }
-
-    @Test
-    fun `createLocalPortForward should create port forward and return actual port`() {
-        // Given
-        val mockTracker = mock<ExplicitPortForwardingTracker>()
-        val mockBoundAddress = SshdSocketAddress("", 9042)
-        whenever(mockTracker.boundAddress).thenReturn(mockBoundAddress)
-        whenever(
-            mockSession.createLocalPortForwardingTracker(
-                any<SshdSocketAddress>(),
-                any<SshdSocketAddress>(),
-            ),
-        ).thenReturn(mockTracker)
-
-        // When
-        val actualPort =
-            sshClient.createLocalPortForward(
-                localPort = 9042,
-                remoteHost = "10.0.1.5",
-                remotePort = 9042,
-            )
-
-        // Then
-        assertThat(actualPort).isEqualTo(9042)
-        verify(mockSession).createLocalPortForwardingTracker(any<SshdSocketAddress>(), any<SshdSocketAddress>())
-    }
-
-    @Test
-    fun `closeLocalPortForward should close existing port forward`() {
-        // Given - first create a port forward
-        val mockTracker = mock<ExplicitPortForwardingTracker>()
-        val mockBoundAddress = SshdSocketAddress("", 9042)
-        whenever(mockTracker.boundAddress).thenReturn(mockBoundAddress)
-        whenever(
-            mockSession.createLocalPortForwardingTracker(
-                any<SshdSocketAddress>(),
-                any<SshdSocketAddress>(),
-            ),
-        ).thenReturn(mockTracker)
-
-        val actualPort = sshClient.createLocalPortForward(9042, "localhost", 9042)
-
-        // When
-        sshClient.closeLocalPortForward(actualPort)
-
-        // Then
-        verify(mockTracker).close()
-    }
-
-    @Test
-    fun `closeLocalPortForward should do nothing if port forward doesn't exist`() {
-        // When/Then - should not throw
-        sshClient.closeLocalPortForward(9999)
-    }
-
     // ========== Resource Management Tests ==========
 
     @Test
@@ -386,29 +298,14 @@ class SSHClientTest :
         // Note: ScpClientCreator is a static singleton, so we can't easily mock it
         // This test would require more complex mocking or a refactored design
         // For now, we document that caching is tested through integration tests
-        // See SSHTunnelManagerIntegrationTest for resource management verification
     }
 
     @Test
     fun `close should clean up all resources`() {
-        // Given - create some resources
-        val mockTracker = mock<ExplicitPortForwardingTracker>()
-        val mockBoundAddress = SshdSocketAddress("", 9042)
-        whenever(mockTracker.boundAddress).thenReturn(mockBoundAddress)
-        whenever(
-            mockSession.createLocalPortForwardingTracker(
-                any<SshdSocketAddress>(),
-                any<SshdSocketAddress>(),
-            ),
-        ).thenReturn(mockTracker)
-
-        sshClient.createLocalPortForward(9042, "localhost", 9042)
-
         // When
         sshClient.close()
 
         // Then
-        verify(mockTracker).close()
         verify(mockSession).close()
     }
 

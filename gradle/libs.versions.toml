@@ -71,6 +71,7 @@ kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = 
 # Jackson
 jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson-dataformat" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson-kotlin" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson-dataformat" }
 
 # Testing
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "jupiter" }
@@ -133,7 +134,7 @@ resilience4j-kotlin = { module = "io.github.resilience4j:resilience4j-kotlin", v
 logging = ["logback-classic", "kotlin-logging"]
 
 # Jackson bundle
-jackson = ["jackson-dataformat-yaml", "jackson-module-kotlin"]
+jackson = ["jackson-dataformat-yaml", "jackson-module-kotlin", "jackson-datatype-jsr310"]
 
 # Testing bundle
 testing = ["junit-jupiter", "assertj-core", "mockito-kotlin"]

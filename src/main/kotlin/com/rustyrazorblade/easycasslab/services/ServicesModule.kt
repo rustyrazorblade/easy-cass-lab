@@ -15,5 +15,7 @@ val servicesModule =
     module {
         factoryOf(::DefaultCassandraService) bind CassandraService::class
         factoryOf(::DefaultEasyStressService) bind EasyStressService::class
+        factoryOf(::DefaultK3sService) bind K3sService::class
+        factoryOf(::DefaultK3sAgentService) bind K3sAgentService::class
         factoryOf(::DefaultSidecarService) bind SidecarService::class
     }

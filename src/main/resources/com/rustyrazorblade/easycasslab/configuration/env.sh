@@ -18,6 +18,11 @@ alias sftp="sftp -F $SSH_CONFIG"
 alias scp="scp -F $SSH_CONFIG"
 alias rsync="rsync -ave 'ssh -F $SSH_CONFIG'"
 
+# Configure kubectl to use the K3s cluster kubeconfig (if it exists)
+if [ -f "$(pwd)/kubeconfig" ]; then
+  export KUBECONFIG="$(pwd)/kubeconfig"
+fi
+
 # general purpose function for executing commands on all cassandra nodes
 c-all () {
     for i in "${SERVERS[@]}"
@@ -108,120 +113,220 @@ c-flame-sepworker() {
   fi
 }
 
-# Port forwarding functions for monitoring services
-# Global variable to store port forwarding PIDs
-PORT_FORWARD_PIDS=""
+# SOCKS5 proxy functions
+# Global variable to store SOCKS5 proxy PID
+SOCKS5_PROXY_PID=""
+SOCKS5_PROXY_PORT=1080
 
-# Start SSH port forwarding for monitoring services
-start-port-forwarding() {
-  echo "Starting SSH port forwarding for monitoring services..."
+# Start SOCKS5 proxy via SSH dynamic port forwarding
+start-socks5() {
+  local port=${1:-$SOCKS5_PROXY_PORT}
+  local proxy_state_file=".socks5-proxy-state"
+
+  echo "Starting SOCKS5 proxy..."
 
   # Check if control0 exists in SSH config
   if ! grep -q "^Host control0" "$SSH_CONFIG" 2>/dev/null; then
-    echo -e "${YELLOW}Warning: control0 not found in SSH config. Monitoring services may not be available.${NC}"
+    echo -e "${YELLOW}Warning: control0 not found in SSH config. Cannot start SOCKS5 proxy.${NC}"
     return 1
   fi
 
-  # Stop any existing port forwarding first
-  stop-port-forwarding 2>/dev/null
+  # Get control host IP from sshConfig
+  local control_ip=$(grep -A 1 "^Host control0" "$SSH_CONFIG" | grep "Hostname" | awk '{print $2}')
 
-  # Port forwarding for OpenSearch (9200)
-  ssh -F "$SSH_CONFIG" -N -L 9200:localhost:9200 control0 &
-  local OS_PID=$!
-  PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OS_PID"
-  echo "  - OpenSearch forwarding started (localhost:9200 -> control0:9200) [PID: $OS_PID]"
+  # Check if proxy state file exists and validate
+  if [ -f "$proxy_state_file" ]; then
+    echo "Found existing proxy state, validating..."
 
-  # Port forwarding for OpenSearch Dashboards (5601)
-  ssh -F "$SSH_CONFIG" -N -L 5601:localhost:5601 control0 &
-  local OSD_PID=$!
-  PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OSD_PID"
-  echo "  - OpenSearch Dashboards forwarding started (localhost:5601 -> control0:5601) [PID: $OSD_PID]"
+    # Read existing proxy state (simple JSON parsing with grep/awk)
+    local existing_pid=$(grep '"pid"' "$proxy_state_file" | awk -F: '{print $2}' | tr -d ' ,')
+    local existing_ip=$(grep '"controlIP"' "$proxy_state_file" | awk -F'"' '{print $4}')
+    local existing_ssh_config=$(grep '"sshConfig"' "$proxy_state_file" | awk -F'"' '{print $4}')
 
-  # Port forwarding for MCP server (8000)
-  ssh -F "$SSH_CONFIG" -N -L 8000:localhost:8000 control0 &
-  local MCP_PID=$!
-  PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $MCP_PID"
-  echo "  - MCP server forwarding started (localhost:8000 -> control0:8000) [PID: $MCP_PID]"
+    local proxy_valid=true
 
-  # Port forwarding for OTLP gRPC (4317) - for sending traces/metrics/logs
-  ssh -F "$SSH_CONFIG" -N -L 4317:localhost:4317 control0 &
-  local OTLP_GRPC_PID=$!
-  PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OTLP_GRPC_PID"
-  echo "  - OTLP gRPC forwarding started (localhost:4317 -> control0:4317) [PID: $OTLP_GRPC_PID]"
+    # Check if PID is still running
+    if ! kill -0 "$existing_pid" 2>/dev/null; then
+      echo "  - Previous proxy process (PID: $existing_pid) is no longer running"
+      proxy_valid=false
+    fi
 
-  # Port forwarding for OTLP HTTP (4318) - for sending traces/metrics/logs via HTTP
-  ssh -F "$SSH_CONFIG" -N -L 4318:localhost:4318 control0 &
-  local OTLP_HTTP_PID=$!
-  PORT_FORWARD_PIDS="$PORT_FORWARD_PIDS $OTLP_HTTP_PID"
-  echo "  - OTLP HTTP forwarding started (localhost:4318 -> control0:4318) [PID: $OTLP_HTTP_PID]"
+    # Check if SSH config matches
+    if [ "$existing_ssh_config" != "$SSH_CONFIG" ]; then
+      echo "  - SSH config has changed (was: $existing_ssh_config, now: $SSH_CONFIG)"
+      proxy_valid=false
+    fi
 
-  echo -e "\n${NC_BOLD}Monitoring services are now accessible at:${NC}"
-  echo "  - OpenSearch:            http://localhost:9200"
-  echo "  - OpenSearch Dashboards: http://localhost:5601"
-  echo "  - MCP server:            http://localhost:8000"
-  echo "  - OTLP gRPC endpoint:    localhost:4317"
-  echo "  - OTLP HTTP endpoint:    http://localhost:4318"
-  echo ""
-  echo "Use 'stop-port-forwarding' to stop all port forwarding."
+    # Check if control host IP matches
+    if [ "$existing_ip" != "$control_ip" ]; then
+      echo "  - Control host IP has changed (was: $existing_ip, now: $control_ip)"
+      proxy_valid=false
+    fi
+
+    # If proxy is invalid, clean it up
+    if [ "$proxy_valid" = false ]; then
+      echo "  - Stopping stale SOCKS5 proxy..."
+      if kill "$existing_pid" 2>/dev/null; then
+        echo "  - Stopped process $existing_pid"
+      fi
+      rm -f "$proxy_state_file"
+    else
+      echo -e "${YELLOW}Valid SOCKS5 proxy already running on localhost:$port [PID: $existing_pid]${NC}"
+
+      # Configure environment variables
+      export ALL_PROXY="socks5h://localhost:$port"
+      export HTTPS_PROXY="socks5h://localhost:$port"
+      export NO_PROXY="localhost,127.0.0.1"
+
+      echo "  - curl, kubectl, and other tools will automatically use this proxy"
+      echo "  - Use 'socks5-status' to check the status"
+      return 0
+    fi
+  fi
+
+  # Check if port is already in use (e.g., by MCP mode Kotlin proxy)
+  if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo -e "${YELLOW}SOCKS5 proxy already running on localhost:$port (managed externally)${NC}"
+    echo "  - This may be managed by easy-cass-lab in MCP mode"
+
+    # Configure curl, kubectl, and other tools to use existing SOCKS5 proxy
+    export ALL_PROXY="socks5h://localhost:$port"
+    export HTTPS_PROXY="socks5h://localhost:$port"
+    export NO_PROXY="localhost,127.0.0.1"
+
+    echo "  - curl, kubectl, and other tools will automatically use this proxy"
+    echo "  - Configure your browser to use localhost:$port (SOCKS5)"
+    echo "  - Use 'socks5-status' to check the status"
+    return 0
+  fi
+
+  # Start SSH dynamic port forwarding (SOCKS5 proxy)
+  ssh -F "$SSH_CONFIG" -N -D "$port" control0 &
+  SOCKS5_PROXY_PID=$!
+
+  # Wait a moment and verify the process is still running
+  sleep 1
+  if kill -0 $SOCKS5_PROXY_PID 2>/dev/null; then
+    echo "  - SOCKS5 proxy started on localhost:$port [PID: $SOCKS5_PROXY_PID]"
+
+    # Write proxy state to file
+    local cluster_name=$(basename "$(pwd)")
+    local start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    cat > "$proxy_state_file" <<EOF
+{
+  "pid": $SOCKS5_PROXY_PID,
+  "port": $port,
+  "controlHost": "control0",
+  "controlIP": "$control_ip",
+  "clusterName": "$cluster_name",
+  "startTime": "$start_time",
+  "sshConfig": "$SSH_CONFIG"
+}
+EOF
+
+    echo "  - Proxy state saved to $proxy_state_file"
+
+    # Configure curl, kubectl, and other tools to use SOCKS5 proxy
+    export ALL_PROXY="socks5h://localhost:$port"
+    export HTTPS_PROXY="socks5h://localhost:$port"
+    export NO_PROXY="localhost,127.0.0.1"
+
+    echo ""
+    echo -e "${NC_BOLD}SOCKS5 proxy is now active:${NC}"
+    echo "  - SOCKS Host: localhost"
+    echo "  - SOCKS Port: $port"
+    echo "  - curl, kubectl, and other tools will automatically use this proxy"
+    echo ""
+    echo -e "${NC_BOLD}To configure your browser:${NC}"
+    echo "  - SOCKS Host: localhost"
+    echo "  - SOCKS Port: $port"
+    echo "  - SOCKS Version: 5"
+    echo ""
+    echo "Use 'stop-socks5' to stop the SOCKS5 proxy."
+    return 0
+  else
+    echo -e "${YELLOW}Error: Failed to start SOCKS5 proxy${NC}"
+    SOCKS5_PROXY_PID=""
+    return 1
+  fi
 }
 
-# Stop SSH port forwarding
-stop-port-forwarding() {
-  echo "Stopping SSH port forwarding..."
+# Stop SOCKS5 proxy
+stop-socks5() {
+  local proxy_state_file=".socks5-proxy-state"
 
-  if [ -z "$PORT_FORWARD_PIDS" ]; then
-    # Try to find existing SSH port forwarding processes
-    local PIDS=$(ps aux | grep -E "ssh.*-L.*(9200|5601|8000|4317|4318).*control0" | grep -v grep | awk '{print $2}')
+  echo "Stopping SOCKS5 proxy..."
+
+  # Try to read PID from state file first
+  if [ -f "$proxy_state_file" ]; then
+    local proxy_pid=$(grep '"pid"' "$proxy_state_file" | awk -F: '{print $2}' | tr -d ' ,')
+    if [ -n "$proxy_pid" ]; then
+      if kill "$proxy_pid" 2>/dev/null; then
+        echo "  - Stopped SOCKS5 proxy process [PID: $proxy_pid]"
+      else
+        echo "  - Process $proxy_pid not running"
+      fi
+    fi
+    rm -f "$proxy_state_file"
+    echo "  - Removed proxy state file"
+  elif [ -n "$SOCKS5_PROXY_PID" ]; then
+    # Fall back to global variable if no state file
+    if kill $SOCKS5_PROXY_PID 2>/dev/null; then
+      echo "  - Stopped SOCKS5 proxy process [PID: $SOCKS5_PROXY_PID]"
+    fi
+    SOCKS5_PROXY_PID=""
+  else
+    # Last resort: find existing SSH SOCKS5 proxy processes
+    local PIDS=$(ps aux | grep -E "ssh.*-D.*control0" | grep -v grep | awk '{print $2}')
     if [ -n "$PIDS" ]; then
       echo "$PIDS" | while read pid; do
         if kill $pid 2>/dev/null; then
-          echo "  - Stopped port forwarding process [PID: $pid]"
+          echo "  - Stopped SOCKS5 proxy process [PID: $pid]"
         fi
       done
     else
-      echo "  - No active port forwarding processes found."
+      echo "  - No active SOCKS5 proxy processes found."
     fi
-  else
-    # Kill the PIDs we tracked
-    for pid in $PORT_FORWARD_PIDS; do
-      if kill $pid 2>/dev/null; then
-        echo "  - Stopped port forwarding process [PID: $pid]"
-      fi
-    done
-    PORT_FORWARD_PIDS=""
   fi
 
-  echo "Port forwarding stopped."
+  # Unset proxy environment variables
+  unset ALL_PROXY
+  unset HTTPS_PROXY
+  unset NO_PROXY
+
+  echo "SOCKS5 proxy stopped."
+  echo "  - Proxy environment variables cleared"
 }
 
-# Alias for convenience
-alias pf-start="start-port-forwarding"
-alias pf-stop="stop-port-forwarding"
+# Check SOCKS5 proxy status
+socks5-status() {
+  echo "Checking SOCKS5 proxy status..."
 
-# Check port forwarding status
-port-forwarding-status() {
-  echo "Checking port forwarding status..."
+  # Check for SSH CLI-based SOCKS5 proxy
+  local SSH_PIDS=$(ps aux | grep -E "ssh.*-D.*control0" | grep -v grep)
 
-  local PIDS=$(ps aux | grep -E "ssh.*-L.*(9200|5601|8000|4317|4318).*control0" | grep -v grep)
-  if [ -n "$PIDS" ]; then
-    echo -e "${NC_BOLD}Active port forwarding:${NC}"
-    echo "$PIDS" | while read line; do
+  if [ -n "$SSH_PIDS" ]; then
+    echo -e "${NC_BOLD}Active SSH SOCKS5 proxy:${NC}"
+    echo "$SSH_PIDS" | while read line; do
       local pid=$(echo "$line" | awk '{print $2}')
-      if echo "$line" | grep -q "9200"; then
-        echo "  - OpenSearch forwarding active [PID: $pid]"
-      elif echo "$line" | grep -q "5601"; then
-        echo "  - OpenSearch Dashboards forwarding active [PID: $pid]"
-      elif echo "$line" | grep -q "8000"; then
-        echo "  - MCP server forwarding active [PID: $pid]"
-      elif echo "$line" | grep -q "4317"; then
-        echo "  - OTLP gRPC forwarding active [PID: $pid]"
-      elif echo "$line" | grep -q "4318"; then
-        echo "  - OTLP HTTP forwarding active [PID: $pid]"
-      fi
+      local port=$(echo "$line" | grep -oE '\-D [0-9]+' | awk '{print $2}')
+      echo "  - SOCKS5 proxy active on localhost:${port:-$SOCKS5_PROXY_PORT} [SSH PID: $pid]"
     done
+  elif lsof -Pi :$SOCKS5_PROXY_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo -e "${NC_BOLD}Active SOCKS5 proxy (non-SSH):${NC}"
+    local PID=$(lsof -Pi :$SOCKS5_PROXY_PORT -sTCP:LISTEN -t 2>/dev/null | head -1)
+    local COMMAND=$(ps -p "$PID" -o comm= 2>/dev/null)
+    echo "  - SOCKS5 proxy active on localhost:$SOCKS5_PROXY_PORT [${COMMAND:-Unknown} PID: $PID]"
+    echo "  - This may be managed by easy-cass-lab in MCP mode"
   else
-    echo "  - No active port forwarding found."
+    echo "  - No active SOCKS5 proxy found."
   fi
 }
 
-alias pf-status="port-forwarding-status"
+# Aliases for convenience
+alias socks5-start="start-socks5"
+alias socks5-stop="stop-socks5"
+
+# Automatically start SOCKS5 proxy
+start-socks5

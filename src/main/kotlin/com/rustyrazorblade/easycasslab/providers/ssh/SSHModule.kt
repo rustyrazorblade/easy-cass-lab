@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.providers.ssh
 
-import com.rustyrazorblade.easycasslab.ssh.tunnel.DefaultSSHTunnelManager
-import com.rustyrazorblade.easycasslab.ssh.tunnel.SSHTunnelManager
 import org.koin.dsl.module
 
 /**
@@ -10,7 +8,6 @@ import org.koin.dsl.module
  * Provides:
  * - SSHConnectionProvider as a singleton (manages connection pool)
  * - RemoteOperationsService as a factory (stateless operations)
- * - SSHTunnelManager as a singleton (manages SSH tunnels/port forwards)
  *
  * Note: SSHConfiguration must be provided by another module (e.g., contextModule)
  */
@@ -21,7 +18,4 @@ val sshModule =
 
         // Remote operations service - factory because it's stateless
         factory<RemoteOperationsService> { DefaultRemoteOperationsService(get()) }
-
-        // SSH tunnel manager - singleton because it manages tunnel cache and lifecycle
-        single<SSHTunnelManager> { DefaultSSHTunnelManager(get()) }
     }

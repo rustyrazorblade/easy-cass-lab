@@ -98,6 +98,10 @@ sudo mkdir -p /usr/local/cassandra
 sudo mkdir -p /mnt/cassandra/logs
 sudo chown -R cassandra:cassandra /mnt/cassandra
 
+# Install cqlsh globally (works with all Cassandra versions)
+echo "Installing cqlsh via uv..."
+uv tool install cqlsh
+
 # used to skip the expensive checkstyle checks
 
 sudo update-java-alternatives -s java-1.11.0-openjdk-amd64
@@ -243,6 +247,13 @@ do
       echo "ERROR: Configuration failed for version $version"
       exit 1
   }
+
+  # Remove bundled cqlsh from Cassandra 2.x and 3.x to use uv-installed version
+  if [[ "$version" == 2.* || "$version" == 3.* ]]; then
+    echo "Removing bundled cqlsh from Cassandra $version (using uv-installed version instead)"
+    rm -f "/usr/local/cassandra/$version/bin/cqlsh"
+    rm -f "/usr/local/cassandra/$version/bin/cqlsh.py"
+  fi
 
   # Clean up Maven cache to save space
   rm -rf ~/.m2 || true

@@ -3,8 +3,6 @@ package com.rustyrazorblade.easycasslab.ssh
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.client.session.ClientSession
-import org.apache.sshd.client.session.forward.ExplicitPortForwardingTracker
-import org.apache.sshd.common.util.net.SshdSocketAddress
 import org.apache.sshd.scp.client.CloseableScpClient
 import org.apache.sshd.scp.client.ScpClientCreator
 import org.koin.core.component.KoinComponent
@@ -14,8 +12,6 @@ import java.io.File
 import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util.ArrayDeque
-
-private const val MAX_PORT_NUMBER = 65535
 
 /**
  * Main class for SSH operations
@@ -28,7 +24,6 @@ private const val MAX_PORT_NUMBER = 65535
  * Key features:
  * - Thread-safe SSH command execution
  * - File and directory upload/download with SCP
- * - Local port forwarding (SSH tunneling)
  * - Proper resource cleanup on close
  *
  * Thread-safety: All operations are synchronized via operationLock to prevent
@@ -36,8 +31,8 @@ private const val MAX_PORT_NUMBER = 65535
  * thread-safe. This allows multiple SSHClient instances (different hosts) to
  * operate in parallel while serializing operations on the same session.
  *
- * Resource management: The class caches SCP clients and tracks port forwards
- * to ensure proper cleanup when close() is called.
+ * Resource management: The class caches SCP clients to ensure proper cleanup
+ * when close() is called.
  *
  * @property session The underlying Apache SSHD ClientSession
  */
@@ -319,79 +314,8 @@ class SSHClient(
             return@synchronized cachedScpClient!!
         }
 
-    // Track active port forwards for cleanup
-    private val activePortForwards = mutableMapOf<Int, ExplicitPortForwardingTracker>()
-
     // Cache SCP client to prevent resource leaks
     private var cachedScpClient: CloseableScpClient? = null
-
-    /**
-     * Create a local port forward (SSH tunnel)
-     *
-     * Creates an SSH tunnel that forwards traffic from a local port to a remote
-     * host and port through this SSH connection. Useful for securely accessing
-     * services behind a bastion host.
-     *
-     * Example: Forward local port 9042 to Cassandra on a remote private network:
-     * ```kotlin
-     * val actualPort = client.createLocalPortForward(
-     *     localPort = 9042,
-     *     remoteHost = "10.0.1.5",
-     *     remotePort = 9042
-     * )
-     * // Now connect to localhost:9042 to reach 10.0.1.5:9042
-     * ```
-     *
-     * @param localPort Local port to bind to (0 for auto-assign)
-     * @param remoteHost Remote host to forward to (relative to the SSH server)
-     * @param remotePort Remote port to forward to
-     * @return The actual local port that was bound
-     * @throws IllegalArgumentException if parameters are invalid
-     */
-    override fun createLocalPortForward(
-        localPort: Int,
-        remoteHost: String,
-        remotePort: Int,
-    ): Int =
-        synchronized(operationLock) {
-            require(localPort >= 0) { "Local port must be non-negative (0 for auto-assign)" }
-            require(remoteHost.isNotBlank()) { "Remote host cannot be blank" }
-            require(remotePort in 1..MAX_PORT_NUMBER) { "Remote port must be between 1 and $MAX_PORT_NUMBER" }
-
-            val localAddress = SshdSocketAddress("", localPort) // Empty string binds to all interfaces
-            val remoteAddress = SshdSocketAddress(remoteHost, remotePort)
-
-            log.info { "Creating port forward via $remoteAddress: localhost:$localPort -> $remoteHost:$remotePort" }
-
-            val tracker = session.createLocalPortForwardingTracker(localAddress, remoteAddress)
-            val actualPort = tracker.boundAddress.port
-
-            activePortForwards[actualPort] = tracker
-
-            log.info { "Port forward created via $remoteAddress: localhost:$actualPort -> $remoteHost:$remotePort" }
-            return@synchronized actualPort
-        }
-
-    /**
-     * Close a local port forward
-     *
-     * Closes the SSH tunnel on the specified local port. If no tunnel exists on
-     * that port, this method does nothing.
-     *
-     * @param localPort The local port of the forward to close
-     */
-    override fun closeLocalPortForward(localPort: Int): Unit =
-        synchronized(operationLock) {
-            activePortForwards[localPort]?.let { tracker ->
-                try {
-                    tracker.close()
-                    activePortForwards.remove(localPort)
-                    log.info { "Closed port forward via $remoteAddress on localhost:$localPort" }
-                } catch (e: java.io.IOException) {
-                    log.error(e) { "Error closing port forward via $remoteAddress on localhost:$localPort" }
-                }
-            }
-        }
 
     /**
      * Check if the underlying SSH session is still open and authenticated.
@@ -412,7 +336,6 @@ class SSHClient(
      * Stop the SSH client and clean up all resources
      *
      * This method:
-     * - Closes all active port forwards
      * - Closes the cached SCP client
      * - Closes the underlying SSH session
      *
@@ -421,16 +344,6 @@ class SSHClient(
     override fun close(): Unit =
         synchronized(operationLock) {
             log.debug { "Stopping SSH client for $remoteAddress" }
-
-            // Close all active port forwards
-            activePortForwards.values.toList().forEach { tracker ->
-                try {
-                    tracker.close()
-                } catch (e: java.io.IOException) {
-                    log.debug(e) { "Error closing port forward for $remoteAddress during session cleanup" }
-                }
-            }
-            activePortForwards.clear()
 
             // Close cached SCP client if it exists
             cachedScpClient?.let {

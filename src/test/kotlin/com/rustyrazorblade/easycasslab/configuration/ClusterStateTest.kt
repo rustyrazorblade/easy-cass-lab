@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.time.Instant
 
 class ClusterStateTest {
     @Test
@@ -250,5 +251,406 @@ class ClusterStateTest {
         assertThat(loadedState.name).isEqualTo("future-cluster")
         assertThat(loadedState.initConfig).isNotNull
         assertThat(loadedState.initConfig!!.region).isEqualTo("us-east-1")
+    }
+
+    @Test
+    fun `ClusterState should save and load hosts correctly`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        // Create test hosts
+        val cassandraHosts =
+            listOf(
+                ClusterHost(
+                    publicIp = "54.1.2.3",
+                    privateIp = "10.0.1.10",
+                    alias = "cassandra0",
+                    availabilityZone = "us-west-2a",
+                ),
+                ClusterHost(
+                    publicIp = "54.1.2.4",
+                    privateIp = "10.0.1.11",
+                    alias = "cassandra1",
+                    availabilityZone = "us-west-2b",
+                ),
+            )
+
+        val controlHosts =
+            listOf(
+                ClusterHost(
+                    publicIp = "54.1.2.5",
+                    privateIp = "10.0.1.20",
+                    alias = "control0",
+                    availabilityZone = "us-west-2a",
+                ),
+            )
+
+        val hosts =
+            mapOf(
+                ServerType.Cassandra to cassandraHosts,
+                ServerType.Control to controlHosts,
+            )
+
+        // Create and save ClusterState with hosts
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts = hosts,
+            )
+        state.save()
+
+        // Load it back
+        val loadedState = ClusterState.load()
+
+        // Verify hosts were preserved
+        assertThat(loadedState.hosts).hasSize(2)
+        assertThat(loadedState.hosts[ServerType.Cassandra]).hasSize(2)
+        assertThat(loadedState.hosts[ServerType.Control]).hasSize(1)
+
+        val loadedCassandra = loadedState.hosts[ServerType.Cassandra]!!
+        assertThat(loadedCassandra[0].publicIp).isEqualTo("54.1.2.3")
+        assertThat(loadedCassandra[0].privateIp).isEqualTo("10.0.1.10")
+        assertThat(loadedCassandra[0].alias).isEqualTo("cassandra0")
+        assertThat(loadedCassandra[0].availabilityZone).isEqualTo("us-west-2a")
+
+        val loadedControl = loadedState.hosts[ServerType.Control]!!
+        assertThat(loadedControl[0].publicIp).isEqualTo("54.1.2.5")
+        assertThat(loadedControl[0].alias).isEqualTo("control0")
+    }
+
+    @Test
+    fun `ClusterState should track infrastructure status`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+
+        // Initially UNKNOWN
+        assertThat(state.infrastructureStatus).isEqualTo(InfrastructureStatus.UNKNOWN)
+        assertThat(state.isInfrastructureUp()).isFalse()
+
+        // Mark as UP
+        state.markInfrastructureUp()
+        assertThat(state.infrastructureStatus).isEqualTo(InfrastructureStatus.UP)
+        assertThat(state.isInfrastructureUp()).isTrue()
+
+        // Load from file and verify status persisted
+        val loadedState = ClusterState.load()
+        assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.UP)
+        assertThat(loadedState.isInfrastructureUp()).isTrue()
+
+        // Mark as DOWN
+        loadedState.markInfrastructureDown()
+        assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.DOWN)
+        assertThat(loadedState.isInfrastructureUp()).isFalse()
+
+        // Verify DOWN status persisted
+        val finalState = ClusterState.load()
+        assertThat(finalState.infrastructureStatus).isEqualTo(InfrastructureStatus.DOWN)
+        assertThat(finalState.isInfrastructureUp()).isFalse()
+    }
+
+    @Test
+    fun `updateHosts should save hosts and update timestamp`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+        state.save()
+
+        val originalTimestamp = state.lastAccessedAt
+
+        // Wait a moment to ensure timestamp changes
+        Thread.sleep(10)
+
+        val hosts =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost(
+                            publicIp = "54.1.2.3",
+                            privateIp = "10.0.1.10",
+                            alias = "cassandra0",
+                            availabilityZone = "us-west-2a",
+                        ),
+                    ),
+            )
+
+        state.updateHosts(hosts)
+
+        // Verify timestamp was updated
+        assertThat(state.lastAccessedAt).isAfter(originalTimestamp)
+
+        // Verify hosts were saved
+        val loadedState = ClusterState.load()
+        assertThat(loadedState.hosts).hasSize(1)
+        assertThat(loadedState.hosts[ServerType.Cassandra]).hasSize(1)
+    }
+
+    @Test
+    fun `getControlHost should return first control host`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        // Test with no control hosts
+        val stateNoControl =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+        assertThat(stateNoControl.getControlHost()).isNull()
+
+        // Test with control hosts
+        val controlHost =
+            ClusterHost(
+                publicIp = "54.1.2.5",
+                privateIp = "10.0.1.20",
+                alias = "control0",
+                availabilityZone = "us-west-2a",
+            )
+
+        val stateWithControl =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mapOf(
+                        ServerType.Control to listOf(controlHost),
+                    ),
+            )
+
+        val retrieved = stateWithControl.getControlHost()
+        assertThat(retrieved).isNotNull
+        assertThat(retrieved!!.publicIp).isEqualTo("54.1.2.5")
+        assertThat(retrieved.alias).isEqualTo("control0")
+    }
+
+    @Test
+    fun `validateHostsMatch should detect matching hosts`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val hosts1 =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.1.11", "cassandra1", "us-west-2b"),
+                    ),
+                ServerType.Control to
+                    listOf(
+                        ClusterHost("54.1.2.5", "10.0.1.20", "control0", "us-west-2a"),
+                    ),
+            )
+
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts = hosts1,
+            )
+
+        // Same hosts should match
+        assertThat(state.validateHostsMatch(hosts1)).isTrue()
+
+        // Hosts with different private IPs but same public IPs and aliases should match
+        val hosts2 =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.2.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.2.11", "cassandra1", "us-west-2b"),
+                    ),
+                ServerType.Control to
+                    listOf(
+                        ClusterHost("54.1.2.5", "10.0.2.20", "control0", "us-west-2a"),
+                    ),
+            )
+        assertThat(state.validateHostsMatch(hosts2)).isTrue()
+    }
+
+    @Test
+    fun `validateHostsMatch should detect mismatched hosts`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val hosts1 =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                    ),
+            )
+
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts = hosts1,
+            )
+
+        // Different public IP should not match
+        val hostsDifferentIP =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.9.9.9", "10.0.1.10", "cassandra0", "us-west-2a"),
+                    ),
+            )
+        assertThat(state.validateHostsMatch(hostsDifferentIP)).isFalse()
+
+        // Different alias should not match
+        val hostsDifferentAlias =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra99", "us-west-2a"),
+                    ),
+            )
+        assertThat(state.validateHostsMatch(hostsDifferentAlias)).isFalse()
+
+        // Different server types should not match
+        val hostsDifferentType =
+            mapOf(
+                ServerType.Stress to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                    ),
+            )
+        assertThat(state.validateHostsMatch(hostsDifferentType)).isFalse()
+
+        // Different count should not match
+        val hostsMoreHosts =
+            mapOf(
+                ServerType.Cassandra to
+                    listOf(
+                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.1.11", "cassandra1", "us-west-2b"),
+                    ),
+            )
+        assertThat(state.validateHostsMatch(hostsMoreHosts)).isFalse()
+    }
+
+    @Test
+    fun `ClusterState should have unique clusterId`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val state1 =
+            ClusterState(
+                name = "cluster1",
+                versions = mutableMapOf(),
+            )
+
+        val state2 =
+            ClusterState(
+                name = "cluster2",
+                versions = mutableMapOf(),
+            )
+
+        // Each cluster should have a unique ID
+        assertThat(state1.clusterId).isNotEqualTo(state2.clusterId)
+    }
+
+    @Test
+    fun `ClusterState should preserve clusterId on save and load`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val originalState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+        val originalId = originalState.clusterId
+        originalState.save()
+
+        val loadedState = ClusterState.load()
+        assertThat(loadedState.clusterId).isEqualTo(originalId)
+    }
+
+    @Test
+    fun `ClusterState should handle timestamp fields correctly`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        val beforeCreate = Instant.now()
+        Thread.sleep(10)
+
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+
+        Thread.sleep(10)
+        val afterCreate = Instant.now()
+
+        // createdAt and lastAccessedAt should be set
+        assertThat(state.createdAt).isBetween(beforeCreate, afterCreate)
+        assertThat(state.lastAccessedAt).isBetween(beforeCreate, afterCreate)
+
+        state.save()
+        val loadedState = ClusterState.load()
+
+        // Timestamps should be preserved
+        assertThat(loadedState.createdAt).isEqualTo(state.createdAt)
+        assertThat(loadedState.lastAccessedAt).isEqualTo(state.lastAccessedAt)
+    }
+
+    @Test
+    fun `ClusterState should load legacy state without new fields`(
+        @TempDir tempDir: File,
+    ) {
+        val stateFile = File(tempDir, "state.json")
+        ClusterState.fp = stateFile
+
+        // Create legacy JSON without new fields
+        val legacyJson =
+            """
+            {
+              "name": "legacy-cluster",
+              "default": {},
+              "nodes": {},
+              "versions": {}
+            }
+            """.trimIndent()
+
+        stateFile.writeText(legacyJson)
+
+        // Should load without errors and use defaults
+        val loadedState = ClusterState.load()
+
+        assertThat(loadedState.name).isEqualTo("legacy-cluster")
+        assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.UNKNOWN)
+        assertThat(loadedState.hosts).isEmpty()
+        assertThat(loadedState.clusterId).isNotEmpty()
     }
 }

@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="3.37"
-WORK_DIR=""
+echo "=== Running: install_fio.sh ==="
 
-# Cleanup function for trap
-cleanup() {
-    if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
-        echo "Cleaning up temporary directory..."
-        rm -rf "$WORK_DIR"
-    fi
-}
-
-trap cleanup EXIT
+# Ensure non-interactive mode for apt
+export DEBIAN_FRONTEND=noninteractive
 
 # Check if fio is already installed
 if command -v fio &> /dev/null; then
@@ -21,37 +13,11 @@ if command -v fio &> /dev/null; then
     exit 0
 fi
 
-echo "Installing fio version ${VERSION}..."
+echo "Installing fio from apt..."
 
-# Create temp directory for build
-WORK_DIR=$(mktemp -d)
-cd "$WORK_DIR"
-
-# Download fio source
-echo "Downloading fio ${VERSION}..."
-wget -q --show-progress "https://github.com/axboe/fio/archive/refs/tags/fio-${VERSION}.zip"
-
-# Verify download succeeded and has content
-if [ ! -s "fio-${VERSION}.zip" ]; then
-    echo "ERROR: Download failed or file is empty"
-    exit 1
-fi
-
-echo "Extracting source..."
-unzip -q "fio-${VERSION}.zip"
-
-# Build and install fio
-echo "Building fio (this may take a few minutes)..."
-cd fio-fio-${VERSION}
-
-echo "Running configure..."
-./configure > /dev/null
-
-echo "Compiling..."
-make -j$(nproc)
-
-echo "Installing fio..."
-sudo make install > /dev/null
+# Install fio from Ubuntu repository
+sudo DEBIAN_FRONTEND=noninteractive apt update
+sudo DEBIAN_FRONTEND=noninteractive apt install -y fio
 
 # Verify installation
 echo "Verifying fio installation..."
@@ -62,3 +28,4 @@ fi
 
 INSTALLED_VERSION=$(fio --version 2>&1 | head -n1)
 echo "fio installed successfully: $INSTALLED_VERSION"
+echo "✓ install_fio.sh completed successfully"

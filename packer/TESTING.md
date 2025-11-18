@@ -4,7 +4,7 @@ This guide explains how to test packer provisioning scripts locally using Docker
 
 ## Overview
 
-The test environment uses Docker to create a container that mimics the Ubuntu 22.04 AMI environment used by packer. This allows you to:
+The test environment uses Docker to create a container that mimics the Ubuntu 24.04 AMI environment used by packer. This allows you to:
 
 - Test individual scripts in seconds instead of minutes
 - Iterate quickly on script changes
@@ -57,7 +57,7 @@ The packer directory is mounted at `/packer` (read-only).
 ./test-script.sh cassandra/install/install_cassandra_easy_stress.sh
 
 # Test a base installation script
-./test-script.sh base/install/install_docker.sh
+./test-script.sh base/install/install_python.sh
 
 # Test with forced image rebuild
 ./test-script.sh cassandra/install/install_cassandra.sh --rebuild
@@ -119,8 +119,8 @@ Options:
 ## Test Environment Details
 
 ### Base Image
-- **OS**: Ubuntu 22.04 (jammy)
-- **Matches**: Packer source AMI `ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*`
+- **OS**: Ubuntu 24.04 (noble)
+- **Matches**: Packer source AMI `ubuntu/images/*ubuntu-noble-24.04-amd64-server-*`
 
 ### Pre-installed Software
 - Java 8, 11, 17 (JDK versions)

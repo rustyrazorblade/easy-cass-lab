@@ -4,11 +4,56 @@
 # accepts two arguments: the patch file and the version number, assumed to be current if omitted
 # we want the ability to be able to patch stuff before we apply it as the current version.
 
-# shellcheck disable=SC2034
-export PATCH=$1
-VERSION=${2:-current}
-export DEST=/usr/local/cassandra/$VERSION/conf/cassandra.yaml
+set -e  # Exit on first error
 
-yq '. *= load(env(PATCH))' /usr/local/cassandra/$VERSION/conf.orig/cassandra.yaml > /tmp/cassandra.yaml
-sudo mv -f /tmp/cassandra.yaml $DEST
-sudo chown cassandra:cassandra $DEST
+export PATCH=$1
+export VERSION=${2:-current}
+
+# Validate inputs
+if [ -z "$PATCH" ]; then
+    echo "ERROR: Patch file not specified" >&2
+    echo "Usage: $0 <patch-file> [version]" >&2
+    exit 1
+fi
+
+if [ ! -f "$PATCH" ]; then
+    echo "ERROR: Patch file not found: $PATCH" >&2
+    exit 2
+fi
+
+# Check if yq is available
+if ! command -v yq &> /dev/null; then
+    echo "ERROR: yq command not found. Please install yq." >&2
+    exit 3
+fi
+
+ORIG_CONFIG="/usr/local/cassandra/$VERSION/conf.orig/cassandra.yaml"
+if [ ! -f "$ORIG_CONFIG" ]; then
+    echo "ERROR: Original config not found: $ORIG_CONFIG" >&2
+    echo "Available versions:" >&2
+    ls -1 /usr/local/cassandra/ 2>&1 | sed 's/^/  /' >&2
+    exit 4
+fi
+
+export DEST="/usr/local/cassandra/$VERSION/conf/cassandra.yaml"
+
+# Apply patch with error handling
+echo "Merging patch file $PATCH with $ORIG_CONFIG..."
+if ! yq '. *= load(env(PATCH))' "$ORIG_CONFIG" > /tmp/cassandra.yaml; then
+    echo "ERROR: yq failed to merge patch file. Check YAML syntax." >&2
+    exit 5
+fi
+
+# Move and set ownership
+echo "Installing patched config to $DEST..."
+if ! sudo mv -f /tmp/cassandra.yaml "$DEST"; then
+    echo "ERROR: Failed to move config file to $DEST" >&2
+    exit 6
+fi
+
+if ! sudo chown cassandra:cassandra "$DEST"; then
+    echo "ERROR: Failed to set ownership on $DEST" >&2
+    exit 7
+fi
+
+echo "✓ Successfully patched $DEST"

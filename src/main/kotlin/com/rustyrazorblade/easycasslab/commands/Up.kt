@@ -14,6 +14,8 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.services.K3sAgentService
+import com.rustyrazorblade.easycasslab.services.K3sService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.sshd.common.SshException
 import org.koin.core.component.inject
@@ -30,6 +32,8 @@ class Up(
 ) : BaseCommand(context) {
     private val aws: AWS by inject()
     private val userConfig: User by inject()
+    private val k3sService: K3sService by inject()
+    private val k3sAgentService: K3sAgentService by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
@@ -53,12 +57,26 @@ class Up(
         aws.createLabEnvironment()
         provisionInfrastructure()
         writeConfigurationFiles()
+        updateClusterState()
         WriteConfig(context).execute()
         waitForSshAndDownloadVersions()
-        uploadDockerComposeToControlNodes()
-        uploadOtelConfigsToCassandraNodes()
-        uploadOtelConfigsToStressNodes()
         setupInstancesIfNeeded()
+    }
+
+    /**
+     * Update cluster state with current hosts and mark infrastructure as UP
+     */
+    private fun updateClusterState() {
+        try {
+            val clusterState = ClusterState.load()
+            val allHosts = tfstate.getAllHostsAsMap()
+            clusterState.updateHosts(allHosts)
+            clusterState.markInfrastructureUp()
+            outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to update cluster state, continuing anyway" }
+            // Don't fail the entire Up command if state update fails
+        }
     }
 
     private fun provisionInfrastructure() {
@@ -198,184 +216,6 @@ class Up(
         } while (!done)
     }
 
-    private fun uploadDockerComposeToControlNodes() {
-        outputHandler.handleMessage("Preparing Docker Compose configuration for control nodes...")
-
-        val dockerComposeFile = File("control/docker-compose.yaml")
-        val otelConfigFile = File("control/otel-collector-config.yaml")
-        val dataPrepperConfigFile = File("control/data-prepper-pipelines.yaml")
-
-        if (!dockerComposeFile.exists()) {
-            outputHandler.handleMessage("control/docker-compose.yaml not found, skipping upload")
-            return
-        }
-
-        // Get the internal IP of the first Cassandra node
-        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
-        outputHandler.handleMessage("Using Cassandra host IP: $cassandraHost")
-
-        // Read the docker-compose.yaml file and replace cassandra0 with the actual IP
-        val dockerComposeContent = dockerComposeFile.readText()
-        val updatedContent =
-            dockerComposeContent.replace(
-                "CASSANDRA_HOST=cassandra0",
-                "CASSANDRA_HOST=$cassandraHost",
-            )
-
-        // Write the updated content back to the file
-        dockerComposeFile.writeText(updatedContent)
-        outputHandler.handleMessage("Updated docker-compose.yaml with Cassandra IP: $cassandraHost")
-
-        tfstate.withHosts(ServerType.Control, hosts, parallel = true) { host ->
-            outputHandler.handleMessage(
-                "Uploading configuration files to control node ${host.public}",
-            )
-
-            // Upload docker-compose.yaml to ubuntu user's home directory
-            remoteOps.upload(host, dockerComposeFile.toPath(), "/home/ubuntu/docker-compose.yaml")
-
-            // Upload otel-collector-config.yaml if it exists
-            if (otelConfigFile.exists()) {
-                outputHandler.handleMessage(
-                    "Uploading otel-collector-config.yaml to control node ${host.public}",
-                )
-                remoteOps.upload(
-                    host,
-                    otelConfigFile.toPath(),
-                    "/home/ubuntu/otel-collector-config.yaml",
-                )
-            }
-        }
-
-        outputHandler.handleMessage("Docker Compose configuration uploaded to control nodes")
-    }
-
-    private fun uploadOtelConfigsToCassandraNodes() {
-        outputHandler.handleMessage("Preparing OTel configuration for Cassandra nodes...")
-
-        val otelConfigFile = File("cassandra/otel-cassandra-config.yaml")
-        val dockerComposeFile = File("cassandra/docker-compose.yaml")
-
-        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
-            outputHandler.handleMessage("Cassandra OTel config files not found, skipping upload")
-            return
-        }
-
-        // Get the internal IP of the first control node for OTLP endpoint
-        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
-        if (controlHost == null) {
-            outputHandler.handleMessage(
-                "No control nodes found, skipping OTel configuration for Cassandra nodes",
-            )
-            return
-        }
-
-        val controlNodeIp = controlHost.private
-        outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
-
-        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
-            outputHandler.handleMessage(
-                "Configuring OTel for Cassandra node ${host.alias} (${host.public})",
-            )
-
-            // Create .env file for docker-compose with environment variables
-            val envContent =
-                """
-                CONTROL_NODE_IP=$controlNodeIp
-                """.trimIndent()
-
-            // Create temporary .env file
-            val tempEnvFile = File.createTempFile("env-", "")
-
-            try {
-                tempEnvFile.writeText(envContent)
-
-                // Upload configuration files to Cassandra node
-                remoteOps.upload(
-                    host,
-                    otelConfigFile.toPath(),
-                    "/home/ubuntu/otel-cassandra-config.yaml",
-                )
-                remoteOps.upload(
-                    host,
-                    dockerComposeFile.toPath(),
-                    "/home/ubuntu/docker-compose.yaml",
-                )
-                remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
-
-                outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
-            } finally {
-                // Clean up temporary files
-                tempEnvFile.delete()
-            }
-        }
-
-        outputHandler.handleMessage("OTel configuration uploaded to all Cassandra nodes")
-    }
-
-    private fun uploadOtelConfigsToStressNodes() {
-        outputHandler.handleMessage("Preparing OTel configuration for stress nodes...")
-
-        val otelConfigFile = File("stress/otel-stress-config.yaml")
-        val dockerComposeFile = File("stress/docker-compose.yaml")
-
-        if (!otelConfigFile.exists() || !dockerComposeFile.exists()) {
-            outputHandler.handleMessage("Stress OTel config files not found, skipping upload")
-            return
-        }
-
-        // Get the internal IP of the first control node for OTLP endpoint
-        val controlHost = tfstate.getHosts(ServerType.Control).firstOrNull()
-        if (controlHost == null) {
-            outputHandler.handleMessage(
-                "No control nodes found, skipping OTel configuration for stress nodes",
-            )
-            return
-        }
-
-        val controlNodeIp = controlHost.private
-        outputHandler.handleMessage("Using control node IP for OTLP endpoint: $controlNodeIp")
-
-        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
-            outputHandler.handleMessage(
-                "Configuring OTel for stress node ${host.alias} (${host.public})",
-            )
-
-            // Create .env file for docker-compose with environment variables
-            val envContent =
-                """
-                CONTROL_NODE_IP=$controlNodeIp
-                """.trimIndent()
-
-            // Create temporary .env file
-            val tempEnvFile = File.createTempFile("env-", "")
-
-            try {
-                tempEnvFile.writeText(envContent)
-
-                // Upload configuration files to stress node
-                remoteOps.upload(
-                    host,
-                    otelConfigFile.toPath(),
-                    "/home/ubuntu/otel-stress-config.yaml",
-                )
-                remoteOps.upload(
-                    host,
-                    dockerComposeFile.toPath(),
-                    "/home/ubuntu/docker-compose.yaml",
-                )
-                remoteOps.upload(host, tempEnvFile.toPath(), "/home/ubuntu/.env")
-
-                outputHandler.handleMessage("OTel configuration uploaded to ${host.alias}")
-            } finally {
-                // Clean up temporary files
-                tempEnvFile.delete()
-            }
-        }
-
-        outputHandler.handleMessage("OTel configuration uploaded to all stress nodes")
-    }
-
     private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
@@ -386,11 +226,115 @@ class Up(
             }
         } else {
             SetupInstance(context).execute()
+            startK3sOnAllNodes()
 
             if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
                 ConfigureAxonOps(context).execute()
             }
         }
+    }
+
+    /**
+     * Starts K3s cluster with server on control node and agents on worker nodes.
+     *
+     * This method executes after OS configuration and disk mounting (SetupInstance)
+     * and before optional AxonOps configuration.
+     *
+     * K3s startup follows the proper server/agent architecture:
+     * 1. Start K3s server on control node (provides Kubernetes control plane)
+     * 2. Retrieve node token from server (required for agent authentication)
+     * 3. Configure and start K3s agents on Cassandra and Stress nodes
+     *
+     * K3s is a lightweight Kubernetes distribution that's pre-installed but disabled
+     * on the base image. This method creates a distributed Kubernetes cluster across
+     * all nodes.
+     */
+    @Suppress("ReturnCount") // Multiple early returns for different failure scenarios improve readability
+    private fun startK3sOnAllNodes() {
+        outputHandler.handleMessage("Starting K3s cluster...")
+
+        // Step 1: Start K3s server on control node
+        val controlHosts = tfstate.getHosts(ServerType.Control)
+        if (controlHosts.isEmpty()) {
+            outputHandler.handleError("No control nodes found, skipping K3s setup")
+            return
+        }
+
+        val controlNode = controlHosts.first()
+        outputHandler.handleMessage("Starting K3s server on control node ${controlNode.alias}...")
+
+        // Step 2: Start server and retrieve token
+        k3sService
+            .start(controlNode)
+            .onFailure { error ->
+                log.error(error) { "Failed to start K3s server on ${controlNode.alias}" }
+                outputHandler.handleError("Failed to start K3s server: ${error.message}")
+                return
+            }.onSuccess {
+                log.info { "Successfully started K3s server on ${controlNode.alias}" }
+            }
+
+        val nodeToken =
+            k3sService
+                .getNodeToken(controlNode)
+                .onFailure { error ->
+                    log.error(error) { "Failed to retrieve K3s node token from ${controlNode.alias}" }
+                    outputHandler.handleError("Failed to retrieve K3s node token: ${error.message}")
+                    return
+                }.getOrThrow()
+
+        log.info { "Retrieved K3s node token from ${controlNode.alias}" }
+
+        // Download and configure kubeconfig for local kubectl access
+        k3sService
+            .downloadAndConfigureKubeconfig(controlNode, File("kubeconfig").toPath())
+            .onFailure { error ->
+                log.error(error) { "Failed to download kubeconfig from ${controlNode.alias}" }
+                outputHandler.handleError("Failed to download kubeconfig: ${error.message}")
+                // Don't return - kubeconfig is optional, continue with agent setup
+            }.onSuccess {
+                outputHandler.handleMessage("Kubeconfig written to kubeconfig")
+                outputHandler.handleMessage("Use 'source env.sh' to configure kubectl for cluster access")
+            }
+
+        // Step 3: Configure and start K3s agents on worker nodes
+        val serverUrl = "https://${controlNode.private}:6443"
+        val workerServerTypes = listOf(ServerType.Cassandra, ServerType.Stress)
+
+        workerServerTypes.forEach { serverType ->
+            // Determine node labels based on server type
+            val nodeLabels =
+                when (serverType) {
+                    ServerType.Cassandra -> mapOf("role" to "cassandra", "type" to "db")
+                    ServerType.Stress -> mapOf("role" to "stress", "type" to "app")
+                    ServerType.Control -> emptyMap() // Control nodes run k3s server, not agent
+                }
+
+            tfstate.withHosts(serverType, hosts, parallel = true) { host ->
+                outputHandler.handleMessage("Configuring K3s agent on ${host.alias} with labels: $nodeLabels...")
+
+                // Configure agent with server URL, token, and node labels
+                k3sAgentService
+                    .configure(host, serverUrl, nodeToken, nodeLabels)
+                    .onFailure { error ->
+                        log.error(error) { "Failed to configure K3s agent on ${host.alias}" }
+                        outputHandler.handleError("Failed to configure K3s agent on ${host.alias}: ${error.message}")
+                        return@withHosts
+                    }
+
+                // Start agent service
+                k3sAgentService
+                    .start(host)
+                    .onFailure { error ->
+                        log.error(error) { "Failed to start K3s agent on ${host.alias}" }
+                        outputHandler.handleError("Failed to start K3s agent on ${host.alias}: ${error.message}")
+                    }.onSuccess {
+                        log.info { "Successfully started K3s agent on ${host.alias}" }
+                    }
+            }
+        }
+
+        outputHandler.handleMessage("K3s cluster started successfully")
     }
 }

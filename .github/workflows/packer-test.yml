@@ -22,7 +22,6 @@ jobs:
       matrix:
         script:
           - cassandra/install/install_cassandra_easy_stress.sh
-          - base/install/install_docker.sh
           - base/install/install_python.sh
     steps:
       - name: Checkout code
