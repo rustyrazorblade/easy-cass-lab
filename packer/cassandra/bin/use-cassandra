@@ -53,10 +53,17 @@ else
   exit 1
 fi
 
-# set python version
-# NOTE: a bit hacky but we have to switch back to ubuntu user for this
-#       since its expected that this script run as root by pyenv doesn't
-sudo -u ubuntu bash << EOF
-source ~/.bash_profile
-pyenv global $PY_VERSION
-EOF
+# set python version using update-alternatives
+# Extract major.minor version from full version (e.g., "3.10.6" -> "3.10", "2.7.18" -> "2.7")
+PY_MAJOR_MINOR=$(echo "$PY_VERSION" | cut -d. -f1,2)
+PY_ALTERNATIVE="/usr/bin/python${PY_MAJOR_MINOR}"
+
+# Validate that the requested Python version is installed
+if [ ! -f "$PY_ALTERNATIVE" ]; then
+  echo "Error: Python version $PY_VERSION (${PY_ALTERNATIVE}) is not installed"
+  exit 1
+fi
+
+# Switch Python version using update-alternatives
+sudo update-alternatives --set python "$PY_ALTERNATIVE"
+echo "Switched to Python $PY_VERSION (${PY_ALTERNATIVE})"
