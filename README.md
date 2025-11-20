@@ -277,10 +277,45 @@ easy-cass-lab down
 
 ## Tools
 
-bcc-tools is a useful package of tools 
+bcc-tools is a useful package of tools
 
 https://rustyrazorblade.com/post/2023/2023-11-14-bcc-tools/
 
+## MCP Server Integration
+
+easy-cass-lab includes a Model Context Protocol (MCP) server that enables AI assistants like Claude Code to interact directly with your Cassandra clusters.
+
+### Starting the MCP Server
+
+To start the MCP server:
+
+```shell
+easy-cass-lab server --port 8888
+```
+
+This starts the MCP server on port 8888 (you can use any available port).
+
+### Integrating with Claude Code
+
+Once the MCP server is running, add it to Claude Code:
+
+```shell
+claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse
+```
+
+This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-cass-lab MCP server.
+
+### What You Can Do
+
+With MCP integration, Claude Code can:
+
+* Manage and provision clusters directly
+* Configure and deploy Cassandra instances
+* Run performance tests and analyze results
+* Troubleshoot issues by analyzing logs and metrics
+* Automate complex multi-step cluster operations
+
+For detailed documentation, see the [MCP Integration section in the user manual](http://rustyrazorblade.com/easy-cass-lab/).
 
 ## Sanity Check Test
 

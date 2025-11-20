@@ -181,7 +181,7 @@ Parses Terraform state and provides methods to retrieve host information:
 JCommander subcommands.  Most run then exit.  There are two exceptions:
 
 - Repl: Starts a REPL to reduce typing
-- McpCommand: Starts an MCP server for AI Agents.
+- Server: Starts an MCP server for AI Agents (run via `easy-cass-lab server`).
 
 
 ### Common Patterns

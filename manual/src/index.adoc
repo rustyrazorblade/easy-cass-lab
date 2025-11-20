@@ -196,7 +196,7 @@ To start the MCP server, run:
 
 [source,bash]
 ----
-easy-cass-lab mcp --port 8888
+easy-cass-lab server --port 8888
 ----
 
 This will start the MCP server on port 8888 (you can use any available port).

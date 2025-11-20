@@ -444,7 +444,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="details">
 <span id="author" class="author">Jon Haddad</span><br>
 <span id="email" class="email"><a href="mailto:jon@rustyrazorblade.com">jon@rustyrazorblade.com</a></span><br>
-<span id="revnumber">version 11</span>
+<span id="revnumber">version 12</span>
 </div>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
@@ -464,6 +464,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_the_hard_way_use_a_custom_build">The Hard Way - Use a custom Build</a></li>
 </ul>
 </li>
+<li><a href="#_mcp_server_integration_with_claude_code">MCP Server Integration with Claude Code</a>
+<ul class="sectlevel2">
+<li><a href="#_starting_the_mcp_server">Starting the MCP Server</a></li>
+<li><a href="#_adding_to_claude_code">Adding to Claude Code</a></li>
+<li><a href="#_available_mcp_operations">Available MCP Operations</a></li>
+<li><a href="#_benefits_of_mcp_integration">Benefits of MCP Integration</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -475,7 +483,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="paragraph">
 <p>If you are looking for a tool to aid in benchmarking these clusters please see the companion project
-<a href="https://github.com/rustyrazorblade/easy-cass-stress">easy-cass&#8212;&#8203;stress</a>.</p>
+<a href="https://github.com/apache/cassandra-easy-stress">cassandra-easy-stress</a>.</p>
 </div>
 <div class="paragraph">
 <p>If you&#8217;re looking for tools to help manage Cassandra in <em>production</em> environments please see the <a href="http://cassandra-reaper.io/">Reaper</a> project and <a href="https://github.com/spotify/cstar">cstar</a></p>
@@ -501,7 +509,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="_installation">Installation</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>The current version is 11.</p>
+<p>The current version is 12.</p>
 </div>
 <div class="sect3">
 <h4 id="_tarball_install">Tarball Install</h4>
@@ -510,8 +518,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/rustyrazorblade/tlp-tools-tarball/easy-cass-lab-11.tar"
-$ tar -xzf easy-cass-lab-11.tar</code></pre>
+<pre class="highlight"><code>$ curl -L -O "https://dl.bintray.com/rustyrazorblade/tlp-tools-tarball/easy-cass-lab-12.tar"
+$ tar -xzf easy-cass-lab-12.tar</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -769,11 +777,91 @@ easy-cass-lab start</code></pre>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_mcp_server_integration_with_claude_code">MCP Server Integration with Claude Code</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>easy-cass-lab includes a Model Context Protocol (MCP) server that allows seamless integration with Claude Code. This enables Claude to directly interact with your easy-cass-lab clusters and perform operations through a standardized protocol.</p>
+</div>
+<div class="sect2">
+<h3 id="_starting_the_mcp_server">Starting the MCP Server</h3>
+<div class="paragraph">
+<p>To start the MCP server, run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">easy-cass-lab server --port 8888</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will start the MCP server on port 8888 (you can use any available port).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_adding_to_claude_code">Adding to Claude Code</h3>
+<div class="paragraph">
+<p>Once the MCP server is running, you can add it to Claude Code using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-bash" data-lang="bash">claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-cass-lab MCP server.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_available_mcp_operations">Available MCP Operations</h3>
+<div class="paragraph">
+<p>The MCP server provides Claude with direct access to easy-cass-lab operations, allowing for:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Cluster management and provisioning</p>
+</li>
+<li>
+<p>Cassandra configuration and deployment</p>
+</li>
+<li>
+<p>Performance testing and monitoring</p>
+</li>
+<li>
+<p>Log analysis and troubleshooting</p>
+</li>
+<li>
+<p>Automated cluster operations</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_benefits_of_mcp_integration">Benefits of MCP Integration</h3>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Direct Control</strong>: Claude can execute easy-cass-lab commands directly without manual intervention</p>
+</li>
+<li>
+<p><strong>Context Awareness</strong>: Claude maintains context about your cluster state and configuration</p>
+</li>
+<li>
+<p><strong>Automation</strong>: Complex multi-step operations can be automated through Claude</p>
+</li>
+<li>
+<p><strong>Intelligent Assistance</strong>: Claude can analyze logs, metrics, and provide optimization recommendations</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Version 11<br>
-Last updated 2025-01-13 11:43:45 -0800
+Version 12<br>
+Last updated 2025-11-20 07:58:38 -0800
 </div>
 </div>
 </body>

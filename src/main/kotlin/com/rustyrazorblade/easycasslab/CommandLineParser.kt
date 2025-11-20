@@ -17,10 +17,10 @@ import com.rustyrazorblade.easycasslab.commands.Hosts
 import com.rustyrazorblade.easycasslab.commands.ICommand
 import com.rustyrazorblade.easycasslab.commands.Init
 import com.rustyrazorblade.easycasslab.commands.ListVersions
-import com.rustyrazorblade.easycasslab.commands.Server
 import com.rustyrazorblade.easycasslab.commands.PruneAMIs
 import com.rustyrazorblade.easycasslab.commands.Repl
 import com.rustyrazorblade.easycasslab.commands.Restart
+import com.rustyrazorblade.easycasslab.commands.Server
 import com.rustyrazorblade.easycasslab.commands.SetupInstance
 import com.rustyrazorblade.easycasslab.commands.Start
 import com.rustyrazorblade.easycasslab.commands.Stop
