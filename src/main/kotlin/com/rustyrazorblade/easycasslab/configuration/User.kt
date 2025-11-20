@@ -12,6 +12,8 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.util.HashSet
 import java.util.UUID
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.memberProperties
 
 data class User(
     @ConfigField(order = 1, prompt = "What's your email?", default = "")
@@ -35,6 +37,8 @@ data class User(
     var axonOpsOrg: String = "",
     @ConfigField(order = 6, prompt = "AxonOps Key", default = "")
     var axonOpsKey: String = "",
+//    @ConfigField(order = 15, prompt = "S3 bucket (just the name, will be provisioned)", default = "")
+//    var s3Bucket: String = "",
 ) {
     companion object {
         val log = KotlinLogging.logger {}
@@ -42,13 +46,12 @@ data class User(
         /**
          * Gets all ConfigField-annotated properties from User class in order
          */
-        private fun getConfigFields(): List<kotlin.reflect.KProperty1<User, *>> =
+        fun getConfigFields(): List<kotlin.reflect.KProperty1<User, *>> =
             User::class
-                .members
-                .filterIsInstance<kotlin.reflect.KProperty1<User, *>>()
-                .filter { it.annotations.any { annotation -> annotation is ConfigField } }
+                .memberProperties
+                .filter { it.findAnnotation<ConfigField>() != null }
                 .sortedBy { property ->
-                    (property.annotations.find { it is ConfigField } as ConfigField).order
+                    property.findAnnotation<ConfigField>()?.order
                 }
 
         /**
@@ -89,6 +92,7 @@ data class User(
             // Load existing config values if file exists
             val existingConfig = loadExistingConfig(context, location)
             val configFields = getConfigFields()
+            log.debug { "Config fields: $configFields" }
             val fieldValues = mutableMapOf<String, Any>()
 
             // Copy existing values first
@@ -101,7 +105,8 @@ data class User(
             var hasShownWelcome = false
 
             for (field in configFields) {
-                val configField = field.annotations.find { it is ConfigField } as ConfigField
+                log.debug { "Checking field $field" }
+                val configField = field.findAnnotation<ConfigField>()!!
                 val fieldName = field.name
 
                 // Skip if field already exists in config
@@ -117,6 +122,7 @@ data class User(
 
                 // Skip if field is marked as skippable (auto-generated)
                 if (configField.skippable) {
+                    log.debug { "Skipping field $field" }
                     continue
                 }
 
@@ -141,7 +147,8 @@ data class User(
 
                 outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
 
-                val ec2 = EC2(awsAccessKey, awsSecret, region!!)
+                check(region != null)
+                val ec2 = EC2(awsAccessKey, awsSecret, region)
                 val ec2Client = ec2.client
 
                 val keyName = "easy-cass-lab-${UUID.randomUUID()}"
