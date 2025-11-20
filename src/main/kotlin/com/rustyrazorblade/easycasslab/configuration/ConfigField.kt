@@ -10,7 +10,7 @@ package com.rustyrazorblade.easycasslab.configuration
  * @param secret Whether to hide user input (for passwords/keys)
  * @param skippable Whether to skip user prompting (for programmatically set fields)
  */
-@Target(AnnotationTarget.FIELD)
+@Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class ConfigField(
     val order: Int,

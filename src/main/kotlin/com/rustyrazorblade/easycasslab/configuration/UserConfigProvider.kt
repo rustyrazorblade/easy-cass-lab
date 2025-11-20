@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
@@ -44,7 +45,7 @@ class UserConfigProvider(
         log.debug { "Loading user config from $userConfigFile" }
         // Create a temporary context for interactive setup - this is a bit of a hack
         // but needed for the createInteractively method
-        val tempContext = com.rustyrazorblade.easycasslab.Context(profileDir.parentFile.parentFile)
+        val tempContext = Context(profileDir.parentFile.parentFile)
         User.createInteractively(tempContext, userConfigFile, outputHandler)
 
         return yaml.readValue<User>(userConfigFile)
