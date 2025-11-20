@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "=== Running: install_bcc.sh ==="
+
 BCC_VERSION=0.35.0
 WORK_DIR=""
 
@@ -31,7 +33,7 @@ sudo apt purge -y bpfcc-tools libbpfcc python3-bpfcc || true
 # Install build dependencies
 echo "Installing build dependencies..."
 sudo apt install -y zip bison build-essential cmake flex git libedit-dev \
-  libllvm14 llvm-14-dev libclang-14-dev python3 zlib1g-dev libelf-dev libfl-dev python3-setuptools \
+  libllvm14 llvm-14-dev libclang-14-dev libpolly-14-dev python3 zlib1g-dev libelf-dev libfl-dev python3-setuptools \
   liblzma-dev libdebuginfod-dev arping netperf iperf
 
 # Create temp directory for build
@@ -65,7 +67,7 @@ mkdir build
 cd build/
 
 echo "Running cmake..."
-cmake .. > /dev/null
+cmake -DREVISION=${BCC_VERSION} -DENABLE_EXAMPLES=OFF -DENABLE_TESTS=OFF .. > /dev/null
 
 echo "Compiling..."
 make -j$(nproc)
@@ -74,7 +76,7 @@ echo "Installing BCC..."
 sudo make install > /dev/null
 
 echo "Building Python3 bindings..."
-cmake -DPYTHON_CMD=/usr/bin/python3 .. > /dev/null
+cmake -DREVISION=${BCC_VERSION} -DPYTHON_CMD=/usr/bin/python3 .. > /dev/null
 pushd src/python/ > /dev/null
 make -j$(nproc)
 sudo make install > /dev/null
@@ -88,3 +90,4 @@ if ! python3 -c "import bcc" 2>/dev/null; then
 fi
 
 echo "BCC ${BCC_VERSION} installed successfully"
+echo "✓ install_bcc.sh completed successfully"

@@ -2,20 +2,79 @@
 
 set -e  # Exit on any error
 
+# Parse command line arguments
+WAIT_BEFORE_TEARDOWN=false
+BUILD_IMAGE=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --wait)
+      WAIT_BEFORE_TEARDOWN=true
+      shift
+      ;;
+    --build)
+      BUILD_IMAGE=true
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Usage: $0 [--wait] [--build]"
+      exit 1
+      ;;
+  esac
+done
+
 echo "=== Building project ==="
 ./gradlew clean test shadowJar installDist
 
-echo "=== Initializing cluster ==="
-bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up
+if [ "$BUILD_IMAGE" = true ]; then
+  echo "=== Building packer images ==="
+  bin/easy-cass-lab build-image
+fi
 
-echo "=== Updating configuration ==="
-bin/easy-cass-lab update-config
+echo "=== Initializing cluster ==="
+bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up -s 1
+
+echo "=== Setting up kubectl access ==="
+shopt -s expand_aliases
+source env.sh
+
+echo "=== Waiting for K3s cluster to be ready ==="
+# Wait up to 60 seconds for nodes to be ready
+timeout=60
+elapsed=0
+while [ $elapsed -lt $timeout ]; do
+  if kubectl get nodes &>/dev/null; then
+    echo "kubectl connectivity established"
+    break
+  fi
+  echo "Waiting for kubectl to connect... ($elapsed/$timeout seconds)"
+  sleep 5
+  elapsed=$((elapsed + 5))
+done
+
+if [ $elapsed -ge $timeout ]; then
+  echo "ERROR: kubectl failed to connect to K3s cluster after $timeout seconds"
+  exit 1
+fi
+
+echo "=== Verifying K3s cluster nodes ==="
+kubectl get nodes
+
+echo "=== Verifying K3s system pods ==="
+kubectl get pods -A
+
+echo "=== Waiting for all nodes to be Ready ==="
+# Wait for all nodes to reach Ready state
+kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
 echo "=== Listing available Cassandra versions ==="
 bin/easy-cass-lab list
 
 echo "=== Setting Cassandra version to 5.0 ==="
 bin/easy-cass-lab use 5.0
+
+echo "=== Updating configuration ==="
+bin/easy-cass-lab update-config
 
 echo "=== Starting Cassandra ==="
 bin/easy-cass-lab start
@@ -32,9 +91,25 @@ bin/easy-cass-lab exec -t cassandra -p uptime
 echo "=== Testing exec command (with host filter) ==="
 bin/easy-cass-lab exec -t cassandra --hosts cassandra0,cassandra1 date
 
+echo "=== Running stress test ==="
+which ssh
+ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
+
+if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
+  echo ""
+  echo "=== Cluster is ready for inspection ==="
+  echo "The cluster is now running and ready to inspect."
+  echo "You can:"
+  echo "  - Run: kubectl get nodes"
+  echo "  - Run: kubectl get pods -A"
+  echo "  - SSH to nodes using the aliases from env.sh"
+  echo "  - Test Cassandra connectivity"
+  echo ""
+  read -p "Press Enter to tear down the cluster and complete the test..."
+  echo ""
+fi
+
 echo "=== Tearing down cluster ==="
 bin/easy-cass-lab down --yes
 
 echo "=== End-to-end test completed successfully ==="
-
-

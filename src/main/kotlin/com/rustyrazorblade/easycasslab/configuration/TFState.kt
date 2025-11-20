@@ -88,6 +88,23 @@ class TFState(
     }
 
     /**
+     * Get all hosts as a map keyed by ServerType
+     * Returns Map<ServerType, List<ClusterHost>> suitable for storing in ClusterState
+     */
+    fun getAllHostsAsMap(): Map<ServerType, List<ClusterHost>> =
+        ServerType.values().associate { serverType ->
+            serverType to
+                getHosts(serverType).map { host ->
+                    ClusterHost(
+                        publicIp = host.public,
+                        privateIp = host.private,
+                        alias = host.alias,
+                        availabilityZone = host.availabilityZone,
+                    )
+                }
+        }
+
+    /**
      * Host filter is a simple string check for now.
      * @param parallel If true, execute operations on each host in parallel threads
      */

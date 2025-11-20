@@ -38,6 +38,8 @@ class Clean(
                 "cassandra_versions.yaml",
                 "axonops-workbench.json",
                 "easy-cass-mcp.json",
+                ".socks5-proxy-state",
+                "kubeconfig",
             )
 
         val directoriesToClean =

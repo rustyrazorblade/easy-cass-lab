@@ -13,8 +13,6 @@ object Constants {
 
         // Remote paths
         const val REMOTE_HOME = "/home/ubuntu"
-        const val REMOTE_DOCKER_COMPOSE = "$REMOTE_HOME/docker-compose.yaml"
-        const val REMOTE_ENV_FILE = "$REMOTE_HOME/.env"
     }
 
     // Server types
@@ -41,24 +39,11 @@ object Constants {
         const val OPENSEARCH_DASHBOARDS_PORT = 5601
     }
 
-    // Docker configuration
+    // Docker configuration (for local container operations)
     object Docker {
         const val CONTAINER_ID_DISPLAY_LENGTH = 12
         const val CONTAINER_POLLING_INTERVAL_MS = 1000L
         const val FRAME_REPORTING_INTERVAL = 100
-
-        // Docker commands
-        object Commands {
-            const val COMPOSE_PULL = "docker compose pull"
-            const val COMPOSE_UP_DETACHED = "docker compose up -d"
-            const val COMPOSE_PS = "docker compose ps"
-            const val VERSION_CHECK = "which docker && docker --version"
-        }
-
-        // Docker images
-        object Images {
-            const val OTEL_COLLECTOR = "otel/opentelemetry-collector-contrib:latest"
-        }
     }
 
     // Terraform configuration
@@ -87,22 +72,10 @@ object Constants {
 
     // Configuration file paths
     object ConfigPaths {
-        // Control node configs
-        const val CONTROL_DOCKER_COMPOSE = "control/docker-compose.yaml"
-        const val CONTROL_OTEL_CONFIG = "control/otel-collector-config.yaml"
-
         // Cassandra node configs
-        const val CASSANDRA_DOCKER_COMPOSE = "cassandra/docker-compose.yaml"
-        const val CASSANDRA_OTEL_CONFIG = "cassandra/otel-cassandra-config.yaml"
-        const val CASSANDRA_REMOTE_OTEL_CONFIG = "otel-cassandra-config.yaml"
         const val CASSANDRA_SIDECAR_CONFIG = "cassandra/cassandra-sidecar.yaml"
         const val CASSANDRA_REMOTE_SIDECAR_DIR = "/etc/cassandra-sidecar"
         const val CASSANDRA_REMOTE_SIDECAR_CONFIG = "$CASSANDRA_REMOTE_SIDECAR_DIR/cassandra-sidecar.yaml"
-
-        // Stress node configs
-        const val STRESS_DOCKER_COMPOSE = "stress/docker-compose.yaml"
-        const val STRESS_OTEL_CONFIG = "stress/otel-stress-config.yaml"
-        const val STRESS_REMOTE_OTEL_CONFIG = "otel-stress-config.yaml"
     }
 
     // Cassandra Sidecar configuration
@@ -116,5 +89,13 @@ object Constants {
         const val FILE_EXISTS_SUFFIX = "&& echo 'exists' || echo 'not found'"
         const val EXISTS_RESPONSE = "exists"
         const val NOT_FOUND_RESPONSE = "not found"
+    }
+
+    // K3s configuration
+    object K3s {
+        const val REMOTE_KUBECONFIG = "/etc/rancher/k3s/k3s.yaml"
+        const val LOCAL_KUBECONFIG = "kubeconfig"
+        const val NODE_TOKEN_PATH = "/var/lib/rancher/k3s/server/node-token"
+        const val DEFAULT_SERVER_URL = "https://127.0.0.1:6443"
     }
 }

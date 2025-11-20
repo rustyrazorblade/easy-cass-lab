@@ -29,7 +29,7 @@ cd packer
 ./test-script.sh cassandra/install/install_cassandra_easy_stress.sh
 
 # Test another script
-./test-script.sh base/install/install_docker.sh
+./test-script.sh base/install/install_python.sh
 
 # Drop into interactive shell for debugging
 ./test-script.sh --shell
@@ -85,7 +85,7 @@ packer/
 ├── cassandra/              # Cassandra AMI configuration
 │   ├── cassandra.pkr.hcl  # Packer config for Cassandra image
 │   └── install/            # Cassandra installation scripts
-├── Dockerfile              # Test environment (mimics Ubuntu 22.04 AMI)
+├── Dockerfile              # Test environment (mimics Ubuntu 24.04 AMI)
 ├── docker-compose.yml      # Test orchestration
 ├── test-script.sh          # Script testing utility
 └── TESTING.md              # Comprehensive testing guide

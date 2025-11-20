@@ -4,11 +4,11 @@
 
 - version: "3.0"
   java: "8"
-  python: "2.7.18"
+  python: "3.10.6"
 
 - version: "3.11"
   java: "8"
-  python: "2.7.18"
+  python: "3.10.6"
 
 - version: "4.0"
   java: "11"

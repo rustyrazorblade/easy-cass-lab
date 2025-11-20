@@ -2,8 +2,12 @@ package com.rustyrazorblade.easycasslab.configuration
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.File
+import java.time.Instant
+import java.util.UUID
 
 /**
  * Tracking state across multiple commands
@@ -14,6 +18,25 @@ data class NodeState(
     var version: String = "",
     var javaVersion: String = "",
 )
+
+/**
+ * Represents host information for a single instance in the cluster
+ */
+data class ClusterHost(
+    val publicIp: String,
+    val privateIp: String,
+    val alias: String,
+    val availabilityZone: String,
+)
+
+/**
+ * Infrastructure status tracking
+ */
+enum class InfrastructureStatus {
+    UP,
+    DOWN,
+    UNKNOWN,
+}
 
 data class AWS(
     var vpcId: String = "",
@@ -52,21 +75,89 @@ data class ClusterState(
     var versions: MutableMap<String, String>?,
     // Configuration from Init command
     var initConfig: InitConfig? = null,
+    // Unique cluster identifier
+    var clusterId: String = UUID.randomUUID().toString(),
+    // Timestamps for lifecycle tracking
+    var createdAt: Instant = Instant.now(),
+    var lastAccessedAt: Instant = Instant.now(),
+    // Infrastructure status tracking
+    var infrastructureStatus: InfrastructureStatus = InfrastructureStatus.UNKNOWN,
+    // All hosts in the cluster by server type
+    var hosts: Map<ServerType, List<ClusterHost>> = emptyMap(),
 ) {
     companion object {
         @JsonIgnore
         private val mapper =
-            ObjectMapper().registerKotlinModule().apply {
-                // Configure to handle missing fields and unknown properties gracefully
-                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
-                configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
-            }
+            ObjectMapper()
+                .registerKotlinModule()
+                .registerModule(JavaTimeModule())
+                .apply {
+                    // Configure to handle missing fields and unknown properties gracefully
+                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
+                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
+                    // Disable writing dates as timestamps
+                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                }
 
         @JsonIgnore
         var fp = File(CLUSTER_STATE)
 
         fun load(): ClusterState = mapper.readValue(fp, ClusterState::class.java)
+    }
+
+    /**
+     * Update hosts from TFState and save
+     */
+    fun updateHosts(hosts: Map<ServerType, List<ClusterHost>>) {
+        this.hosts = hosts
+        this.lastAccessedAt = Instant.now()
+        save()
+    }
+
+    /**
+     * Mark infrastructure as UP and save
+     */
+    fun markInfrastructureUp() {
+        this.infrastructureStatus = InfrastructureStatus.UP
+        this.lastAccessedAt = Instant.now()
+        save()
+    }
+
+    /**
+     * Mark infrastructure as DOWN and save
+     */
+    fun markInfrastructureDown() {
+        this.infrastructureStatus = InfrastructureStatus.DOWN
+        this.lastAccessedAt = Instant.now()
+        save()
+    }
+
+    /**
+     * Check if infrastructure is currently UP
+     */
+    fun isInfrastructureUp(): Boolean = infrastructureStatus == InfrastructureStatus.UP
+
+    /**
+     * Get the first control host, or null if none exists
+     */
+    fun getControlHost(): ClusterHost? = hosts[ServerType.Control]?.firstOrNull()
+
+    /**
+     * Validate if the current hosts match the stored hosts
+     */
+    fun validateHostsMatch(currentHosts: Map<ServerType, List<ClusterHost>>): Boolean {
+        if (hosts.keys != currentHosts.keys) return false
+
+        return hosts.all { (serverType, storedHosts) ->
+            val current = currentHosts[serverType] ?: return false
+            if (storedHosts.size != current.size) return false
+
+            // Compare by alias and public IP (private IP might change on restart)
+            storedHosts.sortedBy { it.alias }.zip(current.sortedBy { it.alias }).all { (stored, curr) ->
+                stored.alias == curr.alias && stored.publicIp == curr.publicIp
+            }
+        }
     }
 
     fun save() = mapper.writerWithDefaultPrettyPrinter().writeValue(fp, this)

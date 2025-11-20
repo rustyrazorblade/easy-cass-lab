@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "=== Running: install_async_profiler.sh ==="
+
 # Get the architecture using uname
 cpu_arch=$(uname -m)
 
@@ -24,3 +26,5 @@ sudo sysctl kernel.kptr_restrict=0
 wget "https://github.com/async-profiler/async-profiler/releases/download/v${RELEASE_VERSION}/${ARCHIVE}"
 tar zxvf $ARCHIVE
 sudo mv $RELEASE /usr/local/async-profiler
+
+echo "✓ install_async_profiler.sh completed successfully"

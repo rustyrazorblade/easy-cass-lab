@@ -51,7 +51,14 @@ class UpdateConfig(
             remoteOps.upload(it, tmp, file)
             tmp.deleteExisting()
             val resolvedVersion = remoteOps.getRemoteVersion(it, version)
-            remoteOps.executeRemotely(it, "/usr/local/bin/patch-config $file").text
+
+            // Execute patch-config and handle errors
+            val patchResult = remoteOps.executeRemotely(it, "/usr/local/bin/patch-config $file")
+            if (patchResult.stderr.isNotEmpty()) {
+                outputHandler.handleError("patch-config stderr: ${patchResult.stderr}")
+                error("Failed to patch configuration on ${it.alias}: ${patchResult.stderr}")
+            }
+            outputHandler.handleMessage(patchResult.text)
 
             // Create a temporary directory on the remote filesystem using mktemp
             val tempDir =

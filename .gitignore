@@ -144,3 +144,5 @@ easy-cass-mcp.json
 .aider*
 .mcp.json
 /stress
+/kubeconfig
+/.socks5-proxy-state

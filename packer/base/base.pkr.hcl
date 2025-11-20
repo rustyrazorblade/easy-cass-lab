@@ -35,7 +35,7 @@ source "amazon-ebs" "ubuntu" {
   region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "ubuntu/images/*ubuntu-jammy-22.04-${var.arch}-server-*"
+      name                = "ubuntu/images/*ubuntu-noble-24.04-${var.arch}-server-*"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -64,8 +64,11 @@ build {
   provisioner "shell" {
     inline = [
       # bpftrace was removed b/c it breaks bcc tools, need to build latest from source
-      "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_${var.arch} -O /usr/local/bin/yq",
+      "echo '=== Downloading yq v4.41.1 ==='",
+      "sudo wget https://github.com/mikefarah/yq/releases/download/v4.41.1/yq_linux_${var.arch} -O /usr/local/bin/yq || { echo 'ERROR: yq download failed' >&2; exit 1; }",
+      "[ -f /usr/local/bin/yq ] || { echo 'ERROR: yq file not found after download' >&2; exit 1; }",
       "sudo chmod +x /usr/local/bin/yq",
+      "echo '✓ yq installed successfully'",
     ]
   }
 
@@ -88,14 +91,30 @@ build {
     script = "install/install_bcc.sh"
   }
 
-  # install Docker
-  provisioner "shell" {
-    script = "install/install_docker.sh"
-  }
-
   # install k3s (disabled, not auto-started)
   provisioner "shell" {
     script = "install/install_k3s.sh"
+  }
+
+  # install k3s startup scripts
+  provisioner "file" {
+    source      = "install/start_k3s_server.sh"
+    destination = "/tmp/start_k3s_server.sh"
+  }
+
+  provisioner "file" {
+    source      = "install/start_k3s_agent.sh"
+    destination = "/tmp/start_k3s_agent.sh"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "sudo mv /tmp/start_k3s_server.sh /usr/local/bin/start-k3s-server.sh",
+      "sudo mv /tmp/start_k3s_agent.sh /usr/local/bin/start-k3s-agent.sh",
+      "sudo chmod +x /usr/local/bin/start-k3s-server.sh",
+      "sudo chmod +x /usr/local/bin/start-k3s-agent.sh",
+      "echo '✓ K3s startup scripts installed successfully'"
+    ]
   }
 
   provisioner "shell" {
@@ -124,8 +143,11 @@ build {
 
   provisioner "shell" {
     inline = [
-      "wget https://training.ragozin.info/sjk.jar",
-      "sudo mv sjk.jar /usr/local/lib",
+      "echo '=== Downloading sjk.jar v0.21 from Maven Central ==='",
+      "wget https://repo1.maven.org/maven2/org/gridkit/jvmtool/sjk/0.21/sjk-0.21.jar -O /tmp/sjk.jar || { echo 'ERROR: sjk.jar download failed' >&2; exit 1; }",
+      "[ -f /tmp/sjk.jar ] || { echo 'ERROR: sjk.jar file not found after download' >&2; exit 1; }",
+      "sudo mv /tmp/sjk.jar /usr/local/lib/sjk.jar",
+      "echo '✓ sjk.jar v0.21 installed successfully'",
       ""
     ]
   }

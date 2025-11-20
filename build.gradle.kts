@@ -183,14 +183,15 @@ tasks.register<Exec>("testPackerBase") {
     group = "Verification"
     description = "Test base packer provisioning scripts using Docker"
     workingDir = file("packer")
-    commandLine = listOf("docker", "compose", "up", "--force-recreate", "--exit-code-from", "test-base", "test-base")
+    commandLine = listOf("docker", "compose", "up", "--force-recreate", "--remove-orphans", "--exit-code-from", "test-base", "test-base")
 }
 
 tasks.register<Exec>("testPackerCassandra") {
     group = "Verification"
     description = "Test Cassandra packer provisioning scripts using Docker"
     workingDir = file("packer")
-    commandLine = listOf("docker", "compose", "up", "--force-recreate", "--exit-code-from", "test-cassandra", "test-cassandra")
+    commandLine =
+        listOf("docker", "compose", "up", "--force-recreate", "--remove-orphans", "--exit-code-from", "test-cassandra", "test-cassandra")
 }
 
 tasks.register("testPacker") {

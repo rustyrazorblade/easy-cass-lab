@@ -75,5 +75,10 @@ class SetupInstance(
             remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
             remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
         }
+        tfstate.withHosts(ServerType.Control, Hosts.all()) {
+            // Control nodes need minimal setup - just hostname configuration
+            // K3s installation will happen later in startK3sOnAllNodes()
+            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
+        }
     }
 }

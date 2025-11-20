@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "=== Running: prepare_instance.sh ==="
+
 # Ensure non-interactive mode for apt
 export DEBIAN_FRONTEND=noninteractive
 
@@ -29,4 +31,5 @@ else
     exit 1
 fi
 
+echo "✓ prepare_instance.sh completed successfully"
 

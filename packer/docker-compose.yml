@@ -37,6 +37,7 @@ services:
       bash /packer/base/install/prepare_instance.sh &&
       bash /packer/base/install/install_python.sh &&
       bash /packer/base/install/install_fio.sh &&
+      bash /packer/base/install/install_bcc.sh &&
       echo 'Base provisioning complete!'
       "
 

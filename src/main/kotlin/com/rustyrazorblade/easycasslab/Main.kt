@@ -7,6 +7,7 @@ import com.rustyrazorblade.easycasslab.di.contextModule
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.context.startKoin
 import java.io.File
+import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 
@@ -32,14 +33,17 @@ fun main(arguments: Array<String>) {
         with(TermColors()) {
             println(red("There was an error connecting to docker.  Please check if it is running."))
         }
+        exitProcess(1)
     } catch (e: java.rmi.RemoteException) {
         log.error(e) { "Remote execution error" }
         with(TermColors()) {
             println(red("There was an error executing the remote command.  Try rerunning it."))
         }
+        exitProcess(1)
     } catch (e: IllegalArgumentException) {
         log.error(e) { "Invalid argument provided" }
         with(TermColors()) { println(red("Invalid argument: ${e.message}")) }
+        exitProcess(1)
     } catch (e: IllegalStateException) {
         log.error(e) { "Invalid state encountered" }
         with(TermColors()) { println(red("Invalid state: ${e.message}")) }
@@ -56,5 +60,6 @@ fun main(arguments: Array<String>) {
         }
         println(e.message)
         println(e.stackTraceToString())
+        exitProcess(1)
     }
 }

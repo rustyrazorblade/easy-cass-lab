@@ -27,7 +27,7 @@ usage() {
     echo ""
     echo "Examples:"
     echo "  $0 cassandra/install/install_cassandra_easy_stress.sh"
-    echo "  $0 base/install/install_docker.sh --rebuild"
+    echo "  $0 base/install/install_python.sh --rebuild"
     echo "  $0 cassandra/install/install_cassandra.sh --shell"
     exit 1
 }
