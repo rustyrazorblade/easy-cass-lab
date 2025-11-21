@@ -7,6 +7,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -19,6 +20,7 @@ import java.io.File
 
 @McpCommand
 @RequireDocker
+@RequireProfileSetup
 @RequireSSHKey
 @Parameters(commandDescription = "Start cassandra on all nodes via service command")
 class Start(

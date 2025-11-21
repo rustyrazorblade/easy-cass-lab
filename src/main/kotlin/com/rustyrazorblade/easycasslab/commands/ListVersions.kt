@@ -3,9 +3,11 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 
 @McpCommand
+@RequireProfileSetup
 @Parameters(commandDescription = "List available versions", commandNames = ["list", "ls"])
 class ListVersions(
     context: Context,

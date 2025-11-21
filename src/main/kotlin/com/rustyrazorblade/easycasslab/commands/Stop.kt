@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -12,6 +13,7 @@ import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
 
 // @McpCommand
+@RequireProfileSetup
 @RequireSSHKey
 @Parameters(commandDescription = "Stop cassandra on all nodes via service command")
 class Stop(

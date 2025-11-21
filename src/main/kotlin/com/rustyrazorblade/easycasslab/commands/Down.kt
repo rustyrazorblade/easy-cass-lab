@@ -7,6 +7,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -17,6 +18,7 @@ import java.io.File
 
 @McpCommand
 @RequireDocker
+@RequireProfileSetup
 @Parameters(commandDescription = "Shut down a cluster")
 class Down(
     val context: Context,

@@ -7,6 +7,7 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
@@ -26,6 +27,7 @@ import kotlin.system.exitProcess
 
 @McpCommand
 @RequireDocker
+@RequireProfileSetup
 @Parameters(commandDescription = "Starts instances")
 class Up(
     context: Context,

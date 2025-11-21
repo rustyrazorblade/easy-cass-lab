@@ -21,7 +21,19 @@ object TestContextFactory {
         assert(testTempDirectory != null)
 
         // Create a default profile with a fake user
-        val user = User("test@rustyrazorblade.com", "us-west-2", "test", "test", "test", "test", "test", "", "")
+        val user =
+            User(
+                email = "test@rustyrazorblade.com",
+                region = "us-west-2",
+                keyName = "test",
+                sshKeyPath = "test",
+                awsProfile = "test",
+                awsAccessKey = "test",
+                awsSecret = "test",
+                axonOpsOrg = "",
+                axonOpsKey = "",
+                s3Bucket = "",
+            )
 
         val context = Context(testTempDirectory.toFile())
 

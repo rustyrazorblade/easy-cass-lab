@@ -52,6 +52,7 @@ data class InstanceResource(
     val ebs_block_device: InstanceEBSBlockDevice? = null,
     val ebs_optimized: Boolean = false,
     val associate_public_ip_address: Boolean = true,
+    val iam_instance_profile: String? = null,
 //    @JsonIgnore
 //    val subnets: Map<String, Subnet>,
     @JsonIgnore
@@ -224,7 +225,7 @@ data class EMRCluster(
     val name: String = "cluster",
     val applications: List<String> = listOf("Spark"),
     @param:JsonProperty("service_role")
-    val serviceRole: String = AWS.SERVICE_ROLE,
+    val serviceRole: String = AWS.EMR_SERVICE_ROLE,
     @param:JsonProperty("release_label")
     val releaseLabel: String = "emr-7.9.0",
     @param:JsonProperty("master_instance_group")
@@ -241,7 +242,7 @@ data class EMRCluster(
             securityGroup: SecurityGroupResource,
         ): EMRCluster =
             EMRCluster(
-                serviceRole = AWS.SERVICE_ROLE,
+                serviceRole = AWS.EMR_SERVICE_ROLE,
                 masterInstanceGroup =
                     MasterInstanceGroup(
                         instance_type = sparkInitParams.masterInstanceType,
@@ -255,7 +256,7 @@ data class EMRCluster(
                     Ec2Attributes(
                         subnetId = subnet.id(),
                         securityGroup = securityGroup,
-                        instanceProfile = AWS.SERVICE_ROLE,
+                        instanceProfile = AWS.EMR_EC2_ROLE,
                     ),
             )
     }

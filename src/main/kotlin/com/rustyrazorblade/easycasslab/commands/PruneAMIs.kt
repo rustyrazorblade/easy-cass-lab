@@ -4,11 +4,13 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.providers.aws.AMIService
 import com.rustyrazorblade.easycasslab.providers.aws.EC2Service
 import org.koin.core.component.inject
 
 @McpCommand
+@RequireProfileSetup
 @Parameters(
     commandDescription = "Prune older private AMIs while keeping the newest N per architecture and type",
     commandNames = ["prune-amis"],

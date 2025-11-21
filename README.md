@@ -24,6 +24,49 @@ The following must be set up before using this project:
 * [Setup AWS Account API Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 * [Install Docker](https://www.docker.com/products/docker-desktop/)
 
+## AWS Account Setup
+
+**IMPORTANT: We strongly recommend using a separate AWS account under an organization for lab environments.**
+
+This tool provisions and destroys AWS infrastructure! Using a dedicated account provides:
+- **Cost isolation** - Lab costs separated from production
+- **Resource isolation** - No risk of accidentally affecting production resources
+- **Clean billing** - Easy to see lab-related costs
+
+### Setting Up Your Profile
+
+Run the interactive setup to configure your AWS credentials and create necessary resources:
+
+```shell
+easy-cass-lab setup-profile
+```
+
+This will:
+- Prompt for your AWS credentials
+- Validate your credentials
+- Create an EC2 key pair for SSH access
+- Create an IAM role for instance permissions
+- Create an S3 bucket (shared across all labs in this profile)
+- Set up Packer VPC infrastructure for building AMIs
+
+### Viewing Required IAM Policies
+
+To see the IAM policies required for easy-cass-lab with your account ID populated:
+
+```shell
+easy-cass-lab show-iam-policies
+```
+
+You can filter by policy type:
+
+```shell
+easy-cass-lab show-iam-policies ec2   # Show only EC2 policy
+easy-cass-lab show-iam-policies iam   # Show only IAM policy
+easy-cass-lab show-iam-policies emr   # Show only EMR policy
+```
+
+**Recommended Approach:** Create an IAM group (e.g., "EasyCassLabUsers") and attach these policies as managed policies to the group. This is required for EMR/Spark cluster functionality and easier to manage than inline policies.
+
 ## Usage
 
 To install `easy-cass-lab`, you can use Homebrew, download a release, or clone the project and build it.
@@ -66,11 +109,11 @@ cd easy-cass-lab
 
 Using easy-cass-lab requires building an AMI if you're building from source.
 
-You can skip this if you're using us-west-2 
+You can skip this if you're using us-west-2
 This can be done once, and reused many times.
-The AMI should be rebuilt when updating easy-cass-lab.  
+The AMI should be rebuilt when updating easy-cass-lab.
 
-The first time you build an image, easy-cass-lab will ask you for your AWS credentials.
+If you haven't run `easy-cass-lab setup-profile` yet, you'll be prompted to set up your profile before building.
 
 ```shell
 bin/easy-cass-lab build-image
@@ -90,11 +133,11 @@ That means you're ready!
 
 Run `easy-cass-lab` without any parameters to view all the commands and all options.
 
-### Create The Environment 
+### Create The Environment
 
-Note: The first time you create an environment, it'll prompt you for your credentials.
+Note: If you haven't run `easy-cass-lab setup-profile` yet, you'll be prompted to set up your profile.
 
-Important: If you've installed the project via homebrew or downloaded a release, 
+Important: If you've installed the project via homebrew or downloaded a release,
 please use the `us-west-2` region.  This limitation will be lifted soon.
 
 First create a directory for the environment, then initialize it, and start the instances.

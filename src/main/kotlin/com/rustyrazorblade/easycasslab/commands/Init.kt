@@ -11,6 +11,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
@@ -19,6 +20,7 @@ import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
@@ -31,6 +33,7 @@ import java.time.LocalDate
 
 @McpCommand
 @RequireDocker
+@RequireProfileSetup
 @Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
 class Init(
     val context: Context,
@@ -38,6 +41,7 @@ class Init(
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val userConfig: User by inject()
+    private val aws: AWS by inject()
 
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
@@ -122,7 +126,7 @@ class Init(
     var name = "test"
 
     @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
-    var arch = Arch.AMD64
+    var arch: Arch = Arch.AMD64
 
     @ParametersDelegate var spark = SparkInitParams()
 
@@ -267,6 +271,7 @@ class Init(
             stressInstanceType = stressInstanceType,
             arch = arch,
             sparkParams = spark,
+            accountId = aws.getAccountId(),
         )
     }
 

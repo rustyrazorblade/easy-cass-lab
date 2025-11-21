@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameters
 import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.converters.ServerTypeConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
@@ -21,6 +22,7 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
  * - Color-coded output (green for success, red for errors)
  * - Non-interleaved output display
  */
+@RequireProfileSetup
 @RequireSSHKey
 @Parameters(commandDescription = "Execute a shell command on remote hosts")
 class Exec(

@@ -8,6 +8,7 @@ import com.rustyrazorblade.easycasslab.di.contextModule
 import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.providers.aws.AMIValidator
 import com.rustyrazorblade.easycasslab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConfiguration
@@ -19,6 +20,8 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
 import software.amazon.awssdk.services.iam.IamClient
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.sts.StsClient
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
@@ -99,11 +102,16 @@ object TestModules {
 
             // Mock individual AWS SDK clients
             single { mock<IamClient>() }
+            single { mock<S3Client>() }
+            single { mock<StsClient>() }
 
-            // AWS service with mocked IAM client
-            // Using real AWS class with mocked client ensures the service logic
+            // AWS service with mocked IAM, S3, and STS clients
+            // Using real AWS class with mocked clients ensures the service logic
             // is tested while preventing actual AWS API calls
-            single { AWS(get<IamClient>()) }
+            single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>(), get()) }
+
+            // Mock AMIValidator to prevent AMI validation during tests
+            single { mock<AMIValidator>() }
         }
 
     /** Creates a test SSH module with mock implementations. */

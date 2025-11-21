@@ -26,6 +26,14 @@ data class AMI(
     val isPublic: Boolean,
     val snapshotIds: List<String>,
 ) : Comparable<AMI> {
+    companion object {
+        // AMI name parsing constants
+        // Pattern: rustyrazorblade/images/easy-cass-lab-{type}-{arch}-{version}
+        // After split by '-': [..., 'lab', 'cassandra', 'amd64', '20240101']
+        private const val MIN_NAME_PARTS = 4 // Minimum parts: lab, type, arch, version
+        private const val TYPE_OFFSET_FROM_END = 3 // Type is 3 positions from end
+    }
+
     /**
      * Extracts the AMI type from the name.
      *
@@ -38,8 +46,8 @@ data class AMI(
             val parts = name.split("-")
             // Pattern: rustyrazorblade/images/easy-cass-lab-{type}-{arch}-{version}
             // After split by '-': [..., 'lab', 'cassandra', 'amd64', '20240101']
-            return if (parts.size >= 4) {
-                parts[parts.size - 3]
+            return if (parts.size >= MIN_NAME_PARTS) {
+                parts[parts.size - TYPE_OFFSET_FROM_END]
             } else {
                 "unknown"
             }

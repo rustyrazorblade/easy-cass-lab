@@ -28,6 +28,29 @@ object Constants {
         const val THREAD_SLEEP_DELAY_MS = 10L
         const val THREAD_JOIN_TIMEOUT_MS = 1000L
         const val OTEL_STARTUP_DELAY_MS = 2000L
+        const val SETUP_TIMEOUT_SECONDS = 60
+    }
+
+    // Retry configuration
+    object Retry {
+        const val MAX_PERMISSION_CHECK_RETRIES = 30
+        const val MAX_OPERATION_RETRIES = 3
+        const val MAX_INSTANCE_PROFILE_RETRIES = 5
+        const val RETRY_DELAY_MS = 2000L
+        const val RETRY_BACKOFF_MULTIPLIER = 3
+        const val EXPONENTIAL_BACKOFF_BASE_MS = 1000L
+    }
+
+    // File and directory permissions (octal equivalents in decimal)
+    object FilePermissions {
+        const val FILE_READ_WRITE = 420 // Octal 0644
+        const val FILE_READ_ONLY = 256 // Octal 0400
+        const val DIR_USER_ONLY = 448 // Octal 0700
+    }
+
+    // Exit codes
+    object ExitCodes {
+        const val ERROR = 1
     }
 
     // Network configuration
@@ -37,6 +60,20 @@ object Constants {
         const val CASSANDRA_EASY_STRESS_PORT = 9000
         const val OPENSEARCH_PORT = 9200
         const val OPENSEARCH_DASHBOARDS_PORT = 5601
+        const val HTTPS_PORT = 443
+        const val HTTP_PORT = 80
+        const val SSH_PORT = 22
+        const val CASSANDRA_NATIVE_PORT = 7000
+        const val CASSANDRA_JMX_PORT = 3000
+        const val CASSANDRA_JMX_PORT_END = 16001
+    }
+
+    // HTTP Status Codes
+    object HttpStatus {
+        const val FORBIDDEN = 403
+        const val NOT_FOUND = 404
+        const val SERVER_ERROR_MIN = 500
+        const val SERVER_ERROR_MAX = 599
     }
 
     // Docker configuration (for local container operations)
@@ -62,6 +99,15 @@ object Constants {
     object AWS {
         const val DEFAULT_CREDENTIALS_NAME = "awscredentials"
         const val SSH_KEY_ENV = "EASY_CASS_LAB_SSH_KEY"
+
+        // AMI configuration
+        const val AMI_PATTERN_TEMPLATE = "rustyrazorblade/images/easy-cass-lab-cassandra-%s-*"
+        const val AMI_NAME_SYSTEM_PROPERTY = "easycasslab.ami.name"
+        const val AMI_OVERRIDE_ENV = "EASY_CASS_LAB_AMI"
+
+        // Storage configuration
+        const val DEFAULT_VOLUME_SIZE_GB = 1024
+        const val DEFAULT_IOPS = 3000
     }
 
     // Monitoring

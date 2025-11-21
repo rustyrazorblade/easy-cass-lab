@@ -1,161 +1,189 @@
 package com.rustyrazorblade.easycasslab.configuration
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.github.ajalt.mordant.TermColors
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.Utils
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.EC2
 import io.github.oshai.kotlinlogging.KotlinLogging
+import software.amazon.awssdk.core.exception.SdkServiceException
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest
+import software.amazon.awssdk.services.ec2.model.Ec2Exception
+import software.amazon.awssdk.services.ec2.model.ResourceType
+import software.amazon.awssdk.services.ec2.model.Tag
+import software.amazon.awssdk.services.ec2.model.TagSpecification
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
-import java.util.HashSet
 import java.util.UUID
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.memberProperties
 
+typealias AwsKeyName = String
+typealias SshKeyPath = String
+
+data class Policy(
+    val name: String,
+    val body: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class User(
-    @ConfigField(order = 1, prompt = "What's your email?", default = "")
     var email: String,
-    @ConfigField(order = 2, prompt = "What AWS region do you use?", default = "us-west-2")
     var region: String,
-    @ConfigField(order = 10, prompt = "EC2 Key Name", default = "", skippable = true)
     var keyName: String,
-    @ConfigField(order = 11, prompt = "SSH Key Path", default = "", skippable = true)
     var sshKeyPath: String,
     // if true we'll load the profile from the AWS credentials rather than this file
-    // can over
-    @ConfigField(order = 12, prompt = "AWS Profile", default = "", skippable = true)
     var awsProfile: String,
     // fallback for people who haven't set up the aws cli
-    @ConfigField(order = 3, prompt = "Please enter your AWS Access Key", default = "")
     var awsAccessKey: String,
-    @ConfigField(order = 4, prompt = "Please enter your AWS Secret Access Key", default = "", secret = true)
     var awsSecret: String,
-    @ConfigField(order = 5, prompt = "AxonOps Org", default = "")
     var axonOpsOrg: String = "",
-    @ConfigField(order = 6, prompt = "AxonOps Key", default = "")
     var axonOpsKey: String = "",
-//    @ConfigField(order = 15, prompt = "S3 bucket (just the name, will be provisioned)", default = "")
-//    var s3Bucket: String = "",
+    var s3Bucket: String = "",
 ) {
     companion object {
         val log = KotlinLogging.logger {}
 
         /**
-         * Gets all ConfigField-annotated properties from User class in order
+         * Loads the required IAM policies from resources with account ID substitution.
+         * Returns a list of Policy objects with names and content for all three required policies.
+         *
+         * @param accountId The AWS account ID to substitute for ACCOUNT_ID placeholder
          */
-        fun getConfigFields(): List<kotlin.reflect.KProperty1<User, *>> =
-            User::class
-                .memberProperties
-                .filter { it.findAnnotation<ConfigField>() != null }
-                .sortedBy { property ->
-                    property.findAnnotation<ConfigField>()?.order
-                }
+        internal fun getRequiredIAMPolicies(accountId: String): List<Policy> {
+            val policyData =
+                listOf(
+                    "iam-policy-ec2.json" to "EasyCassLabEC2",
+                    "iam-policy-iam-s3.json" to "EasyCassLabIAM",
+                    "iam-policy-emr.json" to "EasyCassLabEMR",
+                )
+
+            return policyData.map { (fileName, policyName) ->
+                val policyStream = User::class.java.getResourceAsStream("/com/rustyrazorblade/easycasslab/$fileName")
+                val policyContent =
+                    policyStream?.bufferedReader()?.use { it.readText() }
+                        ?: error("Unable to load IAM policy template: $fileName")
+
+                // Replace ACCOUNT_ID placeholder with actual account ID
+                val processedContent = policyContent.replace("ACCOUNT_ID", accountId)
+
+                Policy(name = policyName, body = processedContent)
+            }
+        }
 
         /**
-         * Loads existing YAML as Map or returns empty map if file doesn't exist
+         * Displays helpful error message when AWS permission is denied
          */
-        private fun loadExistingConfig(
-            context: Context,
-            location: File,
-        ): Map<String, Any> =
-            if (location.exists()) {
-                @Suppress("UNCHECKED_CAST")
-                context.yaml.readValue(location, Map::class.java) as Map<String, Any>
-            } else {
-                emptyMap()
-            }
-
-        private fun showWelcomeMessageOnce(
+        private fun handlePermissionError(
             outputHandler: OutputHandler,
-            hasShownWelcome: Boolean,
-        ): Boolean =
-            if (!hasShownWelcome) {
-                outputHandler.handleMessage("Welcome to the easy-cass-lab interactive setup.")
-                outputHandler.handleMessage("We just need to know a few things before we get started.")
-                true
-            } else {
-                hasShownWelcome
-            }
-
-        /**
-         * Asks a bunch of questions and generates the user file
-         * Now supports both initial creation and updating existing files with missing fields
-         */
-        fun createInteractively(
-            context: Context,
-            location: File,
-            outputHandler: OutputHandler,
+            exception: SdkServiceException,
+            operation: String,
         ) {
-            // Load existing config values if file exists
-            val existingConfig = loadExistingConfig(context, location)
-            val configFields = getConfigFields()
-            log.debug { "Config fields: $configFields" }
-            val fieldValues = mutableMapOf<String, Any>()
+            with(TermColors()) {
+                outputHandler.handleMessage(
+                    """
+                    |
+                    |========================================
+                    |AWS PERMISSION ERROR
+                    |========================================
+                    |
+                    |Operation: $operation
+                    |Error: ${exception.message}
+                    |
+                    |To fix this issue, add the following IAM policies to your AWS user.
+                    |You need to create THREE separate inline policies:
+                    |
+                    |NOTE: Replace ACCOUNT_ID in the policies below with your AWS account ID.
+                    |You can find your account ID in the error message above (the 12-digit number in the ARN).
+                    |
+                    """.trimMargin(),
+                )
 
-            // Copy existing values first
-            fieldValues.putAll(existingConfig)
-
-            // Process fields in order, only prompting for missing ones
-            var region: Region? = null
-            var awsAccessKey = ""
-            var awsSecret = ""
-            var hasShownWelcome = false
-
-            for (field in configFields) {
-                log.debug { "Checking field $field" }
-                val configField = field.findAnnotation<ConfigField>()!!
-                val fieldName = field.name
-
-                // Skip if field already exists in config
-                if (existingConfig.containsKey(fieldName)) {
-                    // Capture needed values for AWS operations
-                    when (fieldName) {
-                        "region" -> region = Region.of(existingConfig[fieldName] as String)
-                        "awsAccessKey" -> awsAccessKey = existingConfig[fieldName] as String
-                        "awsSecret" -> awsSecret = existingConfig[fieldName] as String
-                    }
-                    continue
+                val policies = getRequiredIAMPolicies("ACCOUNT_ID")
+                policies.forEachIndexed { index, policy ->
+                    outputHandler.handleMessage(
+                        """
+                        |${green("========================================")}
+                        |${green("Policy ${index + 1}: ${policy.name}")}
+                        |${green("========================================")}
+                        |
+                        |${policy.body}
+                        |
+                        """.trimMargin(),
+                    )
                 }
 
-                // Skip if field is marked as skippable (auto-generated)
-                if (configField.skippable) {
-                    log.debug { "Skipping field $field" }
-                    continue
-                }
-
-                hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
-
-                // Prompt for missing field
-                val value = Utils.prompt(configField.prompt, configField.default, configField.secret)
-                fieldValues[fieldName] = value
-
-                // Capture needed values for AWS operations
-                when (fieldName) {
-                    "region" -> region = Region.of(value)
-                    "awsAccessKey" -> awsAccessKey = value
-                    "awsSecret" -> awsSecret = value
-                }
+                outputHandler.handleMessage(
+                    """
+                    |========================================
+                    |
+                    |RECOMMENDED: Create managed policies and attach to a group
+                    |  • No size limits (inline policies limited to 5,120 bytes total)
+                    |  • Required for EMR/Spark cluster functionality
+                    |  • Reusable across multiple users
+                    |
+                    |To apply these policies:
+                    |  1. Go to AWS IAM Console (https://console.aws.amazon.com/iam/)
+                    |  2. Create IAM group (e.g., "EasyCassLabUsers")
+                    |  3. Create three managed policies:
+                    |     - Policies → Create Policy → JSON tab
+                    |     - Paste policy content and name: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
+                    |  4. Attach policies to your group
+                    |  5. Add your IAM user to the group
+                    |
+                    |ALTERNATIVE (single user): Attach as inline policies to your user
+                    |  WARNING: May hit 5,120 byte limit with all three policies
+                    |
+                    |========================================
+                    |
+                    """.trimMargin(),
+                )
             }
+        }
 
-            // Generate AWS keys only when both keyName and sshKeyPath are missing
-            // This preserves the original behavior where keys are auto-generated
-            if (!existingConfig.containsKey("keyName") || !existingConfig.containsKey("sshKeyPath")) {
-                hasShownWelcome = showWelcomeMessageOnce(outputHandler, hasShownWelcome)
+        /**
+         * Generates an AWS key pair for SSH access to EC2 instances
+         *
+         * @param context Application context containing profile directory
+         * @param awsAccessKey AWS access key for authentication
+         * @param awsSecret AWS secret key for authentication
+         * @param region AWS region where key pair will be created
+         * @param outputHandler Handler for user-facing messages
+         * @return Pair of (AwsKeyName, SshKeyPath) containing the AWS key pair name
+         *         and the local file path to the private key
+         */
+        fun generateAwsKeyPair(
+            context: Context,
+            awsAccessKey: String,
+            awsSecret: String,
+            region: Region,
+            outputHandler: OutputHandler,
+        ): Pair<AwsKeyName, SshKeyPath> {
+            outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
 
-                outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
-
-                check(region != null)
+            try {
                 val ec2 = EC2(awsAccessKey, awsSecret, region)
                 val ec2Client = ec2.client
 
                 val keyName = "easy-cass-lab-${UUID.randomUUID()}"
+                val tagSpecification =
+                    TagSpecification
+                        .builder()
+                        .resourceType(ResourceType.KEY_PAIR)
+                        .tags(
+                            Tag
+                                .builder()
+                                .key("easy_cass_lab")
+                                .value("1")
+                                .build(),
+                        ).build()
+
                 val request =
                     CreateKeyPairRequest
                         .builder()
                         .keyName(keyName)
+                        .tagSpecifications(tagSpecification)
                         .build()
 
                 val response = ec2Client.createKeyPair(request)
@@ -165,61 +193,39 @@ data class User(
                 secretFile.writeText(response.keyMaterial())
 
                 // set permissions
-                val perms = HashSet<PosixFilePermission>()
-                perms.add(PosixFilePermission.OWNER_READ)
-                perms.add(PosixFilePermission.OWNER_WRITE)
+                val perms =
+                    setOf(
+                        PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_WRITE,
+                    )
 
                 log.info { "Setting secret file permissions $perms" }
                 Files.setPosixFilePermissions(secretFile.toPath(), perms)
 
-                fieldValues["keyName"] = keyName
-                fieldValues["sshKeyPath"] = secretFile.absolutePath
-            }
-
-            // Set awsProfile to empty string if not already present (preserving original behavior)
-            if (!existingConfig.containsKey("awsProfile")) {
-                fieldValues["awsProfile"] = ""
-            }
-
-            // Handle AxonOps prompting if not already configured
-            if (!existingConfig.containsKey("axonOpsOrg") || !existingConfig.containsKey("axonOpsKey")) {
-                showWelcomeMessageOnce(outputHandler, hasShownWelcome)
-
-                val axonOpsChoice =
-                    Utils.prompt(
-                        "Use AxonOps (https://axonops.com/) for monitoring. Requires an account. [y/N]",
-                        default = "N",
-                    )
-                val useAxonOps = axonOpsChoice.equals("y", true)
-
-                if (useAxonOps) {
-                    if (!existingConfig.containsKey("axonOpsOrg")) {
-                        fieldValues["axonOpsOrg"] = Utils.prompt("AxonOps Org: ", "")
-                    }
-                    if (!existingConfig.containsKey("axonOpsKey")) {
-                        fieldValues["axonOpsKey"] = Utils.prompt("AxonOps Key: ", "")
-                    }
-                } else {
-                    fieldValues["axonOpsOrg"] = ""
-                    fieldValues["axonOpsKey"] = ""
+                return Pair(keyName, secretFile.absolutePath)
+            } catch (e: Ec2Exception) {
+                if (e.statusCode() == Constants.HttpStatus.FORBIDDEN || e.awsErrorDetails()?.errorCode() == "UnauthorizedOperation") {
+                    handlePermissionError(outputHandler, e, "EC2 CreateKeyPair")
                 }
+                throw e
             }
-
-            // Create User object from collected values
-            val user =
-                User(
-                    fieldValues["email"] as String,
-                    fieldValues["region"] as String,
-                    fieldValues["keyName"] as String,
-                    fieldValues["sshKeyPath"] as String,
-                    fieldValues["awsProfile"] as String,
-                    fieldValues["awsAccessKey"] as String,
-                    fieldValues["awsSecret"] as String,
-                    fieldValues["axonOpsOrg"] as String,
-                    fieldValues["axonOpsKey"] as String,
-                )
-
-            context.yaml.writeValue(location, user)
         }
+
+        /**
+         * Generates a valid S3 bucket name if the user doesn't have one.
+         * Generated names follow the pattern: easy-cass-lab-{uuid} (lowercase).
+         *
+         * NOTE: This method does NOT modify the User object. Callers must update
+         * the User object after successfully creating the S3 bucket.
+         *
+         * @param user The User object to check
+         * @return The bucket name (existing or newly generated)
+         */
+        fun generateBucketName(user: User): String =
+            if (user.s3Bucket.isBlank()) {
+                "easy-cass-lab-${UUID.randomUUID()}".lowercase()
+            } else {
+                user.s3Bucket
+            }
     }
 }

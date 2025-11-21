@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.CommandLineParser
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
@@ -12,6 +13,7 @@ import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import java.io.IOException
 
+@RequireProfileSetup
 class Repl(
     context: Context,
 ) : BaseCommand(context) {

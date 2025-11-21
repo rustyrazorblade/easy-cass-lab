@@ -12,10 +12,10 @@ class SparkInitParams {
     var enable = false
 
     @Parameter(names = ["--spark.master.instance.type"], description = "Master Instance Type")
-    var masterInstanceType: String = "m4.large"
+    var masterInstanceType: String = "m5.xlarge"
 
     @Parameter(names = ["--spark.worker.instance.type"], description = "Worker Instance Type")
-    var workerInstanceType: String = "c4.large"
+    var workerInstanceType: String = "m5.xlarge"
 
     @Parameter(names = ["--spark.worker.instance.count"], description = "Worker Instance Count")
     var workerCount: Int = DEFAULT_SPARK_WORKER_COUNT

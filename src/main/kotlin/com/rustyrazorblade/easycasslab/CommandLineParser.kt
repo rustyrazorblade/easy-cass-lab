@@ -3,7 +3,9 @@ package com.rustyrazorblade.easycasslab
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
@@ -22,6 +24,8 @@ import com.rustyrazorblade.easycasslab.commands.Repl
 import com.rustyrazorblade.easycasslab.commands.Restart
 import com.rustyrazorblade.easycasslab.commands.Server
 import com.rustyrazorblade.easycasslab.commands.SetupInstance
+import com.rustyrazorblade.easycasslab.commands.SetupProfile
+import com.rustyrazorblade.easycasslab.commands.ShowIamPolicies
 import com.rustyrazorblade.easycasslab.commands.Start
 import com.rustyrazorblade.easycasslab.commands.Stop
 import com.rustyrazorblade.easycasslab.commands.Up
@@ -31,6 +35,7 @@ import com.rustyrazorblade.easycasslab.commands.UseCassandra
 import com.rustyrazorblade.easycasslab.commands.Version
 import com.rustyrazorblade.easycasslab.commands.WriteConfig
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -81,6 +86,7 @@ class CommandLineParser(
                 Command("init", Init(context)),
                 Command("list", ListVersions(context), listOf("ls")),
                 Command("setup-instances", SetupInstance(context), listOf("si")),
+                Command("setup-profile", SetupProfile(context), listOf("setup")),
                 Command("start", Start(context)),
                 Command("stop", Stop(context)),
                 Command("restart", Restart(context)),
@@ -94,6 +100,7 @@ class CommandLineParser(
                 Command("version", Version(context)),
                 Command("server", Server(context)),
                 Command("prune-amis", PruneAMIs(context)),
+                Command("show-iam-policies", ShowIamPolicies(context), listOf("sip")),
             )
 
         for (c in commands) {
@@ -120,7 +127,22 @@ class CommandLineParser(
     fun eval(input: Array<String>) {
         @Suppress("SpreadOperator") // Required for varargs
         jc.parse(*input)
-        commands.filter { it.name == jc.parsedCommand }.firstOrNull()?.run {
+        commands.firstOrNull { it.name == jc.parsedCommand }?.run {
+            // Check if the command requires profile setup
+            if (this.command::class.annotations.any { it is RequireProfileSetup }) {
+                val userConfigProvider: UserConfigProvider by inject()
+                if (!userConfigProvider.isSetup()) {
+                    // Run setup command
+                    val setupCommand = SetupProfile(context)
+                    setupCommand.execute()
+
+                    // Show message and exit
+                    with(TermColors()) {
+                        outputHandler.handleMessage(green("\nYou can now run the command again."))
+                    }
+                    exitProcess(0)
+                }
+            }
             // Check if the command requires Docker
             if (this.command::class.annotations.any { it is RequireDocker }) {
                 if (!checkDockerAvailability()) {
