@@ -295,16 +295,6 @@ kover {
 jib {
     from {
         image = "eclipse-temurin:21-jre"
-        platforms {
-            platform {
-                architecture = "amd64"
-                os = "linux"
-            }
-            platform {
-                architecture = "arm64"
-                os = "linux"
-            }
-        }
     }
     to {
         image = "ghcr.io/rustyrazorblade/easy-cass-lab"
