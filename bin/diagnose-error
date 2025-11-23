@@ -1,0 +1,5 @@
+#!/bin/bash
+
+aws sts decode-authorization-message --encoded-message $1 | jq -r '.DecodedMessage' | jq .
+
+

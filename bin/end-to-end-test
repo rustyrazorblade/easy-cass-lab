@@ -32,7 +32,11 @@ if [ "$BUILD_IMAGE" = true ]; then
 fi
 
 echo "=== Initializing cluster ==="
-bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up -s 1
+bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up -s 1 \
+  --spark.enable \
+  --spark.master.instance.type m5.xlarge \
+  --spark.worker.instance.type m5.xlarge \
+  --spark.worker.instance.count 2
 
 echo "=== Setting up kubectl access ==="
 shopt -s expand_aliases

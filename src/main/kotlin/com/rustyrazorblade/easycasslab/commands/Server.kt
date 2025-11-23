@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.mcp.McpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
@@ -17,6 +18,7 @@ import java.io.File
  * programmatically.
  */
 @RequireDocker
+@RequireProfileSetup
 @Parameters(
     commandDescription =
         "Start MCP server for AI assistant integration. " +

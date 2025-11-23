@@ -43,6 +43,34 @@ source "amazon-ebs" "ubuntu" {
     owners      = ["099720109477"]
   }
   ssh_username = "ubuntu"
+
+  # Use permanent VPC infrastructure created by PackerInfrastructureService
+  vpc_filter {
+    filters = {
+      "tag:Name" = "easy-cass-lab-packer"
+    }
+  }
+
+  subnet_filter {
+    filters = {
+      "tag:Name" = "easy-cass-lab-packer-subnet"
+    }
+    most_free = true
+    random    = false
+  }
+
+  security_group_filter {
+    filters = {
+      "tag:Name" = "easy-cass-lab-packer-sg"
+    }
+  }
+
+  run_tags = {
+    easy_cass_lab = "1"
+  }
+  tags = {
+    easy_cass_lab = "1"
+  }
   launch_block_device_mappings {
     device_name = "/dev/sda1"
     volume_size = 16

@@ -1,0 +1,245 @@
+#!/bin/bash
+
+set -e  # Exit on any error
+
+# Script to create managed IAM policies and attach to AWS users, groups, or roles
+# Always applies all three policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
+# Useful for debugging setup issues with other developers
+
+# Initialize variables from environment or defaults
+USER_NAME="${ECL_USER_NAME:-}"
+GROUP_NAME="${ECL_GROUP_NAME:-}"
+ROLE_NAME="${ECL_ROLE_NAME:-}"
+PROFILE="${ECL_PROFILE:-${AWS_PROFILE:-}}"
+DRY_RUN="${ECL_DRY_RUN:-false}"
+
+# Parse command-line arguments (override environment variables)
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --user-name)
+      USER_NAME="$2"
+      shift 2
+      ;;
+    --group-name)
+      GROUP_NAME="$2"
+      shift 2
+      ;;
+    --role-name)
+      ROLE_NAME="$2"
+      shift 2
+      ;;
+    --profile)
+      PROFILE="$2"
+      shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Create managed IAM policies and attach to AWS users, groups, or roles."
+      echo "Always applies all three policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR"
+      echo ""
+      echo "Uses managed policies (not inline) to avoid size limits and enable reusability."
+      echo ""
+      echo "Required (exactly one):"
+      echo "  --user-name <name>      Attach policies to IAM user (or ECL_USER_NAME)"
+      echo "  --group-name <name>     Attach policies to IAM group (or ECL_GROUP_NAME)"
+      echo "  --role-name <name>      Attach policies to IAM role (or ECL_ROLE_NAME)"
+      echo ""
+      echo "Optional:"
+      echo "  --profile <profile>     AWS profile to use (or ECL_PROFILE/AWS_PROFILE)"
+      echo "  --dry-run               Show what would be done (or ECL_DRY_RUN=true)"
+      echo "  -h, --help              Show this help message"
+      echo ""
+      echo "Examples:"
+      echo "  $0 --group-name EasyCassLabUsers"
+      echo "  $0 --user-name my-user --profile dev-account"
+      echo "  export ECL_GROUP_NAME=MyGroup && $0 --dry-run"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate that exactly one target is specified
+target_count=0
+[[ -n "$USER_NAME" ]] && ((target_count++))
+[[ -n "$GROUP_NAME" ]] && ((target_count++))
+[[ -n "$ROLE_NAME" ]] && ((target_count++))
+
+if [[ $target_count -eq 0 ]]; then
+  echo "ERROR: Must specify exactly one of --user-name, --group-name, or --role-name"
+  echo "Use --help for usage information"
+  exit 1
+elif [[ $target_count -gt 1 ]]; then
+  echo "ERROR: Cannot specify multiple targets (user, group, and role are mutually exclusive)"
+  echo "Use --help for usage information"
+  exit 1
+fi
+
+# Determine target type and name
+if [[ -n "$USER_NAME" ]]; then
+  TARGET_TYPE="user"
+  TARGET_NAME="$USER_NAME"
+  ATTACH_COMMAND="attach-user-policy --user-name"
+elif [[ -n "$GROUP_NAME" ]]; then
+  TARGET_TYPE="group"
+  TARGET_NAME="$GROUP_NAME"
+  ATTACH_COMMAND="attach-group-policy --group-name"
+else
+  TARGET_TYPE="role"
+  TARGET_NAME="$ROLE_NAME"
+  ATTACH_COMMAND="attach-role-policy --role-name"
+fi
+
+# Always apply all three policies
+POLICY_LIST=("ec2" "iam" "emr")
+
+# Build AWS CLI profile argument if specified
+PROFILE_ARG=""
+if [[ -n "$PROFILE" ]]; then
+  PROFILE_ARG="--profile $PROFILE"
+fi
+
+# Display configuration
+echo "=== Configuration ==="
+echo "Target type: $TARGET_TYPE"
+echo "Target name: $TARGET_NAME"
+echo "Policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR (all)"
+[[ -n "$PROFILE" ]] && echo "AWS profile: $PROFILE"
+echo "Policy type: Managed (reusable, no size limits)"
+echo "Dry run: $DRY_RUN"
+echo ""
+
+# Create temp directory for policy files
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
+
+# Apply each policy
+for policy in "${POLICY_LIST[@]}"; do
+  echo "=== Processing $policy policy ==="
+
+  # Get policy name mapping
+  case "$policy" in
+    ec2)
+      POLICY_NAME="EasyCassLabEC2"
+      ;;
+    iam)
+      POLICY_NAME="EasyCassLabIAM"
+      ;;
+    emr)
+      POLICY_NAME="EasyCassLabEMR"
+      ;;
+  esac
+
+  # Get policy JSON from easy-cass-lab
+  POLICY_FILE="$TEMP_DIR/${POLICY_NAME}.json"
+  echo "Fetching policy JSON..."
+  if ! bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
+    echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
+    exit 1
+  fi
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "[DRY RUN] Would execute:"
+    echo "  1. Check if policy exists:"
+    echo "     aws iam list-policies --query \"Policies[?PolicyName=='$POLICY_NAME'].Arn\" --output text $PROFILE_ARG"
+    echo "  2a. If not exists, create:"
+    echo "      aws iam create-policy --policy-name $POLICY_NAME --policy-document file://$POLICY_FILE $PROFILE_ARG"
+    echo "  2b. If exists, create new version (deleting old if at 5 version limit):"
+    echo "      aws iam create-policy-version --policy-arn <arn> --policy-document file://$POLICY_FILE --set-as-default $PROFILE_ARG"
+    echo "  3. Attach to $TARGET_TYPE:"
+    echo "     aws iam $ATTACH_COMMAND $TARGET_NAME --policy-arn <arn> $PROFILE_ARG"
+  else
+    echo "Creating or updating managed policy..."
+
+    # Try to get existing policy ARN
+    POLICY_ARN=$(aws iam list-policies $PROFILE_ARG --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
+
+    if [[ -z "$POLICY_ARN" ]]; then
+      # Policy doesn't exist - create it
+      echo "Policy $POLICY_NAME does not exist, creating..."
+      POLICY_ARN=$(aws iam create-policy \
+        --policy-name "$POLICY_NAME" \
+        --policy-document "file://$POLICY_FILE" \
+        $PROFILE_ARG \
+        --query 'Policy.Arn' \
+        --output text)
+
+      if [[ -z "$POLICY_ARN" ]]; then
+        echo "ERROR: Failed to create managed policy $POLICY_NAME"
+        exit 1
+      fi
+      echo "✓ Created policy $POLICY_NAME"
+    else
+      # Policy exists - create new version
+      echo "Policy $POLICY_NAME exists, creating new version..."
+
+      # Check version count and delete oldest non-default if at limit
+      VERSION_COUNT=$(aws iam list-policy-versions \
+        --policy-arn "$POLICY_ARN" \
+        $PROFILE_ARG \
+        --query 'length(Versions)' \
+        --output text)
+
+      if [[ "$VERSION_COUNT" -ge 5 ]]; then
+        echo "At version limit (5), deleting oldest non-default version..."
+        # Get oldest non-default version ID
+        OLDEST_VERSION=$(aws iam list-policy-versions \
+          --policy-arn "$POLICY_ARN" \
+          $PROFILE_ARG \
+          --query 'Versions[?IsDefaultVersion==`false`] | sort_by(@, &CreateDate) | [0].VersionId' \
+          --output text)
+
+        if [[ -n "$OLDEST_VERSION" ]]; then
+          aws iam delete-policy-version \
+            --policy-arn "$POLICY_ARN" \
+            --version-id "$OLDEST_VERSION" \
+            $PROFILE_ARG
+          echo "✓ Deleted old version: $OLDEST_VERSION"
+        fi
+      fi
+
+      # Create new version and set as default
+      NEW_VERSION=$(aws iam create-policy-version \
+        --policy-arn "$POLICY_ARN" \
+        --policy-document "file://$POLICY_FILE" \
+        --set-as-default \
+        $PROFILE_ARG \
+        --query 'PolicyVersion.VersionId' \
+        --output text)
+
+      if [[ -z "$NEW_VERSION" ]]; then
+        echo "ERROR: Failed to create new version for policy $POLICY_NAME"
+        exit 1
+      fi
+      echo "✓ Created and set default version: $NEW_VERSION"
+    fi
+
+    echo "Policy ARN: $POLICY_ARN"
+
+    # Attach to target (ignore error if already attached)
+    echo "Attaching policy to $TARGET_TYPE $TARGET_NAME..."
+    if aws iam $ATTACH_COMMAND "$TARGET_NAME" --policy-arn "$POLICY_ARN" $PROFILE_ARG 2>/dev/null; then
+      echo "✓ Successfully attached $POLICY_NAME"
+    else
+      # Check if it's already attached (which is fine)
+      echo "✓ Policy $POLICY_NAME already attached or attachment successful"
+    fi
+  fi
+  echo ""
+done
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "=== Dry run complete ==="
+  echo "No policies were actually created or attached."
+else
+  echo "=== All managed policies created and attached successfully ==="
+fi

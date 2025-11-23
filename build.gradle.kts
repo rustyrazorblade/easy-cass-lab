@@ -31,7 +31,6 @@ application {
     applicationDefaultJvmArgs =
         listOf(
             "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
-            "-Deasycasslab.ami.owner=081145431955",
             "-Deasycasslab.version=$version",
         )
 }
@@ -71,7 +70,6 @@ dependencies {
     implementation(libs.mordant)
 
     // AWS SDK
-    implementation(awssdk.services.s3) // Add dependency on the AWS SDK for Kotlin's S3 client.
     implementation(libs.bundles.awssdk)
 
     // Utilities

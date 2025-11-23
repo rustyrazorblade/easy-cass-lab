@@ -6,6 +6,7 @@ import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -15,6 +16,7 @@ import kotlin.io.path.deleteExisting
 import kotlin.io.path.inputStream
 
 @McpCommand
+@RequireProfileSetup
 @RequireSSHKey
 @Parameters(
     commandDescription =

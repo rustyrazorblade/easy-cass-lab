@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.commands
 import com.beust.jcommander.Parameter
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
+import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.HostList
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.di.TFStateProvider
@@ -12,6 +13,7 @@ import org.koin.core.component.inject
 import java.io.FileNotFoundException
 
 @McpCommand
+@RequireProfileSetup
 class Hosts(
     val context: Context,
 ) : ICommand,

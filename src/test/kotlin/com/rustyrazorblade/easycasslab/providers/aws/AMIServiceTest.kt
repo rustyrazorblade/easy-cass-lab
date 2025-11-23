@@ -26,7 +26,7 @@ internal class AMIServiceTest {
                 createAMI("ami-5", "rustyrazorblade/images/easy-cass-lab-cassandra-arm64-20240102", "arm64", "2024-01-02T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 2, dryRun = false)
 
@@ -49,7 +49,7 @@ internal class AMIServiceTest {
                 createAMI("ami-4", "rustyrazorblade/images/easy-cass-lab-base-amd64-20240102", "amd64", "2024-01-02T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = false)
 
@@ -72,7 +72,7 @@ internal class AMIServiceTest {
                 createAMI("ami-3", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240101", "amd64", "2024-01-01T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 2, dryRun = true)
 
@@ -105,7 +105,7 @@ internal class AMIServiceTest {
                 ),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = false)
 
@@ -129,7 +129,7 @@ internal class AMIServiceTest {
                 createAMI("ami-4", "rustyrazorblade/images/easy-cass-lab-base-amd64-20240102", "amd64", "2024-01-02T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result =
             amiService.pruneAMIs(
@@ -158,7 +158,7 @@ internal class AMIServiceTest {
                 createAMI("ami-2", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240102", "amd64", "2024-01-02T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 5, dryRun = false)
 
@@ -172,7 +172,7 @@ internal class AMIServiceTest {
 
     @Test
     fun `pruneAMIs should handle empty AMI list`() {
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(emptyList())
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(emptyList())
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 2, dryRun = false)
 
@@ -202,7 +202,7 @@ internal class AMIServiceTest {
                 ),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = false)
 
@@ -223,7 +223,7 @@ internal class AMIServiceTest {
                 createAMI("ami-3", "rustyrazorblade/images/easy-cass-lab-base-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result =
             amiService.pruneAMIs(
@@ -252,7 +252,7 @@ internal class AMIServiceTest {
                 createAMI("ami-2", "rustyrazorblade/images/easy-cass-lab-base-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = true)
 
@@ -272,7 +272,7 @@ internal class AMIServiceTest {
                 createAMI("ami-3", "rustyrazorblade/images/easy-cass-lab-cassandra-amd64-20240103", "amd64", "2024-01-03T00:00:00Z"),
             )
 
-        whenever(mockEc2Service.listPrivateAMIs(any())).thenReturn(amis)
+        whenever(mockEc2Service.listPrivateAMIs(any(), any())).thenReturn(amis)
 
         val result = amiService.pruneAMIs(namePattern = "rustyrazorblade/images/easy-cass-lab-*", keepCount = 1, dryRun = true)
 

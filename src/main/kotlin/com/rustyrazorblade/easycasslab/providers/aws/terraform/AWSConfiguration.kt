@@ -10,6 +10,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.providers.AWS
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
 import java.net.URL
@@ -40,6 +41,7 @@ class AWSConfiguration(
     var stressInstanceType: String = "c7i.2xlarge",
     var arch: Arch = Arch.AMD64,
     var sparkParams: SparkInitParams,
+    val accountId: String,
 ) {
     val logger = KotlinLogging.logger {}
     private val mapper = ObjectMapper().registerKotlinModule()
@@ -61,6 +63,7 @@ class AWSConfiguration(
             azs = azs,
             tags = tags,
             arch = arch,
+            accountId = accountId,
         )
 
     init {
@@ -195,6 +198,7 @@ class AWSConfiguration(
                     count = 1,
                     ebs_block_device = ebsConf,
                     ebs_optimized = ebs.optimized_instance,
+                    iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
                     subnet = subnets[subnetPos],
                 )
             terraformConfig.resource.aws_instance[instanceName] = cass
@@ -223,6 +227,7 @@ class AWSConfiguration(
                     count = 1,
                     ebs_block_device = null,
                     ebs_optimized = false,
+                    iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
                     subnet = subnets[subnetPos],
                 )
             terraformConfig.resource.aws_instance[instanceName] = stress
@@ -258,6 +263,7 @@ class AWSConfiguration(
                     ),
                 ebs_block_device = null,
                 ebs_optimized = false,
+                iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
                 subnet = subnets[0],
             )
         terraformConfig.resource.aws_instance[controlInstanceName] = control
@@ -291,7 +297,11 @@ class TerraformConfig(
     @JsonIgnore val azs: List<String>,
     @JsonIgnore val tags: MutableMap<String, String>,
     @JsonIgnore val arch: Arch,
+    @JsonIgnore val accountId: String,
 ) {
+    @JsonIgnore
+    val amiOwner = accountId
+
     var variable = mutableMapOf<String, Variable>()
     val provider = mutableMapOf("aws" to Provider(region, listOf("/awscredentials")))
 
@@ -389,9 +399,5 @@ class TerraformConfig(
     fun getAmi(arch: Arch): String {
         val defaultAmi = "rustyrazorblade/images/easy-cass-lab-cassandra-${arch.type}-*"
         return System.getProperty("easycasslab.ami.name", defaultAmi)
-    }
-
-    companion object {
-        val amiOwner = System.getProperty("easycasslab.ami.owner", "self")
     }
 }

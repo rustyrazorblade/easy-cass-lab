@@ -2,7 +2,6 @@ package com.rustyrazorblade.easycasslab.di
 
 import com.rustyrazorblade.easycasslab.ContextFactory
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easycasslab.providers.ssh.SSHConfiguration
 import org.koin.dsl.module
@@ -18,9 +17,8 @@ fun contextModule(contextFactory: ContextFactory) =
 
         // Provide UserConfigProvider to manage user configuration loading
         single {
-            val outputHandler = get<OutputHandler>()
             val context = contextFactory.getDefault()
-            UserConfigProvider(context.profileDir, outputHandler)
+            UserConfigProvider(context.profileDir)
         }
 
         // Provide User configuration via UserConfigProvider

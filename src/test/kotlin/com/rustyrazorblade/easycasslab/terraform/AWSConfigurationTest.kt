@@ -3,6 +3,7 @@ package com.rustyrazorblade.easycasslab.terraform
 import com.rustyrazorblade.easycasslab.TestContextFactory
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
@@ -35,6 +36,7 @@ class AWSConfigurationTest {
                 ami = "test",
                 sparkParams = sparkParams,
                 ebs = EBSConfiguration(EBSType.NONE, 0, 0, 0, false),
+                accountId = "123456789012",
             )
 
         assertThat(awsConfiguration).hasFieldOrProperty("sparkParams").isNotNull()
@@ -49,5 +51,47 @@ class AWSConfigurationTest {
 
         assertThat(json).doesNotContain("masterInstanceGroup")
         assertThat(json).contains("master_instance_group")
+    }
+
+    @Test
+    fun testIAMInstanceProfileIncludedInAllInstances() {
+        val context = TestContextFactory.createTestContext()
+        val userConfigFile = File(context.profileDir, "settings.yaml")
+        val user = context.yaml.readValue(userConfigFile, User::class.java)
+
+        val awsConfiguration =
+            AWSConfiguration(
+                name = "test-cluster",
+                region = "us-west-2",
+                context = context,
+                user = user,
+                open = false,
+                ami = "test",
+                sparkParams = SparkInitParams(),
+                ebs = EBSConfiguration(EBSType.NONE, 0, 0, 0, false),
+                accountId = "123456789012",
+                numCassandraInstances = 1,
+                numStressInstances = 1,
+            )
+
+        val json = awsConfiguration.toJSON()
+
+        // Verify JSON is generated
+        assertThat(json).isNotNull()
+        assertThat(json).isNotEmpty()
+
+        // Verify Cassandra instance has IAM instance profile
+        assertThat(json).contains("\"cassandra0\"")
+        assertThat(json).contains("\"iam_instance_profile\" : \"${AWS.EC2_INSTANCE_ROLE}\"")
+
+        // Verify Stress instance has IAM instance profile
+        assertThat(json).contains("\"stress0\"")
+
+        // Verify Control instance has IAM instance profile
+        assertThat(json).contains("\"control0\"")
+
+        // Verify all instances reference the IAM role
+        val instanceProfileCount = json.split("\"iam_instance_profile\" : \"${AWS.EC2_INSTANCE_ROLE}\"").size - 1
+        assertThat(instanceProfileCount).isGreaterThanOrEqualTo(3) // At least Cassandra, Stress, Control
     }
 }

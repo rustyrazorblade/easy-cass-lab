@@ -22,20 +22,24 @@ class EC2Service(
     private val ec2Client: Ec2Client,
 ) {
     /**
-     * Lists all private AMIs owned by the current account matching the name pattern.
+     * Lists all private AMIs owned by the specified account matching the name pattern.
      *
-     * This method queries AWS for AMIs owned by "self" (the current AWS account) and
+     * This method queries AWS for AMIs owned by the specified account and
      * filters them by the provided name pattern. It converts AWS SDK Image objects
      * into domain AMI objects with normalized architecture values.
      *
      * @param namePattern Wildcard pattern for filtering AMI names (e.g., "rustyrazorblade/images/easy-cass-lab-*")
+     * @param ownerId AWS account ID to filter AMIs by owner (defaults to "self" for backward compatibility)
      * @return List of AMI objects representing private AMIs matching the pattern
      */
-    fun listPrivateAMIs(namePattern: String): List<AMI> {
+    fun listPrivateAMIs(
+        namePattern: String,
+        ownerId: String = "self",
+    ): List<AMI> {
         val request =
             DescribeImagesRequest
                 .builder()
-                .owners("self")
+                .owners(ownerId)
                 .filters(
                     Filter
                         .builder()

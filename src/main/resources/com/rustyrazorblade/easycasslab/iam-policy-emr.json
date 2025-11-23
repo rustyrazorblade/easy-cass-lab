@@ -1,0 +1,84 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EMRDescribePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "elasticmapreduce:DescribeCluster",
+        "elasticmapreduce:ListClusters",
+        "elasticmapreduce:ListInstanceFleets",
+        "elasticmapreduce:ListInstanceGroups",
+        "elasticmapreduce:ListInstances",
+        "elasticmapreduce:DescribeStep",
+        "elasticmapreduce:ListSteps",
+        "elasticmapreduce:ListBootstrapActions",
+        "elasticmapreduce:GetAutoTerminationPolicy",
+        "elasticmapreduce:DescribeSecurityConfiguration",
+        "elasticmapreduce:ListSecurityConfigurations"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EMRCreatePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "elasticmapreduce:RunJobFlow",
+        "elasticmapreduce:TerminateJobFlows",
+        "elasticmapreduce:CreateSecurityConfiguration"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EMRModifyTaggedResourcesPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "elasticmapreduce:AddTags",
+        "elasticmapreduce:AddInstanceFleet",
+        "elasticmapreduce:AddInstanceGroups",
+        "elasticmapreduce:ModifyInstanceFleet",
+        "elasticmapreduce:ModifyInstanceGroups",
+        "elasticmapreduce:AddJobFlowSteps",
+        "elasticmapreduce:CancelSteps",
+        "elasticmapreduce:SetTerminationProtection",
+        "elasticmapreduce:SetVisibleToAllUsers",
+        "elasticmapreduce:PutAutoScalingPolicy",
+        "elasticmapreduce:RemoveAutoScalingPolicy",
+        "elasticmapreduce:DeleteSecurityConfiguration"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/easy_cass_lab": "1"
+        }
+      }
+    },
+    {
+      "Sid": "EMRPassRolePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::ACCOUNT_ID:role/EasyCassLabEMRServiceRole",
+        "arn:aws:iam::ACCOUNT_ID:role/EasyCassLabEMREC2Role"
+      ]
+    },
+    {
+      "Sid": "EMRServiceLinkedRolePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/elasticmapreduce.amazonaws.com*/AWSServiceRoleForEMR*",
+      "Condition": {
+        "StringLike": {
+          "iam:AWSServiceName": [
+            "elasticmapreduce.amazonaws.com",
+            "elasticmapreduce.amazonaws.com.cn"
+          ]
+        }
+      }
+    }
+  ]
+}

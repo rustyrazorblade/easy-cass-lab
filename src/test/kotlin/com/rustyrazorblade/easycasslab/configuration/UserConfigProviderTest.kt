@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easycasslab.configuration
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.output.BufferedOutputHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -13,7 +12,6 @@ class UserConfigProviderTest : BaseKoinTest() {
     lateinit var tempDir: File
 
     private lateinit var userConfigProvider: UserConfigProvider
-    private lateinit var outputHandler: BufferedOutputHandler
     private lateinit var profileDir: File
     private lateinit var userConfigFile: File
 
@@ -22,12 +20,11 @@ class UserConfigProviderTest : BaseKoinTest() {
 
     @BeforeEach
     fun setUp() {
-        outputHandler = BufferedOutputHandler()
         profileDir = File(tempDir, ".easy-cass-lab")
         profileDir.mkdirs()
         userConfigFile = File(profileDir, "settings.yaml")
 
-        userConfigProvider = UserConfigProvider(profileDir, outputHandler)
+        userConfigProvider = UserConfigProvider(profileDir)
     }
 
     @Test
@@ -42,8 +39,10 @@ class UserConfigProviderTest : BaseKoinTest() {
             awsProfile: default
             awsAccessKey: TEST_ACCESS_KEY
             awsSecret: TEST_SECRET
+            arch: amd64
             axonOpsOrg: test-org
             axonOpsKey: test-key
+            s3Bucket: test-bucket
             """.trimIndent()
 
         userConfigFile.writeText(completeConfig)
@@ -67,8 +66,10 @@ class UserConfigProviderTest : BaseKoinTest() {
             awsProfile: default
             awsAccessKey: TEST_ACCESS_KEY
             awsSecret: TEST_SECRET
+            arch: amd64
             axonOpsOrg: test-org
             axonOpsKey: test-key
+            s3Bucket: test-bucket
             """.trimIndent()
 
         userConfigFile.writeText(completeConfig)
@@ -95,8 +96,10 @@ class UserConfigProviderTest : BaseKoinTest() {
             awsProfile: default
             awsAccessKey: TEST_ACCESS_KEY
             awsSecret: TEST_SECRET
+            arch: amd64
             axonOpsOrg: test-org
             axonOpsKey: test-key
+            s3Bucket: test-bucket
             """.trimIndent()
 
         userConfigFile.writeText(config)
@@ -134,8 +137,10 @@ class UserConfigProviderTest : BaseKoinTest() {
             awsProfile: default
             awsAccessKey: TEST_ACCESS_KEY
             awsSecret: TEST_SECRET
+            arch: amd64
             axonOpsOrg: test-org
             axonOpsKey: test-key
+            s3Bucket: test-bucket
             """.trimIndent()
 
         userConfigFile.writeText(completeConfig)
@@ -157,8 +162,10 @@ class UserConfigProviderTest : BaseKoinTest() {
             awsProfile: production
             awsAccessKey: EVOLVED_ACCESS_KEY
             awsSecret: EVOLVED_SECRET
+            arch: arm64
             axonOpsOrg: evolved-org
             axonOpsKey: evolved-key
+            s3Bucket: evolved-bucket
             """.trimIndent()
 
         userConfigFile.writeText(evolvedConfig)
