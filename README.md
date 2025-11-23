@@ -82,6 +82,106 @@ brew install easy-cass-lab
 
 Skip ahead to Read The Help.
 
+### Use Container Image
+
+A containerized version is available from GitHub Container Registry. This is useful for CI/CD pipelines or environments where you prefer container-based tools.
+
+#### Container Tags
+
+Available tags:
+- `latest` - Most recent build from main branch
+- `v12` - Specific version (e.g., v12, v13, etc.)
+- `12` - Version without 'v' prefix
+
+```shell
+# Pull latest version
+docker pull ghcr.io/rustyrazorblade/easy-cass-lab:latest
+
+# Pull specific version
+docker pull ghcr.io/rustyrazorblade/easy-cass-lab:v12
+```
+
+#### Running Commands
+
+To run commands using the container:
+
+```shell
+docker run --rm \
+  -v ~/.aws:/root/.aws:ro \                              # Read-only: AWS credentials
+  -v ~/.ssh:/root/.ssh:ro \                              # Read-only: SSH keys
+  -v $(pwd):/workspace \                                 # Read-write: Working directory for cluster state
+  -v /var/run/docker.sock:/var/run/docker.sock \         # Required for Docker operations
+  ghcr.io/rustyrazorblade/easy-cass-lab:latest --help
+```
+
+**Important notes for container usage:**
+- Mount your AWS credentials (`~/.aws`) as read-only for authentication
+- Mount your SSH keys (`~/.ssh`) as read-only for instance access
+- Mount a working directory (`$(pwd):/workspace`) for storing cluster state and configuration
+- Mount the Docker socket to allow the tool to use Docker for Terraform/Packer operations
+- For convenience, create a shell alias:
+
+```shell
+alias easy-cass-lab='docker run --rm \
+  -v ~/.aws:/root/.aws:ro \
+  -v ~/.ssh:/root/.ssh:ro \
+  -v $(pwd):/workspace \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  ghcr.io/rustyrazorblade/easy-cass-lab:latest'
+```
+
+Then use it like the native command:
+
+```shell
+easy-cass-lab setup-profile
+easy-cass-lab init my-cluster --cassandra 5.0
+```
+
+#### Container Limitations
+
+When using the container version, note the following:
+- The `build-image` command requires access to your AWS credentials and Docker socket
+- Terraform state is stored in the working directory (mount `/workspace` to persist it)
+- SSH keys must be mounted and accessible inside the container for instance access
+- Performance may be slightly slower than native installation due to container overhead
+- The container runs with root privileges to access the Docker socket (required for Terraform/Packer operations)
+
+#### Security Note
+
+The container requires root privileges to access the Docker socket, which is necessary for Terraform and Packer operations. For improved security:
+- Use Docker socket access control (e.g., Docker socket proxy) in production environments
+- Run containers only in isolated environments
+- Never use with untrusted inputs
+- Consider using native installation if Docker socket access is a concern
+
+#### Troubleshooting Container Issues
+
+**Permission errors accessing Docker socket:**
+```shell
+# Ensure your user has Docker permissions
+sudo usermod -aG docker $USER
+# Log out and back in for changes to take effect
+```
+
+**AWS credential mounting issues:**
+```shell
+# Verify credentials directory exists and is readable
+ls -la ~/.aws
+# Ensure AWS credentials are properly configured
+aws configure list
+```
+
+**SSH key permissions in container:**
+```shell
+# SSH keys should have correct permissions (600)
+chmod 600 ~/.ssh/id_rsa
+# If using non-default key, specify it in container command
+docker run --rm \
+  -v ~/.ssh:/root/.ssh:ro \
+  -e SSH_KEY=/root/.ssh/my-custom-key \
+  ghcr.io/rustyrazorblade/easy-cass-lab:latest ...
+```
+
 ### Download A Release
 
 Download the latest [release](https://github.com/rustyrazorblade/easy-cass-lab/releases) and add the project's bin directory

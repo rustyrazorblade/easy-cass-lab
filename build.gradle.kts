@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
+    alias(libs.plugins.jib)
 }
 
 group = "com.rustyrazorblade"
@@ -288,4 +289,74 @@ kover {
             }
         }
     }
+}
+
+// Jib container image configuration
+jib {
+    from {
+        image = "eclipse-temurin:21-jre"
+        platforms {
+            platform {
+                architecture = "amd64"
+                os = "linux"
+            }
+            platform {
+                architecture = "arm64"
+                os = "linux"
+            }
+        }
+    }
+    to {
+        image = "ghcr.io/rustyrazorblade/easy-cass-lab"
+        // Allow workflow to control tags via -Djib.to.tags
+        tags = (System.getProperty("jib.to.tags") ?: "latest").split(",").toSet()
+        auth {
+            username = System.getenv("GITHUB_ACTOR") ?: ""
+            password = System.getenv("GITHUB_TOKEN") ?: ""
+        }
+    }
+    container {
+        mainClass = "com.rustyrazorblade.easycasslab.MainKt"
+        appRoot = "/app"
+        jvmFlags =
+            listOf(
+                "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
+                "-Deasycasslab.version=$version",
+                "-Deasycasslab.apphome=/app",
+                "-Xmx2048M",
+            )
+        environment =
+            mapOf(
+                "JAVA_TOOL_OPTIONS" to "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0",
+            )
+        extraDirectories {
+            paths {
+                path {
+                    setFrom(file("packer"))
+                    into = "/app/packer"
+                }
+            }
+        }
+        creationTime = "USE_CURRENT_TIMESTAMP"
+        filesModificationTime = "EPOCH_PLUS_SECOND"
+        format = com.google.cloud.tools.jib.api.buildplan.ImageFormat.OCI
+        labels.set(
+            mapOf(
+                "org.opencontainers.image.source" to "https://github.com/rustyrazorblade/easy-cass-lab",
+                "org.opencontainers.image.description" to "Tool to create Cassandra lab environments in AWS",
+                "org.opencontainers.image.licenses" to "Apache-2.0",
+                "org.opencontainers.image.version" to version.toString(),
+                "com.rustyrazorblade.easy-cass-lab.requires-docker" to "true",
+            ),
+        )
+    }
+}
+
+// Jib doesn't fully support configuration cache yet
+tasks.named("jib") {
+    notCompatibleWithConfigurationCache("Jib plugin doesn't fully support configuration cache yet")
+}
+
+tasks.named("jibDockerBuild") {
+    notCompatibleWithConfigurationCache("Jib plugin doesn't fully support configuration cache yet")
 }
