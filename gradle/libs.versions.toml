@@ -59,7 +59,7 @@ versions = "0.53.0"
 ktlint = "14.0.1"
 detekt = "1.23.7"
 kover = "0.8.3"
-jib = "3.4.4"
+jib = "3.5.1"
 
 [libraries]
 # Kotlin
