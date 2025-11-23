@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Packer
 import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
+import com.rustyrazorblade.easycasslab.services.AWSResourceSetupService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -22,6 +23,7 @@ class BuildBaseImage(
     @ParametersDelegate var buildArgs = BuildArgs()
 
     private val packerInfrastructure: PackerInfrastructureService by inject()
+    private val awsResourceSetupService: AWSResourceSetupService by inject()
     private val userConfig: User by inject()
 
     override fun execute() {
@@ -29,6 +31,9 @@ class BuildBaseImage(
         if (buildArgs.region.isBlank()) {
             buildArgs.region = userConfig.region
         }
+
+        // Ensure AWS infrastructure (IAM roles, S3) exists first
+        awsResourceSetupService.ensureAWSResources(userConfig)
 
         // Ensure Packer VPC infrastructure exists before building
         packerInfrastructure.ensureInfrastructure()
