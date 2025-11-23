@@ -49,14 +49,11 @@ class Up(
     @ParametersDelegate var hosts = Hosts()
 
     override fun execute() {
-        // we have to list both the variable files explicitly here
-        // even though we have a terraform.tvars
-        // we need the local one to apply at the highest priority
-        // specifying the user one makes it take priority over the local one
-        // so we have to explicitly specify the local one to ensure it gets
-        // priority over user
-        // slowly migrating code from Terraform to Java.
-        aws.createLabEnvironment()
+        // AWS resource setup (IAM roles, S3 bucket) is handled
+        // In the initial account setup, and can be re-run using
+        // the configure-aws command.
+        // See AWSResourceSetupService
+
         provisionInfrastructure()
         writeConfigurationFiles()
         updateClusterState()

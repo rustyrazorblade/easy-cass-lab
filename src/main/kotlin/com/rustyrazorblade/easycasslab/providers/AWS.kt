@@ -23,6 +23,85 @@ import software.amazon.awssdk.services.sts.StsClient
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityRequest
 import software.amazon.awssdk.services.sts.model.StsException
 
+/**
+ * AWS infrastructure provider - wraps AWS SDK clients with domain-specific operations.
+ *
+ * This class provides LOW-LEVEL AWS operations that can be reused across multiple services
+ * and commands. It focuses on direct AWS SDK interactions and does NOT contain orchestration
+ * logic or complex setup workflows.
+ *
+ * ## Responsibilities
+ *
+ * ### AWS SDK Client Management
+ * - Manages IAM, S3, and STS client instances
+ * - Provides domain-appropriate method signatures
+ * - Handles AWS SDK exceptions and error translation
+ *
+ * ### Account & Permission Operations
+ * - Account ID retrieval and caching ([getAccountId])
+ * - Credential validation ([checkPermissions])
+ * - Permission error handling with helpful user messages ([handlePermissionError])
+ *
+ * ### IAM Role Operations
+ * - IAM role creation with trust policies ([createServiceRole], [createEMREC2Role], [createRoleWithS3Policy])
+ * - Policy attachment to roles ([attachPolicy], [attachEMRRole], [attachEMREC2Role])
+ * - Instance profile creation and role association
+ * - Role validation ([validateRoleSetup], [roleExists])
+ *
+ * ### S3 Bucket Operations
+ * - S3 bucket creation ([createS3Bucket])
+ * - Bucket policy application ([putS3BucketPolicy])
+ * - Idempotent operations (safe to call multiple times)
+ *
+ * ### Shared Constants
+ * - Standard role names ([EMR_SERVICE_ROLE], [EC2_INSTANCE_ROLE], [EMR_EC2_ROLE])
+ * - IAM policy templates with account ID substitution
+ *
+ * ## NOT Responsible For
+ *
+ * - **Setup orchestration** - Use [com.rustyrazorblade.easycasslab.services.AWSResourceSetupService]
+ * - **Retry logic** - Handled by service layer using resilience4j
+ * - **User-facing workflow coordination** - Services handle this
+ * - **Configuration management** - Managed by UserConfigProvider
+ * - **Complex validation workflows** - Delegated to services
+ *
+ * ## Usage Guidelines
+ *
+ * ### When to Add Methods Here
+ * - Direct AWS SDK operations (create, get, attach, delete)
+ * - Operations needed by multiple services or commands
+ * - Infrastructure-level operations without business logic
+ * - Error handling for AWS-specific exceptions
+ *
+ * ### When to Use Service Layer Instead
+ * - Multi-step workflows requiring coordination
+ * - Operations requiring retry logic or resilience
+ * - User-facing setup or provisioning workflows
+ * - Operations that modify user configuration
+ * - Complex validation requiring multiple checks
+ *
+ * ## Relationship with AWSResourceSetupService
+ *
+ * - **AWS** (this class): Infrastructure layer - "how to talk to AWS"
+ * - **AWSResourceSetupService**: Service layer - "how to set up resources"
+ *
+ * The service layer uses this class for low-level operations while adding:
+ * - Orchestration logic (order of operations)
+ * - Retry and error recovery
+ * - User messaging and output
+ * - Configuration updates
+ * - Validation workflows
+ *
+ * ## Testing
+ *
+ * This class is mocked by default in [com.rustyrazorblade.easycasslab.BaseKoinTest],
+ * allowing tests to verify behavior without making real AWS API calls.
+ *
+ * @property iamClient AWS IAM client for identity and access management operations
+ * @property s3Client AWS S3 client for bucket operations
+ * @property stsClient AWS STS client for credential and account operations
+ * @property outputHandler Handler for user-facing messages and error output
+ */
 class AWS(
     private val iamClient: IamClient,
     private val s3Client: S3Client,
@@ -266,15 +345,6 @@ class AWS(
         }
     }
 
-    fun createLabEnvironment() {
-        createAccounts()
-    }
-
-    private fun createAccounts() {
-        createServiceRole()
-        createEMREC2Role()
-    }
-
     /**
      * Creates an IAM role for EMR service with necessary permissions
      */
@@ -434,6 +504,69 @@ class AWS(
         }
 
         return bucketName
+    }
+
+    /**
+     * Creates and applies an S3 bucket policy that grants access to all easy-cass-lab IAM roles.
+     * Idempotent - will succeed even if policy already exists.
+     *
+     * The policy grants full S3 access to:
+     * - EasyCassLabEC2Role (EC2 instances)
+     * - EasyCassLabEMRServiceRole (EMR service)
+     * - EasyCassLabEMREC2Role (EMR EC2 instances)
+     *
+     * @param bucketName The S3 bucket name to apply the policy to
+     * @throws IllegalArgumentException if bucket name is invalid
+     * @throws S3Exception if S3 operations fail
+     */
+    fun putS3BucketPolicy(bucketName: String) {
+        require(bucketName.matches(Regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"))) {
+            "Invalid S3 bucket name: $bucketName. Must be lowercase, 3-63 chars, alphanumeric and hyphens only."
+        }
+
+        val accountId = getAccountId()
+
+        val bucketPolicy =
+            """
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": [
+                                "arn:aws:iam::$accountId:role/$EC2_INSTANCE_ROLE",
+                                "arn:aws:iam::$accountId:role/$EMR_SERVICE_ROLE",
+                                "arn:aws:iam::$accountId:role/$EMR_EC2_ROLE"
+                            ]
+                        },
+                        "Action": "s3:*",
+                        "Resource": [
+                            "arn:aws:s3:::$bucketName",
+                            "arn:aws:s3:::$bucketName/*"
+                        ]
+                    }
+                ]
+            }
+            """.trimIndent()
+
+        try {
+            val request =
+                software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest
+                    .builder()
+                    .bucket(bucketName)
+                    .policy(bucketPolicy)
+                    .build()
+
+            s3Client.putBucketPolicy(request)
+            log.info { "✓ Applied S3 bucket policy granting access to all 3 IAM roles: $bucketName" }
+        } catch (e: software.amazon.awssdk.services.s3.model.S3Exception) {
+            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
+                handlePermissionError(e, "S3 PutBucketPolicy")
+            }
+            log.error { "Failed to apply S3 bucket policy: $bucketName - ${e.message}" }
+            throw e
+        }
     }
 
     /**

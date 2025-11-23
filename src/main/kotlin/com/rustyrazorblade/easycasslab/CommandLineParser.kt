@@ -11,6 +11,7 @@ import com.rustyrazorblade.easycasslab.commands.BuildBaseImage
 import com.rustyrazorblade.easycasslab.commands.BuildCassandraImage
 import com.rustyrazorblade.easycasslab.commands.BuildImage
 import com.rustyrazorblade.easycasslab.commands.Clean
+import com.rustyrazorblade.easycasslab.commands.ConfigureAWS
 import com.rustyrazorblade.easycasslab.commands.ConfigureAxonOps
 import com.rustyrazorblade.easycasslab.commands.Down
 import com.rustyrazorblade.easycasslab.commands.DownloadConfig
@@ -101,6 +102,7 @@ class CommandLineParser(
                 Command("server", Server(context)),
                 Command("prune-amis", PruneAMIs(context)),
                 Command("show-iam-policies", ShowIamPolicies(context), listOf("sip")),
+                Command("configure-aws", ConfigureAWS(context)),
             )
 
         for (c in commands) {
@@ -162,7 +164,23 @@ class CommandLineParser(
             }
             this.command.executeAll()
         }
-            ?: run { jc.usage() }
+            ?: run {
+                jc.usage()
+                val userConfigProvider: UserConfigProvider by inject()
+                if (!userConfigProvider.isSetup()) {
+                    with(TermColors()) {
+                        outputHandler.handleMessage(
+                            yellow(
+                                """
+
+                                Profile not configured. Please run 'easy-cass-lab setup-profile' to configure your environment.
+
+                                """.trimIndent(),
+                            ),
+                        )
+                    }
+                }
+            }
     }
 
     @Suppress("TooGenericExceptionCaught")

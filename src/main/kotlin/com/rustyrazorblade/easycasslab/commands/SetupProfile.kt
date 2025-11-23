@@ -255,7 +255,8 @@ class SetupProfile(
     private fun showWelcomeMessage() {
         outputHandler.handleMessage(
             """
-            Welcome to the easy-cass-lab interactive setup.
+            Welcome to the easy-cass-lab interactive setup for profile '${context.profile}'.
+            (To use a different profile, set the EASY_CASS_LAB_PROFILE environment variable)
 
             **** IMPORTANT ****
 

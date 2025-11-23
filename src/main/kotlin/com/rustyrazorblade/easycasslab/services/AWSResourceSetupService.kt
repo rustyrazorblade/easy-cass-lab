@@ -4,16 +4,69 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
+import io.github.resilience4j.retry.Retry
+import io.github.resilience4j.retry.RetryConfig
 
 /**
- * Service responsible for ensuring AWS resources (credentials, S3 bucket, IAM role) are set up
+ * Service responsible for ensuring AWS resources (credentials, S3 bucket, IAM roles) are set up
  * before any command runs. This runs automatically in CommandLineParser before command execution.
+ *
+ * Creates and validates the following AWS resources:
+ * - S3 bucket for cluster data and logs
+ * - EasyCassLabEC2Role: IAM role for EC2 instances (Cassandra, Stress, Control nodes)
+ * - EasyCassLabEMRServiceRole: IAM role for EMR service
+ * - EasyCassLabEMREC2Role: IAM role for EMR EC2 instances (Spark clusters)
+ * - S3 bucket policy granting access to all 3 IAM roles
  */
 class AWSResourceSetupService(
     private val aws: AWS,
     private val userConfigProvider: UserConfigProvider,
     private val outputHandler: OutputHandler,
 ) {
+    companion object {
+        // User-facing messages
+        private const val MSG_REPAIR_WARNING = "Warning: IAM role configuration incomplete or invalid. Will attempt to repair."
+        private const val MSG_SETUP_START = "Setting up AWS resources (S3 bucket, IAM roles, instance profiles)..."
+        private const val MSG_SETUP_COMPLETE = "✓ AWS resources setup complete and validated"
+        private const val MSG_S3_READY = "✓ S3 bucket ready:"
+        private const val MSG_EC2_ROLE_READY = "✓ IAM role and instance profile ready:"
+        private const val MSG_EMR_SERVICE_READY = "✓ EMR service role ready:"
+        private const val MSG_EMR_EC2_READY = "✓ EMR EC2 role and instance profile ready:"
+        private const val MSG_S3_POLICY_READY = "✓ S3 bucket policy applied for all IAM roles"
+
+        // Error messages
+        private const val ERR_CREDENTIAL_VALIDATION =
+            "AWS credential validation failed. Please check your AWS credentials and permissions."
+        private const val ERR_S3_BUCKET_CREATE = "Failed to create S3 bucket:"
+        private const val ERR_S3_POLICY_APPLY = "Failed to apply S3 bucket policy:"
+        private const val ERR_IAM_VALIDATION =
+            "IAM roles were created but failed validation. This may indicate an AWS propagation delay or configuration issue."
+        private const val ERR_IAM_UNEXPECTED = "Unexpected error during IAM role setup"
+
+        private val ERR_IAM_PERMISSIONS =
+            """
+            Failed to create IAM roles and instance profiles.
+
+            This may be due to missing IAM permissions. Please ensure your AWS user has:
+            - iam:CreateRole
+            - iam:PutRolePolicy
+            - iam:AttachRolePolicy
+            - iam:CreateInstanceProfile
+            - iam:AddRoleToInstanceProfile
+            - iam:GetInstanceProfile
+            - iam:ListRolePolicies
+
+            You can generate EasyCassLabEC2, EasyCassLabIAM, and EasyCassLabEMR policies using:
+
+            $ easy-cass-lab show-iam-policies
+
+            """.trimIndent()
+
+        // Retry configuration
+        private const val MAX_RETRIES = 3
+        private const val RETRY_BASE_DELAY_MS = 1000L
+    }
+
     /**
      * Ensures all AWS resources are set up before any command runs.
      * Only creates resources if they don't exist in user config.
@@ -23,6 +76,7 @@ class AWSResourceSetupService(
      * - Instance profile existence
      * - Role attachment to instance profile
      * - S3 policy attachment
+     * - S3 bucket policy granting access to all 3 IAM roles
      *
      * @param userConfig The user configuration to check and update
      * @throws IllegalStateException if resource setup fails validation
@@ -30,79 +84,130 @@ class AWSResourceSetupService(
     fun ensureAWSResources(userConfig: User) {
         val roleName = AWS.EC2_INSTANCE_ROLE
 
-        // Check if resources already exist and are properly configured
-        if (userConfig.s3Bucket.isNotBlank()) {
-            val validation = aws.validateRoleSetup(roleName)
-            if (validation.isValid) {
-                // All resources exist and are properly configured
-                return
-            }
-            // Resources exist in config but validation failed - will attempt to fix
-            outputHandler.handleMessage(
-                "Warning: IAM role configuration incomplete or invalid. Will attempt to repair.",
-            )
-            outputHandler.handleMessage("  ${validation.errorMessage}")
+        // Early return if resources already exist and are valid
+        if (validateExistingResources(userConfig, roleName)) {
+            return
         }
 
-        outputHandler.handleMessage("Setting up AWS resources (S3 bucket, IAM role, instance profile)...")
+        outputHandler.handleMessage(MSG_SETUP_START)
 
-        // Validate AWS credentials before attempting any operations
-        try {
-            aws.checkPermissions()
-        } catch (e: Exception) {
-            outputHandler.handleError(
-                "AWS credential validation failed. Please check your AWS credentials and permissions.",
-                e,
-            )
-            throw e
+        // Step 1: Validate credentials
+        validateCredentials()
+
+        // Step 2: Create S3 resources
+        val bucketName = createS3Resources(userConfig)
+
+        // Step 3: Create IAM resources
+        createIAMResources(roleName, bucketName)
+
+        // Step 4: Apply S3 bucket policy
+        applyS3BucketPolicy(bucketName)
+
+        // Step 5: Finalize setup
+        finalizeSetup(userConfig, roleName, bucketName)
+    }
+
+    /**
+     * Validates existing resources and returns true if all resources are properly configured.
+     */
+    private fun validateExistingResources(
+        userConfig: User,
+        roleName: String,
+    ): Boolean {
+        if (userConfig.s3Bucket.isBlank()) {
+            return false
         }
 
-        // Generate and create S3 bucket if needed
+        val validation = aws.validateRoleSetup(roleName)
+        if (validation.isValid) {
+            // All resources exist and are properly configured
+            return true
+        }
+
+        // Resources exist in config but validation failed - will attempt to fix
+        outputHandler.handleMessage(MSG_REPAIR_WARNING)
+        outputHandler.handleMessage("  ${validation.errorMessage}")
+        return false
+    }
+
+    /**
+     * Validates AWS credentials before attempting any operations.
+     */
+    private fun validateCredentials() {
+        executeWithErrorHandling(
+            operation = { aws.checkPermissions() },
+            errorMessage = ERR_CREDENTIAL_VALIDATION,
+        )
+    }
+
+    /**
+     * Creates S3 bucket with retry logic for transient failures.
+     */
+    private fun createS3Resources(userConfig: User): String {
         val bucketName = User.generateBucketName(userConfig)
-        try {
-            aws.createS3Bucket(bucketName)
-            outputHandler.handleMessage("✓ S3 bucket ready: $bucketName")
-        } catch (e: Exception) {
-            outputHandler.handleError("Failed to create S3 bucket: $bucketName", e)
-            throw e
-        }
 
-        // Create IAM role, instance profile, and attach S3 policy
+        executeWithRetry(
+            operationName = "createS3Bucket",
+            operation = { aws.createS3Bucket(bucketName) },
+            errorMessage = "$ERR_S3_BUCKET_CREATE $bucketName",
+        )
+
+        outputHandler.handleMessage("$MSG_S3_READY $bucketName")
+        return bucketName
+    }
+
+    /**
+     * Creates all 3 IAM roles and instance profiles.
+     */
+    private fun createIAMResources(
+        roleName: String,
+        bucketName: String,
+    ) {
         try {
+            // EC2 role (for Cassandra, Stress, Control nodes)
             aws.createRoleWithS3Policy(roleName, bucketName)
-            outputHandler.handleMessage("✓ IAM role and instance profile ready: $roleName")
+            outputHandler.handleMessage("$MSG_EC2_ROLE_READY $roleName")
+
+            // EMR Service role
+            aws.createServiceRole()
+            outputHandler.handleMessage("$MSG_EMR_SERVICE_READY ${AWS.EMR_SERVICE_ROLE}")
+
+            // EMR EC2 role (for Spark clusters)
+            aws.createEMREC2Role()
+            outputHandler.handleMessage("$MSG_EMR_EC2_READY ${AWS.EMR_EC2_ROLE}")
         } catch (e: software.amazon.awssdk.services.iam.model.IamException) {
-            outputHandler.handleError(
-                """
-                Failed to create IAM role and instance profile.
-
-                This may be due to missing IAM permissions. Please ensure your AWS user has:
-                - iam:CreateRole
-                - iam:PutRolePolicy
-                - iam:CreateInstanceProfile
-                - iam:AddRoleToInstanceProfile
-                - iam:GetInstanceProfile
-                - iam:ListRolePolicies
-
-                You can attach the managed IAM policy 'IAMFullAccess' or create custom inline policies.
-                See the IAM policy JSON files in src/main/resources/com/rustyrazorblade/easycasslab/ for examples.
-                """.trimIndent(),
-                e,
-            )
+            outputHandler.handleError(ERR_IAM_PERMISSIONS, e)
             throw e
         } catch (e: IllegalStateException) {
-            // Validation failed after creation
-            outputHandler.handleError(
-                "IAM role was created but failed validation. This may indicate an AWS propagation delay or configuration issue.",
-                e,
-            )
+            outputHandler.handleError(ERR_IAM_VALIDATION, e)
             throw e
         } catch (e: Exception) {
-            outputHandler.handleError("Unexpected error during IAM role setup", e)
+            outputHandler.handleError(ERR_IAM_UNEXPECTED, e)
             throw e
         }
+    }
 
-        // Final validation before saving config
+    /**
+     * Applies S3 bucket policy granting access to all 3 IAM roles with retry logic.
+     */
+    private fun applyS3BucketPolicy(bucketName: String) {
+        executeWithRetry(
+            operationName = "putS3BucketPolicy",
+            operation = { aws.putS3BucketPolicy(bucketName) },
+            errorMessage = "$ERR_S3_POLICY_APPLY $bucketName",
+        )
+
+        outputHandler.handleMessage(MSG_S3_POLICY_READY)
+    }
+
+    /**
+     * Performs final validation and saves configuration.
+     */
+    private fun finalizeSetup(
+        userConfig: User,
+        roleName: String,
+        bucketName: String,
+    ) {
         val finalValidation = aws.validateRoleSetup(roleName)
         if (!finalValidation.isValid) {
             val errorMsg =
@@ -128,6 +233,50 @@ class AWSResourceSetupService(
         // Save updated config
         userConfigProvider.saveUserConfig(userConfig)
 
-        outputHandler.handleMessage("✓ AWS resources setup complete and validated")
+        outputHandler.handleMessage(MSG_SETUP_COMPLETE)
     }
+
+    /**
+     * Executes an operation with retry logic for transient AWS failures.
+     */
+    private fun <T> executeWithRetry(
+        operationName: String,
+        operation: () -> T,
+        errorMessage: String,
+    ): T {
+        val retryConfig =
+            RetryConfig
+                .custom<T>()
+                .maxAttempts(MAX_RETRIES)
+                .intervalFunction { attemptCount ->
+                    RETRY_BASE_DELAY_MS * (1L shl (attemptCount - 1))
+                }.retryOnException { throwable ->
+                    // Retry on AWS service errors, but not on client errors
+                    throwable is software.amazon.awssdk.core.exception.SdkServiceException &&
+                        throwable.statusCode() >= 500
+                }.build()
+
+        val retry = Retry.of(operationName, retryConfig)
+
+        return try {
+            Retry.decorateSupplier(retry, operation).get()
+        } catch (e: Exception) {
+            outputHandler.handleError(errorMessage, e)
+            throw e
+        }
+    }
+
+    /**
+     * Executes an operation with simple error handling.
+     */
+    private fun <T> executeWithErrorHandling(
+        operation: () -> T,
+        errorMessage: String,
+    ): T =
+        try {
+            operation()
+        } catch (e: Exception) {
+            outputHandler.handleError(errorMessage, e)
+            throw e
+        }
 }
