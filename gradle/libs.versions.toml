@@ -51,7 +51,7 @@ commons-io = "2.7"
 # Other
 guava = "33.4.8-jre"
 classgraph = "4.8.184"
-resilience4j = "2.2.0"
+resilience4j = "2.3.0"
 
 # Gradle Plugins
 shadow = "8.1.1"
