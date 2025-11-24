@@ -82,7 +82,7 @@ jobs:
           docker run --rm ghcr.io/rustyrazorblade/easy-cass-lab:latest --help
 
       - name: Scan container image
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v7
         with:
           image: ghcr.io/rustyrazorblade/easy-cass-lab:latest
           fail-build: false
