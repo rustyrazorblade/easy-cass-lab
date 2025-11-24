@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easycasslab.terraform
 
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.TestContextFactory
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.User
@@ -82,7 +83,7 @@ class AWSConfigurationTest {
 
         // Verify Cassandra instance has IAM instance profile
         assertThat(json).contains("\"cassandra0\"")
-        assertThat(json).contains("\"iam_instance_profile\" : \"${AWS.EC2_INSTANCE_ROLE}\"")
+        assertThat(json).contains("\"iam_instance_profile\" : \"${Constants.AWS.Roles.EC2_INSTANCE_ROLE}\"")
 
         // Verify Stress instance has IAM instance profile
         assertThat(json).contains("\"stress0\"")
@@ -91,7 +92,7 @@ class AWSConfigurationTest {
         assertThat(json).contains("\"control0\"")
 
         // Verify all instances reference the IAM role
-        val instanceProfileCount = json.split("\"iam_instance_profile\" : \"${AWS.EC2_INSTANCE_ROLE}\"").size - 1
+        val instanceProfileCount = json.split("\"iam_instance_profile\" : \"${Constants.AWS.Roles.EC2_INSTANCE_ROLE}\"").size - 1
         assertThat(instanceProfileCount).isGreaterThanOrEqualTo(3) // At least Cassandra, Stress, Control
     }
 }

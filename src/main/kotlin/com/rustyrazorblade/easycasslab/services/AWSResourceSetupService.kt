@@ -1,11 +1,13 @@
 package com.rustyrazorblade.easycasslab.services
 
+import com.rustyrazorblade.easycasslab.Constants
+import com.rustyrazorblade.easycasslab.configuration.AWSPolicy
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.providers.aws.AWSRetryUtil
 import io.github.resilience4j.retry.Retry
-import io.github.resilience4j.retry.RetryConfig
 
 /**
  * Service responsible for ensuring AWS resources (credentials, S3 bucket, IAM roles) are set up
@@ -61,10 +63,6 @@ class AWSResourceSetupService(
             $ easy-cass-lab show-iam-policies
 
             """.trimIndent()
-
-        // Retry configuration
-        private const val MAX_RETRIES = 3
-        private const val RETRY_BASE_DELAY_MS = 1000L
     }
 
     /**
@@ -82,7 +80,7 @@ class AWSResourceSetupService(
      * @throws IllegalStateException if resource setup fails validation
      */
     fun ensureAWSResources(userConfig: User) {
-        val roleName = AWS.EC2_INSTANCE_ROLE
+        val roleName = Constants.AWS.Roles.EC2_INSTANCE_ROLE
 
         // Early return if resources already exist and are valid
         if (validateExistingResources(userConfig, roleName)) {
@@ -132,12 +130,28 @@ class AWSResourceSetupService(
 
     /**
      * Validates AWS credentials before attempting any operations.
+     * Provides user-friendly guidance for credential and permission errors.
      */
     private fun validateCredentials() {
-        executeWithErrorHandling(
-            operation = { aws.checkPermissions() },
-            errorMessage = ERR_CREDENTIAL_VALIDATION,
-        )
+        try {
+            aws.checkPermissions()
+        } catch (e: software.amazon.awssdk.services.sts.model.StsException) {
+            // Check if this is an authorization error (403) vs authentication error (401/other)
+            if (e.statusCode() == 403) {
+                // Permission denied - credentials are valid but lack permissions
+                handlePermissionError(e)
+            } else {
+                // Authentication error - invalid or missing credentials
+                handleAuthenticationError(e)
+            }
+            throw e
+        } catch (e: software.amazon.awssdk.core.exception.SdkServiceException) {
+            handlePermissionError(e)
+            throw e
+        } catch (e: Exception) {
+            outputHandler.handleError(ERR_CREDENTIAL_VALIDATION, e)
+            throw e
+        }
     }
 
     /**
@@ -170,11 +184,11 @@ class AWSResourceSetupService(
 
             // EMR Service role
             aws.createServiceRole()
-            outputHandler.handleMessage("$MSG_EMR_SERVICE_READY ${AWS.EMR_SERVICE_ROLE}")
+            outputHandler.handleMessage("$MSG_EMR_SERVICE_READY ${Constants.AWS.Roles.EMR_SERVICE_ROLE}")
 
             // EMR EC2 role (for Spark clusters)
             aws.createEMREC2Role()
-            outputHandler.handleMessage("$MSG_EMR_EC2_READY ${AWS.EMR_EC2_ROLE}")
+            outputHandler.handleMessage("$MSG_EMR_EC2_READY ${Constants.AWS.Roles.EMR_EC2_ROLE}")
         } catch (e: software.amazon.awssdk.services.iam.model.IamException) {
             outputHandler.handleError(ERR_IAM_PERMISSIONS, e)
             throw e
@@ -237,25 +251,150 @@ class AWSResourceSetupService(
     }
 
     /**
+     * Handles authentication errors (invalid/missing credentials).
+     * Provides guidance for reconfiguring easy-cass-lab profile.
+     */
+    private fun handleAuthenticationError(exception: software.amazon.awssdk.core.exception.SdkServiceException) {
+        outputHandler.handleMessage(
+            """
+            |
+            |========================================
+            |AWS CREDENTIAL ERROR
+            |========================================
+            |
+            |Unable to validate AWS credentials: ${exception.message}
+            |
+            |This usually means:
+            |  - AWS credentials are not configured
+            |  - AWS credentials have expired
+            |  - AWS access key or secret key is invalid
+            |
+            |To fix this issue, reconfigure your easy-cass-lab profile:
+            |
+            |  1. Remove incorrect profile: rm -rf ~/.easy_cass_lab/profiles/<PROFILE>
+            |     (Replace <PROFILE> with your profile name, usually 'default')
+            |
+            |  2. Run: easy-cass-lab setup-profile
+            |
+            |  3. When prompted, enter your AWS access key and secret key
+            |
+            |To verify your credentials are working, run:
+            |  aws sts get-caller-identity
+            |
+            |For full AWS permissions required by easy-cass-lab, add THREE inline policies:
+            |
+            """.trimMargin(),
+        )
+
+        // Show required IAM policies
+        val policies = AWSPolicy.UserIAM.loadAll("ACCOUNT_ID")
+        policies.forEachIndexed { index, policy ->
+            outputHandler.handleMessage(
+                """
+                |========================================
+                |Policy ${index + 1}: ${policy.name}
+                |========================================
+                |
+                |${policy.body}
+                |
+                """.trimMargin(),
+            )
+        }
+
+        outputHandler.handleMessage(
+            """
+            |========================================
+            |
+            """.trimMargin(),
+        )
+    }
+
+    /**
+     * Handles permission errors (valid credentials but insufficient permissions).
+     * Provides detailed IAM policy guidance.
+     */
+    private fun handlePermissionError(exception: software.amazon.awssdk.core.exception.SdkServiceException) {
+        outputHandler.handleMessage(
+            """
+            |
+            |========================================
+            |AWS PERMISSION ERROR
+            |========================================
+            |
+            |Error: ${exception.message}
+            |
+            |To fix this issue, add the following IAM policies to your AWS user.
+            |You need to create THREE separate inline policies:
+            |
+            """.trimMargin(),
+        )
+
+        // Try to get account ID, fallback to placeholder if that fails
+        val accountId =
+            try {
+                aws.getAccountId() ?: throw IllegalStateException("Account ID is null")
+            } catch (e: Exception) {
+                outputHandler.handleMessage(
+                    """
+                    |NOTE: Replace ACCOUNT_ID in the policies below with your AWS account ID.
+                    |You can find your account ID in the error message above (the 12-digit number in the ARN).
+                    |
+                    """.trimMargin(),
+                )
+                "ACCOUNT_ID"
+            }
+
+        val policies = AWSPolicy.UserIAM.loadAll(accountId)
+        policies.forEachIndexed { index, policy ->
+            outputHandler.handleMessage(
+                """
+                |========================================
+                |Policy ${index + 1}: ${policy.name}
+                |========================================
+                |
+                |${policy.body}
+                |
+                """.trimMargin(),
+            )
+        }
+
+        outputHandler.handleMessage(
+            """
+            |========================================
+            |
+            |RECOMMENDED: Create managed policies and attach to a group
+            |  • No size limits (inline policies limited to 5,120 bytes total)
+            |  • Required for EMR/Spark cluster functionality
+            |  • Reusable across multiple users
+            |
+            |To apply these policies:
+            |  1. Go to AWS IAM Console (https://console.aws.amazon.com/iam/)
+            |  2. Create IAM group (e.g., "EasyCassLabUsers")
+            |  3. Create three managed policies:
+            |     - Policies → Create Policy → JSON tab
+            |     - Paste policy content and name: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
+            |  4. Attach policies to your group
+            |  5. Add your IAM user to the group
+            |
+            |ALTERNATIVE (single user): Attach as inline policies to your user
+            |  WARNING: May hit 5,120 byte limit with all three policies
+            |
+            |========================================
+            |
+            """.trimMargin(),
+        )
+    }
+
+    /**
      * Executes an operation with retry logic for transient AWS failures.
+     * Uses shared AWSRetryUtil for S3 operations with consistent retry behavior.
      */
     private fun <T> executeWithRetry(
         operationName: String,
         operation: () -> T,
         errorMessage: String,
     ): T {
-        val retryConfig =
-            RetryConfig
-                .custom<T>()
-                .maxAttempts(MAX_RETRIES)
-                .intervalFunction { attemptCount ->
-                    RETRY_BASE_DELAY_MS * (1L shl (attemptCount - 1))
-                }.retryOnException { throwable ->
-                    // Retry on AWS service errors, but not on client errors
-                    throwable is software.amazon.awssdk.core.exception.SdkServiceException &&
-                        throwable.statusCode() >= 500
-                }.build()
-
+        val retryConfig = AWSRetryUtil.createS3RetryConfig<T>()
         val retry = Retry.of(operationName, retryConfig)
 
         return try {

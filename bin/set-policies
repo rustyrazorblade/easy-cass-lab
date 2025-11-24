@@ -142,9 +142,17 @@ for policy in "${POLICY_LIST[@]}"; do
   # Get policy JSON from easy-cass-lab
   POLICY_FILE="$TEMP_DIR/${POLICY_NAME}.json"
   echo "Fetching policy JSON..."
-  if ! bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
-    echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
-    exit 1
+  # Set AWS_PROFILE if profile is specified so easy-cass-lab uses correct credentials
+  if [[ -n "$PROFILE" ]]; then
+    if ! AWS_PROFILE="$PROFILE" bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
+      echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
+      exit 1
+    fi
+  else
+    if ! bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
+      echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
+      exit 1
+    fi
   fi
 
   if [[ "$DRY_RUN" == "true" ]]; then
