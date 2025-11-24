@@ -1,9 +1,9 @@
 package com.rustyrazorblade.easycasslab.providers
 
-import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
-import com.rustyrazorblade.easycasslab.configuration.Policy
+import com.rustyrazorblade.easycasslab.configuration.AWSPolicy
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.aws.AWSRetryUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
 import software.amazon.awssdk.core.exception.SdkServiceException
 import software.amazon.awssdk.services.iam.IamClient
@@ -40,7 +40,6 @@ import software.amazon.awssdk.services.sts.model.StsException
  * ### Account & Permission Operations
  * - Account ID retrieval and caching ([getAccountId])
  * - Credential validation ([checkPermissions])
- * - Permission error handling with helpful user messages ([handlePermissionError])
  *
  * ### IAM Role Operations
  * - IAM role creation with trust policies ([createServiceRole], [createEMREC2Role], [createRoleWithS3Policy])
@@ -54,7 +53,7 @@ import software.amazon.awssdk.services.sts.model.StsException
  * - Idempotent operations (safe to call multiple times)
  *
  * ### Shared Constants
- * - Standard role names ([EMR_SERVICE_ROLE], [EC2_INSTANCE_ROLE], [EMR_EC2_ROLE])
+ * - Standard role names ([Constants.AWS.Roles.EMR_SERVICE_ROLE], [Constants.AWS.Roles.EC2_INSTANCE_ROLE], [Constants.AWS.Roles.EMR_EC2_ROLE])
  * - IAM policy templates with account ID substitution
  *
  * ## NOT Responsible For
@@ -111,118 +110,7 @@ class AWS(
     private var cachedAccountId: String? = null
 
     companion object {
-        const val EMR_SERVICE_ROLE = "EasyCassLabEMRServiceRole"
-        const val EMR_EC2_ROLE = "EasyCassLabEMREC2Role"
-        const val EC2_INSTANCE_ROLE = "EasyCassLabEC2Role"
         private val log = KotlinLogging.logger {}
-
-        /**
-         * Loads the required IAM policies from resources with account ID substitution.
-         * Returns a list of Policy objects with names and content for all three required policies.
-         *
-         * @param accountId The AWS account ID to substitute for ACCOUNT_ID placeholder
-         */
-        private fun getRequiredIAMPolicies(accountId: String): List<Policy> {
-            val policyData =
-                listOf(
-                    "iam-policy-ec2.json" to "EasyCassLabEC2",
-                    "iam-policy-iam-s3.json" to "EasyCassLabIAM",
-                    "iam-policy-emr.json" to "EasyCassLabEMR",
-                )
-
-            return policyData.map { (fileName, policyName) ->
-                val policyStream = AWS::class.java.getResourceAsStream("/com/rustyrazorblade/easycasslab/$fileName")
-                val policyContent =
-                    policyStream?.bufferedReader()?.use { it.readText() }
-                        ?: error("Unable to load IAM policy template: $fileName")
-
-                // Replace ACCOUNT_ID placeholder with actual account ID
-                val processedContent = policyContent.replace("ACCOUNT_ID", accountId)
-
-                Policy(name = policyName, body = processedContent)
-            }
-        }
-    }
-
-    /**
-     * Displays helpful error message when AWS permission is denied
-     */
-    private fun handlePermissionError(
-        exception: SdkServiceException,
-        operation: String,
-    ) {
-        with(TermColors()) {
-            outputHandler.handleMessage(
-                """
-                |
-                |========================================
-                |AWS PERMISSION ERROR
-                |========================================
-                |
-                |Operation: $operation
-                |Error: ${exception.message}
-                |
-                |To fix this issue, add the following IAM policies to your AWS user.
-                |You need to create THREE separate inline policies:
-                |
-                """.trimMargin(),
-            )
-
-            // Try to get account ID, fallback to placeholder if that fails too
-            val accountId =
-                try {
-                    getAccountId()
-                } catch (e: Exception) {
-                    outputHandler.handleMessage(
-                        """
-                        |NOTE: Replace ACCOUNT_ID in the policies below with your AWS account ID.
-                        |You can find your account ID in the error message above (the 12-digit number in the ARN).
-                        |
-                        """.trimMargin(),
-                    )
-                    "ACCOUNT_ID"
-                }
-
-            val policies = getRequiredIAMPolicies(accountId)
-            policies.forEachIndexed { index, policy ->
-                outputHandler.handleMessage(
-                    """
-                    |${green("========================================")}
-                    |${green("Policy ${index + 1}: ${policy.name}")}
-                    |${green("========================================")}
-                    |
-                    |${policy.body}
-                    |
-                    """.trimMargin(),
-                )
-            }
-
-            outputHandler.handleMessage(
-                """
-                |========================================
-                |
-                |RECOMMENDED: Create managed policies and attach to a group
-                |  • No size limits (inline policies limited to 5,120 bytes total)
-                |  • Required for EMR/Spark cluster functionality
-                |  • Reusable across multiple users
-                |
-                |To apply these policies:
-                |  1. Go to AWS IAM Console (https://console.aws.amazon.com/iam/)
-                |  2. Create IAM group (e.g., "EasyCassLabUsers")
-                |  3. Create three managed policies:
-                |     - Policies → Create Policy → JSON tab
-                |     - Paste policy content and name: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
-                |  4. Attach policies to your group
-                |  5. Add your IAM user to the group
-                |
-                |ALTERNATIVE (single user): Attach as inline policies to your user
-                |  WARNING: May hit 5,120 byte limit with all three policies
-                |
-                |========================================
-                |
-                """.trimMargin(),
-            )
-        }
     }
 
     /**
@@ -264,83 +152,11 @@ class AWS(
             log.info { "Account: ${response.account()}" }
             log.info { "User ARN: ${response.arn()}" }
             log.info { "User ID: ${response.userId()}" }
-
-            outputHandler.handleMessage(
-                """
-                |AWS credentials validated:
-                |  Account: ${response.account()}
-                |  ARN: ${response.arn()}
-                |  User ID: ${response.userId()}
-                """.trimMargin(),
-            )
         } catch (e: StsException) {
-            log.error(e) { "AWS credential validation failed" }
-
-            // Check if this is an authorization error (403) vs authentication error (401/other)
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                // Permission denied - credentials are valid but lack permissions
-                handlePermissionError(e, "STS GetCallerIdentity")
-            } else {
-                // Authentication error - invalid or missing credentials
-                with(TermColors()) {
-                    outputHandler.handleMessage(
-                        """
-                        |
-                        |========================================
-                        |AWS CREDENTIAL ERROR
-                        |========================================
-                        |
-                        |Unable to validate AWS credentials: ${e.message}
-                        |
-                        |This usually means:
-                        |  - AWS credentials are not configured
-                        |  - AWS credentials have expired
-                        |  - AWS access key or secret key is invalid
-                        |
-                        |To fix this issue, you need to configure valid AWS credentials.
-                        |
-                        |You can configure credentials using one of these methods:
-                        |  1. AWS CLI: Run 'aws configure' and enter your credentials
-                        |  2. Environment variables: Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-                        |  3. AWS credentials file: Create ~/.aws/credentials with your credentials
-                        |
-                        |To verify your credentials are working, run:
-                        |  aws sts get-caller-identity
-                        |
-                        |For full AWS permissions required by easy-cass-lab, add THREE inline policies:
-                        |
-                        """.trimMargin(),
-                    )
-
-                    val policies = getRequiredIAMPolicies("ACCOUNT_ID")
-                    policies.forEachIndexed { index, policy ->
-                        outputHandler.handleMessage(
-                            """
-                            |${green("========================================")}
-                            |${green("Policy ${index + 1}: ${policy.name}")}
-                            |${green("========================================")}
-                            |
-                            |${policy.body}
-                            |
-                            """.trimMargin(),
-                        )
-                    }
-
-                    outputHandler.handleMessage(
-                        """
-                        |========================================
-                        |
-                        """.trimMargin(),
-                    )
-                }
-            }
-
-            // Rethrow the exception to be handled by main()
+            log.error(e) { "AWS credential validation failed: ${e.message}" }
             throw e
         } catch (e: SdkServiceException) {
-            log.error(e) { "AWS service error during credential validation" }
-            handlePermissionError(e, "STS GetCallerIdentity")
-            // Rethrow the exception to be handled by main()
+            log.error(e) { "AWS service error during credential validation: ${e.message}" }
             throw e
         }
     }
@@ -349,26 +165,13 @@ class AWS(
      * Creates an IAM role for EMR service with necessary permissions
      */
     fun createServiceRole(): String {
-        val assumeRolePolicy = """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "elasticmapreduce.amazonaws.com"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }"""
-
         try {
             // Create the IAM role
             val createRoleRequest =
                 CreateRoleRequest
                     .builder()
-                    .roleName(EMR_SERVICE_ROLE)
-                    .assumeRolePolicyDocument(assumeRolePolicy)
+                    .roleName(Constants.AWS.Roles.EMR_SERVICE_ROLE)
+                    .assumeRolePolicyDocument(AWSPolicy.Trust.EMRService.toJson())
                     .description("IAM role for EMR service")
                     .build()
 
@@ -379,7 +182,7 @@ class AWS(
             // Role already exists, continue
         }
 
-        return EMR_SERVICE_ROLE
+        return Constants.AWS.Roles.EMR_SERVICE_ROLE
     }
 
     private fun attachPolicy(
@@ -397,77 +200,152 @@ class AWS(
 
     private fun attachEMRRole() {
         // Attach necessary managed policy
-        return attachPolicy(EMR_SERVICE_ROLE, "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole")
+        return attachPolicy(Constants.AWS.Roles.EMR_SERVICE_ROLE, AWSPolicy.Managed.EMRServiceRole.arn)
     }
 
     private fun attachEMREC2Role() =
         attachPolicy(
-            EMR_EC2_ROLE,
-            "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role",
+            Constants.AWS.Roles.EMR_EC2_ROLE,
+            AWSPolicy.Managed.EMRForEC2.arn,
         )
+
+    /**
+     * Creates an IAM role with the specified assume role policy and description.
+     * Idempotent - succeeds even if role already exists.
+     *
+     * @param roleName The name of the IAM role to create
+     * @param assumeRolePolicy The assume role policy document (JSON)
+     * @param description Human-readable description of the role's purpose
+     * @throws IamException if IAM operations fail
+     */
+    private fun createRole(
+        roleName: String,
+        assumeRolePolicy: String,
+        description: String,
+    ) {
+        try {
+            val createRoleRequest =
+                CreateRoleRequest
+                    .builder()
+                    .roleName(roleName)
+                    .assumeRolePolicyDocument(assumeRolePolicy)
+                    .description(description)
+                    .build()
+
+            iamClient.createRole(createRoleRequest)
+            log.info { "✓ Created IAM role: $roleName" }
+        } catch (e: EntityAlreadyExistsException) {
+            log.info { "✓ IAM role already exists: $roleName" }
+        } catch (e: IamException) {
+            log.error(e) { "Failed to create IAM role: $roleName - ${e.message}" }
+            throw e
+        }
+    }
+
+    /**
+     * Attaches an inline S3 access policy to an IAM role, granting full access to the specified bucket.
+     *
+     * @param roleName The name of the IAM role to attach the policy to
+     * @param bucketName The S3 bucket name to grant access to
+     * @throws IamException if IAM operations fail
+     */
+    private fun attachS3Policy(
+        roleName: String,
+        bucketName: String,
+    ) {
+        val s3Policy = AWSPolicy.Inline.S3Access(bucketName).toJson()
+
+        try {
+            val putPolicyRequest =
+                PutRolePolicyRequest
+                    .builder()
+                    .roleName(roleName)
+                    .policyName("S3Access")
+                    .policyDocument(s3Policy)
+                    .build()
+
+            iamClient.putRolePolicy(putPolicyRequest)
+            log.info { "✓ Attached S3 access policy to role: $roleName for bucket: $bucketName" }
+        } catch (e: IamException) {
+            log.error(e) { "Failed to attach S3 policy to role: $roleName - ${e.message}" }
+            throw e
+        }
+    }
+
+    /**
+     * Creates an instance profile and attaches a role to it with retry logic for AWS eventual consistency.
+     * Idempotent - succeeds even if profile already exists or role already attached.
+     *
+     * @param profileName The name of the instance profile to create
+     * @param roleName The name of the IAM role to attach to the profile
+     * @throws IamException if IAM operations fail after retries
+     */
+    private fun createInstanceProfile(
+        profileName: String,
+        roleName: String,
+    ) {
+        val retryConfig = AWSRetryUtil.createIAMRetryConfig()
+        val retry =
+            io.github.resilience4j.retry.Retry
+                .of("createInstanceProfile-$profileName", retryConfig)
+
+        try {
+            io.github.resilience4j.retry.Retry
+                .decorateRunnable(retry) {
+                    try {
+                        // Create instance profile
+                        val createProfileRequest =
+                            CreateInstanceProfileRequest
+                                .builder()
+                                .instanceProfileName(profileName)
+                                .build()
+
+                        iamClient.createInstanceProfile(createProfileRequest)
+                        log.info { "✓ Created instance profile: $profileName" }
+                    } catch (e: EntityAlreadyExistsException) {
+                        log.info { "✓ Instance profile already exists: $profileName" }
+                    }
+
+                    // Add role to instance profile
+                    try {
+                        val addRoleRequest =
+                            AddRoleToInstanceProfileRequest
+                                .builder()
+                                .instanceProfileName(profileName)
+                                .roleName(roleName)
+                                .build()
+
+                        iamClient.addRoleToInstanceProfile(addRoleRequest)
+                        log.info { "✓ Added role $roleName to instance profile: $profileName" }
+                    } catch (e: software.amazon.awssdk.services.iam.model.LimitExceededException) {
+                        // Role already in instance profile - this is OK
+                        log.info { "✓ Role already attached to instance profile: $profileName" }
+                    }
+                }.run()
+        } catch (e: IamException) {
+            log.error(e) { "Failed to create instance profile after retries: $profileName - ${e.message}" }
+            throw e
+        }
+    }
 
     /**
      * Creates an IAM role and instance profile for EMR EC2 instances
      */
     fun createEMREC2Role(): String {
-        // EC2 assume role policy
-        val assumeRolePolicy = """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ec2.amazonaws.com"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }"""
+        // Create IAM role using shared helper
+        createRole(
+            Constants.AWS.Roles.EMR_EC2_ROLE,
+            AWSPolicy.Trust.EC2Service.toJson(),
+            "IAM role for EMR EC2 instances",
+        )
 
-        try {
-            // Create the IAM role
-            val createRoleRequest =
-                CreateRoleRequest
-                    .builder()
-                    .roleName(EMR_EC2_ROLE)
-                    .assumeRolePolicyDocument(assumeRolePolicy)
-                    .description("IAM role for EMR EC2 instances")
-                    .build()
+        // Attach EMR EC2 managed policy
+        attachEMREC2Role()
 
-            iamClient.createRole(createRoleRequest)
-            log.info { "Created IAM role: $EMR_EC2_ROLE" }
+        // Create instance profile with retry logic
+        createInstanceProfile(Constants.AWS.Roles.EMR_EC2_ROLE, Constants.AWS.Roles.EMR_EC2_ROLE)
 
-            // Attach EMR EC2 managed policy
-            attachEMREC2Role()
-        } catch (e: EntityAlreadyExistsException) {
-            log.info { "IAM role already exists: $EMR_EC2_ROLE" }
-        }
-
-        // Create instance profile
-        try {
-            val createProfileRequest =
-                CreateInstanceProfileRequest
-                    .builder()
-                    .instanceProfileName(EMR_EC2_ROLE)
-                    .build()
-
-            iamClient.createInstanceProfile(createProfileRequest)
-
-            // Add role to instance profile
-            val addRoleRequest =
-                AddRoleToInstanceProfileRequest
-                    .builder()
-                    .instanceProfileName(EMR_EC2_ROLE)
-                    .roleName(EMR_EC2_ROLE)
-                    .build()
-
-            iamClient.addRoleToInstanceProfile(addRoleRequest)
-            log.info { "Created instance profile for: $EMR_EC2_ROLE" }
-        } catch (ignored: EntityAlreadyExistsException) {
-            log.info { "Instance profile already exists: $EMR_EC2_ROLE" }
-        }
-
-        return EMR_EC2_ROLE
+        return Constants.AWS.Roles.EMR_EC2_ROLE
     }
 
     /**
@@ -497,9 +375,7 @@ class AWS(
         } catch (e: BucketAlreadyExistsException) {
             log.info { "S3 bucket already exists: $bucketName" }
         } catch (e: S3Exception) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "S3 CreateBucket")
-            }
+            log.error(e) { "Failed to create S3 bucket: $bucketName - ${e.message}" }
             throw e
         }
 
@@ -525,30 +401,7 @@ class AWS(
         }
 
         val accountId = getAccountId()
-
-        val bucketPolicy =
-            """
-            {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": [
-                                "arn:aws:iam::$accountId:role/$EC2_INSTANCE_ROLE",
-                                "arn:aws:iam::$accountId:role/$EMR_SERVICE_ROLE",
-                                "arn:aws:iam::$accountId:role/$EMR_EC2_ROLE"
-                            ]
-                        },
-                        "Action": "s3:*",
-                        "Resource": [
-                            "arn:aws:s3:::$bucketName",
-                            "arn:aws:s3:::$bucketName/*"
-                        ]
-                    }
-                ]
-            }
-            """.trimIndent()
+        val bucketPolicy = AWSPolicy.Inline.S3BucketPolicy(accountId, bucketName).toJson()
 
         try {
             val request =
@@ -561,10 +414,7 @@ class AWS(
             s3Client.putBucketPolicy(request)
             log.info { "✓ Applied S3 bucket policy granting access to all 3 IAM roles: $bucketName" }
         } catch (e: software.amazon.awssdk.services.s3.model.S3Exception) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "S3 PutBucketPolicy")
-            }
-            log.error { "Failed to apply S3 bucket policy: $bucketName - ${e.message}" }
+            log.error(e) { "Failed to apply S3 bucket policy: $bucketName - ${e.message}" }
             throw e
         }
     }
@@ -587,9 +437,7 @@ class AWS(
         } catch (e: software.amazon.awssdk.services.iam.model.NoSuchEntityException) {
             false
         } catch (e: software.amazon.awssdk.services.iam.model.IamException) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "IAM GetInstanceProfile")
-            }
+            log.error(e) { "Failed to get instance profile: $roleName - ${e.message}" }
             throw e
         }
 
@@ -680,9 +528,7 @@ class AWS(
                     },
             )
         } catch (e: software.amazon.awssdk.services.iam.model.IamException) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "IAM ValidateRole")
-            }
+            log.error(e) { "Failed to validate role: $roleName - ${e.message}" }
             return RoleValidationResult(
                 isValid = false,
                 instanceProfileExists = false,
@@ -715,151 +561,14 @@ class AWS(
 
         log.info { "Setting up IAM role and instance profile: $roleName" }
 
-        // EC2 assume role policy
-        val assumeRolePolicy = """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ec2.amazonaws.com"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }"""
-
         // Step 1: Create IAM role
-        try {
-            val createRoleRequest =
-                CreateRoleRequest
-                    .builder()
-                    .roleName(roleName)
-                    .assumeRolePolicyDocument(assumeRolePolicy)
-                    .description("IAM role for easy-cass-lab with S3 access")
-                    .build()
-
-            iamClient.createRole(createRoleRequest)
-            log.info { "✓ Created IAM role: $roleName" }
-        } catch (e: EntityAlreadyExistsException) {
-            log.info { "✓ IAM role already exists: $roleName" }
-        } catch (e: IamException) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "IAM CreateRole")
-            }
-            log.error { "Failed to create IAM role: $roleName - ${e.message}" }
-            throw e
-        }
+        createRole(roleName, AWSPolicy.Trust.EC2Service.toJson(), "IAM role for easy-cass-lab with S3 access")
 
         // Step 2: Attach S3 access policy
-        val s3Policy = """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": "s3:*",
-                    "Resource": [
-                        "arn:aws:s3:::$bucketName",
-                        "arn:aws:s3:::$bucketName/*"
-                    ]
-                }
-            ]
-        }"""
-
-        try {
-            val putPolicyRequest =
-                PutRolePolicyRequest
-                    .builder()
-                    .roleName(roleName)
-                    .policyName("S3Access")
-                    .policyDocument(s3Policy)
-                    .build()
-
-            iamClient.putRolePolicy(putPolicyRequest)
-            log.info { "✓ Attached S3 access policy to role: $roleName for bucket: $bucketName" }
-        } catch (e: IamException) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "IAM PutRolePolicy")
-            }
-            log.error { "Failed to attach S3 policy to role: $roleName - ${e.message}" }
-            throw e
-        }
+        attachS3Policy(roleName, bucketName)
 
         // Step 3: Create instance profile with retry logic for AWS eventual consistency
-        val retryConfig =
-            io.github.resilience4j.retry.RetryConfig
-                .custom<Unit>()
-                .maxAttempts(Constants.Retry.MAX_INSTANCE_PROFILE_RETRIES)
-                .intervalFunction { attemptCount ->
-                    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-                    Constants.Retry.EXPONENTIAL_BACKOFF_BASE_MS * (1L shl (attemptCount - 1))
-                }.retryOnException { throwable ->
-                    when {
-                        throwable !is IamException -> false
-                        throwable is EntityAlreadyExistsException -> false // Don't retry if already exists
-                        throwable.statusCode() == Constants.HttpStatus.FORBIDDEN -> {
-                            log.warn { "Permission denied for instance profile creation - will not retry" }
-                            false
-                        }
-                        throwable.statusCode() in Constants.HttpStatus.SERVER_ERROR_MIN..Constants.HttpStatus.SERVER_ERROR_MAX -> {
-                            log.warn { "AWS service error ${throwable.statusCode()} - will retry instance profile creation" }
-                            true
-                        }
-                        throwable.statusCode() == Constants.HttpStatus.NOT_FOUND -> {
-                            log.warn { "Role not found (eventual consistency) - will retry instance profile creation" }
-                            true
-                        }
-                        else -> {
-                            log.warn { "IAM error during instance profile creation: ${throwable.message} - will retry" }
-                            true
-                        }
-                    }
-                }.build()
-
-        val retry =
-            io.github.resilience4j.retry.Retry
-                .of("createInstanceProfile-$roleName", retryConfig)
-
-        try {
-            io.github.resilience4j.retry.Retry
-                .decorateRunnable(retry) {
-                    try {
-                        // Create instance profile
-                        val createProfileRequest =
-                            CreateInstanceProfileRequest
-                                .builder()
-                                .instanceProfileName(roleName)
-                                .build()
-
-                        iamClient.createInstanceProfile(createProfileRequest)
-                        log.info { "✓ Created instance profile: $roleName" }
-                    } catch (e: EntityAlreadyExistsException) {
-                        log.info { "✓ Instance profile already exists: $roleName" }
-                    }
-
-                    // Add role to instance profile
-                    try {
-                        val addRoleRequest =
-                            AddRoleToInstanceProfileRequest
-                                .builder()
-                                .instanceProfileName(roleName)
-                                .roleName(roleName)
-                                .build()
-
-                        iamClient.addRoleToInstanceProfile(addRoleRequest)
-                        log.info { "✓ Added role to instance profile: $roleName" }
-                    } catch (e: software.amazon.awssdk.services.iam.model.LimitExceededException) {
-                        // Role already in instance profile - this is OK
-                        log.info { "✓ Role already attached to instance profile: $roleName" }
-                    }
-                }.run()
-        } catch (e: IamException) {
-            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
-                handlePermissionError(e, "IAM CreateInstanceProfile/AddRoleToInstanceProfile")
-            }
-            log.error { "Failed to create instance profile after retries: $roleName - ${e.message}" }
-            throw e
-        }
+        createInstanceProfile(roleName, roleName)
 
         // Step 4: Validate the complete setup
         log.info { "Validating IAM role setup: $roleName" }

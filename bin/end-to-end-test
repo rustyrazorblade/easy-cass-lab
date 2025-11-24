@@ -26,10 +26,16 @@ done
 echo "=== Building project ==="
 ./gradlew clean test shadowJar installDist
 
+echo "=== Checking version ==="
+bin/easy-cass-lab version
+
 if [ "$BUILD_IMAGE" = true ]; then
   echo "=== Building packer images ==="
   bin/easy-cass-lab build-image
 fi
+
+echo "=== Creating IAM managed policies ==="
+bin/set-policies --group-name EasyCassLabUsers --profile sandbox-admin
 
 echo "=== Initializing cluster ==="
 bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up -s 1 \
@@ -71,6 +77,9 @@ echo "=== Waiting for all nodes to be Ready ==="
 # Wait for all nodes to reach Ready state
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
+echo "=== Listing cluster hosts ==="
+bin/easy-cass-lab hosts
+
 echo "=== Listing available Cassandra versions ==="
 bin/easy-cass-lab list
 
@@ -83,8 +92,20 @@ bin/easy-cass-lab update-config
 echo "=== Starting Cassandra ==="
 bin/easy-cass-lab start
 
+echo "=== Stopping Cassandra ==="
+bin/easy-cass-lab stop
+
+echo "=== Waiting for Cassandra to stop ==="
+sleep 10
+
+echo "=== Starting Cassandra again ==="
+bin/easy-cass-lab start
+
 echo "=== Restarting Cassandra ==="
 bin/easy-cass-lab restart
+
+echo "=== Testing SSH access and nodetool via env.sh aliases ==="
+ssh cassandra0 nodetool status
 
 echo "=== Testing exec command (sequential) ==="
 bin/easy-cass-lab exec -t cassandra hostname

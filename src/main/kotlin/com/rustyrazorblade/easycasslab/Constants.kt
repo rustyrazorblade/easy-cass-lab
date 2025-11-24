@@ -35,9 +35,16 @@ object Constants {
     object Retry {
         const val MAX_PERMISSION_CHECK_RETRIES = 30
         const val MAX_OPERATION_RETRIES = 3
+
+        // IAM operations: Higher retry count due to eventual consistency
         const val MAX_INSTANCE_PROFILE_RETRIES = 5
+
+        // S3 operations: Standard retry count for AWS service errors
+        const val MAX_S3_RETRIES = 3
         const val RETRY_DELAY_MS = 2000L
         const val RETRY_BACKOFF_MULTIPLIER = 3
+
+        // Base delay for exponential backoff (1s, 2s, 4s, 8s...)
         const val EXPONENTIAL_BACKOFF_BASE_MS = 1000L
     }
 
@@ -74,6 +81,7 @@ object Constants {
         const val NOT_FOUND = 404
         const val SERVER_ERROR_MIN = 500
         const val SERVER_ERROR_MAX = 599
+        const val CLIENT_ERROR_THRESHOLD = 500 // Errors >= 500 are server errors
     }
 
     // Docker configuration (for local container operations)
@@ -108,6 +116,13 @@ object Constants {
         // Storage configuration
         const val DEFAULT_VOLUME_SIZE_GB = 1024
         const val DEFAULT_IOPS = 3000
+
+        // IAM Role Names
+        object Roles {
+            const val EC2_INSTANCE_ROLE = "EasyCassLabEC2Role"
+            const val EMR_SERVICE_ROLE = "EasyCassLabEMRServiceRole"
+            const val EMR_EC2_ROLE = "EasyCassLabEMREC2Role"
+        }
     }
 
     // Monitoring

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
@@ -198,7 +199,7 @@ class AWSConfiguration(
                     count = 1,
                     ebs_block_device = ebsConf,
                     ebs_optimized = ebs.optimized_instance,
-                    iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
+                    iam_instance_profile = Constants.AWS.Roles.EC2_INSTANCE_ROLE,
                     subnet = subnets[subnetPos],
                 )
             terraformConfig.resource.aws_instance[instanceName] = cass
@@ -227,7 +228,7 @@ class AWSConfiguration(
                     count = 1,
                     ebs_block_device = null,
                     ebs_optimized = false,
-                    iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
+                    iam_instance_profile = Constants.AWS.Roles.EC2_INSTANCE_ROLE,
                     subnet = subnets[subnetPos],
                 )
             terraformConfig.resource.aws_instance[instanceName] = stress
@@ -263,7 +264,7 @@ class AWSConfiguration(
                     ),
                 ebs_block_device = null,
                 ebs_optimized = false,
-                iam_instance_profile = AWS.EC2_INSTANCE_ROLE,
+                iam_instance_profile = Constants.AWS.Roles.EC2_INSTANCE_ROLE,
                 subnet = subnets[0],
             )
         terraformConfig.resource.aws_instance[controlInstanceName] = control

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.configuration.AWSPolicy
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.aws.EC2
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -51,26 +52,7 @@ data class User(
          *
          * @param accountId The AWS account ID to substitute for ACCOUNT_ID placeholder
          */
-        internal fun getRequiredIAMPolicies(accountId: String): List<Policy> {
-            val policyData =
-                listOf(
-                    "iam-policy-ec2.json" to "EasyCassLabEC2",
-                    "iam-policy-iam-s3.json" to "EasyCassLabIAM",
-                    "iam-policy-emr.json" to "EasyCassLabEMR",
-                )
-
-            return policyData.map { (fileName, policyName) ->
-                val policyStream = User::class.java.getResourceAsStream("/com/rustyrazorblade/easycasslab/$fileName")
-                val policyContent =
-                    policyStream?.bufferedReader()?.use { it.readText() }
-                        ?: error("Unable to load IAM policy template: $fileName")
-
-                // Replace ACCOUNT_ID placeholder with actual account ID
-                val processedContent = policyContent.replace("ACCOUNT_ID", accountId)
-
-                Policy(name = policyName, body = processedContent)
-            }
-        }
+        internal fun getRequiredIAMPolicies(accountId: String): List<Policy> = AWSPolicy.UserIAM.loadAll(accountId)
 
         /**
          * Displays helpful error message when AWS permission is denied
@@ -93,9 +75,6 @@ data class User(
                     |
                     |To fix this issue, add the following IAM policies to your AWS user.
                     |You need to create THREE separate inline policies:
-                    |
-                    |NOTE: Replace ACCOUNT_ID in the policies below with your AWS account ID.
-                    |You can find your account ID in the error message above (the 12-digit number in the ARN).
                     |
                     """.trimMargin(),
                 )
@@ -131,9 +110,6 @@ data class User(
                     |     - Paste policy content and name: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
                     |  4. Attach policies to your group
                     |  5. Add your IAM user to the group
-                    |
-                    |ALTERNATIVE (single user): Attach as inline policies to your user
-                    |  WARNING: May hit 5,120 byte limit with all three policies
                     |
                     |========================================
                     |

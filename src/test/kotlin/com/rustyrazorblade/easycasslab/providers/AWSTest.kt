@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.providers
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
+import com.rustyrazorblade.easycasslab.Constants
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -43,8 +44,8 @@ internal class AWSTest :
         val mockRole =
             Role
                 .builder()
-                .roleName(AWS.EMR_SERVICE_ROLE)
-                .arn("arn:aws:iam::123456789:role/${AWS.EMR_SERVICE_ROLE}")
+                .roleName(Constants.AWS.Roles.EMR_SERVICE_ROLE)
+                .arn("arn:aws:iam::123456789:role/${Constants.AWS.Roles.EMR_SERVICE_ROLE}")
                 .build()
 
         val createRoleResponse =
@@ -66,7 +67,7 @@ internal class AWSTest :
         verify(mockIamClient).attachRolePolicy(any<AttachRolePolicyRequest>())
 
         // Assert the result using AssertJ
-        assertThat(result).isEqualTo(AWS.EMR_SERVICE_ROLE)
+        assertThat(result).isEqualTo(Constants.AWS.Roles.EMR_SERVICE_ROLE)
     }
 
     @Test
@@ -89,7 +90,7 @@ internal class AWSTest :
         verify(mockIamClient).createRole(any<CreateRoleRequest>())
 
         // Assert the result using AssertJ
-        assertThat(result).isEqualTo(AWS.EMR_SERVICE_ROLE)
+        assertThat(result).isEqualTo(Constants.AWS.Roles.EMR_SERVICE_ROLE)
     }
 
     @Test
