@@ -96,32 +96,38 @@ For more details, see [packer/README.md](packer/README.md) and [packer/TESTING.m
 
 The project uses resilience4j for all retry operations. Never implement custom retry loops.
 
-Example:
+**Always use `RetryUtil` factory methods** instead of creating manual configurations:
+
 ```kotlin
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import io.github.resilience4j.retry.Retry
-import io.github.resilience4j.retry.RetryConfig
-import java.time.Duration
 
-// Configure retry behavior
-val retryConfig = RetryConfig
-    .custom<ResultType>()
-    .maxAttempts(3)
-    .retryExceptions(IOException::class.java)
-    .intervalFunction { attemptCount ->
-        // Exponential backoff: 2s, 4s, 8s
-        2000L * (1L shl (attemptCount - 1))
-    }
-    .build()
-
-val retry = Retry.of("operation-name", retryConfig)
-
-// Use the retry
+// For operations that return a value (Supplier pattern)
+val retryConfig = RetryUtil.createAwsRetryConfig<List<AMI>>()
+val retry = Retry.of("ec2-list-amis", retryConfig)
 val result = Retry.decorateSupplier(retry) {
-    // Operation that may fail and need retry
+    ec2Client.describeImages(request).images()
 }.get()
+
+// For operations with no return value (Runnable pattern)
+val retryConfig = RetryUtil.createDockerRetryConfig<Unit>()
+val retry = Retry.of("docker-start-container", retryConfig)
+Retry.decorateRunnable(retry) {
+    dockerClient.startContainer(containerId)
+}.run()
 ```
 
-See `DefaultRemoteOperationsService` for production examples.
+**Available factory methods** (in `RetryUtil.kt`):
+
+| Method | Attempts | Backoff | Use Case |
+|--------|----------|---------|----------|
+| `createIAMRetryConfig()` | 5 | Exponential 1s-16s | IAM operations, handles 404 eventual consistency |
+| `createAwsRetryConfig<T>()` | 3 | Exponential 1s-4s | S3, EC2, EMR, and other AWS services |
+| `createDockerRetryConfig<T>()` | 3 | Exponential 1s-4s | Container start/stop/remove |
+| `createNetworkRetryConfig<T>()` | 3 | Exponential 1s-4s | Generic network operations |
+| `createSshConnectionRetryConfig()` | 30 | Fixed 10s | SSH boot-up waiting (~5 min) |
+
+See `EC2Service.kt`, `S3ObjectStore.kt`, and `Up.kt` for production examples.
 
 ## Testing Guidelines
 

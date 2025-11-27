@@ -11,6 +11,7 @@ import org.koin.test.inject
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.services.emr.EmrClient
 
 internal class AWSModuleTest : KoinTest {
     @Test
@@ -85,6 +86,43 @@ internal class AWSModuleTest : KoinTest {
             val credentials = credentialsProvider.resolveCredentials()
             assertThat(credentials.accessKeyId()).isEqualTo("test-access-key")
             assertThat(credentials.secretAccessKey()).isEqualTo("test-secret-key")
+        } finally {
+            stopKoin()
+        }
+    }
+
+    @Test
+    fun `should provide EmrClient with correct configuration`() {
+        // Create a User for testing
+        val testUser =
+            User(
+                email = "test@example.com",
+                region = "us-west-2",
+                keyName = "test-key",
+                sshKeyPath = "/tmp/test-key.pem",
+                awsProfile = "",
+                awsAccessKey = "test-access-key",
+                awsSecret = "test-secret-key",
+            )
+
+        // Create a test module that provides the User
+        val testModule =
+            module {
+                single { testUser }
+            }
+
+        try {
+            // Start Koin with awsModule and testModule
+            startKoin {
+                modules(awsModule, testModule)
+            }
+
+            // Get the EMR client from Koin
+            val emrClient: EmrClient by inject()
+
+            // Verify it's not null and is an instance of EmrClient
+            assertThat(emrClient).isNotNull
+            assertThat(emrClient).isInstanceOf(EmrClient::class.java)
         } finally {
             stopKoin()
         }

@@ -6,7 +6,7 @@ import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
-import com.rustyrazorblade.easycasslab.providers.aws.AWSRetryUtil
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import io.github.resilience4j.retry.Retry
 
 /**
@@ -387,14 +387,14 @@ class AWSResourceSetupService(
 
     /**
      * Executes an operation with retry logic for transient AWS failures.
-     * Uses shared AWSRetryUtil for S3 operations with consistent retry behavior.
+     * Uses shared RetryUtil for S3 operations with consistent retry behavior.
      */
     private fun <T> executeWithRetry(
         operationName: String,
         operation: () -> T,
         errorMessage: String,
     ): T {
-        val retryConfig = AWSRetryUtil.createS3RetryConfig<T>()
+        val retryConfig = RetryUtil.createAwsRetryConfig<T>()
         val retry = Retry.of(operationName, retryConfig)
 
         return try {

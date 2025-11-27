@@ -1,6 +1,8 @@
 package com.rustyrazorblade.easycasslab.providers.aws
 
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import com.rustyrazorblade.easycasslab.providers.aws.model.AMI
+import io.github.resilience4j.retry.Retry
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.ec2.model.DeleteSnapshotRequest
 import software.amazon.awssdk.services.ec2.model.DeregisterImageRequest
@@ -28,6 +30,8 @@ class EC2Service(
      * filters them by the provided name pattern. It converts AWS SDK Image objects
      * into domain AMI objects with normalized architecture values.
      *
+     * Uses retry logic for transient AWS service errors.
+     *
      * @param namePattern Wildcard pattern for filtering AMI names (e.g., "rustyrazorblade/images/easy-cass-lab-*")
      * @param ownerId AWS account ID to filter AMIs by owner (defaults to "self" for backward compatibility)
      * @return List of AMI objects representing private AMIs matching the pattern
@@ -48,25 +52,27 @@ class EC2Service(
                         .build(),
                 ).build()
 
-        val response = ec2Client.describeImages(request)
+        val retryConfig = RetryUtil.createAwsRetryConfig<List<AMI>>()
+        val retry = Retry.of("ec2-list-amis", retryConfig)
 
-        return response
-            .images()
-            .map { image ->
-                AMI(
-                    id = image.imageId(),
-                    name = image.name(),
-                    architecture = normalizeArchitecture(image.architecture().toString()),
-                    creationDate = Instant.parse(image.creationDate()),
-                    ownerId = image.ownerId(),
-                    // AMIs owned by "self" are typically private unless explicitly made public
-                    isPublic = false,
-                    snapshotIds =
-                        image
-                            .blockDeviceMappings()
-                            .mapNotNull { it.ebs()?.snapshotId() },
-                )
-            }
+        return Retry
+            .decorateSupplier(retry) {
+                ec2Client.describeImages(request).images().map { image ->
+                    AMI(
+                        id = image.imageId(),
+                        name = image.name(),
+                        architecture = normalizeArchitecture(image.architecture().toString()),
+                        creationDate = Instant.parse(image.creationDate()),
+                        ownerId = image.ownerId(),
+                        // AMIs owned by "self" are typically private unless explicitly made public
+                        isPublic = false,
+                        snapshotIds =
+                            image
+                                .blockDeviceMappings()
+                                .mapNotNull { it.ebs()?.snapshotId() },
+                    )
+                }
+            }.get()
     }
 
     /**
@@ -74,6 +80,8 @@ class EC2Service(
      *
      * Queries AWS for EBS snapshots that are associated with the given AMI ID.
      * This is useful for finding orphaned snapshots after AMI deregistration.
+     *
+     * Uses retry logic for transient AWS service errors.
      *
      * @param amiId The AMI identifier to find snapshots for
      * @return List of snapshot IDs associated with the AMI
@@ -90,9 +98,13 @@ class EC2Service(
                         .build(),
                 ).build()
 
-        val response = ec2Client.describeSnapshots(request)
+        val retryConfig = RetryUtil.createAwsRetryConfig<List<String>>()
+        val retry = Retry.of("ec2-get-snapshots", retryConfig)
 
-        return response.snapshots().map { it.snapshotId() }
+        return Retry
+            .decorateSupplier(retry) {
+                ec2Client.describeSnapshots(request).snapshots().map { it.snapshotId() }
+            }.get()
     }
 
     /**
@@ -101,6 +113,8 @@ class EC2Service(
      * Removes the AMI from AWS, making it unavailable for launching new instances.
      * Note: This does not automatically delete associated EBS snapshots - those must
      * be deleted separately using deleteSnapshot().
+     *
+     * Uses retry logic for transient AWS service errors.
      *
      * @param amiId The AMI identifier to deregister
      */
@@ -111,7 +125,13 @@ class EC2Service(
                 .imageId(amiId)
                 .build()
 
-        ec2Client.deregisterImage(request)
+        val retryConfig = RetryUtil.createAwsRetryConfig<Unit>()
+        val retry = Retry.of("ec2-deregister-ami", retryConfig)
+
+        Retry
+            .decorateRunnable(retry) {
+                ec2Client.deregisterImage(request)
+            }.run()
     }
 
     /**
@@ -119,6 +139,8 @@ class EC2Service(
      *
      * Permanently removes an EBS snapshot from AWS. This should typically be called
      * after deregistering an AMI to clean up orphaned snapshots and avoid storage costs.
+     *
+     * Uses retry logic for transient AWS service errors.
      *
      * @param snapshotId The snapshot identifier to delete
      */
@@ -129,7 +151,13 @@ class EC2Service(
                 .snapshotId(snapshotId)
                 .build()
 
-        ec2Client.deleteSnapshot(request)
+        val retryConfig = RetryUtil.createAwsRetryConfig<Unit>()
+        val retry = Retry.of("ec2-delete-snapshot", retryConfig)
+
+        Retry
+            .decorateRunnable(retry) {
+                ec2Client.deleteSnapshot(request)
+            }.run()
     }
 
     /**

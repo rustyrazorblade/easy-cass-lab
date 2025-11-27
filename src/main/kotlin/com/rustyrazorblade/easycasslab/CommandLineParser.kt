@@ -19,6 +19,7 @@ import com.rustyrazorblade.easycasslab.commands.Exec
 import com.rustyrazorblade.easycasslab.commands.Hosts
 import com.rustyrazorblade.easycasslab.commands.ICommand
 import com.rustyrazorblade.easycasslab.commands.Init
+import com.rustyrazorblade.easycasslab.commands.Ip
 import com.rustyrazorblade.easycasslab.commands.ListVersions
 import com.rustyrazorblade.easycasslab.commands.PruneAMIs
 import com.rustyrazorblade.easycasslab.commands.Repl
@@ -27,6 +28,7 @@ import com.rustyrazorblade.easycasslab.commands.Server
 import com.rustyrazorblade.easycasslab.commands.SetupInstance
 import com.rustyrazorblade.easycasslab.commands.SetupProfile
 import com.rustyrazorblade.easycasslab.commands.ShowIamPolicies
+import com.rustyrazorblade.easycasslab.commands.SparkSubmit
 import com.rustyrazorblade.easycasslab.commands.Start
 import com.rustyrazorblade.easycasslab.commands.Stop
 import com.rustyrazorblade.easycasslab.commands.Up
@@ -85,6 +87,7 @@ class CommandLineParser(
                 Command("exec", Exec(context)),
                 Command("hosts", Hosts(context)),
                 Command("init", Init(context)),
+                Command("ip", Ip(context)),
                 Command("list", ListVersions(context), listOf("ls")),
                 Command("setup-instances", SetupInstance(context), listOf("si")),
                 Command("setup-profile", SetupProfile(context), listOf("setup")),
@@ -103,6 +106,7 @@ class CommandLineParser(
                 Command("prune-amis", PruneAMIs(context)),
                 Command("show-iam-policies", ShowIamPolicies(context), listOf("sip")),
                 Command("configure-aws", ConfigureAWS(context)),
+                Command("spark-submit", SparkSubmit(context), listOf("ssj")),
             )
 
         for (c in commands) {

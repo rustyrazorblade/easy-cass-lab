@@ -1,7 +1,9 @@
 package com.rustyrazorblade.easycasslab.providers.aws
 
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.ec2.model.AttachInternetGatewayRequest
 import software.amazon.awssdk.services.ec2.model.AuthorizeSecurityGroupIngressRequest
@@ -37,6 +39,22 @@ class EC2VpcService(
         private val log = KotlinLogging.logger {}
     }
 
+    /**
+     * Executes an EC2 operation with retry logic for transient AWS failures.
+     *
+     * @param operationName Name of the operation for logging
+     * @param operation The EC2 operation to execute
+     * @return The result of the operation
+     */
+    private fun <T> withRetry(
+        operationName: String,
+        operation: () -> T,
+    ): T {
+        val retryConfig = RetryUtil.createAwsRetryConfig<T>()
+        val retry = Retry.of(operationName, retryConfig)
+        return Retry.decorateSupplier(retry, operation).get()
+    }
+
     override fun findOrCreateVpc(
         name: ResourceName,
         cidr: Cidr,
@@ -64,7 +82,7 @@ class EC2VpcService(
                 .tagSpecifications(tagSpecification)
                 .build()
 
-        val createResponse = ec2Client.createVpc(createRequest)
+        val createResponse = withRetry("create-vpc") { ec2Client.createVpc(createRequest) }
         val vpcId = createResponse.vpc().vpcId()
 
         log.info { "Created VPC: $name ($vpcId)" }
@@ -104,7 +122,7 @@ class EC2VpcService(
                 .build()
 
         log.debug { "CreateSubnet request: vpcId=$vpcId, cidr=$cidr, tags=${tagSpecification.tags()}" }
-        val createResponse = ec2Client.createSubnet(createRequest)
+        val createResponse = withRetry("create-subnet") { ec2Client.createSubnet(createRequest) }
         val subnetId = createResponse.subnet().subnetId()
 
         // Enable auto-assign public IP for instances launched in this subnet
@@ -140,7 +158,7 @@ class EC2VpcService(
                 .tagSpecifications(tagSpecification)
                 .build()
 
-        val createResponse = ec2Client.createInternetGateway(createRequest)
+        val createResponse = withRetry("create-igw") { ec2Client.createInternetGateway(createRequest) }
         val igwId = createResponse.internetGateway().internetGatewayId()
 
         // Attach to VPC
@@ -151,7 +169,7 @@ class EC2VpcService(
                 .vpcId(vpcId)
                 .build()
 
-        ec2Client.attachInternetGateway(attachRequest)
+        withRetry("attach-igw") { ec2Client.attachInternetGateway(attachRequest) }
         log.info { "Created and attached internet gateway: $name ($igwId) to VPC: $vpcId" }
 
         return igwId
@@ -187,7 +205,7 @@ class EC2VpcService(
                 .tagSpecifications(tagSpecification)
                 .build()
 
-        val createResponse = ec2Client.createSecurityGroup(createRequest)
+        val createResponse = withRetry("create-sg") { ec2Client.createSecurityGroup(createRequest) }
         val sgId = createResponse.groupId()
 
         log.info { "Created security group: $name ($sgId)" }

@@ -13,7 +13,7 @@ class ClusterStateTest {
     ) {
         // Set the file path to use temp directory
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create InitConfig with test data
         val initConfig =
@@ -44,13 +44,13 @@ class ClusterStateTest {
                 versions = mutableMapOf("cassandra" to "4.1.3"),
                 initConfig = initConfig,
             )
-        originalState.save()
+        manager.save(originalState)
 
         // Verify file was created
         assertThat(stateFile).exists()
 
         // Load the state back
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         // Verify all fields match
         assertThat(loadedState.name).isEqualTo("test-cluster")
@@ -86,7 +86,7 @@ class ClusterStateTest {
     ) {
         // Set the file path to use temp directory
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create ClusterState without InitConfig (backward compatibility)
         val state =
@@ -95,10 +95,10 @@ class ClusterStateTest {
                 versions = mutableMapOf(),
                 initConfig = null,
             )
-        state.save()
+        manager.save(state)
 
         // Load it back
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         // Verify it loads correctly with null InitConfig
         assertThat(loadedState.name).isEqualTo("legacy-cluster")
@@ -143,7 +143,7 @@ class ClusterStateTest {
     ) {
         // Set the file path to use temp directory
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create a legacy JSON without initConfig field
         val legacyJson =
@@ -164,7 +164,7 @@ class ClusterStateTest {
         stateFile.writeText(legacyJson)
 
         // Should load without throwing an exception
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         assertThat(loadedState.name).isEqualTo("legacy-cluster")
         assertThat(loadedState.default.version).isEqualTo("3.11.10")
@@ -177,7 +177,7 @@ class ClusterStateTest {
     ) {
         // Set the file path to use temp directory
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create JSON with partial InitConfig (missing some fields)
         val partialJson =
@@ -198,7 +198,7 @@ class ClusterStateTest {
         stateFile.writeText(partialJson)
 
         // Should load and fill in missing fields with defaults
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         assertThat(loadedState.name).isEqualTo("partial-cluster")
         assertThat(loadedState.initConfig).isNotNull
@@ -222,7 +222,7 @@ class ClusterStateTest {
     ) {
         // Set the file path to use temp directory
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create JSON with extra fields that don't exist in current schema
         val jsonWithExtraFields =
@@ -246,7 +246,7 @@ class ClusterStateTest {
         stateFile.writeText(jsonWithExtraFields)
 
         // Should load without errors, ignoring unknown fields
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         assertThat(loadedState.name).isEqualTo("future-cluster")
         assertThat(loadedState.initConfig).isNotNull
@@ -258,7 +258,7 @@ class ClusterStateTest {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create test hosts
         val cassandraHosts =
@@ -300,10 +300,10 @@ class ClusterStateTest {
                 versions = mutableMapOf(),
                 hosts = hosts,
             )
-        state.save()
+        manager.save(state)
 
         // Load it back
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         // Verify hosts were preserved
         assertThat(loadedState.hosts).hasSize(2)
@@ -326,7 +326,7 @@ class ClusterStateTest {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         val state =
             ClusterState(
@@ -340,38 +340,40 @@ class ClusterStateTest {
 
         // Mark as UP
         state.markInfrastructureUp()
+        manager.save(state)
         assertThat(state.infrastructureStatus).isEqualTo(InfrastructureStatus.UP)
         assertThat(state.isInfrastructureUp()).isTrue()
 
         // Load from file and verify status persisted
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
         assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.UP)
         assertThat(loadedState.isInfrastructureUp()).isTrue()
 
         // Mark as DOWN
         loadedState.markInfrastructureDown()
+        manager.save(loadedState)
         assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.DOWN)
         assertThat(loadedState.isInfrastructureUp()).isFalse()
 
         // Verify DOWN status persisted
-        val finalState = ClusterState.load()
+        val finalState = manager.load()
         assertThat(finalState.infrastructureStatus).isEqualTo(InfrastructureStatus.DOWN)
         assertThat(finalState.isInfrastructureUp()).isFalse()
     }
 
     @Test
-    fun `updateHosts should save hosts and update timestamp`(
+    fun `updateHosts should update hosts and timestamp`(
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         val state =
             ClusterState(
                 name = "test-cluster",
                 versions = mutableMapOf(),
             )
-        state.save()
+        manager.save(state)
 
         val originalTimestamp = state.lastAccessedAt
 
@@ -392,23 +394,19 @@ class ClusterStateTest {
             )
 
         state.updateHosts(hosts)
+        manager.save(state)
 
         // Verify timestamp was updated
         assertThat(state.lastAccessedAt).isAfter(originalTimestamp)
 
         // Verify hosts were saved
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
         assertThat(loadedState.hosts).hasSize(1)
         assertThat(loadedState.hosts[ServerType.Cassandra]).hasSize(1)
     }
 
     @Test
-    fun `getControlHost should return first control host`(
-        @TempDir tempDir: File,
-    ) {
-        val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
-
+    fun `getControlHost should return first control host`() {
         // Test with no control hosts
         val stateNoControl =
             ClusterState(
@@ -443,12 +441,7 @@ class ClusterStateTest {
     }
 
     @Test
-    fun `validateHostsMatch should detect matching hosts`(
-        @TempDir tempDir: File,
-    ) {
-        val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
-
+    fun `validateHostsMatch should detect matching hosts`() {
         val hosts1 =
             mapOf(
                 ServerType.Cassandra to
@@ -489,12 +482,7 @@ class ClusterStateTest {
     }
 
     @Test
-    fun `validateHostsMatch should detect mismatched hosts`(
-        @TempDir tempDir: File,
-    ) {
-        val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
-
+    fun `validateHostsMatch should detect mismatched hosts`() {
         val hosts1 =
             mapOf(
                 ServerType.Cassandra to
@@ -553,12 +541,7 @@ class ClusterStateTest {
     }
 
     @Test
-    fun `ClusterState should have unique clusterId`(
-        @TempDir tempDir: File,
-    ) {
-        val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
-
+    fun `ClusterState should have unique clusterId`() {
         val state1 =
             ClusterState(
                 name = "cluster1",
@@ -580,7 +563,7 @@ class ClusterStateTest {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         val originalState =
             ClusterState(
@@ -588,9 +571,9 @@ class ClusterStateTest {
                 versions = mutableMapOf(),
             )
         val originalId = originalState.clusterId
-        originalState.save()
+        manager.save(originalState)
 
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
         assertThat(loadedState.clusterId).isEqualTo(originalId)
     }
 
@@ -599,7 +582,7 @@ class ClusterStateTest {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         val beforeCreate = Instant.now()
         Thread.sleep(10)
@@ -617,8 +600,8 @@ class ClusterStateTest {
         assertThat(state.createdAt).isBetween(beforeCreate, afterCreate)
         assertThat(state.lastAccessedAt).isBetween(beforeCreate, afterCreate)
 
-        state.save()
-        val loadedState = ClusterState.load()
+        manager.save(state)
+        val loadedState = manager.load()
 
         // Timestamps should be preserved
         assertThat(loadedState.createdAt).isEqualTo(state.createdAt)
@@ -630,7 +613,7 @@ class ClusterStateTest {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create legacy JSON without new fields
         val legacyJson =
@@ -646,11 +629,38 @@ class ClusterStateTest {
         stateFile.writeText(legacyJson)
 
         // Should load without errors and use defaults
-        val loadedState = ClusterState.load()
+        val loadedState = manager.load()
 
         assertThat(loadedState.name).isEqualTo("legacy-cluster")
         assertThat(loadedState.infrastructureStatus).isEqualTo(InfrastructureStatus.UNKNOWN)
         assertThat(loadedState.hosts).isEmpty()
         assertThat(loadedState.clusterId).isNotEmpty()
+    }
+
+    @Test
+    fun `s3Path extension function should create ClusterS3Path`() {
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+            )
+
+        val user =
+            User(
+                email = "test@example.com",
+                region = "us-west-2",
+                keyName = "test-key",
+                sshKeyPath = "/path/to/key",
+                awsProfile = "",
+                awsAccessKey = "",
+                awsSecret = "",
+                s3Bucket = "my-test-bucket",
+            )
+
+        val s3Path = state.s3Path(user)
+
+        assertThat(s3Path.bucket).isEqualTo("my-test-bucket")
+        assertThat(s3Path.toString()).contains(state.clusterId)
+        assertThat(s3Path.toString()).startsWith("s3://my-test-bucket/clusters/")
     }
 }

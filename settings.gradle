@@ -19,6 +19,7 @@ rootProject.name = 'easy-cass-lab'
 
 include "core"
 include "manual"
+include "spark-connector-test1"
 
 dependencyResolutionManagement {
     repositories {

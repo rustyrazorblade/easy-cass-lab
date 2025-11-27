@@ -10,15 +10,16 @@ import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
 import com.rustyrazorblade.easycasslab.configuration.AxonOpsWorkbenchConfig
-import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.providers.AWS
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import com.rustyrazorblade.easycasslab.services.K3sAgentService
 import com.rustyrazorblade.easycasslab.services.K3sService
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.apache.sshd.common.SshException
+import io.github.resilience4j.retry.Retry
 import org.koin.core.component.inject
 import java.io.File
 import java.nio.file.Path
@@ -36,11 +37,11 @@ class Up(
     private val userConfig: User by inject()
     private val k3sService: K3sService by inject()
     private val k3sAgentService: K3sAgentService by inject()
+    private val clusterStateManager: ClusterStateManager by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
-        private val SSH_RETRY_DELAY = Duration.ofSeconds(1)
     }
 
     @Parameter(names = ["--no-setup", "-n"])
@@ -67,10 +68,11 @@ class Up(
      */
     private fun updateClusterState() {
         try {
-            val clusterState = ClusterState.load()
+            val clusterState = clusterStateManager.load()
             val allHosts = tfstate.getAllHostsAsMap()
             clusterState.updateHosts(allHosts)
             clusterState.markInfrastructureUp()
+            clusterStateManager.save(clusterState)
             outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
         } catch (e: Exception) {
             log.warn(e) { "Failed to update cluster state, continuing anyway" }
@@ -168,7 +170,7 @@ class Up(
         // Load cluster state to get datacenter (region) configuration
         val clusterState =
             try {
-                ClusterState.load()
+                clusterStateManager.load()
             } catch (e: Exception) {
                 null
             }
@@ -189,13 +191,31 @@ class Up(
         stressEnvironmentVars.close()
     }
 
+    /**
+     * Waits for SSH to become available on Cassandra nodes and downloads version info.
+     *
+     * Uses resilience4j retry with bounded attempts (30 retries × 10s = ~5 minute timeout)
+     * instead of an infinite loop. This prevents indefinite hangs while still allowing
+     * sufficient time for instances to boot.
+     *
+     * @throws RuntimeException if SSH is not available after all retry attempts
+     */
     private fun waitForSshAndDownloadVersions() {
         outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
 
-        var done = false
-        do {
-            try {
+        val retryConfig = RetryUtil.createSshConnectionRetryConfig()
+        val retry =
+            Retry.of("ssh-connection", retryConfig).also {
+                it.eventPublisher.onRetry { event ->
+                    outputHandler.handleMessage(
+                        "SSH still not up yet, waiting... (attempt ${event.numberOfRetryAttempts})",
+                    )
+                }
+            }
+
+        Retry
+            .decorateRunnable(retry) {
                 tfstate.withHosts(ServerType.Cassandra, hosts) {
                     remoteOps.executeRemotely(it, "echo 1").text
                     // download /etc/cassandra_versions.yaml if we don't have it yet
@@ -207,12 +227,7 @@ class Up(
                         )
                     }
                 }
-                done = true
-            } catch (ignored: SshException) {
-                outputHandler.handleMessage("SSH still not up yet, waiting..")
-                Thread.sleep(SSH_RETRY_DELAY.toMillis())
-            }
-        } while (!done)
+            }.run()
     }
 
     private fun setupInstancesIfNeeded() {

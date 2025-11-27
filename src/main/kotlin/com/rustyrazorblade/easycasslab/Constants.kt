@@ -25,24 +25,40 @@ object Constants {
     // Time-related constants
     object Time {
         const val MILLIS_PER_SECOND = 1000L
+        const val MILLIS_PER_MINUTE = 60_000L
         const val THREAD_SLEEP_DELAY_MS = 10L
         const val THREAD_JOIN_TIMEOUT_MS = 1000L
         const val OTEL_STARTUP_DELAY_MS = 2000L
         const val SETUP_TIMEOUT_SECONDS = 60
     }
 
+    // EMR configuration
+    object EMR {
+        const val POLL_INTERVAL_MS = 5000L
+        const val MAX_POLL_TIMEOUT_MS = 4 * 60 * 60 * 1000L // 4 hours
+        const val LOG_INTERVAL_POLLS = 12 // Log every 12 polls (60 seconds at 5s interval)
+        const val COMMAND_RUNNER_JAR = "command-runner.jar"
+        const val SPARK_SUBMIT_COMMAND = "spark-submit"
+    }
+
     // Retry configuration
     object Retry {
-        const val MAX_PERMISSION_CHECK_RETRIES = 30
-        const val MAX_OPERATION_RETRIES = 3
-
         // IAM operations: Higher retry count due to eventual consistency
         const val MAX_INSTANCE_PROFILE_RETRIES = 5
 
-        // S3 operations: Standard retry count for AWS service errors
-        const val MAX_S3_RETRIES = 3
-        const val RETRY_DELAY_MS = 2000L
-        const val RETRY_BACKOFF_MULTIPLIER = 3
+        // Standard AWS operations (S3, EC2, EMR, etc.): 3 attempts with exponential backoff
+        const val MAX_AWS_RETRIES = 3
+
+        // Docker operations: Retry count for transient Docker API failures
+        const val MAX_DOCKER_RETRIES = 3
+
+        // Network operations: Generic retry count for network failures
+        const val MAX_NETWORK_RETRIES = 3
+
+        // SSH connection retries: High count for waiting on instance boot
+        // 30 attempts × 10s = ~5 minutes max wait time
+        const val MAX_SSH_CONNECTION_RETRIES = 30
+        const val SSH_CONNECTION_RETRY_DELAY_MS = 10_000L
 
         // Base delay for exponential backoff (1s, 2s, 4s, 8s...)
         const val EXPONENTIAL_BACKOFF_BASE_MS = 1000L

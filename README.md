@@ -1,13 +1,24 @@
-# easy-cass-lab
+# easy-db-lab
 
-This is a tool to create lab environments with Apache Cassandra in AWS.  Using this tool you can:
+Formerly known as easy-cass-lab, this project aims to make the process of creating lab environments for database testing in AWS.
+
+**Note:** The project has been renamed, but easy-cass-lab remains littered throughout the codebase, for now.
+
+Cassandra Specific Features:
 
 * Quickly create an environment using any version of Cassandra from 2.2 up to trunk
-* Build custom AMIs with your own branches
+* Build custom AMIs with your own branches of Cassandra
 * Test mixed configurations of Cassandra and java versions
 * Run load tests using cassandra-easy-stress
-* Profile Cassandra and generate flame graphs
-* Collect kernel metrics with bcc-tools 
+
+The aims of the project were recently expanded to include more general database testing.  Some of the useful features:
+
+* Profile and generate flame graphs
+* Run any database supporting Kubernetes
+* Provision Spark EMR clusters
+* Collect kernel metrics with bcc-tools
+
+## Custom AMI
 
 We use packer to create a single AMI with the following:
 
@@ -16,38 +27,32 @@ We use packer to create a single AMI with the following:
 * [async-profiler](https://github.com/async-profiler/async-profiler), [learn about it here](https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/)
 * [cassandra-easy-stress](https://github.com/apache/cassandra-easy-stress) (Apache project, formerly easy-cass-stress)
 * [AxonOps agent](https://axonops.com/) (free monitoring up to six nodes)
+* K3s distribution of Kubernetes
 
 ## Pre-requisites
 
 The following must be set up before using this project:
 
 * [Setup AWS Account API Credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
-* [Install Docker](https://www.docker.com/products/docker-desktop/)
+* [Install Docker Locally](https://www.docker.com/products/docker-desktop/) for Packer and Terraform
 
 ## AWS Account Setup
 
 **IMPORTANT: We strongly recommend using a separate AWS account under an organization for lab environments.**
 
 This tool provisions and destroys AWS infrastructure! Using a dedicated account provides:
-- **Cost isolation** - Lab costs separated from production
 - **Resource isolation** - No risk of accidentally affecting production resources
+- **Cost isolation** - Lab costs separated from production
 - **Clean billing** - Easy to see lab-related costs
 
 ### Setting Up Your Profile
 
-Run the interactive setup to configure your AWS credentials and create necessary resources:
+This part is a bit clunky still, but it's a one time event.  You will need a user account and credentials.
 
-```shell
-easy-cass-lab setup-profile
-```
-
-This will:
-- Prompt for your AWS credentials
-- Validate your credentials
-- Create an EC2 key pair for SSH access
-- Create an IAM role for instance permissions
-- Create an S3 bucket (shared across all labs in this profile)
-- Set up Packer VPC infrastructure for building AMIs
+1. Create a User for easy-db-lab and get the credentials.
+2. Create a group and add the user to the group.
+3. Create 3 managed policies
+4. Attach managed policies to the group
 
 ### Viewing Required IAM Policies
 
@@ -65,7 +70,23 @@ easy-cass-lab show-iam-policies iam   # Show only IAM policy
 easy-cass-lab show-iam-policies emr   # Show only EMR policy
 ```
 
-**Recommended Approach:** Create an IAM group (e.g., "EasyCassLabUsers") and attach these policies as managed policies to the group. This is required for EMR/Spark cluster functionality and easier to manage than inline policies.
+See `bin/set-policies`.
+
+### Interactive Setup
+
+Run the interactive setup to configure your AWS credentials and create necessary resources:
+
+```shell
+easy-cass-lab setup-profile
+```
+
+This will:
+- Prompt for your AWS credentials
+- Validate your credentials
+- Create an EC2 key pair for SSH access
+- Create an IAM role for instance permissions
+- Create an S3 bucket (shared across all labs in this profile)
+- Set up Packer VPC infrastructure for building AMIs
 
 ## Usage
 
@@ -201,7 +222,7 @@ Docker will need to be running for this step.
 ```bash
 git clone https://github.com/rustyrazorblade/easy-cass-lab.git
 cd easy-cass-lab
-./gradlew shadowJar 
+./gradlew shadowJar
 ```
 
 
@@ -253,7 +274,7 @@ easy-cass-lab init -c 3 -s 1 myclustername # 3 node cluster with 1 stress instan
 You can start your instances now.
 
 ```shell
-easy-cass-lab up 
+easy-cass-lab up
 ```
 
 To access the cluster, follow the instructions at the end of the output of the `up` command:
@@ -280,7 +301,7 @@ easy-cass-lab list
 
 You'll see 3.0, 3.11, 4.0, 4.1, and others.
 
-Choose your cassandra version.  
+Choose your cassandra version.
 
 ```shell
 easy-cass-lab use 4.1
@@ -300,7 +321,7 @@ You can override the java version by passing the `-j` flag:
 easy-cass-lab use 5.0 -j 17
 ```
 
-Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.  
+Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.
 
 You can switch just one host:
 
@@ -313,10 +334,10 @@ Unlike production tools, easy-cass-lab is designed for testing and breaking thin
 ### Modify the YAML Configuration
 
 You'll see a file called `cassandra.patch.yaml` in your directory.  You can add any valid cassandra.yaml parameters,
-and the changes will be applied to your cluster.  The `listen_address` is handled for you, 
-you do not need to supply it.  The data directories are set up for you. 
+and the changes will be applied to your cluster.  The `listen_address` is handled for you,
+you do not need to supply it.  The data directories are set up for you.
 
-You can also edit the JVM options files under the different local version directories. Different versions of Cassandra use different 
+You can also edit the JVM options files under the different local version directories. Different versions of Cassandra use different
 names for jvm.options.  Edit the ones in the directory that corresponds to the version you're using.
 
 ```shell
@@ -337,7 +358,7 @@ easy-cass-lab start
 
 ```shell
 # The ephemeral or EBS disk is automatically formatted as XFS and mounted here.
-/mnt/cassandra 
+/mnt/cassandra
 
 # data files
 /mnt/cassandra/data
@@ -371,7 +392,7 @@ This allows us to support updating, mixed version clusters, A/B version testing,
 
 https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/
 
-Using easy-cass-lab `env.sh`, you can run a profile and generate a flamegraph, 
+Using easy-cass-lab `env.sh`, you can run a profile and generate a flamegraph,
 which will automatically download after it's complete by doing the following:
 
 ```shell
@@ -382,8 +403,8 @@ The data will be saved in `artifacts/cassandra0`
 
 Or on a node, generate flame graphs with `flamegraph`.
 
-There are several convenient aliases defined in env.sh. 
-You may substitute any cassandra host.  
+There are several convenient aliases defined in env.sh.
+You may substitute any cassandra host.
 You may pass extra parameters, they will be passed along automatically.
 
 
@@ -404,9 +425,9 @@ On each node there are several aliases for commonly run commands:
 | --------|---------------------------------------|
  | c | cqlsh (auto use the correct hostname) |
 | ts | tail cassandra system log             |
-| nt | nodetool                              | 
-| d | cd to /mnt/cassandra/data directory   | 
-| l | list /mnt/cassandra/logs directory    | 
+| nt | nodetool                              |
+| d | cd to /mnt/cassandra/data directory   |
+| l | list /mnt/cassandra/logs directory    |
 | v | ls -lahG (friendly output)            |
 
 

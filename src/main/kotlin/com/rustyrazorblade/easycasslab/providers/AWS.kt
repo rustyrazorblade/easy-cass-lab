@@ -3,8 +3,8 @@ package com.rustyrazorblade.easycasslab.providers
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.configuration.AWSPolicy
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import com.rustyrazorblade.easycasslab.providers.aws.AWSRetryUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
 import software.amazon.awssdk.core.exception.SdkServiceException
 import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.iam.model.AddRoleToInstanceProfileRequest
@@ -185,17 +185,29 @@ class AWS(
         return Constants.AWS.Roles.EMR_SERVICE_ROLE
     }
 
+    /**
+     * Attaches a managed policy to an IAM role with retry logic for transient AWS failures.
+     *
+     * @param roleName The name of the IAM role
+     * @param policy The ARN of the managed policy to attach
+     */
     private fun attachPolicy(
         roleName: String,
         policy: String,
     ) {
-        val attachPolicyRequest =
-            AttachRolePolicyRequest
-                .builder()
-                .roleName(roleName)
-                .policyArn(policy)
-                .build()
-        iamClient.attachRolePolicy(attachPolicyRequest)
+        val retryConfig = RetryUtil.createIAMRetryConfig()
+        val retry = Retry.of("attach-policy-$roleName", retryConfig)
+
+        Retry
+            .decorateRunnable(retry) {
+                val attachPolicyRequest =
+                    AttachRolePolicyRequest
+                        .builder()
+                        .roleName(roleName)
+                        .policyArn(policy)
+                        .build()
+                iamClient.attachRolePolicy(attachPolicyRequest)
+            }.run()
     }
 
     private fun attachEMRRole() {
@@ -245,26 +257,33 @@ class AWS(
     /**
      * Attaches an inline S3 access policy to an IAM role, granting full access to the specified bucket.
      *
+     * Uses retry logic with exponential backoff for transient AWS failures.
+     *
      * @param roleName The name of the IAM role to attach the policy to
      * @param bucketName The S3 bucket name to grant access to
-     * @throws IamException if IAM operations fail
+     * @throws IamException if IAM operations fail after retries
      */
     private fun attachS3Policy(
         roleName: String,
         bucketName: String,
     ) {
         val s3Policy = AWSPolicy.Inline.S3Access(bucketName).toJson()
+        val retryConfig = RetryUtil.createIAMRetryConfig()
+        val retry = Retry.of("attach-s3-policy-$roleName", retryConfig)
 
         try {
-            val putPolicyRequest =
-                PutRolePolicyRequest
-                    .builder()
-                    .roleName(roleName)
-                    .policyName("S3Access")
-                    .policyDocument(s3Policy)
-                    .build()
+            Retry
+                .decorateRunnable(retry) {
+                    val putPolicyRequest =
+                        PutRolePolicyRequest
+                            .builder()
+                            .roleName(roleName)
+                            .policyName("S3Access")
+                            .policyDocument(s3Policy)
+                            .build()
 
-            iamClient.putRolePolicy(putPolicyRequest)
+                    iamClient.putRolePolicy(putPolicyRequest)
+                }.run()
             log.info { "✓ Attached S3 access policy to role: $roleName for bucket: $bucketName" }
         } catch (e: IamException) {
             log.error(e) { "Failed to attach S3 policy to role: $roleName - ${e.message}" }
@@ -284,7 +303,7 @@ class AWS(
         profileName: String,
         roleName: String,
     ) {
-        val retryConfig = AWSRetryUtil.createIAMRetryConfig()
+        val retryConfig = RetryUtil.createIAMRetryConfig()
         val retry =
             io.github.resilience4j.retry.Retry
                 .of("createInstanceProfile-$profileName", retryConfig)

@@ -1,11 +1,5 @@
 package com.rustyrazorblade.easycasslab.configuration
 
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import java.io.File
 import java.time.Instant
 import java.util.UUID
 
@@ -66,6 +60,10 @@ data class InitConfig(
     val tags: Map<String, String> = mapOf(),
 )
 
+/**
+ * Pure data class representing cluster state.
+ * Persistence is handled by ClusterStateManager.
+ */
 data class ClusterState(
     var name: String,
     // if we fire up a new node and just tell it to go, it should use all the defaults
@@ -85,52 +83,28 @@ data class ClusterState(
     // All hosts in the cluster by server type
     var hosts: Map<ServerType, List<ClusterHost>> = emptyMap(),
 ) {
-    companion object {
-        @JsonIgnore
-        private val mapper =
-            ObjectMapper()
-                .registerKotlinModule()
-                .registerModule(JavaTimeModule())
-                .apply {
-                    // Configure to handle missing fields and unknown properties gracefully
-                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
-                    configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
-                    // Disable writing dates as timestamps
-                    disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                }
-
-        @JsonIgnore
-        var fp = File(CLUSTER_STATE)
-
-        fun load(): ClusterState = mapper.readValue(fp, ClusterState::class.java)
-    }
-
     /**
-     * Update hosts from TFState and save
+     * Update hosts from TFState
      */
     fun updateHosts(hosts: Map<ServerType, List<ClusterHost>>) {
         this.hosts = hosts
         this.lastAccessedAt = Instant.now()
-        save()
     }
 
     /**
-     * Mark infrastructure as UP and save
+     * Mark infrastructure as UP
      */
     fun markInfrastructureUp() {
         this.infrastructureStatus = InfrastructureStatus.UP
         this.lastAccessedAt = Instant.now()
-        save()
     }
 
     /**
-     * Mark infrastructure as DOWN and save
+     * Mark infrastructure as DOWN
      */
     fun markInfrastructureDown() {
         this.infrastructureStatus = InfrastructureStatus.DOWN
         this.lastAccessedAt = Instant.now()
-        save()
     }
 
     /**
@@ -159,6 +133,21 @@ data class ClusterState(
             }
         }
     }
-
-    fun save() = mapper.writerWithDefaultPrettyPrinter().writeValue(fp, this)
 }
+
+/**
+ * Extension function to create a ClusterS3Path from ClusterState and User configuration.
+ * Provides convenient access to cluster-namespaced S3 paths.
+ *
+ * Example:
+ * ```
+ * val manager = ClusterStateManager()
+ * val state = manager.load()
+ * val s3Path = state.s3Path(userConfig)
+ * val jarPath = s3Path.sparkJars().resolve("myapp.jar")
+ * ```
+ *
+ * @param user The user configuration containing s3Bucket
+ * @return A ClusterS3Path rooted at this cluster's namespace
+ */
+fun ClusterState.s3Path(user: User): ClusterS3Path = ClusterS3Path.from(this, user)

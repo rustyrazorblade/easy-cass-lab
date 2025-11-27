@@ -39,6 +39,15 @@ jobs:
             build/test-results/test/
           retention-days: 30
 
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: Test Results
+          path: build/test-results/test/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
       - name: Upload coverage reports
         if: always()
         uses: actions/upload-artifact@v5

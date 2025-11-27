@@ -24,7 +24,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo "=== Building project ==="
-./gradlew clean test shadowJar installDist
+./gradlew clean test shadowJar installDist :spark-connector-test1:jar
 
 echo "=== Checking version ==="
 bin/easy-cass-lab version
@@ -107,6 +107,9 @@ bin/easy-cass-lab restart
 echo "=== Testing SSH access and nodetool via env.sh aliases ==="
 ssh cassandra0 nodetool status
 
+echo "=== Check Sidecar ==="
+ssh cassandra0 "curl http://$(bin/easy-cass-lab ip cassandra0 --private):9043/api/v1/cassandra/schema"
+
 echo "=== Testing exec command (sequential) ==="
 bin/easy-cass-lab exec -t cassandra hostname
 
@@ -119,6 +122,13 @@ bin/easy-cass-lab exec -t cassandra --hosts cassandra0,cassandra1 date
 echo "=== Running stress test ==="
 which ssh
 ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
+
+echo "=== Submitting Spark job to EMR ==="
+bin/easy-cass-lab spark-submit \
+  --jar spark-connector-test1/build/libs/spark-connector-test1-12.jar \
+  --main-class com.rustyrazorblade.easycasslab.spark.KeyValuePrefixCount \
+  --args "$(bin/easy-cass-lab ip cassandra0 --private)" \
+  --wait
 
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
   echo ""

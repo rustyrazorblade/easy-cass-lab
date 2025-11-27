@@ -235,12 +235,16 @@ data class EMRCluster(
     val coreInstanceGroup: CoreInstanceGroup,
     @param:JsonProperty("ec2_attributes")
     val ec2Attributes: Ec2Attributes,
+    val tags: Map<String, String> = mapOf("easy_cass_lab" to "1"),
+    @param:JsonProperty("log_uri")
+    val logUri: String? = null,
 ) {
     companion object {
         fun fromSparkParams(
             sparkInitParams: SparkInitParams,
             subnet: Subnet,
             securityGroup: SecurityGroupResource,
+            logUri: String? = null,
         ): EMRCluster =
             EMRCluster(
                 serviceRole = Constants.AWS.Roles.EMR_SERVICE_ROLE,
@@ -259,6 +263,7 @@ data class EMRCluster(
                         securityGroup = securityGroup,
                         instanceProfile = Constants.AWS.Roles.EMR_EC2_ROLE,
                     ),
+                logUri = logUri,
             )
     }
 }
