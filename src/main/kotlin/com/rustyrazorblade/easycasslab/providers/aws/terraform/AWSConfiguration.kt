@@ -9,6 +9,7 @@ import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.configuration.ClusterS3Path
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.providers.AWS
@@ -43,6 +44,7 @@ class AWSConfiguration(
     var arch: Arch = Arch.AMD64,
     var sparkParams: SparkInitParams,
     val accountId: String,
+    val clusterId: String,
 ) {
     val logger = KotlinLogging.logger {}
     private val mapper = ObjectMapper().registerKotlinModule()
@@ -84,7 +86,8 @@ class AWSConfiguration(
         subnet: Subnet,
         securityGroupResource: SecurityGroupResource,
     ) = if (sparkParams.enable) {
-        EMRCluster.fromSparkParams(sparkParams, subnet, securityGroupResource)
+        val logUri = ClusterS3Path.from(user.s3Bucket, clusterId).emrLogs().toString()
+        EMRCluster.fromSparkParams(sparkParams, subnet, securityGroupResource, logUri)
     } else {
         null
     }

@@ -9,8 +9,12 @@ import com.rustyrazorblade.easycasslab.providers.aws.AMIValidator
 import com.rustyrazorblade.easycasslab.providers.aws.EC2Service
 import com.rustyrazorblade.easycasslab.providers.aws.EC2VpcService
 import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
+import com.rustyrazorblade.easycasslab.providers.aws.S3ObjectStore
 import com.rustyrazorblade.easycasslab.providers.aws.VpcService
 import com.rustyrazorblade.easycasslab.services.AWSResourceSetupService
+import com.rustyrazorblade.easycasslab.services.EMRSparkService
+import com.rustyrazorblade.easycasslab.services.ObjectStore
+import com.rustyrazorblade.easycasslab.services.SparkService
 import org.koin.dsl.module
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider
@@ -18,6 +22,7 @@ import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ec2.Ec2Client
+import software.amazon.awssdk.services.emr.EmrClient
 import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sts.StsClient
@@ -30,6 +35,7 @@ import software.amazon.awssdk.services.sts.StsClient
  * - AwsCredentialsProvider: Credentials provider using User configuration
  * - IamClient: AWS IAM client for identity and access management
  * - Ec2Client: AWS EC2 client for instance and AMI management
+ * - EmrClient: AWS EMR client for Elastic MapReduce (Spark) cluster management
  * - S3Client: AWS S3 client for object storage operations
  * - StsClient: AWS STS client for credential validation
  * - AWS: AWS service wrapper for lab environment operations
@@ -38,6 +44,8 @@ import software.amazon.awssdk.services.sts.StsClient
  * - AMIValidator: AMI validation service with retry logic and architecture verification
  * - VpcService: Generic VPC infrastructure management
  * - PackerInfrastructureService: Packer-specific VPC infrastructure orchestration
+ * - SparkService: Spark job lifecycle management for EMR clusters
+ * - ObjectStore: Cloud-agnostic object storage interface (S3 implementation)
  *
  * Note: AWSCredentialsManager is no longer registered here - it's created directly by Terraform and
  * Packer classes that need it, since they already have Context.
@@ -94,6 +102,14 @@ val awsModule =
                 .build()
         }
 
+        single {
+            EmrClient
+                .builder()
+                .region(get<Region>())
+                .credentialsProvider(get<AwsCredentialsProvider>())
+                .build()
+        }
+
         // Provide AWS service as singleton
         single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>(), get()) }
 
@@ -132,6 +148,23 @@ val awsModule =
         single {
             AWSResourceSetupService(
                 get<AWS>(),
+                get(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Provide ObjectStore implementation (S3) as singleton
+        single<ObjectStore> {
+            S3ObjectStore(
+                get<S3Client>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Provide SparkService implementation (EMR) as singleton
+        single<SparkService> {
+            EMRSparkService(
+                get<EmrClient>(),
                 get(),
                 get<OutputHandler>(),
             )

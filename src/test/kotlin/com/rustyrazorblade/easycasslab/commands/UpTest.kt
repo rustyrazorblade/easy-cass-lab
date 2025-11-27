@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.ServerType
@@ -130,7 +131,7 @@ class UpTest : BaseKoinTest() {
                 availabilityZone = "eu-west-1a",
             )
 
-        // Create and save ClusterState with region
+        // Create ClusterState with region
         val initConfig = InitConfig(region = clusterStateRegion)
         val clusterState =
             ClusterState(
@@ -138,7 +139,10 @@ class UpTest : BaseKoinTest() {
                 versions = mutableMapOf<String, String>(),
                 initConfig = initConfig,
             )
-        clusterState.save()
+
+        // Create a mock ClusterStateManager that returns our clusterState
+        val mockClusterStateManager = mock<ClusterStateManager>()
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
         val mockTFState = mock<TFState>()
         whenever(mockTFState.getHosts(ServerType.Cassandra)).thenReturn(listOf(cassandraHost))
@@ -146,7 +150,7 @@ class UpTest : BaseKoinTest() {
         val mockUserConfig = mock<User>()
         whenever(mockUserConfig.region).thenReturn(userConfigRegion)
 
-        // Rebuild Koin with mocked TFState
+        // Rebuild Koin with mocked TFState and ClusterStateManager
         tearDownKoin()
         val customModules =
             listOf(
@@ -162,6 +166,7 @@ class UpTest : BaseKoinTest() {
                     }
                     single { mockTFState }
                     single { mockUserConfig }
+                    single { mockClusterStateManager }
                 },
             )
         setupKoin()

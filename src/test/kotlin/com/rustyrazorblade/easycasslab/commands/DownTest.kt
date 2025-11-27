@@ -2,6 +2,7 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.InfrastructureStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -46,7 +47,7 @@ class DownTest : BaseKoinTest() {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create a cluster state that's currently UP
         val state =
@@ -55,17 +56,19 @@ class DownTest : BaseKoinTest() {
                 versions = mutableMapOf(),
             )
         state.markInfrastructureUp()
+        manager.save(state)
 
         // Verify it's UP
-        val beforeState = ClusterState.load()
+        val beforeState = manager.load()
         assertThat(beforeState.infrastructureStatus).isEqualTo(InfrastructureStatus.UP)
         assertThat(beforeState.isInfrastructureUp()).isTrue()
 
         // Simulate Down command marking it as DOWN
         beforeState.markInfrastructureDown()
+        manager.save(beforeState)
 
         // Load and verify it's DOWN
-        val afterState = ClusterState.load()
+        val afterState = manager.load()
         assertThat(afterState.infrastructureStatus).isEqualTo(InfrastructureStatus.DOWN)
         assertThat(afterState.isInfrastructureUp()).isFalse()
     }
@@ -93,10 +96,11 @@ class DownTest : BaseKoinTest() {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // File doesn't exist
         assertThat(stateFile).doesNotExist()
+        assertThat(manager.exists()).isFalse()
 
         // Trying to update non-existent state should not crash
         // In the real Down command, it checks if the file exists first
@@ -136,7 +140,7 @@ class DownTest : BaseKoinTest() {
         @TempDir tempDir: File,
     ) {
         val stateFile = File(tempDir, "state.json")
-        ClusterState.fp = stateFile
+        val manager = ClusterStateManager(stateFile)
 
         // Create a cluster state with various fields populated
         val state =
@@ -145,15 +149,17 @@ class DownTest : BaseKoinTest() {
                 versions = mutableMapOf("cassandra" to "4.1.3"),
             )
         state.markInfrastructureUp()
+        manager.save(state)
 
         val clusterId = state.clusterId
         val createdAt = state.createdAt
 
         // Mark as DOWN
         state.markInfrastructureDown()
+        manager.save(state)
 
         // Reload and verify all fields preserved except status
-        val reloadedState = ClusterState.load()
+        val reloadedState = manager.load()
         assertThat(reloadedState.name).isEqualTo("test-cluster")
         assertThat(reloadedState.versions).containsEntry("cassandra", "4.1.3")
         assertThat(reloadedState.clusterId).isEqualTo(clusterId)

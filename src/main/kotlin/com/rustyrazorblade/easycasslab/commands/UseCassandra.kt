@@ -9,9 +9,10 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
-import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.inject
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
@@ -21,6 +22,8 @@ import kotlin.system.exitProcess
 class UseCassandra(
     context: Context,
 ) : BaseCommand(context) {
+    private val clusterStateManager: ClusterStateManager by inject()
+
     @Parameter(description = "Cassandra version", required = true)
     var version: String = ""
 
@@ -39,7 +42,7 @@ class UseCassandra(
 
     override fun execute() {
         check(version.isNotBlank())
-        val state = ClusterState.load()
+        val state = clusterStateManager.load()
         try {
             tfstate
         } catch (ignored: FileNotFoundException) {
@@ -63,7 +66,7 @@ class UseCassandra(
             state.versions?.put(it.alias, version)
         }
 
-        state.save()
+        clusterStateManager.save(state)
 
         DownloadConfig(context).execute()
 

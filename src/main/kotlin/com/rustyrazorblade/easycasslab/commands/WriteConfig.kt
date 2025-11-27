@@ -4,7 +4,7 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -20,6 +20,7 @@ class WriteConfig(
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
+    private val clusterStateManager: ClusterStateManager by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }
 
     companion object {
@@ -42,7 +43,7 @@ class WriteConfig(
                 "(or automatically when calling use-cassandra)",
         )
 
-        val state = ClusterState.load()
+        val state = clusterStateManager.load()
 
         val data =
             object {

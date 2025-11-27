@@ -16,6 +16,7 @@ import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
 import com.rustyrazorblade.easycasslab.commands.delegates.Arch
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
@@ -42,6 +43,7 @@ class Init(
     private val outputHandler: OutputHandler by inject()
     private val userConfig: User by inject()
     private val aws: AWS by inject()
+    private val clusterStateManager: ClusterStateManager by inject()
 
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
@@ -147,11 +149,11 @@ class Init(
             checkExistingFiles()
         }
 
-        prepareEnvironment()
+        val clusterState = prepareEnvironment()
 
         outputHandler.handleMessage("Initializing directory")
 
-        val config = buildAWSConfiguration()
+        val config = buildAWSConfiguration(clusterState)
         configureAWSSettings(config)
 
         initializeTerraform(config)
@@ -212,7 +214,7 @@ class Init(
         }
     }
 
-    private fun prepareEnvironment() {
+    private fun prepareEnvironment(): ClusterState {
         val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
 
@@ -252,10 +254,11 @@ class Init(
                 versions = mutableMapOf(),
                 initConfig = initConfig,
             )
-        state.save()
+        clusterStateManager.save(state)
+        return state
     }
 
-    private fun buildAWSConfiguration(): AWSConfiguration {
+    private fun buildAWSConfiguration(clusterState: ClusterState): AWSConfiguration {
         val ebs = EBSConfiguration(ebsType, ebsSize, ebsIops, ebsThroughput, ebsOptimized)
         return AWSConfiguration(
             name,
@@ -272,6 +275,7 @@ class Init(
             arch = arch,
             sparkParams = spark,
             accountId = aws.getAccountId(),
+            clusterId = clusterState.clusterId,
         )
     }
 

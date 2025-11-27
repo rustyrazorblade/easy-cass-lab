@@ -27,6 +27,9 @@ cassandra_instances:
     password: cassandra
     data_dirs:
       - /mnt/cassandra/data/
+    commitlog_dir: /mnt/cassandra/commitlog
+    hints_dir: /mnt/cassandra/hints
+    saved_caches_dir: /mnt/cassandra/saved_caches
     staging_dir: /mnt/cassandra/import
     jmx_host: 127.0.0.1
     jmx_port: 7199
@@ -76,10 +79,10 @@ sidecar:
     max_retries: 3
     retry_delay_millis: 200
   schema:
-    is_enabled: false
+    is_enabled: true
     keyspace: sidecar_internal
-    replication_strategy: SimpleStrategy
-    replication_factor: 1
+    replication_strategy: NetworkTopologyStrategy
+    replication_factor: 3
 
 #
 # Enable SSL configuration (Disabled by default)

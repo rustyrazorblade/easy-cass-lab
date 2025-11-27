@@ -8,7 +8,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.containers.Terraform
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -28,6 +28,7 @@ class Down(
     var autoApprove = false
 
     private val outputHandler: OutputHandler by inject()
+    private val clusterStateManager: ClusterStateManager by inject()
     private val log = KotlinLogging.logger {}
 
     data class Socks5ProxyState(
@@ -89,10 +90,10 @@ class Down(
      */
     private fun updateClusterState() {
         try {
-            val stateFile = File("state.json")
-            if (stateFile.exists()) {
-                val clusterState = ClusterState.load()
+            if (clusterStateManager.exists()) {
+                val clusterState = clusterStateManager.load()
                 clusterState.markInfrastructureDown()
+                clusterStateManager.save(clusterState)
                 outputHandler.handleMessage("Cluster state updated: infrastructure marked as DOWN")
             }
         } catch (e: Exception) {

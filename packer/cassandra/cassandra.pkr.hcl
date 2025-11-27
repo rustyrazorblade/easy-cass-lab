@@ -28,7 +28,7 @@ locals {
   base_version = var.release_version != "" ? var.release_version : "*"
   version = var.release_version != "" ? var.release_version : local.timestamp
   ami_groups = var.release_version != "" ? ["all"] : []
-  instance_type = var.arch == "amd64" ? "c3.xlarge" : "c8g.2xlarge"
+  instance_type = var.arch == "amd64" ? "c6i.2xlarge" : "c8g.2xlarge"
 
 
 }

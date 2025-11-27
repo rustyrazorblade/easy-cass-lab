@@ -24,7 +24,6 @@ object KoinModules {
             awsModule,
             terraformModule(context),
             servicesModule,
-            // Add more modules here as the refactoring progresses
-            // e.g., configurationModule
+            configurationModule,
         )
 }

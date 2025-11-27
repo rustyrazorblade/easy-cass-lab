@@ -15,6 +15,21 @@ import kotlin.concurrent.thread
 
 typealias HostList = List<Host>
 
+/**
+ * Represents EMR cluster information extracted from Terraform state.
+ *
+ * @property clusterId The unique EMR cluster ID (e.g., "j-ABC123XYZ")
+ * @property name The cluster name as defined in Terraform
+ * @property masterPublicDns The public DNS name of the EMR master node
+ * @property state The current state of the cluster (e.g., "WAITING", "RUNNING", "TERMINATED")
+ */
+data class EMRClusterInfo(
+    val clusterId: String,
+    val name: String,
+    val masterPublicDns: String?,
+    val state: String?,
+)
+
 class TFState(
     val context: Context,
     val file: InputStream,
@@ -26,26 +41,20 @@ class TFState(
 
     data class Resource(
         val mode: String,
+        val type: String? = null,
         val name: String,
         val instances: List<Instance>,
     )
 
     data class Instance(
-        val attributes: Attributes,
+        val attributes: Map<String, Any?>,
     ) {
-        fun getName(): String =
-            attributes.tags?.get("Name")
-                ?: error("Instance has no 'Name' tag")
+        fun getName(): String {
+            @Suppress("UNCHECKED_CAST")
+            val tags = attributes["tags"] as? Map<String, String>
+            return tags?.get("Name") ?: error("Instance has no 'Name' tag")
+        }
     }
-
-    // security groups don't have an IP.
-    // we end up throwing exceptions if we don't make these fields nullable
-    data class Attributes(
-        val private_ip: String?,
-        val public_ip: String?,
-        var availability_zone: String?,
-        var tags: Map<String, String>?,
-    )
 
     private var log = KotlinLogging.logger {}
 
@@ -76,15 +85,43 @@ class TFState(
 
         val hosts =
             instances.mapIndexed { index, instance ->
+                val attrs = instance.attributes
                 Host(
-                    public = instance.attributes.public_ip ?: "",
-                    private = instance.attributes.private_ip ?: "",
+                    public = attrs["public_ip"] as? String ?: "",
+                    private = attrs["private_ip"] as? String ?: "",
                     alias = instance.getName(),
-                    availabilityZone = instance.attributes.availability_zone ?: "",
+                    availabilityZone = attrs["availability_zone"] as? String ?: "",
                 )
             } ?: listOf()
 
         return hosts
+    }
+
+    /**
+     * Retrieves EMR cluster information from Terraform state.
+     *
+     * @return EMRClusterInfo if an EMR cluster exists in the state, null otherwise
+     */
+    fun getEMRCluster(): EMRClusterInfo? {
+        val resource =
+            state.resources
+                .firstOrNull { it.type == "aws_emr_cluster" && it.name == "cluster" }
+                ?: return null
+
+        val instance = resource.instances.firstOrNull() ?: return null
+        val attrs = instance.attributes
+
+        val clusterId = attrs["id"] as? String ?: return null
+        val name = attrs["name"] as? String ?: "cluster"
+        val masterPublicDns = attrs["master_public_dns"] as? String
+        val clusterState = attrs["cluster_state"] as? String
+
+        return EMRClusterInfo(
+            clusterId = clusterId,
+            name = name,
+            masterPublicDns = masterPublicDns,
+            state = clusterState,
+        )
     }
 
     /**

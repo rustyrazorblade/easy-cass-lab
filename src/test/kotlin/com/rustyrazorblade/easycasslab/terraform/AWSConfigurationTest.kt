@@ -4,7 +4,6 @@ import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.TestContextFactory
 import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
 import com.rustyrazorblade.easycasslab.configuration.User
-import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
@@ -38,6 +37,7 @@ class AWSConfigurationTest {
                 sparkParams = sparkParams,
                 ebs = EBSConfiguration(EBSType.NONE, 0, 0, 0, false),
                 accountId = "123456789012",
+                clusterId = "test-cluster-id",
             )
 
         assertThat(awsConfiguration).hasFieldOrProperty("sparkParams").isNotNull()
@@ -73,6 +73,7 @@ class AWSConfigurationTest {
                 accountId = "123456789012",
                 numCassandraInstances = 1,
                 numStressInstances = 1,
+                clusterId = "test-cluster-id",
             )
 
         val json = awsConfiguration.toJSON()

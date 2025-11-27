@@ -6,7 +6,9 @@ import com.github.dockerjava.api.model.Frame
 import com.rustyrazorblade.easycasslab.DockerClientInterface
 import com.rustyrazorblade.easycasslab.DockerException
 import com.rustyrazorblade.easycasslab.output.OutputHandler
+import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.IOException
@@ -32,6 +34,8 @@ class ContainerExecutor(
     /**
      * Start a container and wait for it to complete.
      *
+     * Uses retry logic for transient Docker API failures.
+     *
      * @param containerId The ID of the container to start
      * @param maxWaitTime Maximum time to wait (default: 10 minutes)
      * @return The container state after completion
@@ -40,8 +44,14 @@ class ContainerExecutor(
         containerId: String,
         maxWaitTime: Duration = DEFAULT_MAX_WAIT_TIME,
     ): InspectContainerResponse.ContainerState {
+        val retryConfig = RetryUtil.createDockerRetryConfig<Unit>()
+        val retry = Retry.of("docker-start-$containerId", retryConfig)
+
         try {
-            dockerClient.startContainer(containerId)
+            Retry
+                .decorateRunnable(retry) {
+                    dockerClient.startContainer(containerId)
+                }.run()
             outputHandler.handleMessage("Starting container $containerId")
         } catch (e: com.github.dockerjava.api.exception.DockerException) {
             val errorMsg = "Docker error starting container: $containerId"
@@ -89,12 +99,20 @@ class ContainerExecutor(
     /**
      * Remove a container and its volumes.
      *
+     * Uses retry logic for transient Docker API failures.
+     *
      * @param containerId The ID of the container to remove
      */
     @Suppress("TooGenericExceptionCaught")
     fun removeContainer(containerId: String) {
+        val retryConfig = RetryUtil.createDockerRetryConfig<Unit>()
+        val retry = Retry.of("docker-remove-$containerId", retryConfig)
+
         try {
-            dockerClient.removeContainer(containerId, true)
+            Retry
+                .decorateRunnable(retry) {
+                    dockerClient.removeContainer(containerId, true)
+                }.run()
         } catch (e: DockerException) {
             log.error(e) { "Docker error while removing container $containerId" }
             outputHandler.handleError("Failed to remove container: ${e.message}", e)
