@@ -49,7 +49,6 @@ sshd = "2.16.0"
 commons-io = "2.21.0"
 
 # Other
-guava = "33.4.8-jre"
 classgraph = "4.8.184"
 resilience4j = "2.3.0"
 
@@ -113,7 +112,6 @@ sshd-scp = { module = "org.apache.sshd:sshd-scp", version.ref = "sshd" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 
 # Other
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
 classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
 
 # Kotlinx Serialization

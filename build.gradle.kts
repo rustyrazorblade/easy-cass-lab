@@ -66,7 +66,6 @@ dependencies {
 
     // CLI and UI
     implementation(libs.picocli)
-    implementation(libs.guava)
     implementation(libs.jline)
     implementation(libs.mordant)
 
