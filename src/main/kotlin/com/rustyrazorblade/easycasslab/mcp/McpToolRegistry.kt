@@ -1,13 +1,10 @@
 package com.rustyrazorblade.easycasslab.mcp
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
-import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.CommandLineParser
 import com.rustyrazorblade.easycasslab.Context
+import com.rustyrazorblade.easycasslab.PicoCommandEntry
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
-import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.commands.PicoCommand
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonArrayBuilder
@@ -22,11 +19,13 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
 import kotlin.getValue
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
+import picocli.CommandLine.Command as PicoCommandAnnotation
 
 /** Registry that manages easy-cass-lab commands as MCP tools. */
 open class McpToolRegistry(
@@ -42,7 +41,7 @@ open class McpToolRegistry(
         val name: String,
         val description: String,
         val inputSchema: JsonObject,
-        val command: Command,
+        val entry: PicoCommandEntry,
     )
 
     data class ToolResult(
@@ -57,11 +56,13 @@ open class McpToolRegistry(
     open fun getTools(): List<ToolInfo> {
         val parser = CommandLineParser(context)
 
-        return parser.commands
-            .filter { command ->
-                // Only include commands with @McpCommand annotation
-                command.command::class.java.isAnnotationPresent(McpCommand::class.java)
-            }.map { command -> createToolInfo(command) }
+        // PicoCLI commands with @McpCommand annotation
+        return parser.picoCommands
+            .filter { entry ->
+                // Create a temporary instance to check for annotation
+                val tempCommand = entry.factory()
+                tempCommand::class.java.isAnnotationPresent(McpCommand::class.java)
+            }.map { entry -> createToolInfoFromPico(entry) }
     }
 
     /** Execute a tool by name with the given arguments. */
@@ -77,145 +78,210 @@ open class McpToolRegistry(
                     isError = true,
                 )
 
-        // Create a fresh command instance to avoid state retention
-        // Create an MCP context for command execution
-        val mcpContext = Context.forMcp(context.easycasslabUserDirectory)
-        val freshCommand =
-            try {
-                // Try constructor with Context parameter first
-                tool.command.command::class
-                    .java
-                    .getDeclaredConstructor(Context::class.java)
-                    .newInstance(mcpContext)
-            } catch (e: NoSuchMethodException) {
-                // Fallback to no-arg constructor (shouldn't happen anymore)
-                try {
-                    tool.command.command::class.java.getDeclaredConstructor().newInstance()
-                } catch (e2: Exception) {
-                    // If we can't create a fresh instance, fall back to the original
-                    log.warn {
-                        "Could not create fresh command instance for ${tool.name}: ${e2.message}"
-                    }
-                    tool.command.command
-                }
-            } catch (e: Exception) {
-                // If we can't create a fresh instance, fall back to the original
-                log.warn {
-                    "Could not create fresh command instance for ${tool.name}: ${e.message}"
-                }
-                tool.command.command
-            }
+        // Create a fresh command instance using the factory
+        val freshCommand = tool.entry.factory()
 
         // Map JSON arguments to command parameters
         arguments?.let {
-            log.debug { "Mapping arguments to command: $it" }
-            mapArgumentsToCommand(freshCommand, it)
+            log.debug { "Mapping arguments to PicoCLI command: $it" }
+            mapArgumentsToPicoCommand(freshCommand, it)
         } ?: log.debug { "No arguments to map (arguments is null)" }
 
-        try {
-            // Stream start message via outputHandler
-            outputHandler.handleMessage("Starting execution of tool: $name")
-
-            // Execute the command
-            freshCommand.executeAll()
-
-            // Stream completion message
-            outputHandler.handleMessage("Tool '$name' completed successfully")
-
-            return ToolResult(
-                content = listOf("Tool executed successfully"),
-            )
-        } catch (e: Exception) {
-            log.error(e) { "Error executing command ${tool.name}" }
-
-            // Stream error message
-            outputHandler.handleError("Tool '$name' failed: ${e.message}", e)
-
-            return ToolResult(
-                content = listOf("Error executing command: ${e.message}"),
-                isError = true,
-            )
+        return executeAndCaptureResult(name) {
+            freshCommand.call()
         }
     }
 
-    private fun createToolInfo(command: Command): ToolInfo {
-        val description = extractDescription(command.command)
-        val schema = generateSchema(command.command)
-        log.info { "Creating tool info for $description : $schema" }
+    /** Common execution wrapper that handles output and errors. */
+    private fun executeAndCaptureResult(
+        name: String,
+        action: () -> Unit,
+    ): ToolResult =
+        try {
+            outputHandler.handleMessage("Starting execution of tool: $name")
+            action()
+            outputHandler.handleMessage("Tool '$name' completed successfully")
+            ToolResult(content = listOf("Tool executed successfully"))
+        } catch (e: Exception) {
+            log.error(e) { "Error executing command $name" }
+            outputHandler.handleError("Tool '$name' failed: ${e.message}", e)
+            ToolResult(content = listOf("Error executing command: ${e.message}"), isError = true)
+        }
+
+    /** Create ToolInfo from a PicoCLI command entry. */
+    private fun createToolInfoFromPico(entry: PicoCommandEntry): ToolInfo {
+        // Create a temporary instance to extract metadata
+        val tempCommand = entry.factory()
+        val description = extractPicoDescription(tempCommand)
+        val schema = generatePicoSchema(tempCommand)
+        log.info { "Creating PicoCLI tool info for $description : $schema" }
 
         return ToolInfo(
-            name = command.name,
+            name = entry.name,
             description = description,
             inputSchema = schema,
-            command = command,
+            entry = entry,
         )
     }
 
-    private fun extractDescription(command: ICommand): String {
-        val parametersAnnotation = command::class.findAnnotation<Parameters>()
-        return parametersAnnotation?.commandDescription ?: "No description available"
+    /** Extract description from PicoCLI @Command annotation. */
+    private fun extractPicoDescription(command: PicoCommand): String {
+        val commandAnnotation = command::class.java.getAnnotation(PicoCommandAnnotation::class.java)
+        return commandAnnotation?.description?.firstOrNull() ?: "No description available"
     }
 
-    fun generateSchema(command: ICommand): JsonObject {
+    /** Generate JSON schema from PicoCLI @Option and @Mixin annotations. */
+    fun generatePicoSchema(command: PicoCommand): JsonObject {
         val properties = mutableMapOf<String, JsonElement>()
         val requiredFields = mutableListOf<String>()
 
         command::class.memberProperties.forEach { property ->
-            processProperty(property, command, properties, requiredFields)
+            processPicoProperty(property, command, properties, requiredFields)
         }
 
         return buildJsonObject { properties.forEach { (key, value) -> put(key, value) } }
     }
 
-    private fun processProperty(
-        property: KProperty1<out ICommand, *>,
-        command: ICommand,
+    private fun processPicoProperty(
+        property: KProperty1<out PicoCommand, *>,
+        command: PicoCommand,
         properties: MutableMap<String, JsonElement>,
         requiredFields: MutableList<String>,
     ) {
         val javaField = property.javaField ?: return
 
-        processParameterAnnotation(javaField, property.name, command, properties, requiredFields)
-        processParametersDelegateAnnotation(javaField, command, properties, requiredFields)
+        processOptionAnnotation(javaField, property.name, command, properties, requiredFields)
+        processMixinAnnotation(javaField, command, properties, requiredFields)
     }
 
-    private fun processParameterAnnotation(
+    // ==================== PicoCLI @Option Processing ====================
+
+    private fun processOptionAnnotation(
         javaField: java.lang.reflect.Field,
         fieldName: String,
-        command: ICommand,
+        command: PicoCommand,
         properties: MutableMap<String, JsonElement>,
         requiredFields: MutableList<String>,
     ) {
-        val paramAnnotation = javaField.getAnnotation(Parameter::class.java) ?: return
+        val optionAnnotation = javaField.getAnnotation(Option::class.java) ?: return
 
-        if (paramAnnotation.required) {
+        if (optionAnnotation.required) {
             requiredFields.add(fieldName)
         }
 
-        properties[fieldName] = buildPropertySchema(javaField, fieldName, paramAnnotation, command)
+        properties[fieldName] = buildPicoOptionSchema(javaField, fieldName, optionAnnotation, command)
     }
 
-    private fun buildPropertySchema(
+    private fun buildPicoOptionSchema(
         javaField: java.lang.reflect.Field,
         fieldName: String,
-        paramAnnotation: Parameter,
-        command: ICommand,
+        optionAnnotation: Option,
+        command: PicoCommand,
     ): JsonObject =
         buildJsonObject {
             put("type", determineJsonType(javaField.type))
-            put("description", getFieldDescription(paramAnnotation, fieldName))
+            put("description", getPicoOptionDescription(optionAnnotation, fieldName))
 
             if (javaField.type.isEnum) {
                 putJsonArray("enum") { addEnumValues(javaField.type) }
             }
 
-            addDefaultValue(javaField, command)
+            addDefaultValueFromAny(javaField, command)
         }
 
-    private fun getFieldDescription(
-        paramAnnotation: Parameter,
+    private fun getPicoOptionDescription(
+        optionAnnotation: Option,
         fieldName: String,
-    ): String = paramAnnotation.description?.takeIf { it.isNotEmpty() } ?: "Parameter: $fieldName"
+    ): String {
+        val descriptions = optionAnnotation.description
+        return if (descriptions.isNotEmpty() && descriptions.first().isNotEmpty()) {
+            descriptions.first()
+        } else {
+            "Parameter: $fieldName"
+        }
+    }
+
+    // ==================== PicoCLI @Mixin Processing ====================
+
+    private fun processMixinAnnotation(
+        javaField: java.lang.reflect.Field,
+        command: PicoCommand,
+        properties: MutableMap<String, JsonElement>,
+        requiredFields: MutableList<String>,
+    ) {
+        javaField.getAnnotation(Mixin::class.java) ?: return
+
+        try {
+            javaField.isAccessible = true
+            val mixinObject = javaField.get(command) ?: return
+            scanMixinForOptions(mixinObject, properties, requiredFields)
+        } catch (e: Exception) {
+            log.warn { "Unable to process mixin: ${e.message}" }
+        }
+    }
+
+    private fun scanMixinForOptions(
+        mixin: Any,
+        properties: MutableMap<String, JsonElement>,
+        requiredFields: MutableList<String>,
+    ) {
+        mixin::class.memberProperties.forEach { property ->
+            processMixinProperty(property, mixin, properties, requiredFields)
+        }
+    }
+
+    private fun processMixinProperty(
+        property: KProperty1<out Any, *>,
+        mixin: Any,
+        properties: MutableMap<String, JsonElement>,
+        requiredFields: MutableList<String>,
+    ) {
+        val javaField = property.javaField ?: return
+        val optionAnnotation = javaField.getAnnotation(Option::class.java) ?: return
+
+        val fieldName = property.name
+
+        if (optionAnnotation.required) {
+            requiredFields.add(fieldName)
+        }
+
+        properties[fieldName] = buildMixinPropertySchema(javaField, fieldName, optionAnnotation, mixin)
+    }
+
+    private fun buildMixinPropertySchema(
+        javaField: java.lang.reflect.Field,
+        fieldName: String,
+        optionAnnotation: Option,
+        mixin: Any,
+    ): JsonObject =
+        buildJsonObject {
+            put("type", determineJsonType(javaField.type))
+            put("description", getPicoOptionDescription(optionAnnotation, fieldName))
+
+            if (javaField.type.isEnum) {
+                putJsonArray("enum") { addEnumValues(javaField.type) }
+            }
+
+            addDefaultValueFromAny(javaField, mixin)
+        }
+
+    /** Add default value to JSON schema from any object (not just ICommand). */
+    private fun JsonObjectBuilder.addDefaultValueFromAny(
+        javaField: java.lang.reflect.Field,
+        target: Any,
+    ) {
+        javaField.isAccessible = true
+        val defaultValue = javaField.get(target)
+
+        when (defaultValue) {
+            is Boolean -> put("default", defaultValue)
+            is Number -> put("default", defaultValue)
+            is String -> if (defaultValue.isNotEmpty()) put("default", defaultValue)
+            is Enum<*> -> put("default", getEnumStringValue(defaultValue))
+            null -> {} // No default
+            else -> {} // Complex type, skip default
+        }
+    }
 
     private fun JsonArrayBuilder.addEnumValues(enumType: Class<*>) {
         enumType.enumConstants.forEach { enumValue ->
@@ -235,77 +301,6 @@ open class McpToolRegistry(
             enumValue.toString()
         }
 
-    private fun JsonObjectBuilder.addDefaultValue(
-        javaField: java.lang.reflect.Field,
-        command: ICommand,
-    ) {
-        javaField.isAccessible = true
-        val defaultValue = javaField.get(command)
-
-        when (defaultValue) {
-            is Boolean -> put("default", defaultValue)
-            is Number -> put("default", defaultValue)
-            is String -> if (defaultValue.isNotEmpty()) put("default", defaultValue)
-            is Enum<*> -> put("default", getEnumStringValue(defaultValue))
-            null -> {} // No default
-            else -> {} // Complex type, skip default
-        }
-    }
-
-    private fun processParametersDelegateAnnotation(
-        javaField: java.lang.reflect.Field,
-        command: ICommand,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        val delegateAnnotation = javaField.getAnnotation(ParametersDelegate::class.java) ?: return
-
-        try {
-            javaField.isAccessible = true
-            val delegateObject = javaField.get(command) ?: return
-            scanDelegateForParameters(delegateObject, properties, requiredFields)
-        } catch (e: Exception) {
-            log.warn { "Unable to process delegate: ${e.message}" }
-        }
-    }
-
-    private fun scanDelegateForParameters(
-        delegate: Any,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        delegate::class.memberProperties.forEach { property ->
-            processDelegateProperty(property, properties, requiredFields)
-        }
-    }
-
-    private fun processDelegateProperty(
-        property: KProperty1<out Any, *>,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        val javaField = property.javaField ?: return
-        val paramAnnotation = javaField.getAnnotation(Parameter::class.java) ?: return
-
-        val fieldName = property.name
-
-        if (paramAnnotation.required) {
-            requiredFields.add(fieldName)
-        }
-
-        properties[fieldName] = buildDelegatePropertySchema(javaField, fieldName, paramAnnotation)
-    }
-
-    private fun buildDelegatePropertySchema(
-        javaField: java.lang.reflect.Field,
-        fieldName: String,
-        paramAnnotation: Parameter,
-    ): JsonObject =
-        buildJsonObject {
-            put("type", determineJsonType(javaField.type))
-            put("description", getFieldDescription(paramAnnotation, fieldName))
-        }
-
     private fun determineJsonType(type: Class<*>): String =
         when {
             type.isEnum -> "string" // Enums are strings with constraints
@@ -322,80 +317,82 @@ open class McpToolRegistry(
             else -> "string" // Default to string for unknown types
         }
 
-    private fun mapArgumentsToCommand(
-        command: ICommand,
+    // ==================== PicoCLI Argument Mapping ====================
+
+    private fun mapArgumentsToPicoCommand(
+        command: PicoCommand,
         arguments: JsonObject,
     ) {
-        log.debug { "Mapping arguments to ${command::class.simpleName}" }
+        log.debug { "Mapping arguments to PicoCLI command ${command::class.simpleName}" }
         command::class.memberProperties.forEach { property ->
-            mapPropertyArgument(property, command, arguments)
-            mapDelegateArguments(property, command, arguments)
+            mapPicoOptionArgument(property, command, arguments)
+            mapPicoMixinArguments(property, command, arguments)
         }
     }
 
-    private fun mapPropertyArgument(
-        property: KProperty1<out ICommand, *>,
-        command: ICommand,
+    private fun mapPicoOptionArgument(
+        property: KProperty1<out PicoCommand, *>,
+        command: PicoCommand,
         arguments: JsonObject,
     ) {
         val javaField = property.javaField ?: return
-        val paramAnnotation = javaField.getAnnotation(Parameter::class.java) ?: return
+        javaField.getAnnotation(Option::class.java) ?: return
 
         val fieldName = property.name
         val value = arguments[fieldName]
 
         value?.takeIf { it !is JsonNull }?.let {
-            log.debug { "Setting field '$fieldName'" }
+            log.debug { "Setting PicoCLI option '$fieldName'" }
             setFieldValue(command, javaField, it)
-        } ?: log.debug { "Skipping field '$fieldName' (null)" }
+        } ?: log.debug { "Skipping option '$fieldName' (null)" }
     }
 
-    private fun mapDelegateArguments(
-        property: KProperty1<out ICommand, *>,
-        command: ICommand,
+    private fun mapPicoMixinArguments(
+        property: KProperty1<out PicoCommand, *>,
+        command: PicoCommand,
         arguments: JsonObject,
     ) {
         val javaField = property.javaField ?: return
-        val delegateAnnotation = javaField.getAnnotation(ParametersDelegate::class.java) ?: return
+        javaField.getAnnotation(Mixin::class.java) ?: return
 
         try {
             javaField.isAccessible = true
-            val delegateObject = javaField.get(command)
+            val mixinObject = javaField.get(command)
 
-            delegateObject?.let {
-                log.debug { "Mapping arguments to delegate ${it::class.simpleName}" }
-                mapArgumentsToDelegate(it, arguments)
-            } ?: log.debug { "Delegate object is null, skipping" }
+            mixinObject?.let {
+                log.debug { "Mapping arguments to PicoCLI mixin ${it::class.simpleName}" }
+                mapArgumentsToPicoMixin(it, arguments)
+            } ?: log.debug { "Mixin object is null, skipping" }
         } catch (e: Exception) {
-            log.warn { "Unable to process delegate: ${e.message}" }
+            log.warn { "Unable to process mixin: ${e.message}" }
         }
     }
 
-    private fun mapArgumentsToDelegate(
-        delegate: Any,
+    private fun mapArgumentsToPicoMixin(
+        mixin: Any,
         arguments: JsonObject,
     ) {
-        log.debug { "Mapping arguments to delegate ${delegate::class.simpleName}" }
-        delegate::class.memberProperties.forEach { property ->
-            mapDelegatePropertyArgument(property, delegate, arguments)
+        log.debug { "Mapping arguments to PicoCLI mixin ${mixin::class.simpleName}" }
+        mixin::class.memberProperties.forEach { property ->
+            mapPicoMixinPropertyArgument(property, mixin, arguments)
         }
     }
 
-    private fun mapDelegatePropertyArgument(
+    private fun mapPicoMixinPropertyArgument(
         property: KProperty1<out Any, *>,
-        delegate: Any,
+        mixin: Any,
         arguments: JsonObject,
     ) {
         val javaField = property.javaField ?: return
-        val paramAnnotation = javaField.getAnnotation(Parameter::class.java) ?: return
+        javaField.getAnnotation(Option::class.java) ?: return
 
         val fieldName = property.name
         val value = arguments[fieldName]
 
         value?.takeIf { it !is JsonNull }?.let {
-            log.debug { "Setting delegate field '$fieldName'" }
-            setFieldValue(delegate, javaField, it)
-        } ?: log.debug { "Skipping delegate field '$fieldName' (null)" }
+            log.debug { "Setting PicoCLI mixin field '$fieldName'" }
+            setFieldValue(mixin, javaField, it)
+        } ?: log.debug { "Skipping mixin field '$fieldName' (null)" }
     }
 
     private fun setFieldValue(

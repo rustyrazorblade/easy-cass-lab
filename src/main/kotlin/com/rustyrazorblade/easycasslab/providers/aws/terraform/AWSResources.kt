@@ -5,7 +5,7 @@ package com.rustyrazorblade.easycasslab.providers.aws.terraform
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.rustyrazorblade.easycasslab.Constants
-import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easycasslab.providers.AWS
 
 typealias Ami = String
@@ -241,21 +241,38 @@ data class EMRCluster(
 ) {
     companion object {
         fun fromSparkParams(
-            sparkInitParams: SparkInitParams,
+            sparkInitParams: SparkInitMixin,
             subnet: Subnet,
             securityGroup: SecurityGroupResource,
             logUri: String? = null,
+        ): EMRCluster =
+            fromSparkParamsInternal(
+                sparkInitParams.masterInstanceType,
+                sparkInitParams.workerInstanceType,
+                sparkInitParams.workerCount,
+                subnet,
+                securityGroup,
+                logUri,
+            )
+
+        private fun fromSparkParamsInternal(
+            masterInstanceType: String,
+            workerInstanceType: String,
+            workerCount: Int,
+            subnet: Subnet,
+            securityGroup: SecurityGroupResource,
+            logUri: String?,
         ): EMRCluster =
             EMRCluster(
                 serviceRole = Constants.AWS.Roles.EMR_SERVICE_ROLE,
                 masterInstanceGroup =
                     MasterInstanceGroup(
-                        instance_type = sparkInitParams.masterInstanceType,
+                        instance_type = masterInstanceType,
                     ),
                 coreInstanceGroup =
                     CoreInstanceGroup(
-                        instance_type = sparkInitParams.workerInstanceType,
-                        instance_count = sparkInitParams.workerCount,
+                        instance_type = workerInstanceType,
+                        instance_count = workerCount,
                     ),
                 ec2Attributes =
                     Ec2Attributes(

@@ -11,12 +11,20 @@ import org.jline.reader.UserInterruptException
 import org.jline.reader.impl.completer.StringsCompleter
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
+import picocli.CommandLine.Command
 import java.io.IOException
 
+/**
+ * Starts an interactive REPL for executing commands.
+ */
 @RequireProfileSetup
+@Command(
+    name = "repl",
+    description = ["Start interactive REPL"],
+)
 class Repl(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     companion object {
         private val log = KotlinLogging.logger {}
     }
@@ -34,16 +42,14 @@ class Repl(
     private fun createTerminal(): Terminal = TerminalBuilder.builder().build()
 
     private fun createLineReader(terminal: Terminal): LineReader {
-        // just to prove this out
-        // todo: add cluster names, C* configuration options
-        // also make it context aware
+        // Build command list for completion
         val parser = CommandLineParser(context)
-        val commands = parser.commands.map { it.name }
+        val allCommands = parser.picoCommands.flatMap { listOf(it.name) + it.aliases }.distinct()
 
         return LineReaderBuilder
             .builder()
             .terminal(terminal)
-            .completer(StringsCompleter(commands))
+            .completer(StringsCompleter(allCommands))
             .build()
     }
 
@@ -75,8 +81,7 @@ class Repl(
     private fun shouldExit(line: String): Boolean = line.equals("exit", ignoreCase = true)
 
     private fun processCommand(line: String) {
-        // we have to create a new parser every time due to a jcommander limitation
-        // See https://github.com/cbeust/jcommander/issues/271
+        // Create a new parser for each command to ensure fresh command instances
         val parser = CommandLineParser(context)
         parser.eval(line)
     }

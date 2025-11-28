@@ -65,7 +65,7 @@ dependencies {
     implementation(libs.kotlin.stdlib)
 
     // CLI and UI
-    implementation(libs.jcommander)
+    implementation(libs.picocli)
     implementation(libs.guava)
     implementation(libs.jline)
     implementation(libs.mordant)

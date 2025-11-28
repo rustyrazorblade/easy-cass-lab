@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.rustyrazorblade.easycasslab.Context
@@ -14,17 +12,28 @@ import com.rustyrazorblade.easycasslab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import java.io.File
 
+/**
+ * Shut down a cluster.
+ */
 @McpCommand
 @RequireDocker
 @RequireProfileSetup
-@Parameters(commandDescription = "Shut down a cluster")
+@Command(
+    name = "down",
+    description = ["Shut down a cluster"],
+)
 class Down(
     val context: Context,
-) : ICommand,
+) : PicoCommand,
     KoinComponent {
-    @Parameter(description = "Auto approve changes", names = ["--auto-approve", "-a", "--yes"])
+    @Option(
+        names = ["--auto-approve", "-a", "--yes"],
+        description = ["Auto approve changes"],
+    )
     var autoApprove = false
 
     private val outputHandler: OutputHandler by inject()
@@ -53,6 +62,7 @@ class Down(
     /**
      * Cleanup SOCKS5 proxy if it exists
      */
+    @Suppress("TooGenericExceptionCaught")
     private fun cleanupSocks5Proxy() {
         val proxyStateFile = File(".socks5-proxy-state")
         if (!proxyStateFile.exists()) {
@@ -88,6 +98,7 @@ class Down(
     /**
      * Mark infrastructure as DOWN in cluster state
      */
+    @Suppress("TooGenericExceptionCaught")
     private fun updateClusterState() {
         try {
             if (clusterStateManager.exists()) {

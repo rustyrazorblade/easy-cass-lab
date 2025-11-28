@@ -1,19 +1,20 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.commands.converters.ServerTypeConverter
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.converters.PicoServerTypeConverter
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 
 /**
- * Command to execute shell commands on remote hosts over SSH.
+ * Execute shell commands on remote hosts over SSH.
  *
  * This command allows executing arbitrary shell commands on remote hosts with support for:
  * - Server type filtering (cassandra, stress, control)
@@ -24,29 +25,32 @@ import com.rustyrazorblade.easycasslab.configuration.ServerType
  */
 @RequireProfileSetup
 @RequireSSHKey
-@Parameters(commandDescription = "Execute a shell command on remote hosts")
+@Command(
+    name = "exec",
+    description = ["Execute a shell command on remote hosts"],
+)
 class Exec(
     context: Context,
-) : BaseCommand(context) {
-    @ParametersDelegate
-    var hosts = Hosts()
+) : PicoBaseCommand(context) {
+    @Mixin
+    var hosts = HostsMixin()
 
-    @Parameter(
-        description = "Server type (cassandra, stress, control)",
+    @Option(
         names = ["--type", "-t"],
-        converter = ServerTypeConverter::class,
+        description = ["Server type (cassandra, stress, control)"],
+        converter = [PicoServerTypeConverter::class],
     )
     var serverType: ServerType = ServerType.Cassandra
 
-    @Parameter(
-        description = "Command to execute",
-        required = true,
+    @Parameters(
+        description = ["Command to execute"],
+        arity = "1..*",
     )
-    var command: MutableList<String> = mutableListOf()
+    lateinit var command: List<String>
 
-    @Parameter(
-        description = "Execute in parallel",
+    @Option(
         names = ["-p"],
+        description = ["Execute in parallel"],
     )
     var parallel: Boolean = false
 
@@ -58,14 +62,14 @@ class Exec(
             return
         }
 
-        val hosts = tfstate.getHosts(serverType)
-        if (hosts.isEmpty()) {
+        val hostList = tfstate.getHosts(serverType)
+        if (hostList.isEmpty()) {
             outputHandler.handleMessage("No hosts found for server type: $serverType")
             return
         }
 
         // Execute on hosts using tfstate.withHosts for consistent behavior
-        tfstate.withHosts(serverType, this.hosts, parallel = parallel) { host ->
+        tfstate.withHosts(serverType, hosts, parallel = parallel) { host ->
             executeOnHost(host, commandString)
         }
     }
@@ -76,6 +80,7 @@ class Exec(
      * @param host The host to execute on
      * @param commandString The command to execute
      */
+    @Suppress("TooGenericExceptionCaught")
     private fun executeOnHost(
         host: Host,
         commandString: String,

@@ -1,38 +1,46 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
+import kotlin.system.exitProcess
 
+/**
+ * Setup / configure axon-agent for use with the Cassandra cluster.
+ */
 @RequireProfileSetup
 @RequireSSHKey
-@Parameters(commandDescription = "setup / configure axon-agent for use with the Cassandra cluster")
+@Command(
+    name = "configure-axonops",
+    description = ["Setup / configure axon-agent for use with the Cassandra cluster"],
+)
 class ConfigureAxonOps(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
 
-    @Parameter(description = "AxonOps Organization Name", names = ["--org"])
+    @Option(names = ["--org"], description = ["AxonOps Organization Name"])
     var org = ""
 
-    @Parameter(description = "AxonOps API Key", names = ["--key"])
+    @Option(names = ["--key"], description = ["AxonOps API Key"])
     var key = ""
 
-    @ParametersDelegate var hosts = Hosts()
+    @Mixin
+    var hosts = HostsMixin()
 
     override fun execute() {
         val axonOrg = if (org.isNotBlank()) org else userConfig.axonOpsOrg
         val axonKey = if (key.isNotBlank()) key else userConfig.axonOpsKey
         if ((axonOrg.isBlank() || axonKey.isBlank())) {
             outputHandler.handleMessage("--org and --key are required")
-            System.exit(1)
+            exitProcess(1)
         }
 
         tfstate.withHosts(ServerType.Cassandra, hosts) {

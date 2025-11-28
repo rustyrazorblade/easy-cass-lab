@@ -1,9 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.DynamicParameter
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Containers
@@ -12,35 +8,41 @@ import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.commands.converters.AZConverter
-import com.rustyrazorblade.easycasslab.commands.delegates.Arch
-import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.commands.converters.PicoAZConverter
+import com.rustyrazorblade.easycasslab.commands.mixins.SparkInitMixin
+import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Terraform
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 import java.io.File
 import java.time.LocalDate
 
+/**
+ * Initialize this directory for easy-cass-lab.
+ */
 @McpCommand
 @RequireDocker
 @RequireProfileSetup
-@Parameters(commandDescription = "Initialize this directory for easy-cass-lab")
+@Command(
+    name = "init",
+    description = ["Initialize this directory for easy-cass-lab"],
+)
 class Init(
-    val context: Context,
-) : ICommand,
-    KoinComponent {
-    private val outputHandler: OutputHandler by inject()
+    context: Context,
+) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val aws: AWS by inject()
     private val clusterStateManager: ClusterStateManager by inject()
@@ -57,94 +59,121 @@ class Init(
         ): List<String> = azs.map { region + it }
     }
 
-    @Parameter(description = "Number of Cassandra instances", names = ["--cassandra", "-c"])
+    @Option(
+        names = ["--cassandra", "-c"],
+        description = ["Number of Cassandra instances"],
+    )
     var cassandraInstances = DEFAULT_CASSANDRA_INSTANCE_COUNT
 
-    @Parameter(description = "Number of stress instances", names = ["--stress", "-s"])
+    @Option(
+        names = ["--stress", "-s"],
+        description = ["Number of stress instances"],
+    )
     var stressInstances = 0
 
-    @Parameter(description = "Start instances automatically", names = ["--up"])
+    @Option(
+        names = ["--up"],
+        description = ["Start instances automatically"],
+    )
     var start = false
 
-    @Parameter(
-        description = "Instance Type.  Set EASY_CASS_LAB_INSTANCE_TYPE to set a default.",
+    @Option(
         names = ["--instance", "-i"],
+        description = ["Instance Type. Set EASY_CASS_LAB_INSTANCE_TYPE to set a default."],
     )
-    var instanceType = System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
+    var instanceType: String = System.getenv("EASY_CASS_LAB_INSTANCE_TYPE") ?: "r3.2xlarge"
 
-    // update to use the default stress instance type for the arch
-    @Parameter(
-        description =
-            "Stress Instance Type.  Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default.",
+    @Option(
         names = ["--stress-instance", "-si", "--si"],
+        description = ["Stress Instance Type. Set EASY_CASS_LAB_STRESS_INSTANCE_TYPE to set a default."],
     )
-    var stressInstanceType = System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
+    var stressInstanceType: String = System.getenv("EASY_CASS_LAB_STRESS_INSTANCE_TYPE") ?: "c7i.2xlarge"
 
-    @Parameter(
-        description = "Limit to specified availability zones",
+    @Option(
         names = ["--azs", "--az", "-z"],
-        listConverter = AZConverter::class,
+        description = ["Limit to specified availability zones"],
+        converter = [PicoAZConverter::class],
     )
     var azs: List<String> = listOf()
 
-    @Parameter(description = "Specify when the instances can be deleted", names = ["--until"])
-    var until = LocalDate.now().plusDays(1).toString()
-
-    @Parameter(
-        description = "AMI.  Set EASY_CASS_LAB_AMI to override the default.",
-        names = ["--ami"],
+    @Option(
+        names = ["--until"],
+        description = ["Specify when the instances can be deleted"],
     )
-    var ami = System.getenv("EASY_CASS_LAB_AMI") ?: ""
+    var until: String = LocalDate.now().plusDays(1).toString()
 
-    @Parameter(description = "Unrestricted SSH access", names = ["--open"])
+    @Option(
+        names = ["--ami"],
+        description = ["AMI. Set EASY_CASS_LAB_AMI to override the default."],
+    )
+    var ami: String = System.getenv("EASY_CASS_LAB_AMI") ?: ""
+
+    @Option(
+        names = ["--open"],
+        description = ["Unrestricted SSH access"],
+    )
     var open = false
 
-    @Parameter(description = "EBS Volume Type", names = ["--ebs.type"])
+    @Option(
+        names = ["--ebs.type"],
+        description = ["EBS Volume Type"],
+    )
     var ebsType = EBSType.NONE
 
-    @Parameter(description = "EBS Volume Size (in GB)", names = ["--ebs.size"])
+    @Option(
+        names = ["--ebs.size"],
+        description = ["EBS Volume Size (in GB)"],
+    )
     var ebsSize = DEFAULT_EBS_SIZE_GB
 
-    @Parameter(
-        description = "EBS Volume IOPS (note: only applies if '--ebs.type gp3'",
+    @Option(
         names = ["--ebs.iops"],
+        description = ["EBS Volume IOPS (note: only applies if '--ebs.type gp3'"],
     )
     var ebsIops = 0
 
-    @Parameter(
-        description = "EBS Volume Throughput (note: only applies if '--ebs.type gp3')",
+    @Option(
         names = ["--ebs.throughput"],
+        description = ["EBS Volume Throughput (note: only applies if '--ebs.type gp3')"],
     )
     var ebsThroughput = 0
 
-    @Parameter(
-        description =
-            "Set EBS-Optimized instance (only supported for EBS-optimized instance types",
+    @Option(
         names = ["--ebs.optimized"],
+        description = ["Set EBS-Optimized instance (only supported for EBS-optimized instance types"],
     )
     var ebsOptimized = false
 
-    @Parameter(description = "Cluster name")
+    @Parameters(
+        description = ["Cluster name"],
+        defaultValue = "test",
+    )
     var name = "test"
 
-    @Parameter(description = "CPU architecture", names = ["--arch", "-a", "--cpu"])
+    @Option(
+        names = ["--arch", "-a", "--cpu"],
+        description = ["CPU architecture"],
+    )
     var arch: Arch = Arch.AMD64
 
-    @ParametersDelegate var spark = SparkInitParams()
+    @Mixin
+    var spark = SparkInitMixin()
 
-    @DynamicParameter(names = ["--tag."], description = "Tag instances")
+    @Option(
+        names = ["--tag."],
+        description = ["Tag instances"],
+    )
     var tags: Map<String, String> = mutableMapOf()
 
-    @Parameter(
-        description = "Clean existing configuration before initializing",
+    @Option(
         names = ["--clean"],
+        description = ["Clean existing configuration before initializing"],
     )
     var clean = false
 
     override fun execute() {
         validateParameters()
 
-        // Check for existing files unless --clean is specified
         if (!clean) {
             checkExistingFiles()
         }
@@ -167,7 +196,7 @@ class Init(
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(
-                    "Next you'll want to run ${green("easy-cass-lab up")} to start your instances.",
+                    "Next you'll want to run " + green("easy-cass-lab up") + " to start your instances.",
                 )
             }
         }
@@ -184,14 +213,12 @@ class Init(
     private fun checkExistingFiles() {
         val existingFiles = mutableListOf<String>()
 
-        // Check files from Clean.filesToClean relative to context directory
         Clean.filesToClean.forEach { file ->
             if (File(context.easycasslabUserDirectory, file).exists()) {
                 existingFiles.add(file)
             }
         }
 
-        // Check directories from Clean.directoriesToClean relative to context directory
         Clean.directoriesToClean.forEach { dir ->
             if (File(context.easycasslabUserDirectory, dir).exists()) {
                 existingFiles.add("$dir/")
@@ -218,13 +245,11 @@ class Init(
         val docker: Docker by inject { parametersOf(context) }
         docker.pullImage(Containers.TERRAFORM)
 
-        // Only run Clean if --clean flag is provided
         if (clean) {
             outputHandler.handleMessage("Cleaning existing configuration...")
             Clean(context).execute()
         }
 
-        // Create InitConfig with all the parameters from this Init command
         val initConfig =
             InitConfig(
                 cassandraInstances = cassandraInstances,
@@ -241,9 +266,7 @@ class Init(
                 ebsThroughput = ebsThroughput,
                 ebsOptimized = ebsOptimized,
                 open = open,
-                // Control instances are currently hardcoded to 1
                 controlInstances = 1,
-                // Default control instance type
                 controlInstanceType = "t3.xlarge",
                 tags = tags,
             )
@@ -304,7 +327,6 @@ class Init(
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
         extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
 
-        // Create control directory and extract docker-compose.yaml and otel config there
         outputHandler.handleMessage(
             "Creating control directory and writing docker-compose.yaml, " +
                 "otel-collector-config.yaml.",
@@ -313,7 +335,6 @@ class Init(
         extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
         extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
 
-        // Create cassandra directory and extract OTel configs for Cassandra nodes
         outputHandler.handleMessage(
             "Creating cassandra directory and writing OTel configs for Cassandra nodes",
         )
@@ -322,7 +343,6 @@ class Init(
         extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose.yaml")
         extractResourceFile("cassandra-sidecar.yaml", "cassandra/cassandra-sidecar.yaml")
 
-        // Create stress directory and extract OTel configs for stress nodes
         outputHandler.handleMessage(
             "Creating stress directory and writing OTel configs for stress nodes",
         )

@@ -6,7 +6,8 @@ import com.rustyrazorblade.easycasslab.Containers
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.VolumeMapping
-import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
+import com.rustyrazorblade.easycasslab.commands.mixins.BuildArgsMixin
+import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.configuration.CassandraVersion
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -42,21 +43,30 @@ class Packer(
     // todo include the region defined in the profile
     fun build(
         name: String,
-        buildArgs: BuildArgs,
+        buildArgs: BuildArgsMixin,
+    ) {
+        buildInternal(name, buildArgs.region, buildArgs.arch, buildArgs.release)
+    }
+
+    private fun buildInternal(
+        name: String,
+        region: String,
+        arch: Arch,
+        isRelease: Boolean,
     ) {
         require(name.isNotBlank()) { "Build name cannot be blank" }
-        require(buildArgs.region.isNotBlank()) { "Build region cannot be blank" }
+        require(region.isNotBlank()) { "Build region cannot be blank" }
 
         val command =
             mutableListOf(
                 "build",
                 "-var",
-                "region=${buildArgs.region}",
+                "region=$region",
                 "-var",
-                "arch=${buildArgs.arch.type}",
+                "arch=${arch.type}",
             )
 
-        if (buildArgs.release) {
+        if (isRelease) {
             // When passing the release flag,
             // we use the release version as the image version.
             // We also make the AMI public.

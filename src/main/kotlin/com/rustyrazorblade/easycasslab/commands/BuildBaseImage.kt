@@ -1,26 +1,31 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.commands.delegates.BuildArgs
+import com.rustyrazorblade.easycasslab.commands.mixins.BuildArgsMixin
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.containers.Packer
 import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
 import com.rustyrazorblade.easycasslab.services.AWSResourceSetupService
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
 
+/**
+ * Build the base AMI image.
+ */
 @RequireDocker
 @RequireProfileSetup
-@Parameters(commandDescription = "Build the base image.")
+@Command(
+    name = "build-base",
+    description = ["Build the base image"],
+)
 class BuildBaseImage(
-    val context: Context,
-) : ICommand,
-    KoinComponent {
-    @ParametersDelegate var buildArgs = BuildArgs()
+    context: Context,
+) : PicoBaseCommand(context) {
+    @Mixin
+    var buildArgs = BuildArgsMixin()
 
     private val packerInfrastructure: PackerInfrastructureService by inject()
     private val awsResourceSetupService: AWSResourceSetupService by inject()

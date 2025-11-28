@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
@@ -10,24 +8,29 @@ import com.rustyrazorblade.easycasslab.mcp.McpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import java.io.File
 
 /**
- * Command to start the MCP (Model Context Protocol) server. This server exposes all easy-cass-lab
- * commands as MCP tools, allowing AI assistants and other MCP clients to interact with the tool
- * programmatically.
+ * Starts the MCP (Model Context Protocol) server for AI assistant integration.
  */
 @RequireDocker
 @RequireProfileSetup
-@Parameters(
-    commandDescription =
+@Command(
+    name = "server",
+    description = [
         "Start MCP server for AI assistant integration. " +
             "Add to claude with: claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse",
+    ],
 )
 class Server(
     context: Context,
-) : BaseCommand(context) {
-    @Parameter(description = "MCP server port", names = ["--port", "-p"])
+) : PicoBaseCommand(context) {
+    @Option(
+        names = ["--port", "-p"],
+        description = ["MCP server port"],
+    )
     var port: Int = Constants.Network.DEFAULT_MCP_PORT
 
     companion object {
