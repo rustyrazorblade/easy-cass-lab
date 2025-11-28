@@ -46,7 +46,7 @@ docker-java = "3.6.0"
 
 # Apache
 sshd = "2.16.0"
-commons-io = "2.7"
+commons-io = "2.21.0"
 
 # Other
 guava = "33.4.8-jre"
