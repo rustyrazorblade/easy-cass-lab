@@ -127,17 +127,22 @@ class S3ObjectStore(
                     }
                 }.build()
 
-        val response = s3Client.listObjectsV2(listRequest)
+        val results = mutableListOf<ObjectStore.FileInfo>()
 
-        return response
-            .contents()
-            ?.map { s3Object ->
-                ObjectStore.FileInfo(
-                    path = ClusterS3Path.fromKey(remotePath.bucket, s3Object.key()),
-                    size = s3Object.size(),
-                    lastModified = s3Object.lastModified().toString(),
+        // Use paginator to handle >1000 files (S3 default limit)
+        s3Client.listObjectsV2Paginator(listRequest).forEach { response ->
+            response.contents()?.forEach { s3Object ->
+                results.add(
+                    ObjectStore.FileInfo(
+                        path = ClusterS3Path.fromKey(remotePath.bucket, s3Object.key()),
+                        size = s3Object.size(),
+                        lastModified = s3Object.lastModified().toString(),
+                    ),
                 )
-            } ?: emptyList()
+            }
+        }
+
+        return results
     }
 
     override fun deleteFile(
@@ -195,6 +200,57 @@ class S3ObjectStore(
             log.warn { "S3 error getting file info: ${e.message}" }
             throw e
         }
+
+    override fun downloadDirectory(
+        remotePath: ClusterS3Path,
+        localDir: Path,
+        showProgress: Boolean,
+    ): ObjectStore.DownloadDirectoryResult {
+        val files = listFiles(remotePath, recursive = true)
+
+        if (showProgress) {
+            outputHandler.handleMessage("Found ${files.size} files to download")
+        }
+
+        // Ensure base directory exists and use absolute path for reliable directory creation
+        val absoluteLocalDir = localDir.toAbsolutePath()
+        java.nio.file.Files
+            .createDirectories(absoluteLocalDir)
+
+        var totalBytes = 0L
+        var filesDownloaded = 0
+        val prefixLength = remotePath.getKey().length
+
+        for (file in files) {
+            // Calculate relative path from the prefix
+            val relativePath =
+                file.path
+                    .getKey()
+                    .substring(prefixLength)
+                    .trimStart('/')
+
+            // Skip empty relative paths (the prefix directory itself)
+            if (relativePath.isEmpty()) continue
+
+            val localFile = absoluteLocalDir.resolve(relativePath)
+
+            // Create parent directories (handle null parent case)
+            val parentDir = localFile.parent ?: absoluteLocalDir
+            java.nio.file.Files
+                .createDirectories(parentDir)
+
+            // Download the file
+            downloadFile(file.path, localFile, showProgress = false)
+            totalBytes += file.size
+            filesDownloaded++
+        }
+
+        if (showProgress) {
+            outputHandler.handleMessage("Downloaded $filesDownloaded files to $localDir")
+        }
+
+        return ObjectStore.DownloadDirectoryResult(localDir, filesDownloaded, totalBytes)
+    }
 
     /**
      * Creates a HeadObjectRequest for the given S3 path.

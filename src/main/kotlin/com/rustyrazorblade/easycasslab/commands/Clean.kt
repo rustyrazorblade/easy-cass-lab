@@ -17,7 +17,7 @@ import java.io.File
     description = ["Clean up generated files from the current directory"],
 )
 class Clean(
-    @Suppress("UnusedPrivateProperty") private val context: Context,
+    private val context: Context,
 ) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
@@ -62,13 +62,13 @@ class Clean(
 
     override fun execute() {
         for (f in filesToClean) {
-            File(f).deleteRecursively()
+            File(context.workingDirectory, f).deleteRecursively()
         }
 
         for (d in directoriesToClean) {
-            File(d).deleteRecursively()
+            File(context.workingDirectory, d).deleteRecursively()
         }
-        val artifacts = File("artifacts")
+        val artifacts = File(context.workingDirectory, "artifacts")
 
         if (artifacts.isDirectory) {
             if (artifacts.listFiles().isEmpty()) {

@@ -2,6 +2,9 @@
 
 set -e  # Exit on any error
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Script to create managed IAM policies and attach to AWS users, groups, or roles
 # Always applies all three policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
 # Useful for debugging setup issues with other developers
@@ -139,18 +142,18 @@ for policy in "${POLICY_LIST[@]}"; do
       ;;
   esac
 
-  # Get policy JSON from easy-cass-lab
+  # Get policy JSON from easy-db-lab
   POLICY_FILE="$TEMP_DIR/${POLICY_NAME}.json"
   echo "Fetching policy JSON..."
-  # Set AWS_PROFILE if profile is specified so easy-cass-lab uses correct credentials
+  # Set AWS_PROFILE if profile is specified so easy-db-lab uses correct credentials
   if [[ -n "$PROFILE" ]]; then
-    if ! AWS_PROFILE="$PROFILE" bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
-      echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
+    if ! AWS_PROFILE="$PROFILE" "$SCRIPT_DIR/easy-db-lab" sip "$policy" > "$POLICY_FILE"; then
+      echo "ERROR: Failed to fetch $policy policy from easy-db-lab"
       exit 1
     fi
   else
-    if ! bin/easy-cass-lab sip "$policy" > "$POLICY_FILE"; then
-      echo "ERROR: Failed to fetch $policy policy from easy-cass-lab"
+    if ! "$SCRIPT_DIR/easy-db-lab" sip "$policy" > "$POLICY_FILE"; then
+      echo "ERROR: Failed to fetch $policy policy from easy-db-lab"
       exit 1
     fi
   fi

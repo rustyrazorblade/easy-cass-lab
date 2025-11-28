@@ -10,6 +10,12 @@ import java.io.File
 data class Context(
     val easycasslabUserDirectory: File,
     val isMcp: Boolean = false,
+    /**
+     * Working directory for lab operations (terraform state, logs, etc.).
+     * Defaults to the JVM's current working directory.
+     * Can be overridden in tests to use a temp directory.
+     */
+    val workingDirectory: File = File(System.getProperty("user.dir")),
 ) : KoinComponent {
     companion object {
         /**

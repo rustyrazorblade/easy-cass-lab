@@ -126,6 +126,7 @@ Retry.decorateRunnable(retry) {
 | `createDockerRetryConfig<T>()` | 3 | Exponential 1s-4s | Container start/stop/remove |
 | `createNetworkRetryConfig<T>()` | 3 | Exponential 1s-4s | Generic network operations |
 | `createSshConnectionRetryConfig()` | 30 | Fixed 10s | SSH boot-up waiting (~5 min) |
+| `createS3LogRetrievalRetryConfig<T>()` | 10 | Fixed 3s | S3 log retrieval, handles 404 for eventual consistency |
 
 See `EC2Service.kt`, `S3ObjectStore.kt`, and `Up.kt` for production examples.
 
@@ -231,3 +232,4 @@ The user manual is located in manual/index.adoc.
 - Constants and magic numbers should be stored in com.rustyrazorblade.easycasslab.Constants
 - When migrating code, it is not necessary to maintain backwards compability.
 - Fail fast is usually preferred.
+- Always use @TempDir for temporary directories in tests - JUnit handles lifecycle automatically

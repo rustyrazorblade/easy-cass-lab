@@ -8,6 +8,7 @@ import org.apache.sshd.common.SshException
 import software.amazon.awssdk.awscore.exception.AwsServiceException
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 import software.amazon.awssdk.services.iam.model.IamException
+import software.amazon.awssdk.services.s3.model.S3Exception
 import java.io.IOException
 
 /**
@@ -189,6 +190,39 @@ object RetryUtil {
                     }
                     is IOException -> {
                         log.debug { "IO error during SSH connection - will retry: ${throwable.message}" }
+                        true
+                    }
+                    else -> false
+                }
+            }.build()
+
+    /**
+     * Creates retry configuration for S3 log retrieval with eventual consistency.
+     *
+     * EMR logs may not be immediately available after job completion:
+     * - Retries on NoSuchKeyException (404) since logs may not be uploaded yet
+     * - Retries on 5xx server errors
+     * - Fixed delay (not exponential) since we're waiting for external upload
+     *
+     * Fixed interval: 3 seconds between attempts, up to 10 attempts (~30s total wait)
+     *
+     * @return RetryConfig configured for S3 log retrieval operations
+     */
+    fun <T> createS3LogRetrievalRetryConfig(): RetryConfig =
+        RetryConfig
+            .custom<T>()
+            .maxAttempts(Constants.Retry.MAX_LOG_RETRIEVAL_RETRIES)
+            .intervalFunction { _ ->
+                // Fixed delay since we're waiting for external upload
+                Constants.Retry.LOG_RETRIEVAL_RETRY_DELAY_MS
+            }.retryOnException { throwable ->
+                when {
+                    throwable is S3Exception && throwable.statusCode() == Constants.HttpStatus.NOT_FOUND -> {
+                        log.debug { "Log file not yet available in S3 (404) - will retry" }
+                        true
+                    }
+                    throwable is S3Exception && throwable.statusCode() >= Constants.HttpStatus.SERVER_ERROR_MIN -> {
+                        log.warn { "S3 server error ${throwable.statusCode()} - will retry" }
                         true
                     }
                     else -> false

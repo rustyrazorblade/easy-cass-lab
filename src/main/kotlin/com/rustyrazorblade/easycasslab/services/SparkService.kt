@@ -2,6 +2,8 @@ package com.rustyrazorblade.easycasslab.services
 
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
 import software.amazon.awssdk.services.emr.model.StepState
+import java.nio.file.Path
+import java.time.Instant
 
 /**
  * Service for managing Spark job lifecycle on EMR clusters.
@@ -75,6 +77,66 @@ interface SparkService {
     fun validateCluster(): Result<EMRClusterInfo>
 
     /**
+     * Lists recent Spark jobs on the EMR cluster.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param limit Maximum number of jobs to return (default 10)
+     * @return Result containing a list of JobInfo objects, or error on failure
+     */
+    fun listJobs(
+        clusterId: String,
+        limit: Int = DEFAULT_JOB_LIST_LIMIT,
+    ): Result<List<JobInfo>>
+
+    /**
+     * Retrieves the log content for a Spark job step.
+     *
+     * Downloads the log file from S3, decompresses it (gzip), and returns the content.
+     * EMR logs are stored at: s3://{emrLogs}/{cluster-id}/steps/{step-id}/{logType}.gz
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID
+     * @param logType The type of log to retrieve (default: STDOUT)
+     * @return Result containing the log content as a String, or error on failure
+     */
+    fun getStepLogs(
+        clusterId: String,
+        stepId: String,
+        logType: LogType = LogType.STDOUT,
+    ): Result<String>
+
+    /**
+     * Downloads all EMR logs to a local directory organized by step ID.
+     *
+     * Downloads the complete log directory structure from S3 to logs/emr/{stepId}/,
+     * preserving the relative path structure. This includes node logs, container logs,
+     * and other EMR infrastructure logs.
+     *
+     * @param stepId The step ID to use for the local directory name
+     * @return Result containing the local path where logs were saved, or error on failure
+     */
+    fun downloadAllLogs(stepId: String): Result<Path>
+
+    /**
+     * Downloads only the step-specific logs (stdout and stderr) for a Spark job.
+     *
+     * This is faster than downloadAllLogs() and downloads only the most relevant
+     * logs for debugging Spark job failures:
+     * - stdout.gz: Spark application output
+     * - stderr.gz: Error messages and stack traces
+     *
+     * Logs are saved to logs/{clusterId}/{stepId}/ and decompressed.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID
+     * @return Result containing the local path where logs were saved, or error on failure
+     */
+    fun downloadStepLogs(
+        clusterId: String,
+        stepId: String,
+    ): Result<Path>
+
+    /**
      * Represents the status of a Spark job.
      *
      * @property state The current EMR step state
@@ -86,4 +148,34 @@ interface SparkService {
         val stateChangeReason: String? = null,
         val failureDetails: String? = null,
     )
+
+    /**
+     * Information about a Spark job.
+     *
+     * @property stepId The EMR step ID
+     * @property name The job name
+     * @property state The current EMR step state
+     * @property startTime When the job started (null if not yet started)
+     */
+    data class JobInfo(
+        val stepId: String,
+        val name: String,
+        val state: StepState,
+        val startTime: Instant?,
+    )
+
+    /**
+     * Types of EMR step logs available in S3.
+     */
+    enum class LogType(
+        val filename: String,
+    ) {
+        STDOUT("stdout.gz"),
+        STDERR("stderr.gz"),
+        CONTROLLER("controller.gz"),
+    }
+
+    companion object {
+        const val DEFAULT_JOB_LIST_LIMIT = 10
+    }
 }

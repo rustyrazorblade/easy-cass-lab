@@ -214,13 +214,13 @@ class Init(
         val existingFiles = mutableListOf<String>()
 
         Clean.filesToClean.forEach { file ->
-            if (File(context.easycasslabUserDirectory, file).exists()) {
+            if (File(context.workingDirectory, file).exists()) {
                 existingFiles.add(file)
             }
         }
 
         Clean.directoriesToClean.forEach { dir ->
-            if (File(context.easycasslabUserDirectory, dir).exists()) {
+            if (File(context.workingDirectory, dir).exists()) {
                 existingFiles.add("$dir/")
             }
         }

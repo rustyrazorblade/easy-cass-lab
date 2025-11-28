@@ -167,6 +167,9 @@ val awsModule =
                 get<EmrClient>(),
                 get(),
                 get<OutputHandler>(),
+                get<ObjectStore>(),
+                get(),
+                get<User>(),
             )
         }
     }

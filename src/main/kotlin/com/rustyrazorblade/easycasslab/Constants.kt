@@ -39,6 +39,10 @@ object Constants {
         const val LOG_INTERVAL_POLLS = 12 // Log every 12 polls (60 seconds at 5s interval)
         const val COMMAND_RUNNER_JAR = "command-runner.jar"
         const val SPARK_SUBMIT_COMMAND = "spark-submit"
+
+        // Display formatting for spark jobs table
+        const val JOB_NAME_MAX_LENGTH = 30
+        const val TRUNCATION_SUFFIX_LENGTH = 3 // Length of "..."
     }
 
     // Retry configuration
@@ -62,6 +66,11 @@ object Constants {
 
         // Base delay for exponential backoff (1s, 2s, 4s, 8s...)
         const val EXPONENTIAL_BACKOFF_BASE_MS = 1000L
+
+        // S3 log retrieval: Logs may take time to appear after job completion
+        // 10 attempts × 3s = ~30 seconds max wait time
+        const val MAX_LOG_RETRIEVAL_RETRIES = 10
+        const val LOG_RETRIEVAL_RETRY_DELAY_MS = 3000L
     }
 
     // File and directory permissions (octal equivalents in decimal)

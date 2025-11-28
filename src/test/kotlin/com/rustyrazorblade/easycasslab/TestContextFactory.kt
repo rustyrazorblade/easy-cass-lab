@@ -12,8 +12,13 @@ object TestContextFactory {
     /**
      * Creates a Context instance configured for testing.
      * Creates a temporary directory and a fake user configuration.
+     *
+     * @param workingDirectory Optional working directory for lab operations.
+     *                         Use JUnit @TempDir to provide an isolated directory for tests
+     *                         that perform file operations (like Clean).
+     *                         If null, defaults to the test temp directory.
      */
-    fun createTestContext(): Context {
+    fun createTestContext(workingDirectory: File? = null): Context {
         val tmpContentParent = File("test/contexts")
         tmpContentParent.mkdirs()
 
@@ -35,7 +40,11 @@ object TestContextFactory {
                 s3Bucket = "",
             )
 
-        val context = Context(testTempDirectory.toFile())
+        val context =
+            Context(
+                easycasslabUserDirectory = testTempDirectory.toFile(),
+                workingDirectory = workingDirectory ?: testTempDirectory.toFile(),
+            )
 
         // userConfigFile is accessed through the profileDir
         val userConfigFile = File(context.profileDir, "settings.yaml")

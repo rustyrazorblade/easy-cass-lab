@@ -103,6 +103,21 @@ interface ObjectStore {
     fun getFileInfo(remotePath: ClusterS3Path): FileInfo?
 
     /**
+     * Downloads all files under a prefix to a local directory.
+     * Preserves directory structure relative to the prefix.
+     *
+     * @param remotePath The cloud storage path prefix to download from
+     * @param localDir The local directory to save files to
+     * @param showProgress If true, displays progress to user via OutputHandler
+     * @return DownloadDirectoryResult with stats about the download
+     */
+    fun downloadDirectory(
+        remotePath: ClusterS3Path,
+        localDir: Path,
+        showProgress: Boolean = true,
+    ): DownloadDirectoryResult
+
+    /**
      * Represents a file in cloud storage with metadata.
      *
      * @property path The cloud storage path to this file
@@ -135,5 +150,18 @@ interface ObjectStore {
     data class DownloadResult(
         val localPath: Path,
         val fileSize: Long,
+    )
+
+    /**
+     * Result of a directory download operation.
+     *
+     * @property localDir The local directory where files were downloaded
+     * @property filesDownloaded Number of files downloaded
+     * @property totalBytes Total bytes downloaded
+     */
+    data class DownloadDirectoryResult(
+        val localDir: Path,
+        val filesDownloaded: Int,
+        val totalBytes: Long,
     )
 }

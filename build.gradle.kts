@@ -27,7 +27,7 @@ java {
 }
 
 application {
-    applicationName = "easy-cass-lab"
+    applicationName = "easy-db-lab"
     mainClass.set("com.rustyrazorblade.easycasslab.MainKt")
     applicationDefaultJvmArgs =
         listOf(
@@ -296,7 +296,7 @@ jib {
         image = "eclipse-temurin:21-jre"
     }
     to {
-        image = "ghcr.io/rustyrazorblade/easy-cass-lab"
+        image = "ghcr.io/rustyrazorblade/easy-db-lab"
         // Allow workflow to control tags via -Djib.to.tags
         tags = (System.getProperty("jib.to.tags") ?: "latest").split(",").toSet()
         auth {
@@ -331,11 +331,11 @@ jib {
         format = com.google.cloud.tools.jib.api.buildplan.ImageFormat.OCI
         labels.set(
             mapOf(
-                "org.opencontainers.image.source" to "https://github.com/rustyrazorblade/easy-cass-lab",
+                "org.opencontainers.image.source" to "https://github.com/rustyrazorblade/easy-db-lab",
                 "org.opencontainers.image.description" to "Tool to create Cassandra lab environments in AWS",
                 "org.opencontainers.image.licenses" to "Apache-2.0",
                 "org.opencontainers.image.version" to version.toString(),
-                "com.rustyrazorblade.easy-cass-lab.requires-docker" to "true",
+                "com.rustyrazorblade.easy-db-lab.requires-docker" to "true",
             ),
         )
     }
