@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
+import com.rustyrazorblade.easycasslab.commands.spark.SparkSubmit
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo

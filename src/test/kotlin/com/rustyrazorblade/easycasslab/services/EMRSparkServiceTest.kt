@@ -1,8 +1,10 @@
 package com.rustyrazorblade.easycasslab.services
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
 import com.rustyrazorblade.easycasslab.configuration.TFState
+import com.rustyrazorblade.easycasslab.configuration.User
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -33,6 +35,9 @@ import software.amazon.awssdk.services.emr.model.StepStatus
 class EMRSparkServiceTest : BaseKoinTest() {
     private lateinit var mockEmrClient: EmrClient
     private lateinit var mockTfState: TFState
+    private lateinit var mockObjectStore: ObjectStore
+    private lateinit var mockClusterStateManager: ClusterStateManager
+    private lateinit var mockUserConfig: User
     private lateinit var sparkService: SparkService
 
     private val testClusterId = "j-ABC123DEF456"
@@ -53,7 +58,10 @@ class EMRSparkServiceTest : BaseKoinTest() {
             module {
                 single<EmrClient> { mockEmrClient }
                 single<TFState> { mockTfState }
-                factory<SparkService> { EMRSparkService(get(), get(), get()) }
+                single<ObjectStore> { mockObjectStore }
+                single<ClusterStateManager> { mockClusterStateManager }
+                single<User> { mockUserConfig }
+                factory<SparkService> { EMRSparkService(get(), get(), get(), get(), get(), get()) }
             },
         )
 
@@ -61,6 +69,9 @@ class EMRSparkServiceTest : BaseKoinTest() {
     fun setupMocks() {
         mockEmrClient = mock()
         mockTfState = mock()
+        mockObjectStore = mock()
+        mockClusterStateManager = mock()
+        mockUserConfig = mock()
         sparkService = getKoin().get()
     }
 

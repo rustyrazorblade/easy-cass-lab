@@ -2,7 +2,10 @@
 
 set -e  # Exit on any error
 
-# Parse command line arguments
+# Store project root directory
+PROJECT_ROOT="$(pwd)"
+
+# Parse command line arguments (must be before cleanup trap setup)
 WAIT_BEFORE_TEARDOWN=false
 BUILD_IMAGE=false
 while [[ $# -gt 0 ]]; do
@@ -23,22 +26,51 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Create temp directory for test execution
+TEST_WORKDIR=$(mktemp -d -t easy-db-lab-e2e-XXXXXX)
+echo "=== Using temporary work directory: $TEST_WORKDIR ==="
+
+# Cleanup function - asks before removing temp dir unless --wait was specified
+cleanup() {
+    local exit_code=$?
+    if [ "$WAIT_BEFORE_TEARDOWN" != true ]; then
+        echo ""
+        echo "=== Test work directory: $TEST_WORKDIR ==="
+        read -p "Delete temporary work directory? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "=== Cleaning up temp directory ==="
+            rm -rf "$TEST_WORKDIR"
+        else
+            echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+        fi
+    else
+        echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+    fi
+    exit $exit_code
+}
+trap cleanup EXIT
+
 echo "=== Building project ==="
 ./gradlew clean test shadowJar installDist :spark-connector-test1:jar
 
 echo "=== Checking version ==="
-bin/easy-cass-lab version
+"$PROJECT_ROOT/bin/easy-db-lab" version
 
 if [ "$BUILD_IMAGE" = true ]; then
   echo "=== Building packer images ==="
-  bin/easy-cass-lab build-image
+  "$PROJECT_ROOT/bin/easy-db-lab" build-image
 fi
 
+# Change to temp directory for all easy-db-lab commands that create files
+cd "$TEST_WORKDIR"
+echo "=== Changed to work directory: $(pwd) ==="
+
 echo "=== Creating IAM managed policies ==="
-bin/set-policies --group-name EasyCassLabUsers --profile sandbox-admin
+"$PROJECT_ROOT/bin/set-policies" --group-name EasyCassLabUsers --profile sandbox-admin
 
 echo "=== Initializing cluster ==="
-bin/easy-cass-lab init -c 2 -i c5.2xlarge test --clean --up -s 1 \
+"$PROJECT_ROOT/bin/easy-db-lab" init -c 2 -i c5.2xlarge test --clean --up -s 1 \
   --spark.enable \
   --spark.master.instance.type m5.xlarge \
   --spark.worker.instance.type m5.xlarge \
@@ -78,62 +110,72 @@ echo "=== Waiting for all nodes to be Ready ==="
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
 echo "=== Listing cluster hosts ==="
-bin/easy-cass-lab hosts
+"$PROJECT_ROOT/bin/easy-db-lab" hosts
 
 echo "=== Listing available Cassandra versions ==="
-bin/easy-cass-lab list
+"$PROJECT_ROOT/bin/easy-db-lab" list
 
 echo "=== Setting Cassandra version to 5.0 ==="
-bin/easy-cass-lab use 5.0
+"$PROJECT_ROOT/bin/easy-db-lab" use 5.0
 
 echo "=== Updating configuration ==="
-bin/easy-cass-lab update-config
+"$PROJECT_ROOT/bin/easy-db-lab" update-config
 
 echo "=== Starting Cassandra ==="
-bin/easy-cass-lab start
+"$PROJECT_ROOT/bin/easy-db-lab" start
 
 echo "=== Stopping Cassandra ==="
-bin/easy-cass-lab stop
+"$PROJECT_ROOT/bin/easy-db-lab" stop
 
 echo "=== Waiting for Cassandra to stop ==="
 sleep 10
 
 echo "=== Starting Cassandra again ==="
-bin/easy-cass-lab start
+"$PROJECT_ROOT/bin/easy-db-lab" start
 
 echo "=== Restarting Cassandra ==="
-bin/easy-cass-lab restart
+"$PROJECT_ROOT/bin/easy-db-lab" restart
 
 echo "=== Testing SSH access and nodetool via env.sh aliases ==="
 ssh cassandra0 nodetool status
 
 echo "=== Check Sidecar ==="
-ssh cassandra0 "curl http://$(bin/easy-cass-lab ip cassandra0 --private):9043/api/v1/cassandra/schema"
+ssh cassandra0 "curl http://$("$PROJECT_ROOT/bin/easy-db-lab" ip cassandra0 --private):9043/api/v1/cassandra/schema"
 
 echo "=== Testing exec command (sequential) ==="
-bin/easy-cass-lab exec -t cassandra hostname
+"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra hostname
 
 echo "=== Testing exec command (parallel) ==="
-bin/easy-cass-lab exec -t cassandra -p uptime
+"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra -p uptime
 
 echo "=== Testing exec command (with host filter) ==="
-bin/easy-cass-lab exec -t cassandra --hosts cassandra0,cassandra1 date
+"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra --hosts cassandra0,cassandra1 date
 
 echo "=== Running stress test ==="
 which ssh
 ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 
 echo "=== Submitting Spark job to EMR ==="
-bin/easy-cass-lab spark-submit \
-  --jar spark-connector-test1/build/libs/spark-connector-test1-12.jar \
+"$PROJECT_ROOT/bin/easy-db-lab" spark submit \
+  --jar "$PROJECT_ROOT/spark-connector-test1/build/libs/spark-connector-test1-12.jar" \
   --main-class com.rustyrazorblade.easycasslab.spark.KeyValuePrefixCount \
-  --args "$(bin/easy-cass-lab ip cassandra0 --private)" \
+  --args "$("$PROJECT_ROOT/bin/easy-db-lab" ip cassandra0 --private)" \
   --wait
+
+echo "=== Listing Spark jobs ==="
+"$PROJECT_ROOT/bin/easy-db-lab" spark jobs
+
+echo "=== Checking Spark job status (automatically downloads logs) ==="
+"$PROJECT_ROOT/bin/easy-db-lab" spark status
+
+echo "=== Downloading all EMR logs (standalone command) ==="
+"$PROJECT_ROOT/bin/easy-db-lab" spark logs
 
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
   echo ""
   echo "=== Cluster is ready for inspection ==="
   echo "The cluster is now running and ready to inspect."
+  echo "Work directory: $TEST_WORKDIR"
   echo "You can:"
   echo "  - Run: kubectl get nodes"
   echo "  - Run: kubectl get pods -A"
@@ -145,6 +187,6 @@ if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
 fi
 
 echo "=== Tearing down cluster ==="
-bin/easy-cass-lab down --yes
+"$PROJECT_ROOT/bin/easy-db-lab" down --yes
 
 echo "=== End-to-end test completed successfully ==="

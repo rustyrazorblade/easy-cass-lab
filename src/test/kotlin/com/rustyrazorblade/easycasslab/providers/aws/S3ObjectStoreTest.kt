@@ -28,6 +28,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectResponse
 import software.amazon.awssdk.services.s3.model.S3Exception
 import software.amazon.awssdk.services.s3.model.S3Object
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable
 import java.io.File
 import java.nio.file.Path
 import java.time.Instant
@@ -228,13 +229,16 @@ class S3ObjectStoreTest : BaseKoinTest() {
                 .lastModified(lastModified)
                 .build()
 
-        whenever(mockS3Client.listObjectsV2(any<ListObjectsV2Request>()))
-            .thenReturn(
-                ListObjectsV2Response
-                    .builder()
-                    .contents(s3Object1, s3Object2)
-                    .build(),
-            )
+        val response =
+            ListObjectsV2Response
+                .builder()
+                .contents(s3Object1, s3Object2)
+                .build()
+
+        val mockPaginator = mock<ListObjectsV2Iterable>()
+        whenever(mockPaginator.iterator()).thenReturn(mutableListOf(response).iterator())
+        whenever(mockS3Client.listObjectsV2Paginator(any<ListObjectsV2Request>()))
+            .thenReturn(mockPaginator)
 
         // When
         val files = objectStore.listFiles(s3Path)
@@ -273,13 +277,16 @@ class S3ObjectStoreTest : BaseKoinTest() {
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
 
-        whenever(mockS3Client.listObjectsV2(any<ListObjectsV2Request>()))
-            .thenReturn(
-                ListObjectsV2Response
-                    .builder()
-                    .contents(emptyList())
-                    .build(),
-            )
+        val response =
+            ListObjectsV2Response
+                .builder()
+                .contents(emptyList())
+                .build()
+
+        val mockPaginator = mock<ListObjectsV2Iterable>()
+        whenever(mockPaginator.iterator()).thenReturn(mutableListOf(response).iterator())
+        whenever(mockS3Client.listObjectsV2Paginator(any<ListObjectsV2Request>()))
+            .thenReturn(mockPaginator)
 
         // When
         val files = objectStore.listFiles(s3Path)
@@ -296,12 +303,15 @@ class S3ObjectStoreTest : BaseKoinTest() {
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
 
-        whenever(mockS3Client.listObjectsV2(any<ListObjectsV2Request>()))
-            .thenReturn(
-                ListObjectsV2Response
-                    .builder()
-                    .build(), // No contents() set, will return null
-            )
+        val response =
+            ListObjectsV2Response
+                .builder()
+                .build() // No contents() set, will return null
+
+        val mockPaginator = mock<ListObjectsV2Iterable>()
+        whenever(mockPaginator.iterator()).thenReturn(mutableListOf(response).iterator())
+        whenever(mockS3Client.listObjectsV2Paginator(any<ListObjectsV2Request>()))
+            .thenReturn(mockPaginator)
 
         // When
         val files = objectStore.listFiles(s3Path)

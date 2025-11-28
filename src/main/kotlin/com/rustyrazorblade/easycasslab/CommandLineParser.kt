@@ -25,7 +25,6 @@ import com.rustyrazorblade.easycasslab.commands.Server
 import com.rustyrazorblade.easycasslab.commands.SetupInstance
 import com.rustyrazorblade.easycasslab.commands.SetupProfile
 import com.rustyrazorblade.easycasslab.commands.ShowIamPolicies
-import com.rustyrazorblade.easycasslab.commands.SparkSubmit
 import com.rustyrazorblade.easycasslab.commands.Start
 import com.rustyrazorblade.easycasslab.commands.Stop
 import com.rustyrazorblade.easycasslab.commands.Up
@@ -34,6 +33,11 @@ import com.rustyrazorblade.easycasslab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easycasslab.commands.UseCassandra
 import com.rustyrazorblade.easycasslab.commands.Version
 import com.rustyrazorblade.easycasslab.commands.WriteConfig
+import com.rustyrazorblade.easycasslab.commands.spark.Spark
+import com.rustyrazorblade.easycasslab.commands.spark.SparkJobs
+import com.rustyrazorblade.easycasslab.commands.spark.SparkLogs
+import com.rustyrazorblade.easycasslab.commands.spark.SparkStatus
+import com.rustyrazorblade.easycasslab.commands.spark.SparkSubmit
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
@@ -120,7 +124,6 @@ class CommandLineParser(
                 PicoCommandEntry("show-iam-policies", { ShowIamPolicies(context) }, listOf("sip")),
                 PicoCommandEntry("configure-aws", { ConfigureAWS(context) }),
                 PicoCommandEntry("prune-amis", { PruneAMIs(context) }),
-                PicoCommandEntry("spark-submit", { SparkSubmit(context) }, listOf("ssj")),
                 PicoCommandEntry("build-base", { BuildBaseImage(context) }),
                 PicoCommandEntry("build-cassandra", { BuildCassandraImage(context) }),
                 PicoCommandEntry("build-image", { BuildImage(context) }),
@@ -158,13 +161,30 @@ class CommandLineParser(
             }
         }
 
+        // Register Spark parent command with its sub-commands
+        // Spark is a parent command that contains submit, status, and jobs sub-commands
+        // The sub-commands are PicoCommands that need Context, so we create them here
+        // Note: We must create the CommandLine first and add subcommands before registering
+        // with the parent, because addSubcommand() returns the parent, not the child
+        val sparkCommandLine = CommandLine(Spark())
+        sparkCommandLine.addSubcommand("submit", SparkSubmit(context))
+        sparkCommandLine.addSubcommand("status", SparkStatus(context))
+        sparkCommandLine.addSubcommand("jobs", SparkJobs(context))
+        sparkCommandLine.addSubcommand("logs", SparkLogs(context))
+        commandLine.addSubcommand("spark", sparkCommandLine)
+
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =
             CommandLine.IExecutionStrategy { parseResult ->
-                // Check requirements for the subcommand if present
-                val subcommandParseResult = parseResult.subcommand()
-                if (subcommandParseResult != null) {
-                    val cmd = subcommandParseResult.commandSpec().userObject()
+                // Find the deepest subcommand (handles nested commands like "spark submit")
+                var currentParseResult = parseResult.subcommand()
+                while (currentParseResult?.subcommand() != null) {
+                    currentParseResult = currentParseResult.subcommand()
+                }
+
+                // Check requirements for the command if present
+                if (currentParseResult != null) {
+                    val cmd = currentParseResult.commandSpec().userObject()
                     if (cmd is PicoCommand) {
                         checkCommandRequirements(cmd)
                     }

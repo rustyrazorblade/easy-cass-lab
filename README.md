@@ -2,7 +2,7 @@
 
 Formerly known as easy-cass-lab, this project aims to make the process of creating lab environments for database testing in AWS.
 
-**Note:** The project has been renamed, but easy-cass-lab remains littered throughout the codebase, for now.
+**Note:** The project was recently renamed from easy-cass-lab. Some internal code still uses the old naming.
 
 Cassandra Specific Features:
 
@@ -56,18 +56,18 @@ This part is a bit clunky still, but it's a one time event.  You will need a use
 
 ### Viewing Required IAM Policies
 
-To see the IAM policies required for easy-cass-lab with your account ID populated:
+To see the IAM policies required for easy-db-lab with your account ID populated:
 
 ```shell
-easy-cass-lab show-iam-policies
+easy-db-lab show-iam-policies
 ```
 
 You can filter by policy type:
 
 ```shell
-easy-cass-lab show-iam-policies ec2   # Show only EC2 policy
-easy-cass-lab show-iam-policies iam   # Show only IAM policy
-easy-cass-lab show-iam-policies emr   # Show only EMR policy
+easy-db-lab show-iam-policies ec2   # Show only EC2 policy
+easy-db-lab show-iam-policies iam   # Show only IAM policy
+easy-db-lab show-iam-policies emr   # Show only EMR policy
 ```
 
 See `bin/set-policies`.
@@ -77,7 +77,7 @@ See `bin/set-policies`.
 Run the interactive setup to configure your AWS credentials and create necessary resources:
 
 ```shell
-easy-cass-lab setup-profile
+easy-db-lab setup-profile
 ```
 
 This will:
@@ -90,16 +90,16 @@ This will:
 
 ## Usage
 
-To install `easy-cass-lab`, you can use Homebrew, download a release, or clone the project and build it.
+To install `easy-db-lab`, you can use Homebrew, download a release, or clone the project and build it.
 
 ### Install A Release using Homebrew
 
 ```shell
 brew tap rustyrazorblade/rustyrazorblade
-brew install easy-cass-lab
+brew install easy-db-lab
 ```
 
-`easy-cass-lab` should now be available for you to use.
+`easy-db-lab` should now be available for you to use.
 
 Skip ahead to Read The Help.
 
@@ -116,10 +116,10 @@ Available tags:
 
 ```shell
 # Pull latest version
-docker pull ghcr.io/rustyrazorblade/easy-cass-lab:latest
+docker pull ghcr.io/rustyrazorblade/easy-db-lab:latest
 
 # Pull specific version
-docker pull ghcr.io/rustyrazorblade/easy-cass-lab:v12
+docker pull ghcr.io/rustyrazorblade/easy-db-lab:v12
 ```
 
 #### Running Commands
@@ -132,7 +132,7 @@ docker run --rm \
   -v ~/.ssh:/root/.ssh:ro \                              # Read-only: SSH keys
   -v $(pwd):/workspace \                                 # Read-write: Working directory for cluster state
   -v /var/run/docker.sock:/var/run/docker.sock \         # Required for Docker operations
-  ghcr.io/rustyrazorblade/easy-cass-lab:latest --help
+  ghcr.io/rustyrazorblade/easy-db-lab:latest --help
 ```
 
 **Important notes for container usage:**
@@ -143,19 +143,19 @@ docker run --rm \
 - For convenience, create a shell alias:
 
 ```shell
-alias easy-cass-lab='docker run --rm \
+alias easy-db-lab='docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -v ~/.ssh:/root/.ssh:ro \
   -v $(pwd):/workspace \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/rustyrazorblade/easy-cass-lab:latest'
+  ghcr.io/rustyrazorblade/easy-db-lab:latest'
 ```
 
 Then use it like the native command:
 
 ```shell
-easy-cass-lab setup-profile
-easy-cass-lab init my-cluster --cassandra 5.0
+easy-db-lab setup-profile
+easy-db-lab init my-cluster --cassandra 5.0
 ```
 
 #### Container Limitations
@@ -200,16 +200,16 @@ chmod 600 ~/.ssh/id_rsa
 docker run --rm \
   -v ~/.ssh:/root/.ssh:ro \
   -e SSH_KEY=/root/.ssh/my-custom-key \
-  ghcr.io/rustyrazorblade/easy-cass-lab:latest ...
+  ghcr.io/rustyrazorblade/easy-db-lab:latest ...
 ```
 
 ### Download A Release
 
-Download the latest [release](https://github.com/rustyrazorblade/easy-cass-lab/releases) and add the project's bin directory
+Download the latest [release](https://github.com/rustyrazorblade/easy-db-lab/releases) and add the project's bin directory
 to your PATH.
 
 ```shell
-export PATH="$PATH:/Users/username/path/to/easy-cass-lab/bin"
+export PATH="$PATH:/Users/username/path/to/easy-db-lab/bin"
 ```
 
 You can skip ahead to Read The Help.
@@ -220,24 +220,24 @@ The following command should be run from the root directory of the project.
 Docker will need to be running for this step.
 
 ```bash
-git clone https://github.com/rustyrazorblade/easy-cass-lab.git
-cd easy-cass-lab
+git clone https://github.com/rustyrazorblade/easy-db-lab.git
+cd easy-db-lab
 ./gradlew shadowJar
 ```
 
 
 #### Build the Universal AMI
 
-Using easy-cass-lab requires building an AMI if you're building from source.
+Using easy-db-lab requires building an AMI if you're building from source.
 
 You can skip this if you're using us-west-2
 This can be done once, and reused many times.
-The AMI should be rebuilt when updating easy-cass-lab.
+The AMI should be rebuilt when updating easy-db-lab.
 
-If you haven't run `easy-cass-lab setup-profile` yet, you'll be prompted to set up your profile before building.
+If you haven't run `easy-db-lab setup-profile` yet, you'll be prompted to set up your profile before building.
 
 ```shell
-bin/easy-cass-lab build-image
+bin/easy-db-lab build-image
 ```
 
 At the end, you'll see something like this:
@@ -252,11 +252,11 @@ That means you're ready!
 
 ### Read the Help
 
-Run `easy-cass-lab` without any parameters to view all the commands and all options.
+Run `easy-db-lab` without any parameters to view all the commands and all options.
 
 ### Create The Environment
 
-Note: If you haven't run `easy-cass-lab setup-profile` yet, you'll be prompted to set up your profile.
+Note: If you haven't run `easy-db-lab setup-profile` yet, you'll be prompted to set up your profile.
 
 Important: If you've installed the project via homebrew or downloaded a release,
 please use the `us-west-2` region.  This limitation will be lifted soon.
@@ -268,13 +268,13 @@ This directory is your working space for the cluster.
 ```bash
 mkdir cluster
 cd cluster
-easy-cass-lab init -c 3 -s 1 myclustername # 3 node cluster with 1 stress instance
+easy-db-lab init -c 3 -s 1 myclustername # 3 node cluster with 1 stress instance
 ```
 
 You can start your instances now.
 
 ```shell
-easy-cass-lab up
+easy-db-lab up
 ```
 
 To access the cluster, follow the instructions at the end of the output of the `up` command:
@@ -296,7 +296,7 @@ need to pick one.
 To see what versions are supported, you can do the following:
 
 ```shell
-easy-cass-lab list
+easy-db-lab list
 ````
 
 You'll see 3.0, 3.11, 4.0, 4.1, and others.
@@ -304,21 +304,21 @@ You'll see 3.0, 3.11, 4.0, 4.1, and others.
 Choose your cassandra version.
 
 ```shell
-easy-cass-lab use 4.1
+easy-db-lab use 4.1
 ```
 
-easy-cass-lab will automatically configure the right Python and Java versions on the instances for you.
+easy-db-lab will automatically configure the right Python and Java versions on the instances for you.
 
 This will also create a local directory corresponding to the name of the version, and will download most of the files in the conf directory to your local dir.  You can edit them, and upload with:
 
 ```shell
-easy-cass-lab update-config
+easy-db-lab update-config
 ```
 
 You can override the java version by passing the `-j` flag:
 
 ```shell
-easy-cass-lab use 5.0 -j 17
+easy-db-lab use 5.0 -j 17
 ```
 
 Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.
@@ -326,10 +326,10 @@ Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.
 You can switch just one host:
 
 ```shell
-easy-cass-lab use 5.0 -j 17 --hosts cassandra0
+easy-db-lab use 5.0 -j 17 --hosts cassandra0
 ```
 
-Unlike production tools, easy-cass-lab is designed for testing and breaking things, which I find is the best way to learn.
+Unlike production tools, easy-db-lab is designed for testing and breaking things, which I find is the best way to learn.
 
 ### Modify the YAML Configuration
 
@@ -341,7 +341,7 @@ You can also edit the JVM options files under the different local version direct
 names for jvm.options.  Edit the ones in the directory that corresponds to the version you're using.
 
 ```shell
-easy-cass-lab update-config # uc for short
+easy-db-lab update-config # uc for short
 ```
 
 ### Start The Cluster
@@ -349,7 +349,7 @@ easy-cass-lab update-config # uc for short
 Start the cluster.  It will take about a minute to go through the startup process
 
 ```shell
-easy-cass-lab start
+easy-db-lab start
 ```
 
 ### Log In and Have Fun!
@@ -392,7 +392,7 @@ This allows us to support updating, mixed version clusters, A/B version testing,
 
 https://rustyrazorblade.com/post/2023/2023-11-07-async-profiler/
 
-Using easy-cass-lab `env.sh`, you can run a profile and generate a flamegraph,
+Using easy-db-lab `env.sh`, you can run a profile and generate a flamegraph,
 which will automatically download after it's complete by doing the following:
 
 ```shell
@@ -436,7 +436,7 @@ On each node there are several aliases for commonly run commands:
 To tear down the entire environment, simply run the following and confirm:
 
 ```shell
-easy-cass-lab down
+easy-db-lab down
 ```
 
 ## Tools
@@ -447,14 +447,14 @@ https://rustyrazorblade.com/post/2023/2023-11-14-bcc-tools/
 
 ## MCP Server Integration
 
-easy-cass-lab includes a Model Context Protocol (MCP) server that enables AI assistants like Claude Code to interact directly with your Cassandra clusters.
+easy-db-lab includes a Model Context Protocol (MCP) server that enables AI assistants like Claude Code to interact directly with your Cassandra clusters.
 
 ### Starting the MCP Server
 
 To start the MCP server:
 
 ```shell
-easy-cass-lab server --port 8888
+easy-db-lab server --port 8888
 ```
 
 This starts the MCP server on port 8888 (you can use any available port).
@@ -464,10 +464,10 @@ This starts the MCP server on port 8888 (you can use any available port).
 Once the MCP server is running, add it to Claude Code:
 
 ```shell
-claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse
+claude mcp add --transport sse easy-db-lab http://127.0.0.1:8888/sse
 ```
 
-This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-cass-lab MCP server.
+This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-db-lab MCP server.
 
 ### What You Can Do
 
@@ -479,17 +479,17 @@ With MCP integration, Claude Code can:
 * Troubleshoot issues by analyzing logs and metrics
 * Automate complex multi-step cluster operations
 
-For detailed documentation, see the [MCP Integration section in the user manual](http://rustyrazorblade.com/easy-cass-lab/).
+For detailed documentation, see the [MCP Integration section in the user manual](http://rustyrazorblade.com/easy-db-lab/).
 
 ## Sanity Check Test
 
 This initializes then shuts down a cluster.  Useful after major refactors and before a release.
 
 ```bash
-gw clean test shadowjar installdist  && easy-cass-lab init test --up && source env.sh && ecl use 5.0 && ecl start && ecl down --yes
+gw clean test shadowjar installdist  && easy-db-lab init test --up && source env.sh && edl use 5.0 && edl start && edl down --yes
 ```
 
 ## Contributing
 
-Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-cass-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-cass-lab/development) before getting started.
+Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-db-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-db-lab/development) before getting started.
 

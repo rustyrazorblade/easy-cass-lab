@@ -1,8 +1,11 @@
 package com.rustyrazorblade.easycasslab.services
 
 import com.rustyrazorblade.easycasslab.Constants
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
 import com.rustyrazorblade.easycasslab.configuration.TFState
+import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.configuration.s3Path
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.RetryUtil
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -12,8 +15,13 @@ import software.amazon.awssdk.services.emr.model.ActionOnFailure
 import software.amazon.awssdk.services.emr.model.AddJobFlowStepsRequest
 import software.amazon.awssdk.services.emr.model.DescribeStepRequest
 import software.amazon.awssdk.services.emr.model.HadoopJarStepConfig
+import software.amazon.awssdk.services.emr.model.ListStepsRequest
 import software.amazon.awssdk.services.emr.model.StepConfig
 import software.amazon.awssdk.services.emr.model.StepState
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.zip.GZIPInputStream
 
 /**
  * Default implementation of SparkService using AWS EMR.
@@ -41,6 +49,9 @@ class EMRSparkService(
     private val emrClient: EmrClient,
     private val tfState: TFState,
     private val outputHandler: OutputHandler,
+    private val objectStore: ObjectStore,
+    private val clusterStateManager: ClusterStateManager,
+    private val userConfig: User,
 ) : SparkService {
     private val log = KotlinLogging.logger {}
 
@@ -189,6 +200,164 @@ class EMRSparkService(
             clusterInfo
         }
 
+    override fun listJobs(
+        clusterId: String,
+        limit: Int,
+    ): Result<List<SparkService.JobInfo>> =
+        runCatching {
+            val listRequest =
+                ListStepsRequest
+                    .builder()
+                    .clusterId(clusterId)
+                    .build()
+
+            executeWithRetry("emr-list-steps") {
+                val response = emrClient.listSteps(listRequest)
+                response
+                    .steps()
+                    .take(limit)
+                    .map { step ->
+                        SparkService.JobInfo(
+                            stepId = step.id(),
+                            name = step.name(),
+                            state = step.status().state(),
+                            startTime = step.status().timeline()?.startDateTime(),
+                        )
+                    }
+            }
+        }
+
+    override fun getStepLogs(
+        clusterId: String,
+        stepId: String,
+        logType: SparkService.LogType,
+    ): Result<String> =
+        runCatching {
+            // Build the S3 path for logs: {emrLogs}/{cluster-id}/steps/{step-id}/{logType}.gz
+            val clusterState = clusterStateManager.load()
+            val s3Path = clusterState.s3Path(userConfig)
+            val logPath =
+                s3Path
+                    .emrLogs()
+                    .resolve(clusterId)
+                    .resolve("steps")
+                    .resolve(stepId)
+                    .resolve(logType.filename)
+
+            // Create local logs directory: ./logs/{cluster-id}/{step-id}/
+            val localLogsDir = Paths.get("logs", clusterId, stepId)
+            Files.createDirectories(localLogsDir)
+
+            val localGzFile = localLogsDir.resolve(logType.filename)
+            val localLogFile = localLogsDir.resolve(logType.filename.removeSuffix(".gz"))
+
+            outputHandler.handleMessage("Downloading logs from: ${logPath.toUri()}")
+            outputHandler.handleMessage("Saving to: $localLogFile")
+
+            // Download with retry (logs may not be immediately available)
+            executeS3LogRetrievalWithRetry("s3-download-logs") {
+                objectStore.downloadFile(logPath, localGzFile, showProgress = false)
+            }
+
+            // Decompress to final location
+            decompressGzipFile(localGzFile, localLogFile)
+
+            // Read and return content
+            Files.readString(localLogFile)
+        }
+
+    override fun downloadAllLogs(stepId: String): Result<Path> =
+        runCatching {
+            val clusterState = clusterStateManager.load()
+            val s3Path = clusterState.s3Path(userConfig)
+            val emrLogsPath = s3Path.emrLogs()
+
+            // Save to logs/emr/<step-id>/
+            val localLogsDir = Paths.get("logs", "emr", stepId)
+            Files.createDirectories(localLogsDir)
+
+            outputHandler.handleMessage("Downloading all EMR logs from: ${emrLogsPath.toUri()}")
+            outputHandler.handleMessage("Saving to: $localLogsDir")
+
+            objectStore.downloadDirectory(emrLogsPath, localLogsDir, showProgress = true)
+
+            localLogsDir
+        }
+
+    override fun downloadStepLogs(
+        clusterId: String,
+        stepId: String,
+    ): Result<Path> =
+        runCatching {
+            val clusterState = clusterStateManager.load()
+            val s3Path = clusterState.s3Path(userConfig)
+
+            // Create local logs directory: ./logs/{cluster-id}/{step-id}/
+            val localLogsDir = Paths.get("logs", clusterId, stepId)
+            Files.createDirectories(localLogsDir)
+
+            outputHandler.handleMessage("Downloading step logs to: $localLogsDir")
+
+            // Download both stdout and stderr
+            for (logType in listOf(SparkService.LogType.STDOUT, SparkService.LogType.STDERR)) {
+                val logPath =
+                    s3Path
+                        .emrLogs()
+                        .resolve(clusterId)
+                        .resolve("steps")
+                        .resolve(stepId)
+                        .resolve(logType.filename)
+
+                val localGzFile = localLogsDir.resolve(logType.filename)
+                val localLogFile = localLogsDir.resolve(logType.filename.removeSuffix(".gz"))
+
+                try {
+                    executeS3LogRetrievalWithRetry("s3-download-${logType.name.lowercase()}") {
+                        objectStore.downloadFile(logPath, localGzFile, showProgress = false)
+                    }
+                    decompressGzipFile(localGzFile, localLogFile)
+                    // Remove the .gz file after decompression
+                    Files.deleteIfExists(localGzFile)
+                    outputHandler.handleMessage("Downloaded: ${logType.name.lowercase()}")
+                } catch (e: Exception) {
+                    log.warn { "Could not download ${logType.filename}: ${e.message}" }
+                    // Continue with other logs - some may not exist yet
+                }
+            }
+
+            // Display stderr content if it exists (most useful for debugging)
+            val stderrFile = localLogsDir.resolve("stderr")
+            if (Files.exists(stderrFile)) {
+                val stderrContent = Files.readString(stderrFile)
+                if (stderrContent.isNotBlank()) {
+                    outputHandler.handleMessage("\n=== stderr (last 100 lines) ===")
+                    val lines = stderrContent.lines()
+                    val lastLines = if (lines.size > 100) lines.takeLast(100) else lines
+                    lastLines.forEach { outputHandler.handleMessage(it) }
+                    outputHandler.handleMessage("=== end stderr ===\n")
+                }
+            }
+
+            localLogsDir
+        }
+
+    /**
+     * Decompresses a gzip file to a specified output file.
+     *
+     * @param gzipFile Path to the gzip file
+     * @param outputFile Path to write the decompressed content
+     */
+    private fun decompressGzipFile(
+        gzipFile: Path,
+        outputFile: Path,
+    ) {
+        GZIPInputStream(Files.newInputStream(gzipFile)).use { gzipInput ->
+            Files.newOutputStream(outputFile).use { output ->
+                gzipInput.copyTo(output)
+            }
+        }
+    }
+
     /**
      * Builds the spark-submit command arguments for EMR.
      *
@@ -218,6 +387,26 @@ class EMRSparkService(
         operation: () -> T,
     ): T {
         val retryConfig = RetryUtil.createAwsRetryConfig<T>()
+        val retry = Retry.of(operationName, retryConfig)
+        return Retry.decorateSupplier(retry, operation).get()
+    }
+
+    /**
+     * Executes an S3 log retrieval operation with retry logic.
+     *
+     * EMR logs may not be immediately available after job completion.
+     * Uses fixed 3-second delay with up to 10 attempts (~30s total wait).
+     * Retries on NoSuchKeyException (404) since logs may not be uploaded yet.
+     *
+     * @param operationName Name for the retry instance (for logging/metrics)
+     * @param operation The S3 operation to execute
+     * @return The result of the operation
+     */
+    private fun <T> executeS3LogRetrievalWithRetry(
+        operationName: String,
+        operation: () -> T,
+    ): T {
+        val retryConfig = RetryUtil.createS3LogRetrievalRetryConfig<T>()
         val retry = Retry.of(operationName, retryConfig)
         return Retry.decorateSupplier(retry, operation).get()
     }

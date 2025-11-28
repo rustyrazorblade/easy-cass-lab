@@ -15,7 +15,7 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'easy-cass-lab'
+rootProject.name = 'easy-db-lab'
 
 include "core"
 include "manual"
