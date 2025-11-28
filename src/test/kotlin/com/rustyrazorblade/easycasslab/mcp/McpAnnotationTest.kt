@@ -1,22 +1,24 @@
 package com.rustyrazorblade.easycasslab.mcp
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.Command
+import com.rustyrazorblade.easycasslab.PicoCommandEntry
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
-import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.commands.PicoBaseCommand
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 
 // Test command for MCP annotation testing
 @McpCommand
-@Parameters(commandDescription = "A test command with MCP annotation")
-class TestMcpCommand : ICommand {
-    @Parameter(names = ["--test-param"], description = "Test parameter")
+@Command(name = "test-mcp-command", description = ["A test command with MCP annotation"])
+class TestMcpCommand(
+    context: com.rustyrazorblade.easycasslab.Context,
+) : PicoBaseCommand(context) {
+    @Option(names = ["--test-param"], description = ["Test parameter"])
     var testParam: String = ""
 
     override fun execute() {
@@ -30,17 +32,18 @@ class TestMcpCommand : ICommand {
 
 // Test registry that includes test commands
 class TestMcpToolRegistry(
-    context: com.rustyrazorblade.easycasslab.Context,
-) : McpToolRegistry(context) {
+    private val testContext: com.rustyrazorblade.easycasslab.Context,
+) : McpToolRegistry(testContext) {
     override fun getTools(): List<ToolInfo> {
-        // Create a test command and add it to the list
-        val testCommand = TestMcpCommand()
+        // Create a test command entry
+        val testEntry = PicoCommandEntry("test-mcp-command", { TestMcpCommand(testContext) })
+        val testCommand = testEntry.factory()
         val testCommandInfo =
             ToolInfo(
                 name = "test-mcp-command",
                 description = "A test command with MCP annotation",
-                inputSchema = generateSchema(testCommand),
-                command = Command("test-mcp-command", testCommand),
+                inputSchema = generatePicoSchema(testCommand),
+                entry = testEntry,
             )
 
         // Get the real tools and add our test command

@@ -5,12 +5,20 @@ import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
 import java.io.File
 
+/**
+ * Cleans up generated files from the current directory.
+ */
 @McpCommand
+@Command(
+    name = "clean",
+    description = ["Clean up generated files from the current directory"],
+)
 class Clean(
-    val context: Context,
-) : ICommand,
+    @Suppress("UnusedPrivateProperty") private val context: Context,
+) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
 

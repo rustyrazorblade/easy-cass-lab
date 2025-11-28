@@ -1,8 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.rustyrazorblade.easycasslab.Constants
@@ -10,33 +7,42 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
+import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.deleteExisting
 import kotlin.io.path.inputStream
 
+/**
+ * Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml.
+ */
 @McpCommand
 @RequireProfileSetup
 @RequireSSHKey
-@Parameters(
-    commandDescription =
-        "Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml. " +
-            " Done automatically after use-cassandra.",
+@Command(
+    name = "update-config",
+    aliases = ["uc"],
+    description = ["Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml"],
 )
 class UpdateConfig(
     context: Context,
-) : BaseCommand(context) {
-    @ParametersDelegate var hosts = Hosts()
+) : PicoBaseCommand(context) {
+    @Mixin
+    var hosts = HostsMixin()
 
-    @Parameter(descriptionKey = "Patch file to upload")
+    @Parameters(description = ["Patch file to upload"], defaultValue = "cassandra.patch.yaml")
     var file: String = "cassandra.patch.yaml"
 
-    @Parameter(names = ["--version"], descriptionKey = "Version to upload, default is current")
+    @Option(names = ["--version"], description = ["Version to upload, default is current"])
     var version = "current"
 
-    @Parameter(names = ["--restart", "-r"], descriptionKey = "Restart cassandra after patching")
+    @Option(names = ["--restart", "-r"], description = ["Restart cassandra after patching"])
     var restart = false
 
     override fun execute() {
@@ -112,7 +118,7 @@ class UpdateConfig(
      * This method modifies the cassandra-sidecar.yaml to set the host-specific IP address
      * in both the cassandra_instances and driver_parameters sections.
      */
-    private fun uploadSidecarConfig(host: com.rustyrazorblade.easycasslab.configuration.Host) {
+    private fun uploadSidecarConfig(host: Host) {
         val sidecarYaml =
             context.yaml.readTree(
                 Path.of(Constants.ConfigPaths.CASSANDRA_SIDECAR_CONFIG).toFile().inputStream(),

@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
@@ -10,19 +9,28 @@ import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import java.io.FileNotFoundException
 
+/**
+ * Lists all hosts in the cluster.
+ */
 @McpCommand
 @RequireProfileSetup
+@Command(
+    name = "hosts",
+    description = ["List all hosts in the cluster"],
+)
 class Hosts(
-    val context: Context,
-) : ICommand,
+    private val context: Context,
+) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }
 
-    @Parameter(names = ["-c"], description = "Show Cassandra as a comma delimited list")
+    @Option(names = ["-c"], description = ["Show Cassandra as a comma delimited list"])
     var cassandra: Boolean = false
 
     data class HostOutput(

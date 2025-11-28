@@ -1,50 +1,54 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.providers.aws.AMIService
 import com.rustyrazorblade.easycasslab.providers.aws.EC2Service
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 
+/**
+ * Prune older private AMIs while keeping the newest N per architecture and type.
+ */
 @McpCommand
 @RequireProfileSetup
-@Parameters(
-    commandDescription = "Prune older private AMIs while keeping the newest N per architecture and type",
-    commandNames = ["prune-amis"],
+@Command(
+    name = "prune-amis",
+    description = ["Prune older private AMIs while keeping the newest N per architecture and type"],
 )
 class PruneAMIs(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val service: AMIService by inject()
     private val ec2Service: EC2Service by inject()
 
-    @Parameter(
+    @Option(
         names = ["--pattern"],
-        description = "Name pattern for AMIs to prune (supports wildcards)",
+        description = ["Name pattern for AMIs to prune (supports wildcards)"],
     )
     var pattern: String = "rustyrazorblade/images/easy-cass-lab-*"
 
-    @Parameter(
+    @Option(
         names = ["--keep"],
-        description = "Number of newest AMIs to keep per architecture/type combination",
+        description = ["Number of newest AMIs to keep per architecture/type combination"],
     )
     var keep: Int = 2
 
-    @Parameter(
+    @Option(
         names = ["--dry-run"],
-        description = "Show what would be deleted without actually deleting",
+        description = ["Show what would be deleted without actually deleting"],
     )
     var dryRun: Boolean = false
 
-    @Parameter(
+    @Option(
         names = ["--type"],
-        description = "Filter to only prune AMIs of specific type (e.g., 'cassandra', 'base')",
+        description = ["Filter to only prune AMIs of specific type (e.g., 'cassandra', 'base')"],
     )
     var type: String? = null
 
+    @Suppress("NestedBlockDepth", "TooGenericExceptionCaught")
     override fun execute() {
         outputHandler.handleMessage("Pruning AMIs matching pattern: $pattern")
         if (type != null) {
@@ -112,7 +116,7 @@ class PruneAMIs(
             }
 
             print("Delete this AMI? [y/N]: ")
-            val response = readLine()?.trim()?.lowercase() ?: "n"
+            val response = readlnOrNull()?.trim()?.lowercase() ?: "n"
             val shouldDelete = response == "y" || response == "yes"
 
             if (shouldDelete) {

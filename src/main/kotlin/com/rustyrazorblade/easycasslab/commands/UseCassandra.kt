@@ -1,45 +1,51 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
+/**
+ * Use a Cassandra version (3.0, 3.11, 4.0, 4.1).
+ */
 @McpCommand
 @RequireProfileSetup
-@Parameters(commandDescription = "Use a Cassandra version (3.0, 3.11, 4.0, 4.1)")
+@Command(
+    name = "use",
+    description = ["Use a Cassandra version (3.0, 3.11, 4.0, 4.1)"],
+)
 class UseCassandra(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val clusterStateManager: ClusterStateManager by inject()
 
-    @Parameter(description = "Cassandra version", required = true)
-    var version: String = ""
+    @Parameters(description = ["Cassandra version"], index = "0")
+    lateinit var version: String
 
-    @ParametersDelegate var hosts = Hosts()
+    @Mixin
+    var hosts = HostsMixin()
 
     @JsonIgnore val log = KotlinLogging.logger {}
 
-    @Parameter(
+    @Option(
         names = ["--java", "-j"],
-        description = "Java Version Override, 8, 11 or 17 accepted",
+        description = ["Java Version Override, 8, 11 or 17 accepted"],
     )
     var javaVersion = ""
 
-    //    @Parameter(names = ["--bti"], description = "Enable BTI Storage")
-    //    var bti = false
-
+    @Suppress("TooGenericExceptionCaught")
     override fun execute() {
         check(version.isNotBlank())
         val state = clusterStateManager.load()

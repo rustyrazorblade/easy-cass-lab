@@ -73,11 +73,11 @@ class SparkSubmitTest : BaseKoinTest() {
     fun `command validates required parameters`() {
         val command = SparkSubmit(context)
 
-        // Verify parameters are initialized
-        assertThat(command.jarPath).isEmpty()
-        assertThat(command.mainClass).isEmpty()
+        // Verify optional parameters have defaults and required lateinit vars are not initialized
         assertThat(command.jobArgs).isEmpty()
         assertThat(command.wait).isFalse()
+        // jarPath and mainClass are lateinit vars that will be set by PicoCLI
+        // Attempting to access them before initialization would throw UninitializedPropertyAccessException
     }
 
     @Test

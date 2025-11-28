@@ -1,29 +1,37 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
 import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
 
-// @McpCommand
+// @McpCommand - disabled for now like the original
+
+/**
+ * Stop cassandra on all nodes via service command.
+ */
 @RequireProfileSetup
 @RequireSSHKey
-@Parameters(commandDescription = "Stop cassandra on all nodes via service command")
+@Command(
+    name = "stop",
+    description = ["Stop cassandra on all nodes via service command"],
+)
 class Stop(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
     private val sidecarService: SidecarService by inject()
 
-    @ParametersDelegate var hosts = Hosts()
+    @Mixin
+    var hosts = HostsMixin()
 
     override fun execute() {
         outputHandler.handleMessage("Stopping cassandra service on all nodes.")

@@ -92,7 +92,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns public IP by default`() {
         val command = Ip(context)
-        command.host = listOf("cassandra0")
+        command.host = "cassandra0"
 
         command.execute()
 
@@ -104,7 +104,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns public IP when --public flag is set`() {
         val command = Ip(context)
-        command.host = listOf("cassandra0")
+        command.host = "cassandra0"
         command.publicIp = true
 
         command.execute()
@@ -117,7 +117,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns private IP when --private flag is set`() {
         val command = Ip(context)
-        command.host = listOf("cassandra0")
+        command.host = "cassandra0"
         command.privateIp = true
 
         command.execute()
@@ -130,7 +130,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `finds host across different server types`() {
         val command = Ip(context)
-        command.host = listOf("stress0")
+        command.host = "stress0"
         command.privateIp = true
 
         command.execute()
@@ -143,7 +143,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns correct IP for second cassandra node`() {
         val command = Ip(context)
-        command.host = listOf("cassandra1")
+        command.host = "cassandra1"
         command.privateIp = true
 
         command.execute()
@@ -156,7 +156,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `throws error when host not found`() {
         val command = Ip(context)
-        command.host = listOf("nonexistent")
+        command.host = "nonexistent"
 
         assertThatThrownBy { command.execute() }
             .isInstanceOf(IllegalStateException::class.java)
@@ -166,10 +166,10 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `throws error when no host alias provided`() {
         val command = Ip(context)
-        command.host = emptyList()
+        command.host = ""
 
         assertThatThrownBy { command.execute() }
             .isInstanceOf(IllegalStateException::class.java)
-            .hasMessageContaining("Host alias is required")
+            .hasMessageContaining("Host not found:")
     }
 }

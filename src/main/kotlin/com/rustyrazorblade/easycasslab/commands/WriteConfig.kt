@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
@@ -10,13 +8,23 @@ import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 import java.io.File
 
+/**
+ * Write a new cassandra configuration patch file.
+ */
 @RequireProfileSetup
-@Parameters(commandDescription = "Write a new cassandra configuration patch file")
+@Command(
+    name = "write-config",
+    aliases = ["wc"],
+    description = ["Write a new cassandra configuration patch file"],
+)
 class WriteConfig(
     val context: Context,
-) : ICommand,
+) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
@@ -29,10 +37,10 @@ class WriteConfig(
         private const val DEFAULT_CONCURRENT_WRITES = 64
     }
 
-    @Parameter(description = "Patch file name")
+    @Parameters(description = ["Patch file name"], defaultValue = "cassandra.patch.yaml")
     var file: String = "cassandra.patch.yaml"
 
-    @Parameter(names = ["-t", "--tokens"])
+    @Option(names = ["-t", "--tokens"], description = ["Number of tokens"])
     var tokens: Int = DEFAULT_TOKEN_COUNT
 
     override fun execute() {

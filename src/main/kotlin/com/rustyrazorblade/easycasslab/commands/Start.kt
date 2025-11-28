@@ -1,31 +1,37 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
 import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
 import java.io.File
 
+/**
+ * Start cassandra on all nodes via service command.
+ */
 @McpCommand
 @RequireDocker
 @RequireProfileSetup
 @RequireSSHKey
-@Parameters(commandDescription = "Start cassandra on all nodes via service command")
+@Command(
+    name = "start",
+    description = ["Start cassandra on all nodes via service command"],
+)
 class Start(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
@@ -35,10 +41,11 @@ class Start(
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
     }
 
-    @Parameter(names = ["--sleep"], description = "Time to sleep between starts in seconds")
+    @Option(names = ["--sleep"], description = ["Time to sleep between starts in seconds"])
     var sleep: Long = DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS
 
-    @ParametersDelegate var hosts = Hosts()
+    @Mixin
+    var hosts = HostsMixin()
 
     override fun execute() {
         with(TermColors()) {
@@ -61,8 +68,12 @@ class Start(
         // Start cassandra-easy-stress on stress nodes
         startCassandraEasyStress()
 
+        // Start axon-agent on Cassandra nodes if configured
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
-            StartAxonOps(context).execute()
+            outputHandler.handleMessage("Starting axon-agent on Cassandra nodes...")
+            tfstate.withHosts(ServerType.Cassandra, HostsMixin(), parallel = true) {
+                remoteOps.executeRemotely(it, "sudo systemctl start axon-agent")
+            }
         }
 
         // Inform user about AxonOps Workbench configuration if it exists

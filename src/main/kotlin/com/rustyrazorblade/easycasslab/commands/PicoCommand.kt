@@ -3,12 +3,30 @@ package com.rustyrazorblade.easycasslab.commands
 import com.rustyrazorblade.easycasslab.annotations.PostExecute
 import com.rustyrazorblade.easycasslab.annotations.PreExecute
 import java.lang.reflect.InvocationTargetException
+import java.util.concurrent.Callable
 import kotlin.reflect.full.declaredMemberFunctions
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.isAccessible
 
-interface ICommand {
-    fun executeAll() {
+/**
+ * PicoCLI command interface that provides lifecycle hook support.
+ *
+ * Implements Callable<Int> for PicoCLI compatibility.
+ * Executes methods annotated with @PreExecute before the main execute() method,
+ * and methods annotated with @PostExecute afterward.
+ */
+interface PicoCommand : Callable<Int> {
+    /**
+     * Executes the command with full lifecycle support.
+     *
+     * Execution order:
+     * 1. All @PreExecute methods (sorted by name)
+     * 2. The execute() method
+     * 3. All @PostExecute methods (sorted by name)
+     *
+     * @return 0 on success, non-zero on failure
+     */
+    override fun call(): Int {
         val kClass = this::class
 
         val preExecuteMethods =
@@ -40,7 +58,13 @@ interface ICommand {
                 throw e.targetException
             }
         }
+
+        return 0
     }
 
+    /**
+     * Implements the main command logic.
+     * Subclasses must override this method to provide command functionality.
+     */
     fun execute()
 }

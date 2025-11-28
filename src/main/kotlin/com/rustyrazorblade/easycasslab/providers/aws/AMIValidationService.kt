@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easycasslab.providers.aws
 
-import com.rustyrazorblade.easycasslab.commands.delegates.Arch
+import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.model.AMI

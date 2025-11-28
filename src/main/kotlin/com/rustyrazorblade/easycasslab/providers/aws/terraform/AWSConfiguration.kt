@@ -7,8 +7,8 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.commands.delegates.Arch
-import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.commands.mixins.SparkInitMixin
+import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.configuration.ClusterS3Path
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
@@ -42,7 +42,7 @@ class AWSConfiguration(
     var numStressInstances: Int = 0,
     var stressInstanceType: String = "c7i.2xlarge",
     var arch: Arch = Arch.AMD64,
-    var sparkParams: SparkInitParams,
+    var sparkParams: SparkInitMixin,
     val accountId: String,
     val clusterId: String,
 ) {

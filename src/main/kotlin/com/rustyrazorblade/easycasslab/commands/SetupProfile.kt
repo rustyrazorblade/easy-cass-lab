@@ -1,20 +1,18 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameters
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.Utils
-import com.rustyrazorblade.easycasslab.commands.delegates.Arch
+import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.UserConfigProvider
-import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.AWS
 import com.rustyrazorblade.easycasslab.providers.aws.AMIValidationException
 import com.rustyrazorblade.easycasslab.providers.aws.AMIValidator
 import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
 import com.rustyrazorblade.easycasslab.services.AWSResourceSetupService
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
@@ -23,12 +21,17 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sts.StsClient
 import kotlin.system.exitProcess
 
-@Parameters(commandDescription = "Set up user profile interactively")
+/**
+ * Sets up user profile interactively.
+ */
+@Command(
+    name = "setup-profile",
+    aliases = ["setup"],
+    description = ["Set up user profile interactively"],
+)
 class SetupProfile(
-    val context: Context,
-) : ICommand,
-    KoinComponent {
-    private val outputHandler: OutputHandler by inject()
+    context: Context,
+) : PicoBaseCommand(context) {
     private val userConfigProvider: UserConfigProvider by inject()
     private val awsResourceSetup: AWSResourceSetupService by inject()
     private val packerInfra: PackerInfrastructureService by inject()
@@ -344,7 +347,6 @@ class SetupProfile(
                  IAM Console → Policies → Create Policy
                  • Select JSON tab and paste policy content
                  • Name: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
-                 • Create policy
 
               3. Attach all three managed policies to your group:
                  Groups → Your Group → Permissions → Attach Policy

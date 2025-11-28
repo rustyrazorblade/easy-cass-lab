@@ -27,7 +27,7 @@ assertj = "3.27.6"
 mockito-kotlin = "5.4.0"
 
 # CLI and UI
-jcommander = "1.82"
+picocli = "4.7.6"
 jline = "3.30.6"
 mordant = "1.2.1"
 
@@ -80,7 +80,7 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 
 # CLI and UI
-jcommander = { module = "com.beust:jcommander", version.ref = "jcommander" }
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 jline = { module = "org.jline:jline", version.ref = "jline" }
 mordant = { module = "com.github.ajalt:mordant", version.ref = "mordant" }
 

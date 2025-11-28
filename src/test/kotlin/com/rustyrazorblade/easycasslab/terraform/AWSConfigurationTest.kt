@@ -2,7 +2,7 @@ package com.rustyrazorblade.easycasslab.terraform
 
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.TestContextFactory
-import com.rustyrazorblade.easycasslab.commands.delegates.SparkInitParams
+import com.rustyrazorblade.easycasslab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
 import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
@@ -19,7 +19,7 @@ class AWSConfigurationTest {
         val user = context.yaml.readValue(userConfigFile, User::class.java)
 
         val sparkParams =
-            SparkInitParams().apply {
+            SparkInitMixin().apply {
                 enable = true
                 masterInstanceType = "m5.large"
                 workerInstanceType = "c5.xlarge"
@@ -68,7 +68,7 @@ class AWSConfigurationTest {
                 user = user,
                 open = false,
                 ami = "test",
-                sparkParams = SparkInitParams(),
+                sparkParams = SparkInitMixin(),
                 ebs = EBSConfiguration(EBSType.NONE, 0, 0, 0, false),
                 accountId = "123456789012",
                 numCassandraInstances = 1,

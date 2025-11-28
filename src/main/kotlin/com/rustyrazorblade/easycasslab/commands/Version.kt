@@ -4,10 +4,18 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
 
+/**
+ * Displays the current version of easy-cass-lab.
+ */
+@Command(
+    name = "version",
+    description = ["Display the easy-cass-lab version"],
+)
 class Version(
-    val context: Context,
-) : ICommand,
+    private val context: Context,
+) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
 

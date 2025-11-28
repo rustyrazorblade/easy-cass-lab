@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
@@ -11,6 +9,8 @@ import com.rustyrazorblade.easycasslab.configuration.s3Path
 import com.rustyrazorblade.easycasslab.services.ObjectStore
 import com.rustyrazorblade.easycasslab.services.SparkService
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import java.io.File
 
 /**
@@ -22,45 +22,49 @@ import java.io.File
  */
 @McpCommand
 @RequireProfileSetup
-@Parameters(commandDescription = "Submit Spark job to EMR cluster")
+@Command(
+    name = "spark-submit",
+    aliases = ["ssj"],
+    description = ["Submit Spark job to EMR cluster"],
+)
 class SparkSubmit(
     context: Context,
-) : BaseCommand(context) {
+) : PicoBaseCommand(context) {
     private val sparkService: SparkService by inject()
     private val objectStore: ObjectStore by inject()
     private val userConfig: User by inject()
     private val clusterStateManager: ClusterStateManager by inject()
 
-    @Parameter(
+    @Option(
         names = ["--jar"],
-        description = "Path to JAR file (local path or s3://bucket/key)",
+        description = ["Path to JAR file (local path or s3://bucket/key)"],
         required = true,
     )
-    var jarPath: String = ""
+    lateinit var jarPath: String
 
-    @Parameter(
+    @Option(
         names = ["--main-class"],
-        description = "Main class to execute",
+        description = ["Main class to execute"],
         required = true,
     )
-    var mainClass: String = ""
+    lateinit var mainClass: String
 
-    @Parameter(
+    @Option(
         names = ["--args"],
-        description = "Arguments to pass to the Spark application",
-        variableArity = true,
+        description = ["Arguments to pass to the Spark application"],
+        arity = "0..*",
     )
     var jobArgs: List<String> = listOf()
 
-    @Parameter(
+    @Option(
         names = ["--wait"],
-        description = "Wait for job completion",
+        description = ["Wait for job completion"],
     )
     var wait: Boolean = false
 
-    @Parameter(
+    @Option(
         names = ["--name"],
-        description = "Job name (defaults to main class)",
+        description = ["Job name (defaults to main class)"],
     )
     var jobName: String? = null
 
@@ -121,10 +125,10 @@ class SparkSubmit(
 
         // Build cluster-specific S3 path using ClusterS3Path API
         val s3Path = clusterState.s3Path(userConfig)
-        val jarPath = s3Path.sparkJars().resolve(localFile.name)
+        val jarS3Path = s3Path.sparkJars().resolve(localFile.name)
 
         // Upload using ObjectStore (handles retry logic and progress)
-        val result = objectStore.uploadFile(localFile, jarPath, showProgress = true)
+        val result = objectStore.uploadFile(localFile, jarS3Path, showProgress = true)
 
         return result.remotePath.toString()
     }

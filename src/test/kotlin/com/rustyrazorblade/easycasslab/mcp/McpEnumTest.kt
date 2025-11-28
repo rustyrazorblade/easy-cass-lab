@@ -1,10 +1,9 @@
 package com.rustyrazorblade.easycasslab.mcp
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.rustyrazorblade.easycasslab.Command
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.commands.ICommand
+import com.rustyrazorblade.easycasslab.PicoCommandEntry
+import com.rustyrazorblade.easycasslab.commands.PicoBaseCommand
+import com.rustyrazorblade.easycasslab.commands.PicoCommand
 import com.rustyrazorblade.easycasslab.di.KoinModules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -17,6 +16,8 @@ import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.mockito.kotlin.mock
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 
 class McpEnumTest {
     private lateinit var context: Context
@@ -40,18 +41,18 @@ class McpEnumTest {
     @Test
     fun `test enum schema generation with type property`() {
         // Create a test command with enum
-        val testCommand = TestCommandWithEnum()
-        val command = Command("enum-test", testCommand)
+        val testCommand = TestCommandWithEnum(context)
+        val entry = PicoCommandEntry("enum-test", { TestCommandWithEnum(context) })
 
-        // Use reflection to call createToolInfo
+        // Use reflection to call createToolInfoFromPico
         val createToolInfoMethod =
             McpToolRegistry::class.java
                 .getDeclaredMethod(
-                    "createToolInfo",
-                    Command::class.java,
+                    "createToolInfoFromPico",
+                    PicoCommandEntry::class.java,
                 ).apply { isAccessible = true }
 
-        val toolInfo = createToolInfoMethod.invoke(registry, command) as McpToolRegistry.ToolInfo
+        val toolInfo = createToolInfoMethod.invoke(registry, entry) as McpToolRegistry.ToolInfo
 
         // Print the schema to see what's being generated
         println("Generated schema for enum command:")
@@ -68,8 +69,7 @@ class McpEnumTest {
 
     @Test
     fun `test enum value mapping from arguments`() {
-        val testCommand = TestCommandWithEnum()
-        val command = Command("enum-map-test", testCommand)
+        val testCommand = TestCommandWithEnum(context)
 
         // Create arguments with enum value
         val arguments =
@@ -78,12 +78,12 @@ class McpEnumTest {
                 put("mode", "production")
             }
 
-        // Map arguments to command
+        // Map arguments to PicoCLI command
         val mapArgumentsMethod =
             McpToolRegistry::class.java
                 .getDeclaredMethod(
-                    "mapArgumentsToCommand",
-                    ICommand::class.java,
+                    "mapArgumentsToPicoCommand",
+                    PicoCommand::class.java,
                     JsonObject::class.java,
                 ).apply { isAccessible = true }
 
@@ -109,12 +109,14 @@ class McpEnumTest {
         PRODUCTION,
     }
 
-    @Parameters(commandDescription = "Test command with enum parameters")
-    private class TestCommandWithEnum : ICommand {
-        @Parameter(names = ["--arch", "-a"], description = "CPU architecture")
+    @Command(name = "enum-test", description = ["Test command with enum parameters"])
+    class TestCommandWithEnum(
+        context: Context,
+    ) : PicoBaseCommand(context) {
+        @Option(names = ["--arch", "-a"], description = ["CPU architecture"])
         var arch: TestArch = TestArch.AMD64
 
-        @Parameter(names = ["--mode", "-m"], description = "Deployment mode")
+        @Option(names = ["--mode", "-m"], description = ["Deployment mode"])
         var mode: TestMode = TestMode.DEVELOPMENT
 
         override fun execute() {

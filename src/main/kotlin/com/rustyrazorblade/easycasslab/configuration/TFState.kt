@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.BufferedWriter
 import java.io.File
@@ -147,12 +147,21 @@ class TFState(
      */
     fun withHosts(
         serverType: ServerType,
-        hostFilter: Hosts,
+        hostFilter: HostsMixin,
         parallel: Boolean = false,
         withHost: (h: Host) -> Unit,
     ) {
+        withHostsInternal(serverType, hostFilter.hostList, parallel, withHost)
+    }
+
+    private fun withHostsInternal(
+        serverType: ServerType,
+        hostList: String,
+        parallel: Boolean,
+        withHost: (h: Host) -> Unit,
+    ) {
         val hostSet =
-            hostFilter.hostList
+            hostList
                 .split(",")
                 .filter { it.isNotBlank() }
                 .toSet()

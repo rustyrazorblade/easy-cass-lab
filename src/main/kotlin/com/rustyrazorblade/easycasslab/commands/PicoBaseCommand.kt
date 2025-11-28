@@ -8,12 +8,14 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Base class for commands that need remote operations. Provides injected services for SSH
- * operations, Terraform state, and output handling.
+ * Base class for PicoCLI commands that need remote operations.
+ *
+ * Provides injected services for SSH operations, Terraform state, and output handling.
+ * Most commands extend this class to get access to common infrastructure services.
  */
-abstract class BaseCommand(
+abstract class PicoBaseCommand(
     val context: Context,
-) : ICommand,
+) : PicoCommand,
     KoinComponent {
     /** Injected RemoteOperationsService for SSH operations. */
     protected val remoteOps: RemoteOperationsService by inject()

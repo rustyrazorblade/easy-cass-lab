@@ -1,7 +1,5 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
@@ -10,6 +8,9 @@ import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 
 /**
  * Get IP address for a host by alias.
@@ -25,35 +26,37 @@ import org.koin.core.component.inject
  */
 @McpCommand
 @RequireProfileSetup
-@Parameters(commandDescription = "Get IP address for a host by alias")
+@Command(
+    name = "ip",
+    description = ["Get IP address for a host by alias"],
+)
 class Ip(
-    val context: Context,
-) : ICommand,
+    @Suppress("UnusedPrivateProperty") private val context: Context,
+) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val tfStateProvider: TFStateProvider by inject()
     private val tfstate by lazy { tfStateProvider.getDefault() }
 
-    @Parameter(description = "Host alias (e.g., cassandra0, stress0)", required = true)
-    var host: List<String> = mutableListOf()
+    @Parameters(
+        index = "0",
+        description = ["Host alias (e.g., cassandra0, stress0)"],
+    )
+    lateinit var host: String
 
-    @Parameter(names = ["--public"], description = "Return public IP (default)")
+    @Option(names = ["--public"], description = ["Return public IP (default)"])
     var publicIp: Boolean = false
 
-    @Parameter(names = ["--private"], description = "Return private IP")
+    @Option(names = ["--private"], description = ["Return private IP"])
     var privateIp: Boolean = false
 
     override fun execute() {
-        val hostAlias =
-            host.firstOrNull()
-                ?: error("Host alias is required")
-
         // Find the host across all server types
         val foundHost =
             ServerType.entries
                 .flatMap { tfstate.getHosts(it) }
-                .firstOrNull { it.alias == hostAlias }
-                ?: error("Host not found: $hostAlias")
+                .firstOrNull { it.alias == host }
+                ?: error("Host not found: $host")
 
         // Default to public if neither flag specified
         val ip =

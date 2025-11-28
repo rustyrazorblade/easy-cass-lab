@@ -1,24 +1,30 @@
 package com.rustyrazorblade.easycasslab.commands
 
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.Parameters
-import com.beust.jcommander.ParametersDelegate
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easycasslab.commands.delegates.Hosts
+import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlin.io.path.exists
+import picocli.CommandLine.Command
+import picocli.CommandLine.Mixin
+import picocli.CommandLine.Option
 
-/** Downloads configuration. */
+/**
+ * Download JVM and YAML config files.
+ */
 @RequireProfileSetup
-@Parameters(commandDescription = "Download JVM and YAML config files.")
+@Command(
+    name = "download-config",
+    aliases = ["dc"],
+    description = ["Download JVM and YAML config files"],
+)
 class DownloadConfig(
     context: Context,
-) : BaseCommand(context) {
-    @ParametersDelegate var hosts = Hosts()
+) : PicoBaseCommand(context) {
+    @Mixin
+    var hosts = HostsMixin()
 
-    @Parameter(names = ["--version"], description = "Version to download, default is current")
+    @Option(names = ["--version"], description = ["Version to download, default is current"])
     var version = "current"
 
     companion object {
@@ -37,7 +43,7 @@ class DownloadConfig(
         }
         val localDir = resolvedVersion.localDir.toFile()
 
-        // Dont' overwrite.
+        // Don't overwrite.
         // Future enhancement: Add --force flag to overwrite and support
         // node-specific configurations
         if (!localDir.exists()) {

@@ -184,7 +184,7 @@ Parses Terraform state and provides methods to retrieve host information:
 
 #### 4. Commands (`commands/*`)
 
-JCommander subcommands.  Most run then exit.  There are two exceptions:
+PicoCLI subcommands.  Most run then exit.  There are two exceptions:
 
 - Repl: Starts a REPL to reduce typing
 - Server: Starts an MCP server for AI Agents (run via `easy-cass-lab server`).
