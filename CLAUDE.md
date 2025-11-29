@@ -86,6 +86,7 @@ For more details, see [packer/README.md](packer/README.md) and [packer/TESTING.m
 - activate kotlin and java for context7
 - activate the serena MCP server
 - ABSOLUTE RULE: NEVER attribute commit messages to Claude.
+- ABSOLUTE RULE: When posting a plan to github, do not include 'Test plan' section.  
 - Do not use wildcard imports.
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
 - Always ensure files end with a newline
