@@ -8,6 +8,8 @@ import com.rustyrazorblade.easycasslab.providers.aws.AMIValidationService
 import com.rustyrazorblade.easycasslab.providers.aws.AMIValidator
 import com.rustyrazorblade.easycasslab.providers.aws.EC2Service
 import com.rustyrazorblade.easycasslab.providers.aws.EC2VpcService
+import com.rustyrazorblade.easycasslab.providers.aws.EMRTeardownService
+import com.rustyrazorblade.easycasslab.providers.aws.InfrastructureTeardownService
 import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
 import com.rustyrazorblade.easycasslab.providers.aws.S3ObjectStore
 import com.rustyrazorblade.easycasslab.providers.aws.VpcService
@@ -170,6 +172,23 @@ val awsModule =
                 get<ObjectStore>(),
                 get(),
                 get<User>(),
+            )
+        }
+
+        // Provide EMRTeardownService as singleton
+        single {
+            EMRTeardownService(
+                get<EmrClient>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Provide InfrastructureTeardownService as singleton
+        single {
+            InfrastructureTeardownService(
+                get<VpcService>(),
+                get<EMRTeardownService>(),
+                get<OutputHandler>(),
             )
         }
     }

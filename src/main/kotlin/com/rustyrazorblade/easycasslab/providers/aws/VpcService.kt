@@ -96,4 +96,174 @@ interface VpcService {
         port: Int,
         cidr: Cidr,
     )
+
+    // ==================== Discovery Methods ====================
+
+    /**
+     * Finds all VPCs with the specified tag.
+     *
+     * @param tagKey The tag key to search for
+     * @param tagValue The tag value to match
+     * @return List of VPC IDs matching the tag
+     */
+    fun findVpcsByTag(
+        tagKey: String,
+        tagValue: String,
+    ): List<VpcId>
+
+    /**
+     * Finds a VPC by its Name tag.
+     *
+     * @param name The Name tag value to search for
+     * @return The VPC ID if found, null otherwise
+     */
+    fun findVpcByName(name: ResourceName): VpcId?
+
+    /**
+     * Gets the Name tag value for a VPC.
+     *
+     * @param vpcId The VPC ID
+     * @return The Name tag value if present, null otherwise
+     */
+    fun getVpcName(vpcId: VpcId): String?
+
+    /**
+     * Finds all EC2 instances in a VPC.
+     *
+     * @param vpcId The VPC ID to search in
+     * @return List of instance IDs in the VPC
+     */
+    fun findInstancesInVpc(vpcId: VpcId): List<InstanceId>
+
+    /**
+     * Finds all subnets in a VPC.
+     *
+     * @param vpcId The VPC ID to search in
+     * @return List of subnet IDs in the VPC
+     */
+    fun findSubnetsInVpc(vpcId: VpcId): List<SubnetId>
+
+    /**
+     * Finds all security groups in a VPC (excluding the default security group).
+     *
+     * @param vpcId The VPC ID to search in
+     * @return List of security group IDs in the VPC
+     */
+    fun findSecurityGroupsInVpc(vpcId: VpcId): List<SecurityGroupId>
+
+    /**
+     * Finds all NAT gateways in a VPC.
+     *
+     * @param vpcId The VPC ID to search in
+     * @return List of NAT gateway IDs in the VPC
+     */
+    fun findNatGatewaysInVpc(vpcId: VpcId): List<NatGatewayId>
+
+    /**
+     * Finds the internet gateway attached to a VPC.
+     *
+     * @param vpcId The VPC ID to search for
+     * @return The internet gateway ID if found, null otherwise
+     */
+    fun findInternetGatewayByVpc(vpcId: VpcId): InternetGatewayId?
+
+    /**
+     * Finds all non-main route tables in a VPC.
+     *
+     * @param vpcId The VPC ID to search in
+     * @return List of route table IDs in the VPC (excluding the main route table)
+     */
+    fun findRouteTablesInVpc(vpcId: VpcId): List<RouteTableId>
+
+    // ==================== Deletion Methods ====================
+
+    /**
+     * Terminates EC2 instances.
+     *
+     * @param instanceIds List of instance IDs to terminate
+     */
+    fun terminateInstances(instanceIds: List<InstanceId>)
+
+    /**
+     * Waits for EC2 instances to reach terminated state.
+     *
+     * @param instanceIds List of instance IDs to wait for
+     * @param timeoutMs Maximum time to wait in milliseconds
+     */
+    fun waitForInstancesTerminated(
+        instanceIds: List<InstanceId>,
+        timeoutMs: Long = DEFAULT_TERMINATION_TIMEOUT_MS,
+    )
+
+    /**
+     * Deletes a security group.
+     *
+     * @param securityGroupId The security group ID to delete
+     */
+    fun deleteSecurityGroup(securityGroupId: SecurityGroupId)
+
+    /**
+     * Detaches an internet gateway from a VPC.
+     *
+     * @param igwId The internet gateway ID
+     * @param vpcId The VPC ID to detach from
+     */
+    fun detachInternetGateway(
+        igwId: InternetGatewayId,
+        vpcId: VpcId,
+    )
+
+    /**
+     * Deletes an internet gateway.
+     *
+     * @param igwId The internet gateway ID to delete
+     */
+    fun deleteInternetGateway(igwId: InternetGatewayId)
+
+    /**
+     * Deletes a subnet.
+     *
+     * @param subnetId The subnet ID to delete
+     */
+    fun deleteSubnet(subnetId: SubnetId)
+
+    /**
+     * Deletes a NAT gateway.
+     *
+     * @param natGatewayId The NAT gateway ID to delete
+     */
+    fun deleteNatGateway(natGatewayId: NatGatewayId)
+
+    /**
+     * Waits for NAT gateways to be deleted.
+     *
+     * @param natGatewayIds List of NAT gateway IDs to wait for
+     * @param timeoutMs Maximum time to wait in milliseconds
+     */
+    fun waitForNatGatewaysDeleted(
+        natGatewayIds: List<NatGatewayId>,
+        timeoutMs: Long = DEFAULT_TERMINATION_TIMEOUT_MS,
+    )
+
+    /**
+     * Deletes a route table.
+     *
+     * @param routeTableId The route table ID to delete
+     */
+    fun deleteRouteTable(routeTableId: RouteTableId)
+
+    /**
+     * Deletes a VPC.
+     *
+     * @param vpcId The VPC ID to delete
+     */
+    fun deleteVpc(vpcId: VpcId)
+
+    companion object {
+        /** Default timeout for waiting on resource termination/deletion (10 minutes) */
+        const val DEFAULT_TERMINATION_TIMEOUT_MS = 10 * 60 * 1000L
+
+        /** Polling interval for checking resource state */
+        const val POLL_INTERVAL_MS = 5000L
+    }
 }
