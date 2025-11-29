@@ -27,6 +27,7 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeSubnetsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeVpcsRequest
 import software.amazon.awssdk.services.ec2.model.DetachInternetGatewayRequest
+import software.amazon.awssdk.services.ec2.model.DisassociateRouteTableRequest
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.ec2.model.Filter
 import software.amazon.awssdk.services.ec2.model.InstanceStateName
@@ -899,8 +900,12 @@ class EC2VpcService(
 
     override fun deleteRouteTable(routeTableId: RouteTableId) {
         log.info { "Deleting route table: $routeTableId" }
-        outputHandler.handleMessage("Deleting route table: $routeTableId")
 
+        // First, disassociate any subnet associations
+        disassociateRouteTableAssociations(routeTableId)
+
+        // Then delete the route table
+        outputHandler.handleMessage("Deleting route table: $routeTableId")
         val deleteRequest =
             DeleteRouteTableRequest
                 .builder()
@@ -909,6 +914,39 @@ class EC2VpcService(
 
         withRetry("delete-route-table") { ec2Client.deleteRouteTable(deleteRequest) }
         log.info { "Deleted route table: $routeTableId" }
+    }
+
+    /**
+     * Disassociates all non-main subnet associations from a route table.
+     * Main associations cannot be disassociated and are deleted with the VPC.
+     */
+    private fun disassociateRouteTableAssociations(routeTableId: RouteTableId) {
+        val describeRequest =
+            DescribeRouteTablesRequest
+                .builder()
+                .routeTableIds(routeTableId)
+                .build()
+
+        val routeTable =
+            withRetry("describe-route-table") {
+                ec2Client.describeRouteTables(describeRequest).routeTables().firstOrNull()
+            } ?: return
+
+        // Disassociate each non-main association
+        routeTable
+            .associations()
+            .filter { !it.main() }
+            .forEach { association ->
+                log.info { "Disassociating route table association: ${association.routeTableAssociationId()}" }
+                val disassociateRequest =
+                    DisassociateRouteTableRequest
+                        .builder()
+                        .associationId(association.routeTableAssociationId())
+                        .build()
+                withRetry("disassociate-route-table") {
+                    ec2Client.disassociateRouteTable(disassociateRequest)
+                }
+            }
     }
 
     override fun deleteVpc(vpcId: VpcId) {
