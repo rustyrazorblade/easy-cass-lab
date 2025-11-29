@@ -21,7 +21,7 @@ import java.util.Scanner
  * Shut down AWS infrastructure using direct AWS API calls.
  *
  * This command provides multiple modes of operation:
- * - Default: Tear down the current cluster's VPC (from terraform state)
+ * - Default: Tear down the current cluster's VPC (from cluster state)
  * - VPC ID: Tear down a specific VPC by ID
  * - --all: Tear down all VPCs tagged with easy_cass_lab
  * - --packer: Tear down the packer infrastructure VPC
@@ -128,15 +128,24 @@ class Down(
         }
 
     /**
-     * Tears down the current cluster using VPC ID from terraform state.
+     * Tears down the current cluster using VPC ID from cluster state.
      */
     private fun teardownCurrentCluster(): TeardownResult {
-        // Try to get VPC ID from terraform state
-        val currentVpcId = tfstate.getVpcId()
+        // Get the VPC ID from cluster state
+        if (!clusterStateManager.exists()) {
+            outputHandler.handleMessage("No cluster state found. Use --all to find tagged VPCs or specify a VPC ID.")
+            return TeardownResult.failure("No cluster state found")
+        }
+
+        val clusterState = clusterStateManager.load()
+        val currentVpcId = clusterState.vpcId
 
         if (currentVpcId == null) {
-            outputHandler.handleMessage("No VPC found in terraform state. Use --all to find tagged VPCs or specify a VPC ID.")
-            return TeardownResult.failure("No VPC found in terraform state")
+            outputHandler.handleMessage(
+                "No VPC ID stored in cluster state for '${clusterState.name}'. " +
+                    "Use --all to find tagged VPCs or specify a VPC ID.",
+            )
+            return TeardownResult.failure("No VPC ID in cluster state")
         }
 
         return teardownSpecificVpc(currentVpcId)

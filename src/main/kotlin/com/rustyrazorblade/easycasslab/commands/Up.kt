@@ -70,6 +70,8 @@ class Up(
             val allHosts = tfstate.getAllHostsAsMap()
             clusterState.updateHosts(allHosts)
             clusterState.markInfrastructureUp()
+            // Store VPC ID for use by other commands (e.g., down)
+            clusterState.vpcId = tfstate.getVpcId()
             clusterStateManager.save(clusterState)
             outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
         } catch (e: Exception) {
