@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easycasslab.services
 
 import org.koin.core.module.dsl.factoryOf
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -18,4 +19,5 @@ val servicesModule =
         factoryOf(::DefaultK3sService) bind K3sService::class
         factoryOf(::DefaultK3sAgentService) bind K3sAgentService::class
         factoryOf(::DefaultSidecarService) bind SidecarService::class
+        singleOf(::HostOperationsService)
     }

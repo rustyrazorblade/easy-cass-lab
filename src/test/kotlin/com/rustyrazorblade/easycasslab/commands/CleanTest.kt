@@ -12,42 +12,41 @@ class CleanTest : BaseKoinTest() {
     lateinit var workingDir: File
 
     @Test
-    fun `clean deletes terraform files from working directory`() {
+    fun `clean deletes state file from working directory`() {
         // Create test files in temp dir
-        val tfState = File(workingDir, "terraform.tfstate")
-        val tfStateBackup = File(workingDir, "terraform.tfstate.backup")
-        val tfJson = File(workingDir, "terraform.tf.json")
+        val stateFile = File(workingDir, "state.json")
+        val envFile = File(workingDir, "env.sh")
+        val environmentFile = File(workingDir, "environment.sh")
 
-        tfState.createNewFile()
-        tfStateBackup.createNewFile()
-        tfJson.createNewFile()
+        stateFile.createNewFile()
+        envFile.createNewFile()
+        environmentFile.createNewFile()
 
-        assertThat(tfState).exists()
-        assertThat(tfStateBackup).exists()
-        assertThat(tfJson).exists()
+        assertThat(stateFile).exists()
+        assertThat(envFile).exists()
+        assertThat(environmentFile).exists()
 
         val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
         Clean(testContext).execute()
 
-        assertThat(tfState).doesNotExist()
-        assertThat(tfStateBackup).doesNotExist()
-        assertThat(tfJson).doesNotExist()
+        assertThat(stateFile).doesNotExist()
+        assertThat(envFile).doesNotExist()
+        assertThat(environmentFile).doesNotExist()
     }
 
     @Test
-    fun `clean deletes terraform directory from working directory`() {
-        // Create .terraform directory
-        val terraformDir = File(workingDir, ".terraform")
-        terraformDir.mkdir()
-        File(terraformDir, "plugins").mkdir()
-        File(terraformDir, "plugins/test.txt").createNewFile()
+    fun `clean deletes provisioning directory from working directory`() {
+        // Create provisioning directory
+        val provisioningDir = File(workingDir, "provisioning")
+        provisioningDir.mkdir()
+        File(provisioningDir, "test.txt").createNewFile()
 
-        assertThat(terraformDir).exists()
+        assertThat(provisioningDir).exists()
 
         val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
         Clean(testContext).execute()
 
-        assertThat(terraformDir).doesNotExist()
+        assertThat(provisioningDir).doesNotExist()
     }
 
     @Test
@@ -99,13 +98,13 @@ class CleanTest : BaseKoinTest() {
     @Test
     fun `clean operates only on specified working directory`() {
         // Create a file in working directory
-        val workingDirFile = File(workingDir, "terraform.tfstate")
+        val workingDirFile = File(workingDir, "state.json")
         workingDirFile.createNewFile()
 
         // Create another temp directory to simulate project root
         val projectRoot = File(workingDir.parentFile, "simulated-project-root")
         projectRoot.mkdir()
-        val projectRootFile = File(projectRoot, "terraform.tfstate")
+        val projectRootFile = File(projectRoot, "state.json")
         projectRootFile.createNewFile()
 
         try {
@@ -122,5 +121,28 @@ class CleanTest : BaseKoinTest() {
             projectRootFile.delete()
             projectRoot.delete()
         }
+    }
+
+    @Test
+    fun `clean deletes ssh config and host files`() {
+        // Create ssh config and related files
+        val sshConfig = File(workingDir, "sshConfig")
+        val hostsFile = File(workingDir, "hosts.txt")
+        val seedsFile = File(workingDir, "seeds.txt")
+
+        sshConfig.createNewFile()
+        hostsFile.createNewFile()
+        seedsFile.createNewFile()
+
+        assertThat(sshConfig).exists()
+        assertThat(hostsFile).exists()
+        assertThat(seedsFile).exists()
+
+        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        Clean(testContext).execute()
+
+        assertThat(sshConfig).doesNotExist()
+        assertThat(hostsFile).doesNotExist()
+        assertThat(seedsFile).doesNotExist()
     }
 }

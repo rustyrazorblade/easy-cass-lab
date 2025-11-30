@@ -5,7 +5,6 @@ import com.rustyrazorblade.easycasslab.commands.spark.SparkSubmit
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
-import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.s3Path
 import com.rustyrazorblade.easycasslab.services.ObjectStore
 import com.rustyrazorblade.easycasslab.services.SparkService
@@ -22,13 +21,11 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.io.ByteArrayInputStream
 import java.io.File
 
 class SparkSubmitTest : BaseKoinTest() {
     private lateinit var mockSparkService: SparkService
     private lateinit var mockObjectStore: ObjectStore
-    private lateinit var mockTfState: TFState
     private lateinit var mockClusterStateManager: ClusterStateManager
 
     override fun additionalTestModules(): List<Module> =
@@ -52,19 +49,6 @@ class SparkSubmitTest : BaseKoinTest() {
                 single {
                     mock<ClusterStateManager>().also {
                         mockClusterStateManager = it
-                    }
-                }
-
-                // Mock TFState
-                factory {
-                    val json =
-                        """
-                        {
-                          "resources": []
-                        }
-                        """.trimIndent()
-                    TFState(get(), ByteArrayInputStream(json.toByteArray())).also {
-                        mockTfState = it
                     }
                 }
             },

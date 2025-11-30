@@ -5,8 +5,10 @@ import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.toHost
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
 import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
@@ -27,6 +29,7 @@ class Restart(
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
     private val sidecarService: SidecarService by inject()
+    private val hostOperationsService: HostOperationsService by inject()
 
     @Mixin
     var hosts = HostsMixin()
@@ -34,8 +37,8 @@ class Restart(
     override fun execute() {
         outputHandler.handleMessage("Restarting cassandra service on all nodes.")
 
-        tfstate.withHosts(ServerType.Cassandra, hosts) {
-            cassandraService.restart(it).getOrThrow()
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
+            cassandraService.restart(host.toHost()).getOrThrow()
         }
 
         restartSidecar()
@@ -48,9 +51,9 @@ class Restart(
     private fun restartSidecar() {
         outputHandler.handleMessage("Restarting cassandra-sidecar on Cassandra nodes...")
 
-        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList, parallel = true) { host ->
             sidecarService
-                .restart(host)
+                .restart(host.toHost())
                 .onFailure { e ->
                     outputHandler.handleMessage("Warning: Failed to restart cassandra-sidecar on ${host.alias}: ${e.message}")
                 }
@@ -65,9 +68,9 @@ class Restart(
     private fun restartCassandraEasyStress() {
         outputHandler.handleMessage("Restarting cassandra-easy-stress on stress nodes...")
 
-        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, hosts.hostList, parallel = true) { host ->
             easyStressService
-                .restart(host)
+                .restart(host.toHost())
                 .onFailure { e ->
                     outputHandler.handleMessage("Warning: Failed to restart cassandra-easy-stress on ${host.alias}: ${e.message}")
                 }

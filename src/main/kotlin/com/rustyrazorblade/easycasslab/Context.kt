@@ -11,7 +11,7 @@ data class Context(
     val easycasslabUserDirectory: File,
     val isMcp: Boolean = false,
     /**
-     * Working directory for lab operations (terraform state, logs, etc.).
+     * Working directory for lab operations (cluster state, logs, etc.).
      * Defaults to the JVM's current working directory.
      * Can be overridden in tests to use a temp directory.
      */
@@ -46,8 +46,6 @@ data class Context(
 
     val cwdPath = System.getProperty("user.dir")
     val home = File(System.getProperty("user.home"))
-
-    val terraformCacheDir = File(easycasslabUserDirectory, "terraform_cache").also { it.mkdirs() }
 
     /**
      * Version is either supplied by the in-repo script,

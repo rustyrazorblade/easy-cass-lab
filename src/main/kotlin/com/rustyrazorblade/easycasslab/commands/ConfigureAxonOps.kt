@@ -6,6 +6,8 @@ import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
@@ -25,6 +27,7 @@ class ConfigureAxonOps(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
+    private val hostOperationsService: HostOperationsService by inject()
 
     @Option(names = ["--org"], description = ["AxonOps Organization Name"])
     var org = ""
@@ -43,7 +46,8 @@ class ConfigureAxonOps(
             exitProcess(1)
         }
 
-        tfstate.withHosts(ServerType.Cassandra, hosts) {
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
+            val it = host.toHost()
             outputHandler.handleMessage("Configure axonops on $it")
 
             remoteOps

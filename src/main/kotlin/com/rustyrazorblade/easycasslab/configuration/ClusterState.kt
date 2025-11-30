@@ -21,6 +21,7 @@ data class ClusterHost(
     val privateIp: String,
     val alias: String,
     val availabilityZone: String,
+    val instanceId: String = "",
 )
 
 /**
@@ -32,8 +33,26 @@ enum class InfrastructureStatus {
     UNKNOWN,
 }
 
-data class AWS(
-    var vpcId: String = "",
+/**
+ * EMR cluster state tracking for Spark jobs
+ */
+data class EMRClusterState(
+    val clusterId: String,
+    val clusterName: String,
+    val masterPublicDns: String? = null,
+    val state: String = "STARTING",
+)
+
+/**
+ * Infrastructure resource IDs for cleanup and tracking
+ * These are the AWS resource IDs that need to be cleaned up when the cluster is destroyed
+ */
+data class InfrastructureState(
+    val vpcId: String,
+    val subnetIds: List<String> = emptyList(),
+    val securityGroupId: String? = null,
+    val internetGatewayId: String? = null,
+    val routeTableId: String? = null,
 )
 
 /**
@@ -58,6 +77,11 @@ data class InitConfig(
     val controlInstances: Int = 1,
     val controlInstanceType: String = "t3.xlarge",
     val tags: Map<String, String> = mapOf(),
+    val arch: String = "AMD64",
+    val sparkEnabled: Boolean = false,
+    val sparkMasterInstanceType: String = "m5.xlarge",
+    val sparkWorkerInstanceType: String = "m5.xlarge",
+    val sparkWorkerCount: Int = 3,
 )
 
 /**
@@ -82,14 +106,42 @@ data class ClusterState(
     var infrastructureStatus: InfrastructureStatus = InfrastructureStatus.UNKNOWN,
     // All hosts in the cluster by server type
     var hosts: Map<ServerType, List<ClusterHost>> = emptyMap(),
+    // VPC ID for the cluster - the core resource that contains all infrastructure
+    var vpcId: String? = null,
+    // EMR cluster state for Spark jobs
+    var emrCluster: EMRClusterState? = null,
+    // Infrastructure resource IDs for cleanup
+    var infrastructure: InfrastructureState? = null,
 ) {
     /**
-     * Update hosts from TFState
+     * Update hosts
      */
     fun updateHosts(hosts: Map<ServerType, List<ClusterHost>>) {
         this.hosts = hosts
         this.lastAccessedAt = Instant.now()
     }
+
+    /**
+     * Update EMR cluster state
+     */
+    fun updateEmrCluster(emrCluster: EMRClusterState?) {
+        this.emrCluster = emrCluster
+        this.lastAccessedAt = Instant.now()
+    }
+
+    /**
+     * Update infrastructure state
+     */
+    fun updateInfrastructure(infrastructure: InfrastructureState?) {
+        this.infrastructure = infrastructure
+        this.vpcId = infrastructure?.vpcId
+        this.lastAccessedAt = Instant.now()
+    }
+
+    /**
+     * Get all instance IDs from all hosts for termination
+     */
+    fun getAllInstanceIds(): List<String> = hosts.values.flatten().mapNotNull { it.instanceId.takeIf { id -> id.isNotEmpty() } }
 
     /**
      * Mark infrastructure as UP

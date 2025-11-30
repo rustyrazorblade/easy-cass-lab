@@ -7,7 +7,6 @@ object Constants {
     // Container paths and directories
     object Paths {
         const val LOCAL_MOUNT = "/local"
-        const val TERRAFORM_CACHE = "/tcache"
         const val CREDENTIALS_MOUNT = "/credentials"
         const val AWS_CREDENTIALS_MOUNT = "/awscredentials"
 
@@ -49,6 +48,10 @@ object Constants {
     object Retry {
         // IAM operations: Higher retry count due to eventual consistency
         const val MAX_INSTANCE_PROFILE_RETRIES = 5
+
+        // EC2 instance operations: Higher retry count due to eventual consistency
+        // after instance creation, describeInstances may fail briefly
+        const val MAX_EC2_INSTANCE_RETRIES = 5
 
         // Standard AWS operations (S3, EC2, EMR, etc.): 3 attempts with exponential backoff
         const val MAX_AWS_RETRIES = 3
@@ -102,6 +105,7 @@ object Constants {
 
     // HTTP Status Codes
     object HttpStatus {
+        const val BAD_REQUEST = 400
         const val FORBIDDEN = 403
         const val NOT_FOUND = 404
         const val SERVER_ERROR_MIN = 500
@@ -114,12 +118,6 @@ object Constants {
         const val CONTAINER_ID_DISPLAY_LENGTH = 12
         const val CONTAINER_POLLING_INTERVAL_MS = 1000L
         const val FRAME_REPORTING_INTERVAL = 100
-    }
-
-    // Terraform configuration
-    object Terraform {
-        const val PLUGIN_CACHE_DIR_ENV = "TF_PLUGIN_CACHE_DIR"
-        const val AUTO_APPROVE_FLAG = "-auto-approve"
     }
 
     // Packer configuration
@@ -183,5 +181,29 @@ object Constants {
         const val LOCAL_KUBECONFIG = "kubeconfig"
         const val NODE_TOKEN_PATH = "/var/lib/rancher/k3s/server/node-token"
         const val DEFAULT_SERVER_URL = "https://127.0.0.1:6443"
+    }
+
+    // VPC and tagging configuration
+    object Vpc {
+        /** Default VPC CIDR block */
+        const val DEFAULT_CIDR = "10.0.0.0/16"
+
+        /** Tag key used to identify easy-cass-lab resources */
+        const val TAG_KEY = "easy_cass_lab"
+
+        /** Tag value used to identify easy-cass-lab resources */
+        const val TAG_VALUE = "1"
+
+        /** VPC name for packer infrastructure */
+        const val PACKER_VPC_NAME = "easy-cass-lab-packer"
+
+        /** SOCKS5 proxy state file name */
+        const val SOCKS5_PROXY_STATE_FILE = ".socks5-proxy-state"
+
+        /**
+         * Generates a subnet CIDR block for a given index within the VPC.
+         * Uses the pattern 10.0.{index+1}.0/24
+         */
+        fun subnetCidr(index: Int): String = "10.0.${index + 1}.0/24"
     }
 }

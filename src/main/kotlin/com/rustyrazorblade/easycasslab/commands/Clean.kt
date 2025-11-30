@@ -29,17 +29,12 @@ class Clean(
                 "cassandra.patch.yaml",
                 "jmx.options",
                 "seeds.txt",
-                "terraform.tfstate",
-                "terraform.tfstate.backup",
                 "stress_ips.txt",
                 "hosts.txt",
-                "terraform.tf.json",
-                "terraform.tfvars",
                 "sshConfig",
                 "env.sh",
                 "environment.sh",
                 "setup_instance.sh",
-                ".terraform.lock.hcl",
                 "logs",
                 "state.json",
                 "axonops-dashboards.json",
@@ -52,10 +47,10 @@ class Clean(
 
         val directoriesToClean =
             listOf(
-                ".terraform",
                 "provisioning",
                 "control",
                 "cassandra",
+                "stress",
                 "5.0",
             )
     }

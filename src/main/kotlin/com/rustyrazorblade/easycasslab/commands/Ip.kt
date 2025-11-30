@@ -3,8 +3,9 @@ package com.rustyrazorblade.easycasslab.commands
 import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import com.rustyrazorblade.easycasslab.di.TFStateProvider
+import com.rustyrazorblade.easycasslab.configuration.getHosts
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -35,8 +36,8 @@ class Ip(
 ) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
-    private val tfStateProvider: TFStateProvider by inject()
-    private val tfstate by lazy { tfStateProvider.getDefault() }
+    private val clusterStateManager: ClusterStateManager by inject()
+    private val clusterState by lazy { clusterStateManager.load() }
 
     @Parameters(
         index = "0",
@@ -54,7 +55,7 @@ class Ip(
         // Find the host across all server types
         val foundHost =
             ServerType.entries
-                .flatMap { tfstate.getHosts(it) }
+                .flatMap { clusterState.getHosts(it) }
                 .firstOrNull { it.alias == host }
                 ?: error("Host not found: $host")
 

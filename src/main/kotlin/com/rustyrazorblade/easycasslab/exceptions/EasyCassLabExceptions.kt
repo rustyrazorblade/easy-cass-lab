@@ -51,9 +51,9 @@ class SSHException(
 ) : EasyCassLabException(message, cause)
 
 /**
- * Thrown when Terraform operations fail
+ * Thrown when an AWS operation times out waiting for resources
  */
-class TerraformException(
+class AwsTimeoutException(
     message: String,
     cause: Throwable? = null,
 ) : EasyCassLabException(message, cause)

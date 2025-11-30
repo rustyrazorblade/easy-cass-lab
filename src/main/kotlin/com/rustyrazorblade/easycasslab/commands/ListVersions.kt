@@ -4,6 +4,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.getHosts
 import picocli.CommandLine.Command
 
 /**
@@ -20,7 +21,7 @@ class ListVersions(
     context: Context,
 ) : PicoBaseCommand(context) {
     override fun execute() {
-        tfstate.getHosts(ServerType.Cassandra).first().let {
+        clusterState.getHosts(ServerType.Cassandra).first().let {
             val response = remoteOps.executeRemotely(it, "ls /usr/local/cassandra", output = false)
             response.text.split("\n").filter { line -> line != "current" }.forEach { line ->
                 outputHandler.handleMessage(line)

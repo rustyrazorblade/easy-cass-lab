@@ -1,8 +1,9 @@
-package com.rustyrazorblade.easycasslab.providers
+package com.rustyrazorblade.easycasslab.providers.aws
 
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.DockerException
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.resilience4j.retry.Retry
 import io.github.resilience4j.retry.RetryConfig
 import org.apache.sshd.common.SshException
 import software.amazon.awssdk.awscore.exception.AwsServiceException
@@ -74,6 +75,45 @@ object RetryUtil {
             }.build()
 
     /**
+     * Creates retry configuration for EC2 instance operations.
+     *
+     * EC2 instance operations require special handling due to AWS eventual consistency:
+     * - Higher retry count (5 attempts) to handle propagation delays after instance creation
+     * - Retries on 400 errors with "does not exist" message (instance not yet visible)
+     * - Retries on 5xx server errors
+     * - Does NOT retry on other 4xx client errors (e.g., permission errors)
+     *
+     * Exponential backoff: 1s, 2s, 4s, 8s, 16s
+     *
+     * @return RetryConfig configured for EC2 instance operations
+     */
+    fun <T> createEC2InstanceRetryConfig(): RetryConfig =
+        RetryConfig
+            .custom<T>()
+            .maxAttempts(Constants.Retry.MAX_EC2_INSTANCE_RETRIES)
+            .intervalFunction { attemptCount ->
+                // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+                Constants.Retry.EXPONENTIAL_BACKOFF_BASE_MS * (1L shl (attemptCount - 1))
+            }.retryOnException { throwable ->
+                when {
+                    throwable !is AwsServiceException -> false
+                    // Retry on "does not exist" errors - eventual consistency after instance creation
+                    throwable.statusCode() == Constants.HttpStatus.BAD_REQUEST &&
+                        throwable.message?.contains("does not exist") == true -> {
+                        log.warn { "Instance not yet visible (eventual consistency) - will retry" }
+                        true
+                    }
+                    // Retry on server errors
+                    throwable.statusCode() in
+                        Constants.HttpStatus.SERVER_ERROR_MIN..Constants.HttpStatus.SERVER_ERROR_MAX -> {
+                        log.warn { "AWS service error ${throwable.statusCode()} - will retry" }
+                        true
+                    }
+                    else -> false
+                }
+            }.build()
+
+    /**
      * Creates retry configuration for standard AWS operations (S3, EC2, EMR, etc.).
      *
      * Standard AWS operations:
@@ -83,6 +123,8 @@ object RetryUtil {
      *
      * Note: For IAM operations, use createIAMRetryConfig() instead, which has
      * special handling for eventual consistency (404 errors) and higher retry count.
+     * For EC2 instance operations (describeInstances after create), use
+     * createEC2InstanceRetryConfig() instead.
      *
      * Exponential backoff: 1s, 2s, 4s
      *
@@ -228,4 +270,43 @@ object RetryUtil {
                     else -> false
                 }
             }.build()
+
+    // ==================== Helper Functions ====================
+
+    /**
+     * Executes an operation with standard AWS retry logic.
+     *
+     * This is a convenience function that wraps the common pattern of:
+     * 1. Creating an AWS retry config
+     * 2. Creating a Retry instance
+     * 3. Decorating and executing the operation
+     *
+     * @param operationName Name of the operation for logging and metrics
+     * @param operation The operation to execute with retry logic
+     * @return The result of the operation
+     */
+    fun <T> withAwsRetry(
+        operationName: String,
+        operation: () -> T,
+    ): T {
+        val retryConfig = createAwsRetryConfig<T>()
+        val retry = Retry.of(operationName, retryConfig)
+        return Retry.decorateSupplier(retry, operation).get()
+    }
+
+    /**
+     * Executes an operation with EC2 instance retry logic (handles eventual consistency).
+     *
+     * @param operationName Name of the operation for logging and metrics
+     * @param operation The operation to execute with retry logic
+     * @return The result of the operation
+     */
+    fun <T> withEc2InstanceRetry(
+        operationName: String,
+        operation: () -> T,
+    ): T {
+        val retryConfig = createEC2InstanceRetryConfig<T>()
+        val retry = Retry.of(operationName, retryConfig)
+        return Retry.decorateSupplier(retry, operation).get()
+    }
 }

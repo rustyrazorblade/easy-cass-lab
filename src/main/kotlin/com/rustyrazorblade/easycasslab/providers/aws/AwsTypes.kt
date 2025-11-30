@@ -1,9 +1,9 @@
 package com.rustyrazorblade.easycasslab.providers.aws
 
 /*
- * Type aliases for AWS VPC resource identifiers and configuration values.
+ * Type aliases for AWS resource identifiers and configuration values.
  *
- * These type aliases provide semantic meaning to String values used in VPC operations,
+ * These type aliases provide semantic meaning to String values used in AWS operations,
  * improving type safety and code clarity.
  */
 
@@ -46,3 +46,18 @@ typealias ResourceName = String
  * Resource description text
  */
 typealias ResourceDescription = String
+
+/**
+ * AWS EC2 instance identifier (e.g., "i-123abc456def")
+ */
+typealias InstanceId = String
+
+/**
+ * AWS EMR cluster identifier (e.g., "j-123ABC456DEF")
+ */
+typealias ClusterId = String
+
+/**
+ * AWS NAT Gateway identifier (e.g., "nat-123abc456def")
+ */
+typealias NatGatewayId = String
