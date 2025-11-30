@@ -1,14 +1,12 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
+import com.rustyrazorblade.easycasslab.configuration.ClusterHost
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
-import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
-import com.rustyrazorblade.easycasslab.di.TFStateProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +15,6 @@ import org.koin.dsl.module
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.io.File
-import java.io.InputStream
 
 /**
  * Tests for the Up command's environment variable generation functionality.
@@ -55,37 +52,38 @@ class UpTest : BaseKoinTest() {
 
     @Test
     fun `writeStressEnvironmentVariables creates environment file with datacenter variable`() {
-        // Arrange - Create a test module with mocked TFState
+        // Arrange - Create a test module with mocked ClusterStateManager
         val testRegion = "us-west-2"
         val cassandraHost =
-            Host(
-                public = "3.3.3.3",
-                private = "10.0.1.5",
+            ClusterHost(
+                publicIp = "3.3.3.3",
+                privateIp = "10.0.1.5",
                 alias = "cassandra0",
                 availabilityZone = "us-west-2a",
             )
 
-        val mockTFState = mock<TFState>()
-        whenever(mockTFState.getHosts(ServerType.Cassandra)).thenReturn(listOf(cassandraHost))
+        val initConfig = InitConfig(region = testRegion)
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                initConfig = initConfig,
+                hosts = mapOf(ServerType.Cassandra to listOf(cassandraHost)),
+            )
+
+        val mockClusterStateManager = mock<ClusterStateManager>()
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
+        whenever(mockClusterStateManager.exists()).thenReturn(true)
 
         val mockUserConfig = mock<User>()
         whenever(mockUserConfig.region).thenReturn(testRegion)
 
-        // Rebuild Koin with mocked TFState
+        // Rebuild Koin with mocked ClusterStateManager
         tearDownKoin()
         val customModules =
             listOf(
                 module {
-                    single<TFStateProvider> {
-                        object : TFStateProvider {
-                            override fun parseFromFile(file: File): TFState = mockTFState
-
-                            override fun parseFromStream(stream: InputStream): TFState = mockTFState
-
-                            override fun getDefault(): TFState = mockTFState
-                        }
-                    }
-                    single { mockTFState }
+                    single { mockClusterStateManager }
                     single { mockUserConfig }
                 },
             )
@@ -95,6 +93,13 @@ class UpTest : BaseKoinTest() {
 
         // Create Up command instance
         val upCommand = Up(context)
+
+        // Initialize workingState via reflection (normally done in execute())
+        val workingStateField =
+            Up::class.java.getDeclaredField("workingState").apply {
+                isAccessible = true
+            }
+        workingStateField.set(upCommand, clusterState)
 
         // Use reflection to call the private method for testing
         val writeMethod =
@@ -113,7 +118,7 @@ class UpTest : BaseKoinTest() {
         assertThat(content).contains("#!/usr/bin/env bash")
 
         // Verify all three required environment variables are present
-        assertThat(content).contains("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=${cassandraHost.private}")
+        assertThat(content).contains("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=${cassandraHost.privateIp}")
         assertThat(content).contains("export CASSANDRA_EASY_STRESS_PROM_PORT=0")
         assertThat(content).contains("export CASSANDRA_EASY_STRESS_DEFAULT_DC=$testRegion")
     }
@@ -124,9 +129,9 @@ class UpTest : BaseKoinTest() {
         val clusterStateRegion = "eu-west-1"
         val userConfigRegion = "us-east-1"
         val cassandraHost =
-            Host(
-                public = "4.4.4.4",
-                private = "10.0.1.10",
+            ClusterHost(
+                publicIp = "4.4.4.4",
+                privateIp = "10.0.1.10",
                 alias = "cassandra0",
                 availabilityZone = "eu-west-1a",
             )
@@ -136,37 +141,26 @@ class UpTest : BaseKoinTest() {
         val clusterState =
             ClusterState(
                 name = "test-cluster",
-                versions = mutableMapOf<String, String>(),
+                versions = mutableMapOf(),
                 initConfig = initConfig,
+                hosts = mapOf(ServerType.Cassandra to listOf(cassandraHost)),
             )
 
         // Create a mock ClusterStateManager that returns our clusterState
         val mockClusterStateManager = mock<ClusterStateManager>()
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-
-        val mockTFState = mock<TFState>()
-        whenever(mockTFState.getHosts(ServerType.Cassandra)).thenReturn(listOf(cassandraHost))
+        whenever(mockClusterStateManager.exists()).thenReturn(true)
 
         val mockUserConfig = mock<User>()
         whenever(mockUserConfig.region).thenReturn(userConfigRegion)
 
-        // Rebuild Koin with mocked TFState and ClusterStateManager
+        // Rebuild Koin with mocked ClusterStateManager
         tearDownKoin()
         val customModules =
             listOf(
                 module {
-                    single<TFStateProvider> {
-                        object : TFStateProvider {
-                            override fun parseFromFile(file: File): TFState = mockTFState
-
-                            override fun parseFromStream(stream: InputStream): TFState = mockTFState
-
-                            override fun getDefault(): TFState = mockTFState
-                        }
-                    }
-                    single { mockTFState }
-                    single { mockUserConfig }
                     single { mockClusterStateManager }
+                    single { mockUserConfig }
                 },
             )
         setupKoin()
@@ -175,6 +169,13 @@ class UpTest : BaseKoinTest() {
 
         // Create Up command instance
         val upCommand = Up(context)
+
+        // Initialize workingState via reflection (normally done in execute())
+        val workingStateField =
+            Up::class.java.getDeclaredField("workingState").apply {
+                isAccessible = true
+            }
+        workingStateField.set(upCommand, clusterState)
 
         // Use reflection to call the private method
         val writeMethod =
@@ -199,34 +200,35 @@ class UpTest : BaseKoinTest() {
         // Arrange
         val userConfigRegion = "ap-south-1"
         val cassandraHost =
-            Host(
-                public = "5.5.5.5",
-                private = "10.0.1.15",
+            ClusterHost(
+                publicIp = "5.5.5.5",
+                privateIp = "10.0.1.15",
                 alias = "cassandra0",
                 availabilityZone = "ap-south-1a",
             )
 
-        val mockTFState = mock<TFState>()
-        whenever(mockTFState.getHosts(ServerType.Cassandra)).thenReturn(listOf(cassandraHost))
+        // Create ClusterState without initConfig
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                initConfig = null,
+                hosts = mapOf(ServerType.Cassandra to listOf(cassandraHost)),
+            )
+
+        val mockClusterStateManager = mock<ClusterStateManager>()
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
+        whenever(mockClusterStateManager.exists()).thenReturn(true)
 
         val mockUserConfig = mock<User>()
         whenever(mockUserConfig.region).thenReturn(userConfigRegion)
 
-        // Rebuild Koin with mocked TFState
+        // Rebuild Koin with mocked ClusterStateManager
         tearDownKoin()
         val customModules =
             listOf(
                 module {
-                    single<TFStateProvider> {
-                        object : TFStateProvider {
-                            override fun parseFromFile(file: File): TFState = mockTFState
-
-                            override fun parseFromStream(stream: InputStream): TFState = mockTFState
-
-                            override fun getDefault(): TFState = mockTFState
-                        }
-                    }
-                    single { mockTFState }
+                    single { mockClusterStateManager }
                     single { mockUserConfig }
                 },
             )
@@ -236,6 +238,13 @@ class UpTest : BaseKoinTest() {
 
         // Create Up command instance
         val upCommand = Up(context)
+
+        // Initialize workingState via reflection (normally done in execute())
+        val workingStateField =
+            Up::class.java.getDeclaredField("workingState").apply {
+                isAccessible = true
+            }
+        workingStateField.set(upCommand, clusterState)
 
         // Use reflection to call the private method
         val writeMethod =

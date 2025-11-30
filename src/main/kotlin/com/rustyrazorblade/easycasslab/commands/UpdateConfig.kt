@@ -10,6 +10,9 @@ import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
+import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
@@ -33,6 +36,8 @@ import kotlin.io.path.inputStream
 class UpdateConfig(
     context: Context,
 ) : PicoBaseCommand(context) {
+    private val hostOperationsService: HostOperationsService by inject()
+
     @Mixin
     var hosts = HostsMixin()
 
@@ -47,7 +52,8 @@ class UpdateConfig(
 
     override fun execute() {
         // upload the patch file
-        tfstate.withHosts(ServerType.Cassandra, hosts) {
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
+            val it = host.toHost()
             outputHandler.handleMessage("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())

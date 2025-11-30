@@ -5,6 +5,9 @@ import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
+import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Parameters
@@ -26,6 +29,8 @@ import kotlin.system.exitProcess
 class UploadAuthorizedKeys(
     context: Context,
 ) : PicoBaseCommand(context) {
+    private val hostOperationsService: HostOperationsService by inject()
+
     @Parameters(description = ["Local directory of authorized keys"], defaultValue = "authorized_keys")
     var localDir = "authorized_keys"
 
@@ -62,8 +67,8 @@ class UploadAuthorizedKeys(
         outputHandler.handleMessage(keys)
 
         val upload = doUpload(authorizedKeysExtraFile)
-        tfstate.withHosts(ServerType.Cassandra, hosts) { upload(it) }
-        tfstate.withHosts(ServerType.Stress, HostsMixin()) { upload(it) }
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { upload(it.toHost()) }
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, "") { upload(it.toHost()) }
     }
 
     private fun doUpload(authorizedKeysFile: File) =

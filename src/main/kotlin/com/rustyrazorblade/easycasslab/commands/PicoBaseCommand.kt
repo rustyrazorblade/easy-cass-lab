@@ -1,7 +1,7 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.di.TFStateProvider
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import com.rustyrazorblade.easycasslab.providers.ssh.RemoteOperationsService
 import org.koin.core.component.KoinComponent
@@ -10,7 +10,7 @@ import org.koin.core.component.inject
 /**
  * Base class for PicoCLI commands that need remote operations.
  *
- * Provides injected services for SSH operations, Terraform state, and output handling.
+ * Provides injected services for SSH operations, cluster state, and output handling.
  * Most commands extend this class to get access to common infrastructure services.
  */
 abstract class PicoBaseCommand(
@@ -26,12 +26,9 @@ abstract class PicoBaseCommand(
      */
     protected val outputHandler: OutputHandler by inject()
 
-    /**
-     * Injected TFStateProvider for Terraform state management. Use tfStateProvider.getDefault() to
-     * get the current TFState.
-     */
-    protected val tfStateProvider: TFStateProvider by inject()
+    /** Injected ClusterStateManager for cluster state management. */
+    protected val clusterStateManager: ClusterStateManager by inject()
 
-    /** Convenience property to get the default TFState. This replaces the old tfstate usage. */
-    protected val tfstate by lazy { tfStateProvider.getDefault() }
+    /** Convenience property to get the current ClusterState. */
+    protected val clusterState by lazy { clusterStateManager.load() }
 }

@@ -6,15 +6,16 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
-import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.getHosts
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
-import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
 /**
@@ -29,7 +30,7 @@ import kotlin.system.exitProcess
 class UseCassandra(
     context: Context,
 ) : PicoBaseCommand(context) {
-    private val clusterStateManager: ClusterStateManager by inject()
+    private val hostOperationsService: HostOperationsService by inject()
 
     @Parameters(description = ["Cassandra version"], index = "0")
     lateinit var version: String
@@ -48,23 +49,23 @@ class UseCassandra(
     @Suppress("TooGenericExceptionCaught")
     override fun execute() {
         check(version.isNotBlank())
-        val state = clusterStateManager.load()
-        try {
-            tfstate
-        } catch (ignored: FileNotFoundException) {
+        val state = clusterState
+
+        if (!clusterStateManager.exists()) {
             outputHandler.handleMessage(
-                "Error: terraform config file not found.  Please run easy-cass-lab up first to " +
+                "Error: cluster state not found. Please run easy-cass-lab up first to " +
                     "establish IP addresses for seed listing.",
             )
             exitProcess(1)
         }
 
-        val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
+        val cassandraHosts = state.getHosts(ServerType.Cassandra)
         outputHandler.handleMessage(
             "Using version $version on ${cassandraHosts.size} hosts, filter: $hosts",
         )
 
-        tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) {
+        hostOperationsService.withHosts(state.hosts, ServerType.Cassandra, hosts.hostList, parallel = true) { host ->
+            val it = host.toHost()
             if (javaVersion.isNotBlank()) {
                 remoteOps.executeRemotely(it, "set-java-version $javaVersion $version")
             }

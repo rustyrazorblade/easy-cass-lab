@@ -9,8 +9,10 @@ import com.rustyrazorblade.easycasslab.annotations.RequireSSHKey
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.configuration.toHost
 import com.rustyrazorblade.easycasslab.services.CassandraService
 import com.rustyrazorblade.easycasslab.services.EasyStressService
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
 import com.rustyrazorblade.easycasslab.services.SidecarService
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
@@ -36,6 +38,7 @@ class Start(
     private val cassandraService: CassandraService by inject()
     private val easyStressService: EasyStressService by inject()
     private val sidecarService: SidecarService by inject()
+    private val hostOperationsService: HostOperationsService by inject()
 
     companion object {
         private const val DEFAULT_SLEEP_BETWEEN_STARTS_SECONDS = 120L
@@ -49,16 +52,17 @@ class Start(
 
     override fun execute() {
         with(TermColors()) {
-            tfstate.withHosts(ServerType.Cassandra, hosts) {
-                outputHandler.handleMessage(green("Starting $it"))
+            hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
+                val h = host.toHost()
+                outputHandler.handleMessage(green("Starting $h"))
                 // start() defaults to wait=true, which includes waiting for UP/NORMAL
-                cassandraService.start(it).getOrThrow()
+                cassandraService.start(h).getOrThrow()
             }
 
             // Start cassandra-sidecar on Cassandra nodes
-            tfstate.withHosts(ServerType.Cassandra, hosts, parallel = true) { host ->
+            hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList, parallel = true) { host ->
                 sidecarService
-                    .start(host)
+                    .start(host.toHost())
                     .onFailure { e ->
                         outputHandler.handleMessage("Warning: Failed to start cassandra-sidecar on ${host.alias}: ${e.message}")
                     }
@@ -71,8 +75,8 @@ class Start(
         // Start axon-agent on Cassandra nodes if configured
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
             outputHandler.handleMessage("Starting axon-agent on Cassandra nodes...")
-            tfstate.withHosts(ServerType.Cassandra, HostsMixin(), parallel = true) {
-                remoteOps.executeRemotely(it, "sudo systemctl start axon-agent")
+            hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, "", parallel = true) { host ->
+                remoteOps.executeRemotely(host.toHost(), "sudo systemctl start axon-agent")
             }
         }
 
@@ -95,9 +99,9 @@ class Start(
     private fun startCassandraEasyStress() {
         outputHandler.handleMessage("Starting cassandra-easy-stress on stress nodes...")
 
-        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) { host ->
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, hosts.hostList, parallel = true) { host ->
             easyStressService
-                .start(host)
+                .start(host.toHost())
                 .onFailure { e ->
                     outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
                 }

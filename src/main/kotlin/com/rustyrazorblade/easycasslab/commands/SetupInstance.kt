@@ -5,6 +5,10 @@ import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.getHosts
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
+import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import java.nio.file.Path
@@ -21,6 +25,8 @@ import java.nio.file.Path
 class SetupInstance(
     context: Context,
 ) : PicoBaseCommand(context) {
+    private val hostOperationsService: HostOperationsService by inject()
+
     @Mixin
     var hosts = HostsMixin()
 
@@ -57,7 +63,7 @@ class SetupInstance(
         }
 
         // Get datacenter once from the first stress instance (all instances are in the same DC)
-        val stressHosts = tfstate.getHosts(ServerType.Stress)
+        val stressHosts = clusterState.getHosts(ServerType.Stress)
         val datacenter =
             if (stressHosts.isNotEmpty()) {
                 val datacenterResponse =
@@ -70,25 +76,27 @@ class SetupInstance(
                 ""
             }
 
-        val cassandraHost = tfstate.getHosts(ServerType.Cassandra).first().private
+        val cassandraHost = clusterState.getHosts(ServerType.Cassandra).first().private
 
-        tfstate.withHosts(ServerType.Stress, hosts, parallel = true) {
-            setup(it)
-            setupStressSystemdEnv(it, cassandraHost, datacenter)
-            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
-            remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
-            remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, hosts.hostList, parallel = true) { host ->
+            val h = host.toHost()
+            setup(h)
+            setupStressSystemdEnv(h, cassandraHost, datacenter)
+            remoteOps.executeRemotely(h, "sudo hostnamectl set-hostname ${h.alias}").text
+            remoteOps.upload(h, Path.of("setup_instance.sh"), "setup_instance.sh")
+            remoteOps.executeRemotely(h, "sudo bash setup_instance.sh").text
         }
-        tfstate.withHosts(ServerType.Cassandra, HostsMixin()) {
-            setup(it)
-            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
-            remoteOps.upload(it, Path.of("setup_instance.sh"), "setup_instance.sh")
-            remoteOps.executeRemotely(it, "sudo bash setup_instance.sh").text
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, "") { host ->
+            val h = host.toHost()
+            setup(h)
+            remoteOps.executeRemotely(h, "sudo hostnamectl set-hostname ${h.alias}").text
+            remoteOps.upload(h, Path.of("setup_instance.sh"), "setup_instance.sh")
+            remoteOps.executeRemotely(h, "sudo bash setup_instance.sh").text
         }
-        tfstate.withHosts(ServerType.Control, HostsMixin()) {
+        hostOperationsService.withHosts(clusterState.hosts, ServerType.Control, "") { host ->
             // Control nodes need minimal setup - just hostname configuration
             // K3s installation will happen later in startK3sOnAllNodes()
-            remoteOps.executeRemotely(it, "sudo hostnamectl set-hostname ${it.alias}").text
+            remoteOps.executeRemotely(host.toHost(), "sudo hostnamectl set-hostname ${host.alias}").text
         }
     }
 }

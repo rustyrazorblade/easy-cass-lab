@@ -4,6 +4,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.getHosts
 import io.github.oshai.kotlinlogging.KotlinLogging
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
@@ -32,7 +33,7 @@ class DownloadConfig(
     }
 
     override fun execute() {
-        val cassandraHosts = tfstate.getHosts(ServerType.Cassandra)
+        val cassandraHosts = clusterState.getHosts(ServerType.Cassandra)
 
         // Currently using first host - consider adding --host option for specific node selection
         val host = cassandraHosts.first()

@@ -1,10 +1,12 @@
 package com.rustyrazorblade.easycasslab.services
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
-import com.rustyrazorblade.easycasslab.configuration.TFState
+import com.rustyrazorblade.easycasslab.configuration.EMRClusterState
 import com.rustyrazorblade.easycasslab.configuration.User
+import com.rustyrazorblade.easycasslab.providers.aws.EMRSparkService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -34,7 +36,6 @@ import software.amazon.awssdk.services.emr.model.StepStatus
  */
 class EMRSparkServiceTest : BaseKoinTest() {
     private lateinit var mockEmrClient: EmrClient
-    private lateinit var mockTfState: TFState
     private lateinit var mockObjectStore: ObjectStore
     private lateinit var mockClusterStateManager: ClusterStateManager
     private lateinit var mockUserConfig: User
@@ -53,22 +54,28 @@ class EMRSparkServiceTest : BaseKoinTest() {
             state = "WAITING",
         )
 
+    private val validEmrClusterState =
+        EMRClusterState(
+            clusterId = testClusterId,
+            clusterName = "test-cluster",
+            masterPublicDns = "master.example.com",
+            state = "WAITING",
+        )
+
     override fun additionalTestModules(): List<Module> =
         listOf(
             module {
                 single<EmrClient> { mockEmrClient }
-                single<TFState> { mockTfState }
                 single<ObjectStore> { mockObjectStore }
                 single<ClusterStateManager> { mockClusterStateManager }
                 single<User> { mockUserConfig }
-                factory<SparkService> { EMRSparkService(get(), get(), get(), get(), get(), get()) }
+                factory<SparkService> { EMRSparkService(get(), get(), get(), get(), get()) }
             },
         )
 
     @BeforeEach
     fun setupMocks() {
         mockEmrClient = mock()
-        mockTfState = mock()
         mockObjectStore = mock()
         mockClusterStateManager = mock()
         mockUserConfig = mock()
@@ -80,7 +87,13 @@ class EMRSparkServiceTest : BaseKoinTest() {
     @Test
     fun `validateCluster should return success when cluster exists and is in WAITING state`() {
         // Given
-        whenever(mockTfState.getEMRCluster()).thenReturn(validClusterInfo)
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                emrCluster = validEmrClusterState,
+            )
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
         // When
         val result = sparkService.validateCluster()
@@ -93,21 +106,34 @@ class EMRSparkServiceTest : BaseKoinTest() {
     @Test
     fun `validateCluster should return success when cluster exists and is in RUNNING state`() {
         // Given
-        val runningClusterInfo = validClusterInfo.copy(state = "RUNNING")
-        whenever(mockTfState.getEMRCluster()).thenReturn(runningClusterInfo)
+        val runningEmrClusterState = validEmrClusterState.copy(state = "RUNNING")
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                emrCluster = runningEmrClusterState,
+            )
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
         // When
         val result = sparkService.validateCluster()
 
         // Then
         assertThat(result.isSuccess).isTrue()
+        val runningClusterInfo = validClusterInfo.copy(state = "RUNNING")
         assertThat(result.getOrNull()).isEqualTo(runningClusterInfo)
     }
 
     @Test
     fun `validateCluster should return failure when cluster does not exist`() {
         // Given
-        whenever(mockTfState.getEMRCluster()).thenReturn(null)
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                emrCluster = null,
+            )
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
         // When
         val result = sparkService.validateCluster()
@@ -122,8 +148,14 @@ class EMRSparkServiceTest : BaseKoinTest() {
     @Test
     fun `validateCluster should return failure when cluster is in invalid state`() {
         // Given
-        val terminatingClusterInfo = validClusterInfo.copy(state = "TERMINATING")
-        whenever(mockTfState.getEMRCluster()).thenReturn(terminatingClusterInfo)
+        val terminatingEmrClusterState = validEmrClusterState.copy(state = "TERMINATING")
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                emrCluster = terminatingEmrClusterState,
+            )
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
         // When
         val result = sparkService.validateCluster()

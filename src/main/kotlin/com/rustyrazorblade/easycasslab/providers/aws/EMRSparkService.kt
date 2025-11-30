@@ -1,13 +1,13 @@
-package com.rustyrazorblade.easycasslab.services
+package com.rustyrazorblade.easycasslab.providers.aws
 
 import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.EMRClusterInfo
-import com.rustyrazorblade.easycasslab.configuration.TFState
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.s3Path
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import com.rustyrazorblade.easycasslab.providers.RetryUtil
+import com.rustyrazorblade.easycasslab.services.ObjectStore
+import com.rustyrazorblade.easycasslab.services.SparkService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.resilience4j.retry.Retry
 import software.amazon.awssdk.services.emr.EmrClient
@@ -42,12 +42,11 @@ import java.util.zip.GZIPInputStream
  * - The polling is blocking - it holds the thread until job completion or timeout
  *
  * @property emrClient AWS EMR client for API operations
- * @property tfState Terraform state for cluster discovery
  * @property outputHandler Handler for user-facing output messages
+ * @property clusterStateManager Manager for cluster state persistence
  */
 class EMRSparkService(
     private val emrClient: EmrClient,
-    private val tfState: TFState,
     private val outputHandler: OutputHandler,
     private val objectStore: ObjectStore,
     private val clusterStateManager: ClusterStateManager,
@@ -186,11 +185,20 @@ class EMRSparkService(
 
     override fun validateCluster(): Result<EMRClusterInfo> =
         runCatching {
-            val clusterInfo =
-                tfState.getEMRCluster()
+            val clusterState = clusterStateManager.load()
+            val emrCluster =
+                clusterState.emrCluster
                     ?: error(
-                        "No EMR cluster found in Terraform state. Use --spark.enable during init to create an EMR cluster.",
+                        "No EMR cluster found in cluster state. Use --spark.enable during init to create an EMR cluster.",
                     )
+
+            val clusterInfo =
+                EMRClusterInfo(
+                    clusterId = emrCluster.clusterId,
+                    name = emrCluster.clusterName,
+                    masterPublicDns = emrCluster.masterPublicDns,
+                    state = emrCluster.state,
+                )
 
             check(clusterInfo.state in VALID_CLUSTER_STATES) {
                 "EMR cluster is in state '${clusterInfo.state}'. Expected one of: $VALID_CLUSTER_STATES"

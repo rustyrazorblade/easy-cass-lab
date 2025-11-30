@@ -4,7 +4,7 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.ServerType
-import com.rustyrazorblade.easycasslab.di.TFStateProvider
+import com.rustyrazorblade.easycasslab.configuration.getHosts
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -27,9 +27,8 @@ class WriteConfig(
 ) : PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
-    private val tfStateProvider: TFStateProvider by inject()
     private val clusterStateManager: ClusterStateManager by inject()
-    private val tfstate by lazy { tfStateProvider.getDefault() }
+    private val clusterState by lazy { clusterStateManager.load() }
 
     companion object {
         private const val DEFAULT_TOKEN_COUNT = 4
@@ -51,11 +50,9 @@ class WriteConfig(
                 "(or automatically when calling use-cassandra)",
         )
 
-        val state = clusterStateManager.load()
-
         val data =
             object {
-                val cluster_name = state.name
+                val cluster_name = clusterState.name
                 val num_tokens = tokens
                 val seed_provider =
                     object {
@@ -63,7 +60,7 @@ class WriteConfig(
                         val parameters =
                             object {
                                 val seeds =
-                                    tfstate
+                                    clusterState
                                         .getHosts(ServerType.Cassandra)
                                         .map { it.private }
                                         .take(1)

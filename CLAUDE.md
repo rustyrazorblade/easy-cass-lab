@@ -123,13 +123,14 @@ Retry.decorateRunnable(retry) {
 | Method | Attempts | Backoff | Use Case |
 |--------|----------|---------|----------|
 | `createIAMRetryConfig()` | 5 | Exponential 1s-16s | IAM operations, handles 404 eventual consistency |
+| `createEC2InstanceRetryConfig<T>()` | 5 | Exponential 1s-16s | EC2 instance operations, handles "does not exist" eventual consistency |
 | `createAwsRetryConfig<T>()` | 3 | Exponential 1s-4s | S3, EC2, EMR, and other AWS services |
 | `createDockerRetryConfig<T>()` | 3 | Exponential 1s-4s | Container start/stop/remove |
 | `createNetworkRetryConfig<T>()` | 3 | Exponential 1s-4s | Generic network operations |
 | `createSshConnectionRetryConfig()` | 30 | Fixed 10s | SSH boot-up waiting (~5 min) |
 | `createS3LogRetrievalRetryConfig<T>()` | 10 | Fixed 3s | S3 log retrieval, handles 404 for eventual consistency |
 
-See `EC2Service.kt`, `S3ObjectStore.kt`, and `Up.kt` for production examples.
+See `EC2Service.kt`, `EC2InstanceService.kt`, `S3ObjectStore.kt`, and `Up.kt` for production examples.
 
 ## Testing Guidelines
 

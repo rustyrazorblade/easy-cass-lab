@@ -83,14 +83,6 @@ class EasyCassLabExceptionsTest {
     }
 
     @Test
-    fun `TerraformException works correctly`() {
-        val exception = TerraformException("Terraform plan failed")
-
-        assertThat(exception.message).isEqualTo("Terraform plan failed")
-        assertThat(exception).isInstanceOf(EasyCassLabException::class.java)
-    }
-
-    @Test
     fun `DuplicateVersionException can be thrown and caught`() {
         assertThatThrownBy { throw DuplicateVersionException(setOf("1.0")) }
             .isInstanceOf(DuplicateVersionException::class.java)
@@ -126,13 +118,6 @@ class EasyCassLabExceptionsTest {
     }
 
     @Test
-    fun `TerraformException can be thrown and caught`() {
-        assertThatThrownBy { throw TerraformException("error") }
-            .isInstanceOf(TerraformException::class.java)
-            .isInstanceOf(EasyCassLabException::class.java)
-    }
-
-    @Test
     fun `Exception hierarchy allows catching by base type`() {
         val exceptions =
             listOf(
@@ -141,7 +126,6 @@ class EasyCassLabExceptionsTest {
                 DockerOperationException("error"),
                 CommandExecutionException("error"),
                 SSHException("error"),
-                TerraformException("error"),
             )
 
         exceptions.forEach { exception ->

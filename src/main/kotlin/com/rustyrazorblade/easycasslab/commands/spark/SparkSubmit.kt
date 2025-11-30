@@ -4,7 +4,6 @@ import com.rustyrazorblade.easycasslab.Context
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easycasslab.commands.PicoBaseCommand
-import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.configuration.s3Path
 import com.rustyrazorblade.easycasslab.services.ObjectStore
@@ -33,7 +32,6 @@ class SparkSubmit(
     private val sparkService: SparkService by inject()
     private val objectStore: ObjectStore by inject()
     private val userConfig: User by inject()
-    private val clusterStateManager: ClusterStateManager by inject()
 
     @Option(
         names = ["--jar"],

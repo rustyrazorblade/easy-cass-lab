@@ -33,8 +33,6 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse
 import software.amazon.awssdk.services.ec2.model.DescribeSubnetsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeSubnetsResponse
-import software.amazon.awssdk.services.ec2.model.DescribeVpcsRequest
-import software.amazon.awssdk.services.ec2.model.DescribeVpcsResponse
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.ec2.model.InternetGateway
 import software.amazon.awssdk.services.ec2.model.InternetGatewayAttachment
@@ -52,35 +50,7 @@ internal class EC2VpcServiceTest {
     private val vpcService = EC2VpcService(mockEc2Client, mockOutputHandler)
 
     @Test
-    fun `findOrCreateVpc should return existing VPC when found`() {
-        val existingVpc =
-            Vpc
-                .builder()
-                .vpcId("vpc-12345")
-                .build()
-
-        val describeResponse =
-            DescribeVpcsResponse
-                .builder()
-                .vpcs(existingVpc)
-                .build()
-
-        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(describeResponse)
-
-        val result = vpcService.findOrCreateVpc("test-vpc", "10.0.0.0/16", mapOf("env" to "test"))
-
-        assertThat(result).isEqualTo("vpc-12345")
-        verify(mockEc2Client, never()).createVpc(any<CreateVpcRequest>())
-    }
-
-    @Test
-    fun `findOrCreateVpc should create new VPC when not found`() {
-        val emptyDescribeResponse =
-            DescribeVpcsResponse
-                .builder()
-                .vpcs(emptyList())
-                .build()
-
+    fun `createVpc should always create new VPC`() {
         val createVpcResponse =
             CreateVpcResponse
                 .builder()
@@ -91,10 +61,9 @@ internal class EC2VpcServiceTest {
                         .build(),
                 ).build()
 
-        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(emptyDescribeResponse)
         whenever(mockEc2Client.createVpc(any<CreateVpcRequest>())).thenReturn(createVpcResponse)
 
-        val result = vpcService.findOrCreateVpc("test-vpc", "10.0.0.0/16", mapOf("env" to "test"))
+        val result = vpcService.createVpc("test-vpc", "10.0.0.0/16", mapOf("env" to "test"))
 
         assertThat(result).isEqualTo("vpc-new123")
 
@@ -104,13 +73,7 @@ internal class EC2VpcServiceTest {
     }
 
     @Test
-    fun `findOrCreateVpc should tag VPC with Name and custom tags`() {
-        val emptyDescribeResponse =
-            DescribeVpcsResponse
-                .builder()
-                .vpcs(emptyList())
-                .build()
-
+    fun `createVpc should tag VPC with Name and custom tags`() {
         val createVpcResponse =
             CreateVpcResponse
                 .builder()
@@ -121,10 +84,9 @@ internal class EC2VpcServiceTest {
                         .build(),
                 ).build()
 
-        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(emptyDescribeResponse)
         whenever(mockEc2Client.createVpc(any<CreateVpcRequest>())).thenReturn(createVpcResponse)
 
-        vpcService.findOrCreateVpc("test-vpc", "10.0.0.0/16", mapOf("env" to "test"))
+        vpcService.createVpc("test-vpc", "10.0.0.0/16", mapOf("env" to "test"))
 
         val vpcCaptor = argumentCaptor<CreateVpcRequest>()
         verify(mockEc2Client).createVpc(vpcCaptor.capture())
@@ -416,6 +378,7 @@ internal class EC2VpcServiceTest {
         val existingPermission =
             IpPermission
                 .builder()
+                .ipProtocol("tcp")
                 .fromPort(22)
                 .toPort(22)
                 .ipRanges(
@@ -442,7 +405,7 @@ internal class EC2VpcServiceTest {
             describeResponse,
         )
 
-        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, "0.0.0.0/0")
+        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, 22, "0.0.0.0/0", "tcp")
 
         verify(mockEc2Client, never()).authorizeSecurityGroupIngress(any<AuthorizeSecurityGroupIngressRequest>())
     }
@@ -469,7 +432,7 @@ internal class EC2VpcServiceTest {
             AuthorizeSecurityGroupIngressResponse.builder().build(),
         )
 
-        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, "0.0.0.0/0")
+        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, 22, "0.0.0.0/0", "tcp")
 
         val authCaptor = argumentCaptor<AuthorizeSecurityGroupIngressRequest>()
         verify(mockEc2Client).authorizeSecurityGroupIngress(authCaptor.capture())
@@ -495,7 +458,7 @@ internal class EC2VpcServiceTest {
         )
 
         assertThrows<IllegalArgumentException> {
-            vpcService.authorizeSecurityGroupIngress("sg-12345", 22, "0.0.0.0/0")
+            vpcService.authorizeSecurityGroupIngress("sg-12345", 22, 22, "0.0.0.0/0", "tcp")
         }
     }
 
@@ -532,7 +495,7 @@ internal class EC2VpcServiceTest {
         )
 
         // Should not throw exception - should handle duplicate gracefully
-        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, "0.0.0.0/0")
+        vpcService.authorizeSecurityGroupIngress("sg-12345", 22, 22, "0.0.0.0/0", "tcp")
 
         verify(mockEc2Client).authorizeSecurityGroupIngress(any<AuthorizeSecurityGroupIngressRequest>())
     }

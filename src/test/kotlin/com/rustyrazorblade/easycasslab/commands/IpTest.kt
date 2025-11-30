@@ -1,70 +1,52 @@
 package com.rustyrazorblade.easycasslab.commands
 
 import com.rustyrazorblade.easycasslab.BaseKoinTest
-import com.rustyrazorblade.easycasslab.configuration.TFState
-import com.rustyrazorblade.easycasslab.di.TFStateProvider
+import com.rustyrazorblade.easycasslab.configuration.ClusterHost
+import com.rustyrazorblade.easycasslab.configuration.ClusterState
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
+import com.rustyrazorblade.easycasslab.configuration.ServerType
 import com.rustyrazorblade.easycasslab.output.OutputHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.koin.test.get
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
-import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.InputStream
+import org.mockito.kotlin.whenever
 
 class IpTest : BaseKoinTest() {
     private lateinit var mockOutputHandler: OutputHandler
+    private lateinit var mockClusterStateManager: ClusterStateManager
 
-    private val tfStateJson =
-        """
-        {
-          "resources": [
-            {
-              "mode": "managed",
-              "type": "aws_instance",
-              "name": "cassandra",
-              "instances": [
-                {
-                  "attributes": {
-                    "public_ip": "54.1.2.3",
-                    "private_ip": "10.0.1.100",
-                    "availability_zone": "us-west-2a",
-                    "tags": { "Name": "cassandra0" }
-                  }
-                },
-                {
-                  "attributes": {
-                    "public_ip": "54.1.2.4",
-                    "private_ip": "10.0.1.101",
-                    "availability_zone": "us-west-2b",
-                    "tags": { "Name": "cassandra1" }
-                  }
-                }
-              ]
-            },
-            {
-              "mode": "managed",
-              "type": "aws_instance",
-              "name": "stress",
-              "instances": [
-                {
-                  "attributes": {
-                    "public_ip": "54.2.3.4",
-                    "private_ip": "10.0.2.100",
-                    "availability_zone": "us-west-2a",
-                    "tags": { "Name": "stress0" }
-                  }
-                }
-              ]
-            }
-          ]
-        }
-        """.trimIndent()
+    private val testHosts =
+        mapOf(
+            ServerType.Cassandra to
+                listOf(
+                    ClusterHost(
+                        publicIp = "54.1.2.3",
+                        privateIp = "10.0.1.100",
+                        alias = "cassandra0",
+                        availabilityZone = "us-west-2a",
+                    ),
+                    ClusterHost(
+                        publicIp = "54.1.2.4",
+                        privateIp = "10.0.1.101",
+                        alias = "cassandra1",
+                        availabilityZone = "us-west-2b",
+                    ),
+                ),
+            ServerType.Stress to
+                listOf(
+                    ClusterHost(
+                        publicIp = "54.2.3.4",
+                        privateIp = "10.0.2.100",
+                        alias = "stress0",
+                        availabilityZone = "us-west-2a",
+                    ),
+                ),
+        )
 
     override fun additionalTestModules(): List<Module> =
         listOf(
@@ -76,14 +58,19 @@ class IpTest : BaseKoinTest() {
                     }
                 }
 
-                // Real TFState with test data
-                single<TFStateProvider> {
-                    object : TFStateProvider {
-                        override fun parseFromFile(file: File): TFState = TFState(get(), file.inputStream())
-
-                        override fun parseFromStream(stream: InputStream): TFState = TFState(get(), stream)
-
-                        override fun getDefault(): TFState = TFState(get(), ByteArrayInputStream(tfStateJson.toByteArray()))
+                // Mock ClusterStateManager with test data
+                single {
+                    mock<ClusterStateManager>().also {
+                        mockClusterStateManager = it
+                        val clusterState =
+                            ClusterState(
+                                name = "test-cluster",
+                                clusterId = "test-123",
+                                versions = mutableMapOf(),
+                                hosts = testHosts,
+                            )
+                        whenever(it.load()).thenReturn(clusterState)
+                        whenever(it.exists()).thenReturn(true)
                     }
                 }
             },

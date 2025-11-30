@@ -1,18 +1,9 @@
-package com.rustyrazorblade.easycasslab.di
+package com.rustyrazorblade.easycasslab.providers.aws
 
+import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.User
 import com.rustyrazorblade.easycasslab.output.OutputHandler
-import com.rustyrazorblade.easycasslab.providers.AWS
-import com.rustyrazorblade.easycasslab.providers.aws.AMIService
-import com.rustyrazorblade.easycasslab.providers.aws.AMIValidationService
-import com.rustyrazorblade.easycasslab.providers.aws.AMIValidator
-import com.rustyrazorblade.easycasslab.providers.aws.EC2Service
-import com.rustyrazorblade.easycasslab.providers.aws.EC2VpcService
-import com.rustyrazorblade.easycasslab.providers.aws.PackerInfrastructureService
-import com.rustyrazorblade.easycasslab.providers.aws.S3ObjectStore
-import com.rustyrazorblade.easycasslab.providers.aws.VpcService
 import com.rustyrazorblade.easycasslab.services.AWSResourceSetupService
-import com.rustyrazorblade.easycasslab.services.EMRSparkService
 import com.rustyrazorblade.easycasslab.services.ObjectStore
 import com.rustyrazorblade.easycasslab.services.SparkService
 import org.koin.dsl.module
@@ -43,11 +34,11 @@ import software.amazon.awssdk.services.sts.StsClient
  * - AMIService: High-level AMI lifecycle management
  * - AMIValidator: AMI validation service with retry logic and architecture verification
  * - VpcService: Generic VPC infrastructure management
- * - PackerInfrastructureService: Packer-specific VPC infrastructure orchestration
+ * - AwsInfrastructureService: VPC infrastructure orchestration for packer and clusters
  * - SparkService: Spark job lifecycle management for EMR clusters
  * - ObjectStore: Cloud-agnostic object storage interface (S3 implementation)
  *
- * Note: AWSCredentialsManager is no longer registered here - it's created directly by Terraform and
+ * Note: AWSCredentialsManager is no longer registered here - it's created directly by
  * Packer classes that need it, since they already have Context.
  */
 val awsModule =
@@ -116,6 +107,14 @@ val awsModule =
         // Provide EC2Service as singleton
         single { EC2Service(get<Ec2Client>()) }
 
+        // Provide EC2InstanceService as singleton
+        single {
+            EC2InstanceService(
+                get<Ec2Client>(),
+                get<OutputHandler>(),
+            )
+        }
+
         // Provide AMIService as singleton
         single { AMIService(get<EC2Service>()) }
 
@@ -136,9 +135,9 @@ val awsModule =
             )
         }
 
-        // Provide PackerInfrastructureService as singleton
+        // Provide AwsInfrastructureService as singleton
         single {
-            PackerInfrastructureService(
+            AwsInfrastructureService(
                 get<VpcService>(),
                 get<OutputHandler>(),
             )
@@ -165,11 +164,35 @@ val awsModule =
         single<SparkService> {
             EMRSparkService(
                 get<EmrClient>(),
-                get(),
                 get<OutputHandler>(),
                 get<ObjectStore>(),
-                get(),
+                get<ClusterStateManager>(),
                 get<User>(),
+            )
+        }
+
+        // Provide EMRService as singleton
+        single {
+            EMRService(
+                get<EmrClient>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Provide EMRTeardownService as singleton
+        single {
+            EMRTeardownService(
+                get<EmrClient>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Provide InfrastructureTeardownService as singleton
+        single {
+            InfrastructureTeardownService(
+                get<VpcService>(),
+                get<EMRTeardownService>(),
+                get<OutputHandler>(),
             )
         }
     }

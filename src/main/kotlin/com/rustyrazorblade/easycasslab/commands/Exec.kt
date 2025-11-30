@@ -8,6 +8,10 @@ import com.rustyrazorblade.easycasslab.commands.converters.PicoServerTypeConvert
 import com.rustyrazorblade.easycasslab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easycasslab.configuration.Host
 import com.rustyrazorblade.easycasslab.configuration.ServerType
+import com.rustyrazorblade.easycasslab.configuration.getHosts
+import com.rustyrazorblade.easycasslab.configuration.toHost
+import com.rustyrazorblade.easycasslab.services.HostOperationsService
+import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
@@ -32,6 +36,8 @@ import picocli.CommandLine.Parameters
 class Exec(
     context: Context,
 ) : PicoBaseCommand(context) {
+    private val hostOperationsService: HostOperationsService by inject()
+
     @Mixin
     var hosts = HostsMixin()
 
@@ -62,15 +68,15 @@ class Exec(
             return
         }
 
-        val hostList = tfstate.getHosts(serverType)
+        val hostList = clusterState.getHosts(serverType)
         if (hostList.isEmpty()) {
             outputHandler.handleMessage("No hosts found for server type: $serverType")
             return
         }
 
-        // Execute on hosts using tfstate.withHosts for consistent behavior
-        tfstate.withHosts(serverType, hosts, parallel = parallel) { host ->
-            executeOnHost(host, commandString)
+        // Execute on hosts using HostOperationsService
+        hostOperationsService.withHosts(clusterState.hosts, serverType, hosts.hostList, parallel = parallel) { host ->
+            executeOnHost(host.toHost(), commandString)
         }
     }
 

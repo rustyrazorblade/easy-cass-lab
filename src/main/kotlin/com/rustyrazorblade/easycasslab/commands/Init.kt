@@ -2,9 +2,8 @@ package com.rustyrazorblade.easycasslab.commands
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easycasslab.Containers
+import com.rustyrazorblade.easycasslab.Constants
 import com.rustyrazorblade.easycasslab.Context
-import com.rustyrazorblade.easycasslab.Docker
 import com.rustyrazorblade.easycasslab.annotations.McpCommand
 import com.rustyrazorblade.easycasslab.annotations.RequireDocker
 import com.rustyrazorblade.easycasslab.annotations.RequireProfileSetup
@@ -12,17 +11,12 @@ import com.rustyrazorblade.easycasslab.commands.converters.PicoAZConverter
 import com.rustyrazorblade.easycasslab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easycasslab.configuration.Arch
 import com.rustyrazorblade.easycasslab.configuration.ClusterState
-import com.rustyrazorblade.easycasslab.configuration.ClusterStateManager
 import com.rustyrazorblade.easycasslab.configuration.InitConfig
 import com.rustyrazorblade.easycasslab.configuration.User
-import com.rustyrazorblade.easycasslab.containers.Terraform
-import com.rustyrazorblade.easycasslab.providers.AWS
-import com.rustyrazorblade.easycasslab.providers.aws.terraform.AWSConfiguration
-import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSConfiguration
-import com.rustyrazorblade.easycasslab.providers.aws.terraform.EBSType
+import com.rustyrazorblade.easycasslab.providers.aws.AWS
+import com.rustyrazorblade.easycasslab.providers.aws.VpcService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
@@ -45,7 +39,7 @@ class Init(
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val aws: AWS by inject()
-    private val clusterStateManager: ClusterStateManager by inject()
+    private val vpcService: VpcService by inject()
 
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
@@ -116,9 +110,9 @@ class Init(
 
     @Option(
         names = ["--ebs.type"],
-        description = ["EBS Volume Type"],
+        description = ["EBS Volume Type (NONE, gp2, gp3, io1, io2)"],
     )
-    var ebsType = EBSType.NONE
+    var ebsType = "NONE"
 
     @Option(
         names = ["--ebs.size"],
@@ -171,6 +165,12 @@ class Init(
     )
     var clean = false
 
+    @Option(
+        names = ["--vpc"],
+        description = ["Use an existing VPC ID instead of creating a new one"],
+    )
+    var existingVpcId: String? = null
+
     override fun execute() {
         validateParameters()
 
@@ -182,13 +182,14 @@ class Init(
 
         outputHandler.handleMessage("Initializing directory")
 
-        val config = buildAWSConfiguration(clusterState)
-        configureAWSSettings(config)
+        // Create or use existing VPC
+        val vpcId = createOrUseVpc(clusterState)
+        clusterState.vpcId = vpcId
+        clusterStateManager.save(clusterState)
 
-        initializeTerraform(config)
         extractResourceFiles()
 
-        displayCompletionMessage(config)
+        displayCompletionMessage(clusterState)
 
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
@@ -200,6 +201,22 @@ class Init(
                 )
             }
         }
+    }
+
+    /**
+     * Creates a new VPC or uses an existing one if --vpc was provided.
+     */
+    private fun createOrUseVpc(clusterState: ClusterState): String {
+        if (existingVpcId != null) {
+            outputHandler.handleMessage("Using existing VPC: $existingVpcId")
+            return existingVpcId!!
+        }
+
+        outputHandler.handleMessage("Creating VPC for cluster: ${clusterState.name}")
+        val vpcTags = mapOf(Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE, "ClusterId" to clusterState.clusterId)
+        val vpcId = vpcService.createVpc(name, Constants.Vpc.DEFAULT_CIDR, vpcTags)
+        outputHandler.handleMessage("VPC created: $vpcId")
+        return vpcId
     }
 
     private fun validateParameters() {
@@ -242,9 +259,6 @@ class Init(
     }
 
     private fun prepareEnvironment(): ClusterState {
-        val docker: Docker by inject { parametersOf(context) }
-        docker.pullImage(Containers.TERRAFORM)
-
         if (clean) {
             outputHandler.handleMessage("Cleaning existing configuration...")
             Clean(context).execute()
@@ -260,7 +274,7 @@ class Init(
                 ami = ami,
                 region = userConfig.region,
                 name = name,
-                ebsType = ebsType.toString(),
+                ebsType = ebsType,
                 ebsSize = ebsSize,
                 ebsIops = ebsIops,
                 ebsThroughput = ebsThroughput,
@@ -269,6 +283,11 @@ class Init(
                 controlInstances = 1,
                 controlInstanceType = "t3.xlarge",
                 tags = tags,
+                arch = arch.name,
+                sparkEnabled = spark.enable,
+                sparkMasterInstanceType = spark.masterInstanceType,
+                sparkWorkerInstanceType = spark.workerInstanceType,
+                sparkWorkerCount = spark.workerCount,
             )
 
         val state =
@@ -279,47 +298,6 @@ class Init(
             )
         clusterStateManager.save(state)
         return state
-    }
-
-    private fun buildAWSConfiguration(clusterState: ClusterState): AWSConfiguration {
-        val ebs = EBSConfiguration(ebsType, ebsSize, ebsIops, ebsThroughput, ebsOptimized)
-        return AWSConfiguration(
-            name,
-            region = userConfig.region,
-            context = context,
-            user = userConfig,
-            ami = ami,
-            open = open,
-            ebs = ebs,
-            numCassandraInstances = cassandraInstances,
-            cassandraInstanceType = instanceType,
-            numStressInstances = stressInstances,
-            stressInstanceType = stressInstanceType,
-            arch = arch,
-            sparkParams = spark,
-            accountId = aws.getAccountId(),
-            clusterId = clusterState.clusterId,
-        )
-    }
-
-    private fun configureAWSSettings(config: AWSConfiguration) {
-        outputHandler.handleMessage("Directory Initialized Configuring Terraform")
-
-        for ((key, value) in tags) {
-            config.setTag(key, value)
-        }
-
-        config.setVariable("NeededUntil", until)
-
-        if (azs.isNotEmpty()) {
-            outputHandler.handleMessage("Overriding default az list with $azs")
-            config.azs = expand(userConfig.region, azs)
-        }
-    }
-
-    private fun initializeTerraform(config: AWSConfiguration) {
-        outputHandler.handleMessage("Writing OpenTofu Config")
-        writeTerraformConfig(config)
     }
 
     private fun extractResourceFiles() {
@@ -361,20 +339,12 @@ class Init(
         }
     }
 
-    private fun displayCompletionMessage(config: AWSConfiguration) {
+    private fun displayCompletionMessage(clusterState: ClusterState) {
+        val initConfig = clusterState.initConfig ?: return
         outputHandler.handleMessage(
-            "Your workspace has been initialized with $cassandraInstances Cassandra instances " +
-                "(${config.cassandraInstanceType}) and $stressInstances stress instances " +
-                "in ${userConfig.region}",
+            "Your workspace has been initialized with ${initConfig.cassandraInstances} Cassandra instances " +
+                "(${initConfig.instanceType}) and ${initConfig.stressInstances} stress instances " +
+                "in ${initConfig.region}",
         )
-    }
-
-    private fun writeTerraformConfig(config: AWSConfiguration): Result<String> {
-        val configOutput = File("terraform.tf.json")
-        config.write(configOutput)
-
-        val terraform = Terraform(context)
-        outputHandler.handleMessage("Calling init")
-        return terraform.init()
     }
 }
