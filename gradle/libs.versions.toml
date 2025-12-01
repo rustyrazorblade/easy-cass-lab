@@ -57,7 +57,7 @@ shadow = "8.1.1"
 versions = "0.53.0"
 ktlint = "14.0.1"
 detekt = "1.23.7"
-kover = "0.8.3"
+kover = "0.9.3"
 jib = "3.5.1"
 
 [libraries]
