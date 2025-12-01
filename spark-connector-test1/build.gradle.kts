@@ -3,7 +3,7 @@ plugins {
     application
 }
 
-val sparkVersion = "3.5.3"
+val sparkVersion = "3.5.7"
 val scalaVersion = "2.12"
 val sparkCassandraConnectorVersion = "3.5.1"
 
