@@ -27,7 +27,7 @@ assertj = "3.27.6"
 mockito-kotlin = "5.4.0"
 
 # CLI and UI
-picocli = "4.7.6"
+picocli = "4.7.7"
 jline = "3.30.6"
 mordant = "1.2.1"
 
