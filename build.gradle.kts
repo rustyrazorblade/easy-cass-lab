@@ -28,18 +28,18 @@ java {
 
 application {
     applicationName = "easy-db-lab"
-    mainClass.set("com.rustyrazorblade.easycasslab.MainKt")
+    mainClass.set("com.rustyrazorblade.easydblab.MainKt")
     applicationDefaultJvmArgs =
         listOf(
-            "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
-            "-Deasycasslab.version=$version",
+            "-Deasydblab.ami.name=rustyrazorblade/images/easy-db-lab-cassandra-amd64-$version",
+            "-Deasydblab.version=$version",
         )
 }
 
 tasks.named<CreateStartScripts>("startScripts") {
     doLast {
         // Update the Unix / Mac / Linux start script
-        val replacement = "\$1 \nDEFAULT_JVM_OPTS=\"\\\$DEFAULT_JVM_OPTS -Deasycasslab.apphome=\\\$APP_HOME\""
+        val replacement = "\$1 \nDEFAULT_JVM_OPTS=\"\\\$DEFAULT_JVM_OPTS -Deasydblab.apphome=\\\$APP_HOME\""
         val regex = "^(DEFAULT_JVM_OPTS=.*)".toRegex(RegexOption.MULTILINE)
         val body = unixScript.readText()
         val newBody = regex.replace(body, replacement)
@@ -305,13 +305,13 @@ jib {
         }
     }
     container {
-        mainClass = "com.rustyrazorblade.easycasslab.MainKt"
+        mainClass = "com.rustyrazorblade.easydblab.MainKt"
         appRoot = "/app"
         jvmFlags =
             listOf(
-                "-Deasycasslab.ami.name=rustyrazorblade/images/easy-cass-lab-cassandra-amd64-$version",
-                "-Deasycasslab.version=$version",
-                "-Deasycasslab.apphome=/app",
+                "-Deasydblab.ami.name=rustyrazorblade/images/easy-db-lab-cassandra-amd64-$version",
+                "-Deasydblab.version=$version",
+                "-Deasydblab.apphome=/app",
                 "-Xmx2048M",
             )
         environment =

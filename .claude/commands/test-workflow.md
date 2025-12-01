@@ -6,14 +6,14 @@ purpose: "End-to-end Cassandra cluster workflow demonstration using MCP servers"
 
 # Cassandra Cluster Test Workflow
 
-Execute a complete end-to-end workflow demonstrating easy-cass-lab capabilities using only MCP server tools.
+Execute a complete end-to-end workflow demonstrating easy-db-lab capabilities using only MCP server tools.
 
 ## Workflow Steps
 
 Execute the following steps in order, using MCP tools exclusively:
 
 ### 1. Initialize Cluster Configuration
-Use `mcp__easy-cass-lab__init` to create a new cluster configuration:
+Use `mcp__easy-db-lab__init` to create a new cluster configuration:
 - **Name**: "test"
 - **Cassandra instances**: 1
 - **Stress instances**: 1
@@ -23,26 +23,26 @@ Use `mcp__easy-cass-lab__init` to create a new cluster configuration:
 - **Start automatically**: false (we'll start manually to show the process)
 
 ### 2. Provision Infrastructure
-Use `mcp__easy-cass-lab__up` to provision the AWS infrastructure:
+Use `mcp__easy-db-lab__up` to provision the AWS infrastructure:
 - This creates EC2 instances, networking, security groups
 - Wait for the operation to complete
 - Report the public IPs of provisioned instances
 
 ### 3. Configure Cassandra Version
-Use `mcp__easy-cass-lab__use` to set Cassandra version:
+Use `mcp__easy-db-lab__use` to set Cassandra version:
 - **Version**: "5.0"
 - **Java version**: Leave default (auto-selected)
 - This installs Cassandra 5.0 without custom configuration changes
 
 ### 4. Start the Cluster
-Use `mcp__easy-cass-lab__start` to start all services:
+Use `mcp__easy-db-lab__start` to start all services:
 - Starts Cassandra on database nodes
 - Starts cassandra-easy-stress on stress nodes
 - Starts monitoring and MCP servers on control nodes
 - Report when services are ready
 
 ### 5. Get Cassandra Host IP
-Use `mcp__easy-cass-lab__hosts` to retrieve host information:
+Use `mcp__easy-db-lab__hosts` to retrieve host information:
 - Set `cassandra=true` to get Cassandra hosts in CSV format
 - Extract the private IP of the first Cassandra node for stress testing
 
@@ -50,7 +50,7 @@ Use `mcp__easy-cass-lab__hosts` to retrieve host information:
 Wait ~30 seconds for Cassandra to fully initialize and be ready to accept connections.
 
 ### 7. Check MCP Server Status
-Use `mcp__easy-cass-lab__get_server_status` to check if MCP servers are running:
+Use `mcp__easy-db-lab__get_server_status` to check if MCP servers are running:
 - Verify easy-cass-mcp is accessible
 - Verify cassandra-easy-stress is accessible
 - If any are disconnected, report but continue (manual reconnection may be needed)
@@ -70,7 +70,7 @@ Use `mcp__easy-cass-mcp__query_system_table` to gather thread pool stats:
 - Show the current thread pool utilization
 
 ### 10. Shutdown Cluster
-Use `mcp__easy-cass-lab__down` to terminate the cluster:
+Use `mcp__easy-db-lab__down` to terminate the cluster:
 - **Auto-approve**: true (skip confirmation)
 - Clean up all AWS resources
 - Confirm shutdown completed successfully

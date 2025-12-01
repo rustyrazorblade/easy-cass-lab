@@ -67,7 +67,7 @@ cd "$TEST_WORKDIR"
 echo "=== Changed to work directory: $(pwd) ==="
 
 echo "=== Creating IAM managed policies ==="
-"$PROJECT_ROOT/bin/set-policies" --group-name EasyCassLabUsers --profile sandbox-admin
+"$PROJECT_ROOT/bin/set-policies" --group-name EasyDBLabUsers --profile sandbox-admin
 
 echo "=== Initializing cluster ==="
 "$PROJECT_ROOT/bin/easy-db-lab" init -c 2 -i c5.2xlarge test --clean --up -s 1 \
@@ -158,7 +158,7 @@ ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 echo "=== Submitting Spark job to EMR ==="
 "$PROJECT_ROOT/bin/easy-db-lab" spark submit \
   --jar "$PROJECT_ROOT/spark-connector-test1/build/libs/spark-connector-test1-12.jar" \
-  --main-class com.rustyrazorblade.easycasslab.spark.KeyValuePrefixCount \
+  --main-class com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount \
   --args "$("$PROJECT_ROOT/bin/easy-db-lab" ip cassandra0 --private)" \
   --wait
 

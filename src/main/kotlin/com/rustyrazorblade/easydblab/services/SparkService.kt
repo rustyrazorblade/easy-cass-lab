@@ -1,0 +1,181 @@
+package com.rustyrazorblade.easydblab.services
+
+import com.rustyrazorblade.easydblab.configuration.EMRClusterInfo
+import software.amazon.awssdk.services.emr.model.StepState
+import java.nio.file.Path
+import java.time.Instant
+
+/**
+ * Service for managing Spark job lifecycle on EMR clusters.
+ *
+ * This service encapsulates all EMR Spark operations including job submission,
+ * monitoring, and status checking. It provides a centralized interface for
+ * Spark operations that can be used by multiple commands.
+ *
+ * All operations return Result types for explicit error handling following
+ * the established pattern in this codebase.
+ *
+ * Future implementations could support alternative Spark providers such as:
+ * - LocalSparkService for local development
+ * - DatabricksSparkService for cloud-agnostic deployments
+ */
+interface SparkService {
+    /**
+     * Submits a Spark job to the EMR cluster.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param jarPath S3 path to the JAR file (s3://bucket/key)
+     * @param mainClass Main class to execute
+     * @param jobArgs Arguments to pass to the Spark application
+     * @param jobName Optional job name (defaults to main class)
+     * @return Result containing the EMR step ID on success, or error on failure
+     */
+    fun submitJob(
+        clusterId: String,
+        jarPath: String,
+        mainClass: String,
+        jobArgs: List<String> = listOf(),
+        jobName: String? = null,
+    ): Result<String>
+
+    /**
+     * Waits for a Spark job to complete, polling EMR for status updates.
+     *
+     * This method blocks until the job reaches a terminal state (COMPLETED, FAILED, or CANCELLED).
+     * It polls the EMR API periodically and provides progress updates via OutputHandler.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID to monitor
+     * @return Result containing the final JobStatus on success, or error on failure
+     */
+    fun waitForJobCompletion(
+        clusterId: String,
+        stepId: String,
+    ): Result<JobStatus>
+
+    /**
+     * Gets the current status of a Spark job.
+     *
+     * This is a non-blocking call that returns the current job state.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID
+     * @return Result containing the current JobStatus, or error on failure
+     */
+    fun getJobStatus(
+        clusterId: String,
+        stepId: String,
+    ): Result<JobStatus>
+
+    /**
+     * Validates that the EMR cluster exists and is in a valid state for job submission.
+     *
+     * Valid states are: WAITING, RUNNING
+     *
+     * @return Result containing EMRClusterInfo if cluster is valid, or error if not found or in invalid state
+     */
+    fun validateCluster(): Result<EMRClusterInfo>
+
+    /**
+     * Lists recent Spark jobs on the EMR cluster.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param limit Maximum number of jobs to return (default 10)
+     * @return Result containing a list of JobInfo objects, or error on failure
+     */
+    fun listJobs(
+        clusterId: String,
+        limit: Int = DEFAULT_JOB_LIST_LIMIT,
+    ): Result<List<JobInfo>>
+
+    /**
+     * Retrieves the log content for a Spark job step.
+     *
+     * Downloads the log file from S3, decompresses it (gzip), and returns the content.
+     * EMR logs are stored at: s3://{emrLogs}/{cluster-id}/steps/{step-id}/{logType}.gz
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID
+     * @param logType The type of log to retrieve (default: STDOUT)
+     * @return Result containing the log content as a String, or error on failure
+     */
+    fun getStepLogs(
+        clusterId: String,
+        stepId: String,
+        logType: LogType = LogType.STDOUT,
+    ): Result<String>
+
+    /**
+     * Downloads all EMR logs to a local directory organized by step ID.
+     *
+     * Downloads the complete log directory structure from S3 to logs/emr/{stepId}/,
+     * preserving the relative path structure. This includes node logs, container logs,
+     * and other EMR infrastructure logs.
+     *
+     * @param stepId The step ID to use for the local directory name
+     * @return Result containing the local path where logs were saved, or error on failure
+     */
+    fun downloadAllLogs(stepId: String): Result<Path>
+
+    /**
+     * Downloads only the step-specific logs (stdout and stderr) for a Spark job.
+     *
+     * This is faster than downloadAllLogs() and downloads only the most relevant
+     * logs for debugging Spark job failures:
+     * - stdout.gz: Spark application output
+     * - stderr.gz: Error messages and stack traces
+     *
+     * Logs are saved to logs/{clusterId}/{stepId}/ and decompressed.
+     *
+     * @param clusterId The EMR cluster ID
+     * @param stepId The EMR step ID
+     * @return Result containing the local path where logs were saved, or error on failure
+     */
+    fun downloadStepLogs(
+        clusterId: String,
+        stepId: String,
+    ): Result<Path>
+
+    /**
+     * Represents the status of a Spark job.
+     *
+     * @property state The current EMR step state
+     * @property stateChangeReason Optional reason for state change (e.g., "User request")
+     * @property failureDetails Optional details if the job failed
+     */
+    data class JobStatus(
+        val state: StepState,
+        val stateChangeReason: String? = null,
+        val failureDetails: String? = null,
+    )
+
+    /**
+     * Information about a Spark job.
+     *
+     * @property stepId The EMR step ID
+     * @property name The job name
+     * @property state The current EMR step state
+     * @property startTime When the job started (null if not yet started)
+     */
+    data class JobInfo(
+        val stepId: String,
+        val name: String,
+        val state: StepState,
+        val startTime: Instant?,
+    )
+
+    /**
+     * Types of EMR step logs available in S3.
+     */
+    enum class LogType(
+        val filename: String,
+    ) {
+        STDOUT("stdout.gz"),
+        STDERR("stderr.gz"),
+        CONTROLLER("controller.gz"),
+    }
+
+    companion object {
+        const val DEFAULT_JOB_LIST_LIMIT = 10
+    }
+}

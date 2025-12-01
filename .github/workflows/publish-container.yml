@@ -78,12 +78,12 @@ jobs:
 
       - name: Test container
         run: |
-          docker pull ghcr.io/rustyrazorblade/easy-cass-lab:latest
-          docker run --rm ghcr.io/rustyrazorblade/easy-cass-lab:latest --help
+          docker pull ghcr.io/rustyrazorblade/easy-db-lab:latest
+          docker run --rm ghcr.io/rustyrazorblade/easy-db-lab:latest --help
 
       - name: Scan container image
         uses: anchore/scan-action@v7
         with:
-          image: ghcr.io/rustyrazorblade/easy-cass-lab:latest
+          image: ghcr.io/rustyrazorblade/easy-db-lab:latest
           fail-build: false
           severity-cutoff: high

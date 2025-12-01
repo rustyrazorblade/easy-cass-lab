@@ -146,7 +146,7 @@ jobs:
 
             ### Usage
 
-            These artifacts are compatible with the `easy-cass-lab` Packer build system and can be used as drop-in replacements for building Cassandra from source.
+            These artifacts are compatible with the `easy-db-lab` Packer build system and can be used as drop-in replacements for building Cassandra from source.
 
             ---
 

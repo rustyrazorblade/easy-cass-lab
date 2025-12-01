@@ -34,13 +34,13 @@ locals {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "rustyrazorblade/images/easy-cass-lab-cassandra-${var.arch}-${local.version}"
+  ami_name      = "rustyrazorblade/images/easy-db-lab-cassandra-${var.arch}-${local.version}"
   ami_groups    = local.ami_groups
   instance_type = local.instance_type
   region        = "${var.region}"
   source_ami_filter {
     filters = {
-      name                = "rustyrazorblade/images/easy-cass-lab-base-${var.arch}-${local.base_version}"
+      name                = "rustyrazorblade/images/easy-db-lab-base-${var.arch}-${local.base_version}"
       root-device-type    = "ebs"
       virtualization-type = "hvm"
     }
@@ -52,13 +52,13 @@ source "amazon-ebs" "ubuntu" {
   # Use permanent VPC infrastructure created by PackerInfrastructureService
   vpc_filter {
     filters = {
-      "tag:Name" = "easy-cass-lab-packer"
+      "tag:Name" = "easy-db-lab-packer"
     }
   }
 
   subnet_filter {
     filters = {
-      "tag:Name" = "easy-cass-lab-packer-subnet"
+      "tag:Name" = "easy-db-lab-packer-subnet"
     }
     most_free = true
     random    = false
@@ -66,7 +66,7 @@ source "amazon-ebs" "ubuntu" {
 
   security_group_filter {
     filters = {
-      "tag:Name" = "easy-cass-lab-packer-sg"
+      "tag:Name" = "easy-db-lab-packer-sg"
     }
   }
 
@@ -85,7 +85,7 @@ source "amazon-ebs" "ubuntu" {
 }
 
 build {
-  name    = "easy-cass-lab"
+  name    = "easy-db-lab"
   sources = [
     "source.amazon-ebs.ubuntu"
   ]

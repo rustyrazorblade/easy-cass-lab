@@ -1,41 +1,36 @@
-= easy-cass-lab
+= easy-db-lab
 Jon Haddad <jon@rustyrazorblade.com>
 :toc: left
 :icons: font
 
-This is the manual for easy-cass-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
+This is the manual for easy-db-lab, a provisioning tool for Apache Cassandra designed for developers looking to benchmark and test Apache Cassandra.  It assists with builds and starting instances on AWS.
 
 If you are looking for a tool to aid in benchmarking these clusters please see the companion project
 https://github.com/apache/cassandra-easy-stress[cassandra-easy-stress].
 
-If you're looking for tools to help manage Cassandra in _production_ environments please see the http://cassandra-reaper.io/[Reaper] project and https://github.com/spotify/cstar[cstar]
+If you're looking for tools to help manage Cassandra in _production_ environments please see the http://cassandra-reaper.io/[Reaper], https://github.com/spotify/cstar[cstar], and https://docs.k8ssandra.io/[K8ssandra].
 
 == Prerequisites
 
-- An AWS access key and secret.  easy-cass-lab uses https://www.terraform.io/[Terraform] to create and destroy instances.  You will be prompted for these the first time you start easy-cass-lab.
+- An AWS access key and secret.  easy-db-lab creates and destroys infrastructure.  You will be prompted for these the first time you start easy-db-lab.
+- I **highly** recommend setting up
 - The access key needs permissions to create an S3 bucket as well as create SSH keys.  Separate keys are used by default for security reasons.
 
 == Installation
 
-The current version is {EASY_CASS_LAB_VERSION}.
+The current version is {EASY_DB_LAB_VERSION}.
 
 
 ==== Tarball Install
 
-If you're using mac, for now you'll need to grab our tarball using:
+You can grab a tarball from the https://github.com/rustyrazorblade/easy-db-lab/releases[releases page].
 
-[subs="attributes"]
-```
-$ curl -L -O "https://dl.bintray.com/rustyrazorblade/tlp-tools-tarball/easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar"
-$ tar -xzf easy-cass-lab-{EASY_CASS_LAB_VERSION}.tar
-```
-
-To get started, add the bin directory of easy-cass-lab to your $PATH.  For example:
+To get started, add the bin directory of easy-db-lab to your $PATH.  For example:
 
 [source,bash]
 ----
-export PATH="$PATH:/path/to/easy-cass-lab/bin"
-cd /path/to/easy-cass-lab
+export PATH="$PATH:/path/to/easy-db-lab/bin"
+cd /path/to/easy-db-lab
 ./gradlew assemble
 ----
 
@@ -44,7 +39,7 @@ cd /path/to/easy-cass-lab
 We currently have a dependency on shell scripts meaning you'll need a Mac or Linux box to use this tool.
 
 If you've never used to the tool before, the first time you run a command you'll be asked to supply some information,
-which will generate a configuration file which will be placed in your `$HOME/.easy-cass-lab/profiles/default/settings.yaml`.
+which will generate a configuration file which will be placed in your `$HOME/.easy-db-lab/profiles/default/settings.yaml`.
 
 IMPORTANT: We currently only support the Ubuntu 21 ami.
 
@@ -52,7 +47,7 @@ Running the command without any arguments will print out the usage:
 
 [source,bash]
 ----
-easy-cass-lab
+easy-db-lab
 ----
 
 You'll see the help.  It looks like this:
@@ -67,14 +62,14 @@ The tool uses the current working directory as a working space for all the clust
 
 [source,bash]
 ----
-easy-cass-lab init
+easy-db-lab init
 ----
 
 This will initialize the current directory with a terraform.tf.json. You can open this up in an editor.
 Here you can change the number of nodes in the cluster, as well as configure the number of stress nodes you want.
 You can also change the instance type.
 Generally speaking though, you shouldn't have to do this.
-If you find yourself doing it often, please submit an https://github.com/rustyrazorblade/easy-cass-lab/issues[issue]
+If you find yourself doing it often, please submit an https://github.com/rustyrazorblade/easy-db-lab/issues[issue]
 describing your requirements and we'll work with you to solve the problem.
 
 If you're using a Graviton AMI, you'll need to supply the `--cpu arm64` flag when running `init`.
@@ -85,12 +80,12 @@ Launch your instances with the following:
 
 [source,bash]
 ----
-easy-cass-lab up
+easy-db-lab up
 ----
 
 Terraform will eventually ask you to type `yes` and fire up your instances.  Optionally you can pass `--yes` to the `-up` command and you won't be prompted.
 
-easy-cass-lab will create a file, `env.sh`, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:
+easy-db-lab will create a file, `env.sh`, which has helpful aliases and bash functions that will help you run your cluster.  Run the following:
 
 [source,bash]
 ----
@@ -121,9 +116,9 @@ The easiest path forward to getting a cluster up and running is the following:
 
 [source,bash]
 ----
-easy-cass-lab use 3.11.4
-easy-cass-lab install
-easy-cass-lab start
+easy-db-lab use 3.11.4
+easy-db-lab install
+easy-db-lab start
 ----
 
 Simply replace 3.11.4 with the release version.
@@ -134,15 +129,15 @@ Simply replace 3.11.4 with the release version.
 To install Cassandra on your instances, you will need to follow these steps:
 
 1. Build the version you need and give it a build name (optional)
-2. Tell easy-cass-lab to use the custom build
+2. Tell easy-db-lab to use the custom build
 
-The first step is optional because you may already have a build in the `~/.easy-cass-lab/build` directory that you want to use.
+The first step is optional because you may already have a build in the `~/.easy-db-lab/build` directory that you want to use.
 
 If you have no builds you will need to run the following:
 
 [source,bash]
 ----
-easy-cass-lab build -n BUILD_NAME /path/to/repo
+easy-db-lab build -n BUILD_NAME /path/to/repo
 ----
 
 Where:
@@ -154,10 +149,10 @@ If you already have a build that you would like to use you can run the following
 
 [source,bash]
 ----
-easy-cass-lab use BUILD_NAME
+easy-db-lab use BUILD_NAME
 ----
 
-This will copy the binaries and configuration files to the `provisioning/cassandra` directory in your `easy-cass-lab` repository. The `provisioning` directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.
+This will copy the binaries and configuration files to the `provisioning/cassandra` directory in your `easy-db-lab` repository. The `provisioning` directory contains a number of files that can be used to set up your instances. Being realistic, since we do so much non-standard work (EBS vs instance store, LVM vs FS directly on a device, caches, etc) we need the ability to run arbitrary commands. This isn’t a great use case for puppet / chef / salt / ansible (yet), so we are just using easy to modify scripts for now.
 
 If you want to install other binaries or perform other operations during provisioning of the instances, you can add them to the `provisioning/cassandra` directory. Note that any new scripts you add should be prefixed with a number which is used to determine the order they are executed by the `install.sh` script.
 
@@ -165,7 +160,7 @@ To provision the instances run the following:
 
 [source,bash]
 ----
-easy-cass-lab install
+easy-db-lab install
 ----
 
 Where:
@@ -188,7 +183,7 @@ the normal ports are all mapped for you so you can reach prometheus on 9090 and 
 
 == MCP Server Integration with Claude Code
 
-easy-cass-lab includes a Model Context Protocol (MCP) server that allows seamless integration with Claude Code. This enables Claude to directly interact with your easy-cass-lab clusters and perform operations through a standardized protocol.
+easy-db-lab includes a Model Context Protocol (MCP) server that allows seamless integration with Claude Code. This enables Claude to directly interact with your easy-db-lab clusters and perform operations through a standardized protocol.
 
 === Starting the MCP Server
 
@@ -196,7 +191,7 @@ To start the MCP server, run:
 
 [source,bash]
 ----
-easy-cass-lab server --port 8888
+easy-db-lab server --port 8888
 ----
 
 This will start the MCP server on port 8888 (you can use any available port).
@@ -207,14 +202,14 @@ Once the MCP server is running, you can add it to Claude Code using:
 
 [source,bash]
 ----
-claude mcp add --transport sse easy-cass-lab http://127.0.0.1:8888/sse
+claude mcp add --transport sse easy-db-lab http://127.0.0.1:8888/sse
 ----
 
-This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-cass-lab MCP server.
+This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-db-lab MCP server.
 
 === Available MCP Operations
 
-The MCP server provides Claude with direct access to easy-cass-lab operations, allowing for:
+The MCP server provides Claude with direct access to easy-db-lab operations, allowing for:
 
 * Cluster management and provisioning
 * Cassandra configuration and deployment
@@ -224,7 +219,7 @@ The MCP server provides Claude with direct access to easy-cass-lab operations, a
 
 === Benefits of MCP Integration
 
-* **Direct Control**: Claude can execute easy-cass-lab commands directly without manual intervention
+* **Direct Control**: Claude can execute easy-db-lab commands directly without manual intervention
 * **Context Awareness**: Claude maintains context about your cluster state and configuration
 * **Automation**: Complex multi-step operations can be automated through Claude
 * **Intelligent Assistance**: Claude can analyze logs, metrics, and provide optimization recommendations

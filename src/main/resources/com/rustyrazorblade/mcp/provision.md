@@ -7,7 +7,7 @@ Ensure the /activate prompt is called prior to this.
 If the user does not ask for stress nodes, get confirmation if they intended
 to start a lab environment without a stress node.
 
-This is the typical workflow for easy-cass-lab environments.  Follow the steps EXACTLY:
+This is the typical workflow for easy-db-lab environments.  Follow the steps EXACTLY:
 
 1. Initialize cluster: call 'init' with start: true (up is called automatically).
    Note: If the user doesn't specify a number of stress nodes, ask if they need a stress node.
@@ -32,7 +32,7 @@ This is the typical workflow for easy-cass-lab environments.  Follow the steps E
      For example: 5.0/jvm17-server.options
 4.3. Call 'update-config' to push these changes to all nodes.
 5. Start the cluster with the start command.
-6. Reconnect to the easy-cass-mcp and easy-cass-stress servers, as they will now be available.
+6. Reconnect to the easy-cass-mcp and cassandra-easy-stress servers, as they will now be available.
 7. Inform the user they can now run benchmarks and tests. These tools are available:
 
    easy-cass-mcp is available for executing queries against virtual tables.

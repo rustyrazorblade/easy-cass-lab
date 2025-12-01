@@ -22,7 +22,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("com.rustyrazorblade.easycasslab.spark.KeyValuePrefixCount")
+    mainClass.set("com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount")
 }
 
 tasks.jar {
@@ -30,6 +30,6 @@ tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     manifest {
-        attributes["Main-Class"] = "com.rustyrazorblade.easycasslab.spark.KeyValuePrefixCount"
+        attributes["Main-Class"] = "com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount"
     }
 }

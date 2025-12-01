@@ -1,6 +1,6 @@
 
 
-#####  Begin easy-cass-lab customizations ####
+#####  Begin easy-db-lab customizations ####
 
 ### This is automatically appended to the end of every cassandra.in.sh
 

@@ -25,11 +25,11 @@
   python: "3.10.6"
 
 - version: "5.0-HEAD"
-  url: https://github.com/rustyrazorblade/easy-cass-lab/releases/download/nightly/apache-cassandra-5.0-HEAD-bin.tar.gz
+  url: https://github.com/rustyrazorblade/easy-db-lab/releases/download/nightly/apache-cassandra-5.0-HEAD-bin.tar.gz
   java: "11"
   python: "3.10.6"
 
 - version: "trunk"
-  url: https://github.com/rustyrazorblade/easy-cass-lab/releases/download/nightly/apache-cassandra-trunk-bin.tar.gz
+  url: https://github.com/rustyrazorblade/easy-db-lab/releases/download/nightly/apache-cassandra-trunk-bin.tar.gz
   java: "17"
   python: "3.10.6"

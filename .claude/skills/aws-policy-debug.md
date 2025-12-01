@@ -1,37 +1,37 @@
 ---
 skill: "/aws-policy-debug"
 category: "Debugging & Setup"
-purpose: "Debug AWS IAM policy issues during easy-cass-lab setup"
+purpose: "Debug AWS IAM policy issues during easy-db-lab setup"
 ---
 
 # AWS IAM Policy Debugging Skill
 
-Expert knowledge for debugging AWS IAM policy issues during easy-cass-lab setup and helping other developers configure their AWS credentials.
+Expert knowledge for debugging AWS IAM policy issues during easy-db-lab setup and helping other developers configure their AWS credentials.
 
 ## Available Tools
 
 ### 1. Show IAM Policies Command
 
-**Command**: `bin/easy-cass-lab sip [policy-name]`
+**Command**: `bin/easy-db-lab sip [policy-name]`
 **Alias**: `sip`
 
-Displays easy-cass-lab IAM policies with the user's AWS account ID automatically populated.
+Displays easy-db-lab IAM policies with the user's AWS account ID automatically populated.
 
 **Usage:**
 ```bash
 # Show all policies with headers (human-readable)
-bin/easy-cass-lab sip
+bin/easy-db-lab sip
 
 # Show specific policy without header (script-friendly)
-bin/easy-cass-lab sip ec2    # EC2 policy only
-bin/easy-cass-lab sip iam    # IAM/S3 policy only
-bin/easy-cass-lab sip emr    # EMR policy only
+bin/easy-db-lab sip ec2    # EC2 policy only
+bin/easy-db-lab sip iam    # IAM/S3 policy only
+bin/easy-db-lab sip emr    # EMR policy only
 ```
 
 **Policy Names:**
-- `ec2` → EasyCassLabEC2 (EC2 instance management, AMI creation, VPC operations)
-- `iam` → EasyCassLabIAM (IAM role/instance profile creation, S3 bucket operations)
-- `emr` → EasyCassLabEMR (EMR cluster creation and management)
+- `ec2` → EasyDBLabEC2 (EC2 instance management, AMI creation, VPC operations)
+- `iam` → EasyDBLabIAM (IAM role/instance profile creation, S3 bucket operations)
+- `emr` → EasyDBLabEMR (EMR cluster creation and management)
 
 **Requirements:**
 - AWS credentials must be configured (fails if not)
@@ -45,7 +45,7 @@ bin/easy-cass-lab sip emr    # EMR policy only
 
 **Script**: `bin/set-policies`
 
-Automatically applies easy-cass-lab IAM policies to AWS users, groups, or roles. Essential for helping other developers debug setup issues.
+Automatically applies easy-db-lab IAM policies to AWS users, groups, or roles. Essential for helping other developers debug setup issues.
 
 **Command-Line Flags:**
 ```bash
@@ -74,7 +74,7 @@ AWS_PROFILE              # AWS profile (fallback if ECL_PROFILE not set)
 **Requirements:**
 - Exactly one of --user-name, --group-name, or --role-name must be specified
 - AWS credentials with permission to put inline policies on the target
-- `bin/easy-cass-lab sip` command must be available
+- `bin/easy-db-lab sip` command must be available
 
 ## Common Workflows
 
@@ -83,7 +83,7 @@ AWS_PROFILE              # AWS profile (fallback if ECL_PROFILE not set)
 
 ```bash
 # View all three policies with account ID populated
-bin/easy-cass-lab sip
+bin/easy-db-lab sip
 ```
 
 **Output**: All policies with headers showing policy names.
@@ -93,12 +93,12 @@ bin/easy-cass-lab sip
 
 ```bash
 # Get EC2 policy and save to file
-bin/easy-cass-lab sip ec2 > ec2-policy.json
+bin/easy-db-lab sip ec2 > ec2-policy.json
 
 # Apply via AWS CLI
 aws iam put-user-policy \
   --user-name my-user \
-  --policy-name EasyCassLabEC2 \
+  --policy-name EasyDBLabEC2 \
   --policy-document file://ec2-policy.json
 ```
 
@@ -108,7 +108,7 @@ aws iam put-user-policy \
 ```bash
 # Preview what would be applied
 AWS_PROFILE=sandbox-admin \
-  bin/set-policies --user-name easy-cass-lab --dry-run
+  bin/set-policies --user-name easy-db-lab --dry-run
 ```
 
 **Output**: Shows AWS CLI commands that would be executed without running them.
@@ -119,11 +119,11 @@ AWS_PROFILE=sandbox-admin \
 ```bash
 # Apply all three policies
 AWS_PROFILE=sandbox-admin \
-  bin/set-policies --user-name easy-cass-lab
+  bin/set-policies --user-name easy-db-lab
 
 # Or with environment variables
 export AWS_PROFILE=sandbox-admin
-export ECL_USER_NAME=easy-cass-lab
+export ECL_USER_NAME=easy-db-lab
 bin/set-policies
 ```
 
@@ -132,13 +132,13 @@ bin/set-policies
 
 ```bash
 bin/set-policies \
-  --group-name easy-cass-lab-developers \
+  --group-name easy-db-lab-developers \
   --policies ec2 \
   --profile prod-account
 ```
 
 ### Workflow 6: Help Other Developer Debug Setup
-**Use Case**: Another developer is getting permission errors during `easy-cass-lab init`.
+**Use Case**: Another developer is getting permission errors during `easy-db-lab init`.
 
 **Steps:**
 1. Identify which permission is missing from error message
@@ -156,7 +156,7 @@ bin/set-policies \
 ### Issue: Permission Denied Errors During Setup
 
 **Symptoms:**
-- `easy-cass-lab init` fails with "UnauthorizedOperation" or "AccessDenied"
+- `easy-db-lab init` fails with "UnauthorizedOperation" or "AccessDenied"
 - Error messages mention specific AWS actions (e.g., "ec2:CreateKeyPair", "iam:CreateRole")
 
 **Diagnosis:**
@@ -167,9 +167,9 @@ bin/set-policies \
 
 2. View the required policy:
 ```bash
-bin/easy-cass-lab sip ec2   # If EC2 permission error
-bin/easy-cass-lab sip iam   # If IAM/S3 permission error
-bin/easy-cass-lab sip emr   # If EMR permission error
+bin/easy-db-lab sip ec2   # If EC2 permission error
+bin/easy-db-lab sip iam   # If IAM/S3 permission error
+bin/easy-db-lab sip emr   # If EMR permission error
 ```
 
 **Resolution:**
@@ -184,8 +184,8 @@ bin/set-policies --user-name <username> --profile <profile>
 ### Issue: Account ID Not Found
 
 **Symptoms:**
-- `bin/easy-cass-lab sip` fails with "Failed to get AWS account ID"
-- Error message: "Please run 'easy-cass-lab init' to set up credentials"
+- `bin/easy-db-lab sip` fails with "Failed to get AWS account ID"
+- Error message: "Please run 'easy-db-lab init' to set up credentials"
 
 **Cause:**
 - AWS credentials are not configured or invalid
@@ -218,7 +218,7 @@ aws configure --profile <profile>
 
 ### Issue: Helping Remote Developer
 
-**Scenario:** Another developer in a different AWS account needs help setting up easy-cass-lab.
+**Scenario:** Another developer in a different AWS account needs help setting up easy-db-lab.
 
 **Steps:**
 1. Ask them to provide their AWS IAM user name
@@ -259,7 +259,7 @@ The `bin/set-policies` script creates **inline policies** attached directly to u
 2. **Apply all policies at once** during initial setup to avoid multiple permission errors
 3. **Use specific policies** when debugging to minimize permission grants
 4. **Set AWS_PROFILE** environment variable for consistency across commands
-5. **Keep policies in sync** by always using `bin/easy-cass-lab sip` as the source of truth
+5. **Keep policies in sync** by always using `bin/easy-db-lab sip` as the source of truth
 
 ## Error Messages Reference
 
@@ -282,12 +282,12 @@ The `bin/set-policies` script creates **inline policies** attached directly to u
 
 **View all policies:**
 ```bash
-bin/easy-cass-lab sip
+bin/easy-db-lab sip
 ```
 
 **Get specific policy for scripting:**
 ```bash
-bin/easy-cass-lab sip ec2 > policy.json
+bin/easy-db-lab sip ec2 > policy.json
 ```
 
 **Preview policy application:**

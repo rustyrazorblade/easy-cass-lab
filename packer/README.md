@@ -1,6 +1,6 @@
 # Packer Testing
 
-This directory contains packer configurations and testing tools for building easy-cass-lab AMIs.
+This directory contains packer configurations and testing tools for building easy-db-lab AMIs.
 
 ## Quick Start - Test Scripts Locally
 
@@ -64,7 +64,7 @@ The test image is built automatically when you run `test-script.sh` or docker-co
 To manually rebuild:
 
 ```shell
-docker build -t easy-cass-lab-packer-test .
+docker build -t easy-db-lab-packer-test .
 ```
 
 ## Documentation
