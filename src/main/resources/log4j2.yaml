@@ -3,7 +3,7 @@ Configuration:
   Properties:
     property:
       - name: logs
-        value: "${env:EASY_CASS_LAB_LOG_DIR:-${sys:user.home}/.easy-cass-lab}"
+        value: "${env:EASY_DB_LAB_LOG_DIR:-${sys:user.home}/.easy-db-lab}"
 
   status: info
   name: StandardConfiguration

@@ -1,6 +1,6 @@
 # Testing Guidelines
 
-This document outlines the testing standards and practices for the easy-cass-lab project.
+This document outlines the testing standards and practices for the easy-db-lab project.
 
 ## Core Testing Principles
 
@@ -66,15 +66,15 @@ enum class NodeStatus {
 // Custom assertion class
 import org.assertj.core.api.AbstractAssert
 
-class CassandraNodeAssert(actual: CassandraNode?) : 
+class CassandraNodeAssert(actual: CassandraNode?) :
     AbstractAssert<CassandraNodeAssert, CassandraNode>(actual, CassandraNodeAssert::class.java) {
-    
+
     companion object {
         fun assertThat(actual: CassandraNode?): CassandraNodeAssert {
             return CassandraNodeAssert(actual)
         }
     }
-    
+
     fun hasNodeId(nodeId: String): CassandraNodeAssert {
         isNotNull
         if (actual.nodeId != nodeId) {
@@ -82,7 +82,7 @@ class CassandraNodeAssert(actual: CassandraNode?) :
         }
         return this
     }
-    
+
     fun isInDatacenter(datacenter: String): CassandraNodeAssert {
         isNotNull
         if (actual.datacenter != datacenter) {
@@ -90,7 +90,7 @@ class CassandraNodeAssert(actual: CassandraNode?) :
         }
         return this
     }
-    
+
     fun hasStatus(status: NodeStatus): CassandraNodeAssert {
         isNotNull
         if (actual.status != status) {
@@ -98,15 +98,15 @@ class CassandraNodeAssert(actual: CassandraNode?) :
         }
         return this
     }
-    
+
     fun isUp(): CassandraNodeAssert {
         return hasStatus(NodeStatus.UP)
     }
-    
+
     fun isDown(): CassandraNodeAssert {
         return hasStatus(NodeStatus.DOWN)
     }
-    
+
     fun hasTokenCount(tokens: Int): CassandraNodeAssert {
         isNotNull
         if (actual.tokens != tokens) {
@@ -128,7 +128,7 @@ fun `test cassandra node configuration`() {
         status = NodeStatus.UP,
         tokens = 256
     )
-    
+
     // Fluent assertions with domain language
     assertThat(node)
         .hasNodeId("node1")
@@ -145,20 +145,20 @@ Create a central assertions class to provide access to all custom assertions:
 ```kotlin
 // MyProjectAssertions.kt
 object MyProjectAssertions {
-    
+
     // Cassandra domain assertions
     fun assertThat(actual: CassandraNode?): CassandraNodeAssert {
         return CassandraNodeAssert(actual)
     }
-    
+
     fun assertThat(actual: Host?): HostAssert {
         return HostAssert(actual)
     }
-    
+
     fun assertThat(actual: TFState?): TFStateAssert {
         return TFStateAssert(actual)
     }
-    
+
     // Add more domain assertions as needed
 }
 ```
@@ -166,13 +166,13 @@ object MyProjectAssertions {
 Then import statically in tests:
 
 ```kotlin
-import com.rustyrazorblade.easycasslab.assertions.MyProjectAssertions.assertThat
+import com.rustyrazorblade.easydblab.assertions.MyProjectAssertions.assertThat
 
 @Test
 fun `test complex scenario`() {
     val node = createTestNode()
     val host = createTestHost()
-    
+
     // All domain assertions available through single import
     assertThat(node).isUp()
     assertThat(host).hasPrivateIp("10.0.0.1")
@@ -210,10 +210,10 @@ Create custom assertions for:
    fun `test node startup`() {
        // Arrange
        val node = createTestNode(status = NodeStatus.DOWN)
-       
+
        // Act
        val result = nodeManager.startNode(node)
-       
+
        // Assert
        assertThat(result).isUp()
    }

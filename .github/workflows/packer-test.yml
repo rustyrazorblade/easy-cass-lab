@@ -33,7 +33,7 @@ jobs:
       - name: Build test image
         run: |
           cd packer
-          docker build -t easy-cass-lab-packer-test .
+          docker build -t easy-db-lab-packer-test .
 
       - name: Test script - ${{ matrix.script }}
         run: |
@@ -56,7 +56,7 @@ jobs:
       - name: Build test image
         run: |
           cd packer
-          docker build -t easy-cass-lab-packer-test .
+          docker build -t easy-db-lab-packer-test .
 
       - name: Detect and test changed scripts
         run: |

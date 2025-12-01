@@ -86,7 +86,7 @@ For more details, see [packer/README.md](packer/README.md) and [packer/TESTING.m
 - activate kotlin and java for context7
 - activate the serena MCP server
 - ABSOLUTE RULE: NEVER attribute commit messages to Claude.
-- ABSOLUTE RULE: When posting a plan to github, do not include 'Test plan' section.  
+- ABSOLUTE RULE: When posting a plan to github, do not include 'Test plan' section.
 - Do not use wildcard imports.
 - When making changes, use the detekt plugin to determine if there are any code quality regressions.
 - Always ensure files end with a newline
@@ -100,7 +100,7 @@ The project uses resilience4j for all retry operations. Never implement custom r
 **Always use `RetryUtil` factory methods** instead of creating manual configurations:
 
 ```kotlin
-import com.rustyrazorblade.easycasslab.providers.RetryUtil
+import com.rustyrazorblade.easydblab.providers.RetryUtil
 import io.github.resilience4j.retry.Retry
 
 // For operations that return a value (Supplier pattern)
@@ -138,7 +138,7 @@ For comprehensive testing guidelines, including custom assertions and Domain-Dri
 
 ### Key Principles
 - Extend `BaseKoinTest` for all tests (provides automatic DI and mocked services)
-- Use AssertJ assertions, not JUnit assertions  
+- Use AssertJ assertions, not JUnit assertions
 - Create custom assertions for domain classes to enable Domain-Driven Design
 - AWS, SSH, and OutputHandler are automatically mocked by BaseKoinTest
 
@@ -170,7 +170,7 @@ The codebase manages hostnames and IP addresses through the `TFState` class, whi
 #### 1. Host Data Class (`configuration/Host.kt`)
 Represents a single host with:
 - `public`: Public IP address
-- `private`: Private/internal IP address  
+- `private`: Private/internal IP address
 - `alias`: Host alias (e.g., "cassandra0", "stress0", "control0")
 - `availabilityZone`: AWS availability zone
 
@@ -190,7 +190,7 @@ Parses Terraform state and provides methods to retrieve host information:
 PicoCLI subcommands.  Most run then exit.  There are two exceptions:
 
 - Repl: Starts a REPL to reduce typing
-- Server: Starts an MCP server for AI Agents (run via `easy-cass-lab server`).
+- Server: Starts an MCP server for AI Agents (run via `easy-db-lab server`).
 
 
 ### Common Patterns
@@ -228,10 +228,10 @@ Local OTel nodes are forwarding metrics to the control node.
 
 ## User Manual
 
-The user manual is located in manual/index.adoc.  
+The user manual is located in manual/index.adoc.
 - Don't use wildcard imports.
 - Always use assertj style assertions, not the raw junit ones.
-- Constants and magic numbers should be stored in com.rustyrazorblade.easycasslab.Constants
+- Constants and magic numbers should be stored in com.rustyrazorblade.easydblab.Constants
 - When migrating code, it is not necessary to maintain backwards compability.
 - Fail fast is usually preferred.
 - Always use @TempDir for temporary directories in tests - JUnit handles lifecycle automatically

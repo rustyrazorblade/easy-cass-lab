@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "IAMPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:CreateInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:AddRoleToInstanceProfile"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3Permissions",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:PutBucketVersioning",
+        "s3:GetBucketVersioning",
+        "s3:PutBucketPolicy",
+        "s3:GetBucketPolicy"
+      ],
+      "Resource": [
+        "arn:aws:s3:::easy-db-lab-*",
+        "arn:aws:s3:::easy-db-lab-*/*"
+      ]
+    }
+  ]
+}

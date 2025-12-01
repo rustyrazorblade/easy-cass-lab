@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGE_NAME="easy-cass-lab-packer-test"
+IMAGE_NAME="easy-db-lab-packer-test"
 
 # Colors for output
 RED='\033[0;31m'

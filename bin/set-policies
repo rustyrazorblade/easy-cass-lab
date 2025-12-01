@@ -6,7 +6,7 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Script to create managed IAM policies and attach to AWS users, groups, or roles
-# Always applies all three policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR
+# Always applies all three policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR
 # Useful for debugging setup issues with other developers
 
 # Initialize variables from environment or defaults
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Create managed IAM policies and attach to AWS users, groups, or roles."
-      echo "Always applies all three policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR"
+      echo "Always applies all three policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR"
       echo ""
       echo "Uses managed policies (not inline) to avoid size limits and enable reusability."
       echo ""
@@ -58,7 +58,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -h, --help              Show this help message"
       echo ""
       echo "Examples:"
-      echo "  $0 --group-name EasyCassLabUsers"
+      echo "  $0 --group-name EasyDBLabUsers"
       echo "  $0 --user-name my-user --profile dev-account"
       echo "  export ECL_GROUP_NAME=MyGroup && $0 --dry-run"
       exit 0
@@ -115,7 +115,7 @@ fi
 echo "=== Configuration ==="
 echo "Target type: $TARGET_TYPE"
 echo "Target name: $TARGET_NAME"
-echo "Policies: EasyCassLabEC2, EasyCassLabIAM, EasyCassLabEMR (all)"
+echo "Policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR (all)"
 [[ -n "$PROFILE" ]] && echo "AWS profile: $PROFILE"
 echo "Policy type: Managed (reusable, no size limits)"
 echo "Dry run: $DRY_RUN"
@@ -132,13 +132,13 @@ for policy in "${POLICY_LIST[@]}"; do
   # Get policy name mapping
   case "$policy" in
     ec2)
-      POLICY_NAME="EasyCassLabEC2"
+      POLICY_NAME="EasyDBLabEC2"
       ;;
     iam)
-      POLICY_NAME="EasyCassLabIAM"
+      POLICY_NAME="EasyDBLabIAM"
       ;;
     emr)
-      POLICY_NAME="EasyCassLabEMR"
+      POLICY_NAME="EasyDBLabEMR"
       ;;
   esac
 

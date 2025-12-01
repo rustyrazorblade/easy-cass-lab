@@ -145,7 +145,7 @@ If you get "image not found" errors:
 
 ```bash
 cd packer
-docker build -t easy-cass-lab-packer-test .
+docker build -t easy-db-lab-packer-test .
 ```
 
 ### Permission Denied Errors
@@ -172,7 +172,7 @@ If you modify `Dockerfile`:
 
 ```bash
 # Rebuild manually
-docker build -t easy-cass-lab-packer-test .
+docker build -t easy-db-lab-packer-test .
 
 # Or use --rebuild flag
 ./test-script.sh cassandra/install/install_cassandra_easy_stress.sh --rebuild
@@ -191,7 +191,7 @@ docker build -t easy-cass-lab-packer-test .
 To add new dependencies or tools to the test environment:
 
 1. Edit `Dockerfile`
-2. Rebuild: `docker build -t easy-cass-lab-packer-test .`
+2. Rebuild: `docker build -t easy-db-lab-packer-test .`
 3. Test your scripts with the updated environment
 
 ## Integration with CI/CD
@@ -203,7 +203,7 @@ You can use this test environment in CI/CD pipelines:
 - name: Test packer scripts
   run: |
     cd packer
-    docker build -t easy-cass-lab-packer-test .
+    docker build -t easy-db-lab-packer-test .
     ./test-script.sh cassandra/install/install_cassandra_easy_stress.sh
 ```
 

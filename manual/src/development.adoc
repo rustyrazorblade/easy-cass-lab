@@ -1,15 +1,15 @@
-= easy-cass-lab Development Guide
+= easy-db-lab Development Guide
 Jon Haddad <jon@rustyrazorblade.com>
 :toc: left
 :icons: font
 
-Hello there.  If you're reading this, you've probably decided to contribute to easy-cass-lab or use the tools for your own work.  Very cool.
+Hello there.  If you're reading this, you've probably decided to contribute to easy-db-lab or use the tools for your own work.  Very cool.
 
 INFO:: These docs are a WIP and we are aware of a number of sections that are yet to be completed.
 
 == Overview
 
-easy-cass-lab is broken into several subprojects to make each compontent a bit more managable.  Some of these are docker (which are prefixed with `docker-`), some are text generation (such as the manual you're reading now), and others are simply a bit of code that download an artifact.  Each subproject is versioned and may potentially create an artifact which can be downloaded separately, such as the `dashboards` subproject.
+easy-db-lab is broken into several subprojects to make each compontent a bit more managable.  Some of these are docker (which are prefixed with `docker-`), some are text generation (such as the manual you're reading now), and others are simply a bit of code that download an artifact.  Each subproject is versioned and may potentially create an artifact which can be downloaded separately, such as the `dashboards` subproject.
 
 
 == Docker
