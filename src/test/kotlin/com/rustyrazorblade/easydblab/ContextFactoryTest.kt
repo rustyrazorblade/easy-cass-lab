@@ -2,12 +2,9 @@ package com.rustyrazorblade.easydblab
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 class ContextFactoryTest : BaseKoinTest() {
-    @TempDir lateinit var tempDir: File
-
     @Test
     fun `getContext caches contexts by key`() {
         val factory = ContextFactory(tempDir)

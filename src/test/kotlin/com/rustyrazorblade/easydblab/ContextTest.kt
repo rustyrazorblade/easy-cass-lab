@@ -2,13 +2,8 @@ package com.rustyrazorblade.easydblab
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.io.File
 
 class ContextTest : BaseKoinTest() {
-    @TempDir
-    lateinit var tempDir: File
-
     @Test
     fun `default Context should have isMcp false`() {
         val context = Context(tempDir)

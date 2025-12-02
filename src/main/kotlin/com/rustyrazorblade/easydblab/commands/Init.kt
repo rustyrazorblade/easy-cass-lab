@@ -5,7 +5,6 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
-import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.converters.PicoAZConverter
 import com.rustyrazorblade.easydblab.commands.mixins.SparkInitMixin
@@ -13,7 +12,6 @@ import com.rustyrazorblade.easydblab.configuration.Arch
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.User
-import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
@@ -28,7 +26,6 @@ import java.time.LocalDate
  * Initialize this directory for easy-db-lab.
  */
 @McpCommand
-@RequireDocker
 @RequireProfileSetup
 @Command(
     name = "init",
@@ -38,7 +35,6 @@ class Init(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
-    private val aws: AWS by inject()
     private val vpcService: VpcService by inject()
 
     companion object {
@@ -46,11 +42,6 @@ class Init(
         private const val DEFAULT_EBS_SIZE_GB = 256
 
         @JsonIgnore val log = KotlinLogging.logger {}
-
-        fun expand(
-            region: String,
-            azs: List<String>,
-        ): List<String> = azs.map { region + it }
     }
 
     @Option(
@@ -264,37 +255,11 @@ class Init(
             Clean(context).execute()
         }
 
-        val initConfig =
-            InitConfig(
-                cassandraInstances = cassandraInstances,
-                stressInstances = stressInstances,
-                instanceType = instanceType,
-                stressInstanceType = stressInstanceType,
-                azs = azs,
-                ami = ami,
-                region = userConfig.region,
-                name = name,
-                ebsType = ebsType,
-                ebsSize = ebsSize,
-                ebsIops = ebsIops,
-                ebsThroughput = ebsThroughput,
-                ebsOptimized = ebsOptimized,
-                open = open,
-                controlInstances = 1,
-                controlInstanceType = "t3.xlarge",
-                tags = tags,
-                arch = arch.name,
-                sparkEnabled = spark.enable,
-                sparkMasterInstanceType = spark.masterInstanceType,
-                sparkWorkerInstanceType = spark.workerInstanceType,
-                sparkWorkerCount = spark.workerCount,
-            )
-
         val state =
             ClusterState(
                 name = name,
                 versions = mutableMapOf(),
-                initConfig = initConfig,
+                initConfig = InitConfig.fromInit(this, userConfig.region),
             )
         clusterStateManager.save(state)
         return state
@@ -303,7 +268,6 @@ class Init(
     private fun extractResourceFiles() {
         outputHandler.handleMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
-        extractResourceFile("axonops-dashboards.json", "axonops-dashboards.json")
 
         outputHandler.handleMessage(
             "Creating control directory and writing docker-compose.yaml, " +

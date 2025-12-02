@@ -195,4 +195,9 @@ val awsModule =
                 get<OutputHandler>(),
             )
         }
+
+        // Provide SecurityGroupService as singleton
+        single<SecurityGroupService> {
+            EC2SecurityGroupService(get<Ec2Client>())
+        }
     }

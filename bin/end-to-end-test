@@ -112,6 +112,9 @@ kubectl wait --for=condition=Ready nodes --all --timeout=120s
 echo "=== Listing cluster hosts ==="
 "$PROJECT_ROOT/bin/easy-db-lab" hosts
 
+echo "=== Status Without Cassandra Version ==="
+"$PROJECT_ROOT/bin/easy-db-lab" status
+
 echo "=== Listing available Cassandra versions ==="
 "$PROJECT_ROOT/bin/easy-db-lab" list
 
@@ -123,6 +126,9 @@ echo "=== Updating configuration ==="
 
 echo "=== Starting Cassandra ==="
 "$PROJECT_ROOT/bin/easy-db-lab" start
+
+echo "=== Status With Cassandra Running ==="
+"$PROJECT_ROOT/bin/easy-db-lab" status
 
 echo "=== Stopping Cassandra ==="
 "$PROJECT_ROOT/bin/easy-db-lab" stop

@@ -7,7 +7,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import org.koin.core.component.KoinComponent
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -31,9 +30,6 @@ import java.nio.charset.Charset
 class SSHClientTest :
     BaseKoinTest(),
     KoinComponent {
-    @TempDir
-    lateinit var tempDir: File
-
     private lateinit var mockSession: ClientSession
     private lateinit var mockIoSession: IoSession
     private lateinit var sshClient: SSHClient

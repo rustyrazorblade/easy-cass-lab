@@ -2,12 +2,14 @@ package com.rustyrazorblade.easydblab
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.io.TempDir
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
 import org.koin.test.KoinTest
 import org.koin.test.get
+import java.io.File
 
 /**
  * Base test class that provides automatic Koin dependency injection setup and teardown.
@@ -31,6 +33,13 @@ import org.koin.test.get
  */
 abstract class BaseKoinTest : KoinTest {
     /**
+     * JUnit-managed temporary directory for test isolation.
+     * Automatically created before each test and cleaned up after.
+     */
+    @TempDir
+    lateinit var tempDir: File
+
+    /**
      * Context instance retrieved from Koin DI for use in tests. Available after setupKoin() is
      * called (automatically via @BeforeEach).
      */
@@ -44,7 +53,7 @@ abstract class BaseKoinTest : KoinTest {
      * Override this only if you need to replace core mocks (rare). Usually you want to override
      * additionalTestModules() instead.
      */
-    protected open fun coreTestModules(): List<Module> = TestModules.coreTestModules()
+    protected open fun coreTestModules(): List<Module> = TestModules.coreTestModules(tempDir)
 
     /**
      * Additional test-specific modules. Override this to add modules needed for your specific test.

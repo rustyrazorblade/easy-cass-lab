@@ -26,7 +26,7 @@ class CleanTest : BaseKoinTest() {
         assertThat(envFile).exists()
         assertThat(environmentFile).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         assertThat(stateFile).doesNotExist()
@@ -43,7 +43,7 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(provisioningDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         assertThat(provisioningDir).doesNotExist()
@@ -58,7 +58,7 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(logsDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         assertThat(logsDir).doesNotExist()
@@ -73,7 +73,7 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(artifactsDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         // artifacts should still exist because it contains files
@@ -88,7 +88,7 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(artifactsDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         // artifacts should be deleted because it's empty
@@ -108,7 +108,7 @@ class CleanTest : BaseKoinTest() {
         projectRootFile.createNewFile()
 
         try {
-            val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+            val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
             Clean(testContext).execute()
 
             // Working directory file should be deleted
@@ -138,7 +138,7 @@ class CleanTest : BaseKoinTest() {
         assertThat(hostsFile).exists()
         assertThat(seedsFile).exists()
 
-        val testContext = TestContextFactory.createTestContext(workingDirectory = workingDir)
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
         Clean(testContext).execute()
 
         assertThat(sshConfig).doesNotExist()
