@@ -4,9 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.rustyrazorblade.easydblab.Constants
+import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.Host
+import com.rustyrazorblade.easydblab.kubernetes.DefaultKubernetesService
+import com.rustyrazorblade.easydblab.kubernetes.KubernetesJob
+import com.rustyrazorblade.easydblab.kubernetes.ProxiedKubernetesClientFactory
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
+import com.rustyrazorblade.easydblab.proxy.SocksProxyService
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
@@ -56,6 +61,23 @@ interface K3sService : SystemDServiceManager {
         host: Host,
         localPath: Path,
     ): Result<Unit>
+
+    /**
+     * Lists Kubernetes jobs from the K3s cluster.
+     *
+     * This method handles the complete connection chain:
+     * 1. Establishes SOCKS proxy to the control node
+     * 2. Creates proxied Kubernetes client
+     * 3. Lists all jobs across namespaces
+     *
+     * @param controlHost The control node running K3s
+     * @param kubeconfigPath Local path to the kubeconfig file
+     * @return Result containing list of jobs or an error
+     */
+    fun listJobs(
+        controlHost: ClusterHost,
+        kubeconfigPath: Path,
+    ): Result<List<KubernetesJob>>
 }
 
 /**
@@ -76,6 +98,7 @@ interface K3sService : SystemDServiceManager {
 class DefaultK3sService(
     remoteOps: RemoteOperationsService,
     outputHandler: OutputHandler,
+    private val socksProxyService: SocksProxyService,
 ) : AbstractSystemDServiceManager("k3s", remoteOps, outputHandler),
     K3sService {
     override val log: KLogger = KotlinLogging.logger {}
@@ -164,5 +187,25 @@ class DefaultK3sService(
             } finally {
                 tempFile.delete()
             }
+        }
+
+    override fun listJobs(
+        controlHost: ClusterHost,
+        kubeconfigPath: Path,
+    ): Result<List<KubernetesJob>> =
+        runCatching {
+            // Start the SOCKS proxy to the control node
+            socksProxyService.ensureRunning(controlHost)
+
+            // Create Kubernetes service with the proxy
+            val clientFactory =
+                ProxiedKubernetesClientFactory(
+                    proxyHost = "localhost",
+                    proxyPort = socksProxyService.getLocalPort(),
+                )
+            val kubeService = DefaultKubernetesService(clientFactory, kubeconfigPath)
+
+            // List all jobs
+            kubeService.listJobs().getOrThrow()
         }
 }

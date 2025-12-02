@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.commands
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
-import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
@@ -24,7 +23,6 @@ import java.io.File
  * Start cassandra on all nodes via service command.
  */
 @McpCommand
-@RequireDocker
 @RequireProfileSetup
 @RequireSSHKey
 @Command(

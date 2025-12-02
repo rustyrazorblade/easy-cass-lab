@@ -4,7 +4,6 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
-import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.AxonOpsWorkbenchConfig
@@ -43,7 +42,6 @@ import java.time.Duration
  * Starts instances and sets up the cluster.
  */
 @McpCommand
-@RequireDocker
 @RequireProfileSetup
 @Command(
     name = "up",
@@ -115,14 +113,12 @@ class Up(
 
         // Get AMI ID
         val amiId =
-            if (initConfig.ami.isNotBlank()) {
-                initConfig.ami
-            } else {
+            initConfig.ami.ifBlank {
                 val arch = initConfig.arch.lowercase()
                 val amiPattern = Constants.AWS.AMI_PATTERN_TEMPLATE.format(arch)
                 val amis = ec2Service.listPrivateAMIs(amiPattern)
                 if (amis.isEmpty()) {
-                    error("No AMI found for architecture $arch. Please build an AMI first with 'easy-db-lab build-ami'.")
+                    error("No AMI found for architecture $arch. Please build an AMI first with 'easy-db-lab build-image'.")
                 }
                 // Get the most recently created AMI
                 amis.maxByOrNull { it.creationDate }?.id

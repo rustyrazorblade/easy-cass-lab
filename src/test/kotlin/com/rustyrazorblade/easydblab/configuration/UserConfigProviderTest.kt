@@ -3,14 +3,10 @@ package com.rustyrazorblade.easydblab.configuration
 import com.rustyrazorblade.easydblab.BaseKoinTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import kotlin.test.assertEquals
 
 class UserConfigProviderTest : BaseKoinTest() {
-    @TempDir
-    lateinit var tempDir: File
-
     private lateinit var userConfigProvider: UserConfigProvider
     private lateinit var profileDir: File
     private lateinit var userConfigFile: File

@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.configuration
 
+import com.rustyrazorblade.easydblab.commands.Init
 import java.time.Instant
 import java.util.UUID
 
@@ -82,7 +83,46 @@ data class InitConfig(
     val sparkMasterInstanceType: String = "m5.xlarge",
     val sparkWorkerInstanceType: String = "m5.xlarge",
     val sparkWorkerCount: Int = 3,
-)
+) {
+    companion object {
+        /**
+         * Factory method to create InitConfig from an Init command instance.
+         * Encapsulates the transformation logic in a single location.
+         *
+         * @param init The Init command instance containing user-specified configuration
+         * @param region The AWS region from user configuration
+         * @return A new InitConfig with values from the Init command
+         */
+        fun fromInit(
+            init: Init,
+            region: String,
+        ): InitConfig =
+            InitConfig(
+                cassandraInstances = init.cassandraInstances,
+                stressInstances = init.stressInstances,
+                instanceType = init.instanceType,
+                stressInstanceType = init.stressInstanceType,
+                azs = init.azs,
+                ami = init.ami,
+                region = region,
+                name = init.name,
+                ebsType = init.ebsType,
+                ebsSize = init.ebsSize,
+                ebsIops = init.ebsIops,
+                ebsThroughput = init.ebsThroughput,
+                ebsOptimized = init.ebsOptimized,
+                open = init.open,
+                controlInstances = 1,
+                controlInstanceType = "t3.xlarge",
+                tags = init.tags,
+                arch = init.arch.name,
+                sparkEnabled = init.spark.enable,
+                sparkMasterInstanceType = init.spark.masterInstanceType,
+                sparkWorkerInstanceType = init.spark.workerInstanceType,
+                sparkWorkerCount = init.spark.workerCount,
+            )
+    }
+}
 
 /**
  * Pure data class representing cluster state.

@@ -13,16 +13,17 @@ object TestContextFactory {
      * Creates a Context instance configured for testing.
      * Creates a temporary directory and a fake user configuration.
      *
+     * @param tempDir JUnit @TempDir directory for test isolation (automatically cleaned up)
      * @param workingDirectory Optional working directory for lab operations.
      *                         Use JUnit @TempDir to provide an isolated directory for tests
      *                         that perform file operations (like Clean).
      *                         If null, defaults to the test temp directory.
      */
-    fun createTestContext(workingDirectory: File? = null): Context {
-        val tmpContentParent = File("test/contexts")
-        tmpContentParent.mkdirs()
-
-        val testTempDirectory = Files.createTempDirectory(tmpContentParent.toPath(), "easydblab")
+    fun createTestContext(
+        tempDir: File,
+        workingDirectory: File? = null,
+    ): Context {
+        val testTempDirectory = Files.createTempDirectory(tempDir.toPath(), "easydblab")
         assert(testTempDirectory != null)
 
         // Create a default profile with a fake user

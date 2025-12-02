@@ -183,6 +183,11 @@ object Constants {
         const val DEFAULT_SERVER_URL = "https://127.0.0.1:6443"
     }
 
+    // Proxy configuration
+    object Proxy {
+        const val DEFAULT_SOCKS5_PORT = 1080
+    }
+
     // VPC and tagging configuration
     object Vpc {
         /** Default VPC CIDR block */

@@ -26,6 +26,7 @@ import com.rustyrazorblade.easydblab.commands.SetupInstance
 import com.rustyrazorblade.easydblab.commands.SetupProfile
 import com.rustyrazorblade.easydblab.commands.ShowIamPolicies
 import com.rustyrazorblade.easydblab.commands.Start
+import com.rustyrazorblade.easydblab.commands.Status
 import com.rustyrazorblade.easydblab.commands.Stop
 import com.rustyrazorblade.easydblab.commands.Up
 import com.rustyrazorblade.easydblab.commands.UpdateConfig
@@ -112,6 +113,7 @@ class CommandLineParser(
                 PicoCommandEntry("hosts", { Hosts(context) }),
                 PicoCommandEntry("stop", { Stop(context) }),
                 PicoCommandEntry("start", { Start(context) }),
+                PicoCommandEntry("status", { Status(context) }),
                 PicoCommandEntry("restart", { Restart(context) }),
                 PicoCommandEntry("exec", { Exec(context) }),
                 PicoCommandEntry("down", { Down(context) }),

@@ -34,11 +34,12 @@ object TestModules {
      * - Output handlers (to capture output for testing)
      * - SSH services (to prevent real SSH connections)
      *
+     * @param tempDir JUnit @TempDir directory for test isolation
      * @return List of core modules that should always be present in tests
      */
-    fun coreTestModules(): List<Module> =
+    fun coreTestModules(tempDir: File): List<Module> =
         listOf(
-            testContextModule(),
+            testContextModule(tempDir),
             testAWSModule(),
             testOutputModule(),
             testSSHModule(),
@@ -48,10 +49,11 @@ object TestModules {
      * Test module that provides a fresh Context instance for each test. Creates a new temporary
      * directory and test user configuration. This ensures test isolation and allows safe cleanup.
      *
+     * @param tempDir JUnit @TempDir directory for test isolation
      * @return Module providing a test Context
      */
-    fun testContextModule(): Module {
-        val testContext = TestContextFactory.createTestContext()
+    fun testContextModule(tempDir: File): Module {
+        val testContext = TestContextFactory.createTestContext(tempDir)
         val contextFactory = ContextFactory(testContext.easyDbLabUserDirectory)
         return module {
             // Include all context module definitions

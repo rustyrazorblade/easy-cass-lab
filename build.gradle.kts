@@ -1,4 +1,4 @@
-
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 buildscript {
     repositories {
@@ -21,6 +21,10 @@ plugins {
 }
 
 group = "com.rustyrazorblade"
+
+tasks.withType<ShadowJar> {
+    isZip64 = true
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -105,6 +109,9 @@ dependencies {
     // MCP SDK and dependencies
     implementation(libs.mcp.sdk)
     implementation(libs.kotlinx.io)
+
+    // Kubernetes
+    implementation(libs.fabric8.kubernetes.client)
 
     // Testing
     testImplementation(libs.bundles.testing)
