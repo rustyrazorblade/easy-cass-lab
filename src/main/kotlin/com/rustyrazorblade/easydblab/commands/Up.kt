@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.AxonOpsWorkbenchConfig
 import com.rustyrazorblade.easydblab.configuration.ClusterConfigWriter
@@ -39,7 +40,8 @@ import java.nio.file.Path
 import java.time.Duration
 
 /**
- * Starts instances and sets up the cluster.
+ * Provisions instances and prepares the cluster.
+ * Sets up K3s on all nodes, and installs the manifests.
  */
 @McpCommand
 @RequireProfileSetup
@@ -607,5 +609,6 @@ class Up(
         }
 
         outputHandler.handleMessage("K3s cluster started successfully")
+        K8Apply(context).execute()
     }
 }

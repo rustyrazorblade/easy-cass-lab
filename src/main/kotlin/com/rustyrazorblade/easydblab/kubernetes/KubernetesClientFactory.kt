@@ -33,13 +33,23 @@ class ProxiedKubernetesClientFactory(
     private val proxyHost: String = "localhost",
     private val proxyPort: Int,
 ) : KubernetesClientFactory {
+    companion object {
+        private const val CONNECTION_TIMEOUT_MS = 30000
+        private const val REQUEST_TIMEOUT_MS = 60000
+    }
+
     override fun createClient(kubeconfigPath: Path): KubernetesClient {
         // Load kubeconfig from file
         val kubeconfigContent = kubeconfigPath.toFile().readText()
         val config = Config.fromKubeconfig(kubeconfigContent)
 
-        // Configure SOCKS5 proxy
-        config.httpProxy = "socks5://$proxyHost:$proxyPort"
+        // Configure SOCKS5 proxy for HTTPS (K8s API uses HTTPS on port 6443)
+        val proxyUrl = "socks5://$proxyHost:$proxyPort"
+        config.httpsProxy = proxyUrl
+
+        // Increase timeouts for SOCKS proxy connections (default 10s is too short)
+        config.connectionTimeout = CONNECTION_TIMEOUT_MS
+        config.requestTimeout = REQUEST_TIMEOUT_MS
 
         return KubernetesClientBuilder()
             .withConfig(config)

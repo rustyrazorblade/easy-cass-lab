@@ -181,6 +181,30 @@ object Constants {
         const val LOCAL_KUBECONFIG = "kubeconfig"
         const val NODE_TOKEN_PATH = "/var/lib/rancher/k3s/server/node-token"
         const val DEFAULT_SERVER_URL = "https://127.0.0.1:6443"
+        const val KUBECTL_PATH = "/usr/local/bin/kubectl"
+    }
+
+    // K8s observability configuration
+    object K8s {
+        const val NAMESPACE = "observability"
+        const val MANIFEST_DIR = "k8s"
+
+        val CORE_MANIFEST_FILES =
+            listOf(
+                "core/namespace.yaml",
+                "core/otel-service.yaml",
+                "core/otel-configmap-control.yaml",
+                "core/otel-configmap-workers.yaml",
+                "core/otel-daemonset-control.yaml",
+                "core/otel-daemonset-workers.yaml",
+                "core/prometheus-configmap.yaml",
+                "core/prometheus-deployment.yaml",
+                "core/grafana-datasource-configmap.yaml",
+                "core/grafana-dashboards-configmap.yaml",
+                "core/grafana-deployment.yaml",
+                "core/grafana-dashboard-system.yaml",
+                "core/registry-deployment.yaml",
+            )
     }
 
     // Proxy configuration
