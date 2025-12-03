@@ -5,6 +5,12 @@ set -e  # Exit on any error
 # Store project root directory
 PROJECT_ROOT="$(pwd)"
 
+# Shorthand function for easy-db-lab
+easy-db-lab() {
+    "$PROJECT_ROOT/bin/easy-db-lab" "$@"
+}
+export -f easy-db-lab
+
 # Parse command line arguments (must be before cleanup trap setup)
 WAIT_BEFORE_TEARDOWN=false
 BUILD_IMAGE=false
@@ -30,20 +36,95 @@ done
 TEST_WORKDIR=$(mktemp -d -t easy-db-lab-e2e-XXXXXX)
 echo "=== Using temporary work directory: $TEST_WORKDIR ==="
 
-# Cleanup function - asks before removing temp dir unless --wait was specified
+# Cleanup function - offers options for temp directory handling
 cleanup() {
     local exit_code=$?
     if [ "$WAIT_BEFORE_TEARDOWN" != true ]; then
-        echo ""
-        echo "=== Test work directory: $TEST_WORKDIR ==="
-        read -p "Delete temporary work directory? [y/N] " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            echo "=== Cleaning up temp directory ==="
-            rm -rf "$TEST_WORKDIR"
-        else
-            echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
-        fi
+        while true; do
+            echo ""
+            echo "=== Test work directory: $TEST_WORKDIR ==="
+            echo "What would you like to do?"
+            echo "  1) Delete temporary work directory"
+            echo "  2) Start a shell session in the directory"
+            echo "  3) Keep directory and exit"
+            echo "  4) Tear down environment (easy-db-lab down --yes)"
+            echo ""
+            read -p "Choose [1-4]: " -n 1 -r choice
+            echo
+            case $choice in
+                1)
+                    echo "=== Cleaning up temp directory ==="
+                    rm -rf "$TEST_WORKDIR"
+                    break
+                    ;;
+                2)
+                    echo "=== Starting shell session in $TEST_WORKDIR ==="
+                    echo "Available commands:"
+                    echo "  easy-db-lab  - Run easy-db-lab commands"
+                    echo "  rebuild      - Rebuild the project (shadowJar + installDist)"
+                    echo "Type 'exit' to return to cleanup menu"
+                    echo ""
+                    (
+                        cd "$TEST_WORKDIR"
+
+                        # Create temp zsh config directory
+                        TEMP_ZDOTDIR=$(mktemp -d)
+
+                        # Create custom .zshrc with our functions
+                        cat > "$TEMP_ZDOTDIR/.zshrc" << 'ZSHRC_EOF'
+# Easy DB Lab shell session
+
+# Define easy-db-lab function
+easy-db-lab() {
+    "$PROJECT_ROOT/bin/easy-db-lab" "$@"
+}
+
+# Rebuild function - runs gradle in project root
+rebuild() {
+    echo "=== Rebuilding project ==="
+    (cd "$PROJECT_ROOT" && ./gradlew shadowJar installDist)
+    echo "=== Rebuild complete ==="
+}
+
+# Source env.sh if it exists in current directory
+if [ -f env.sh ]; then
+    source env.sh
+fi
+
+# Source user's real zshrc for comfort (prompt, etc.) but ignore errors
+[ -f ~/.zshrc ] && source ~/.zshrc 2>/dev/null || true
+ZSHRC_EOF
+
+                        # Export variables for the new shell
+                        export PROJECT_ROOT
+                        export ZDOTDIR="$TEMP_ZDOTDIR"
+
+                        # Start zsh with our custom config
+                        exec zsh
+                    )
+                    # Loop back to menu after shell exits
+                    ;;
+                3)
+                    echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+                    break
+                    ;;
+                4)
+                    echo "=== Tearing down environment ==="
+                    (
+                        cd "$TEST_WORKDIR"
+                        if [ -f env.sh ]; then
+                            source env.sh
+                        fi
+                        "$PROJECT_ROOT/bin/easy-db-lab" down --yes
+                    )
+                    echo "=== Environment torn down ==="
+                    # Loop back to menu for directory cleanup
+                    ;;
+                *)
+                    echo "Invalid choice. Please enter 1, 2, 3, or 4."
+                    ;;
+            esac
+        done
     else
         echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
     fi

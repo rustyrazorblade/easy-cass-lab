@@ -117,6 +117,7 @@ dependencies {
     testImplementation(libs.bundles.testing)
     testImplementation(libs.bundles.koin.test)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.bundles.testcontainers)
 }
 
 kotlin {

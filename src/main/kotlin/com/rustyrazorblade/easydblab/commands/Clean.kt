@@ -51,6 +51,7 @@ class Clean(
                 "control",
                 "cassandra",
                 "stress",
+                "k8s",
                 "5.0",
             )
     }

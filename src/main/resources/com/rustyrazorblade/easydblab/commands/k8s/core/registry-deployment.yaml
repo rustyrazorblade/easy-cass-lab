@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: registry
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: registry
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+              hostPort: 5000
+              protocol: TCP
+          resources:
+            limits:
+              memory: 256Mi
+            requests:
+              memory: 128Mi
+              cpu: 50m
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+          livenessProbe:
+            httpGet:
+              path: /v2/
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /v2/
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          emptyDir: {}

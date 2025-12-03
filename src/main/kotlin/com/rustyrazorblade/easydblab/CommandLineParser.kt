@@ -34,6 +34,8 @@ import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.UseCassandra
 import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.WriteConfig
+import com.rustyrazorblade.easydblab.commands.k8.K8
+import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.spark.Spark
 import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
 import com.rustyrazorblade.easydblab.commands.spark.SparkLogs
@@ -174,6 +176,12 @@ class CommandLineParser(
         sparkCommandLine.addSubcommand("jobs", SparkJobs(context))
         sparkCommandLine.addSubcommand("logs", SparkLogs(context))
         commandLine.addSubcommand("spark", sparkCommandLine)
+
+        // Register K8s parent command with its sub-commands
+        // K8 is a parent command for Kubernetes cluster operations
+        val k8CommandLine = CommandLine(K8())
+        k8CommandLine.addSubcommand("apply", K8Apply(context))
+        commandLine.addSubcommand("k8", k8CommandLine)
 
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =

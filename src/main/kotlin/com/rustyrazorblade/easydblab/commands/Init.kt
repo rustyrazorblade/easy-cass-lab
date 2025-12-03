@@ -21,6 +21,7 @@ import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
 import java.io.File
 import java.time.LocalDate
+import kotlin.system.exitProcess
 
 /**
  * Initialize this directory for easy-db-lab.
@@ -245,7 +246,7 @@ class Init(
                     )
                 }
             outputHandler.handleMessage(message)
-            System.exit(1)
+            exitProcess(1)
         }
     }
 
@@ -269,28 +270,34 @@ class Init(
         outputHandler.handleMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
 
-        outputHandler.handleMessage(
-            "Creating control directory and writing docker-compose.yaml, " +
-                "otel-collector-config.yaml.",
-        )
-        File("control").mkdirs()
-        extractResourceFile("docker-compose-control.yaml", "control/docker-compose.yaml")
-        extractResourceFile("otel-collector-config.yaml", "control/otel-collector-config.yaml")
-
-        outputHandler.handleMessage(
-            "Creating cassandra directory and writing OTel configs for Cassandra nodes",
-        )
+        outputHandler.handleMessage("Creating cassandra directory and writing sidecar config")
         File("cassandra").mkdirs()
-        extractResourceFile("otel-cassandra-config.yaml", "cassandra/otel-cassandra-config.yaml")
-        extractResourceFile("docker-compose-cassandra.yaml", "cassandra/docker-compose.yaml")
         extractResourceFile("cassandra-sidecar.yaml", "cassandra/cassandra-sidecar.yaml")
 
-        outputHandler.handleMessage(
-            "Creating stress directory and writing OTel configs for stress nodes",
-        )
-        File("stress").mkdirs()
-        extractResourceFile("otel-stress-config.yaml", "stress/otel-stress-config.yaml")
-        extractResourceFile("docker-compose-stress.yaml", "stress/docker-compose.yaml")
+        outputHandler.handleMessage("Creating k8s directory and writing Kubernetes manifests")
+        extractK8sManifests()
+    }
+
+    private fun extractK8sManifests() {
+        val manifestDir = File(Constants.K8s.MANIFEST_DIR)
+        if (!manifestDir.exists()) {
+            manifestDir.mkdirs()
+        }
+
+        for (manifestFile in Constants.K8s.CORE_MANIFEST_FILES) {
+            val resourcePath = "/com/rustyrazorblade/easydblab/commands/k8s/$manifestFile"
+            val targetFile = File("${Constants.K8s.MANIFEST_DIR}/$manifestFile")
+
+            // Create parent directory (e.g., k8s/core) if it doesn't exist
+            targetFile.parentFile?.mkdirs()
+
+            this::class.java.getResourceAsStream(resourcePath).use { stream ->
+                requireNotNull(stream) { "K8s manifest resource not found: $resourcePath" }
+                targetFile.outputStream().use { output ->
+                    stream.copyTo(output)
+                }
+            }
+        }
     }
 
     private fun extractResourceFile(
