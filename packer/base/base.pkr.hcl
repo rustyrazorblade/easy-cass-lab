@@ -124,6 +124,11 @@ build {
     script = "install/install_k3s.sh"
   }
 
+  # install k9s (Kubernetes TUI)
+  provisioner "shell" {
+    script = "install/install_k9s.sh"
+  }
+
   # install k3s startup scripts
   provisioner "file" {
     source      = "install/start_k3s_server.sh"
