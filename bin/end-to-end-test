@@ -26,6 +26,7 @@ NO_SPARK=false
 NO_CASSANDRA=false
 NO_CLICKHOUSE=false
 USE_EBS=false
+EXIT_OK=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --wait)
@@ -411,6 +412,16 @@ export PROJECT_ROOT TEST_WORKDIR
 
 cleanup() {
     local exit_code=$?
+
+    # Success case - clean up and exit
+    if [ "$EXIT_OK" = true ]; then
+        echo ""
+        echo "=== All tests passed successfully ==="
+        echo "=== Cleaning up temp directory ==="
+        rm -rf "$TEST_WORKDIR"
+        exit 0
+    fi
+
     if [ "$WAIT_BEFORE_TEARDOWN" != true ]; then
         while true; do
             echo ""
@@ -564,4 +575,5 @@ if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
 else
     # Run all steps
     run_from_step 0
+    EXIT_OK=true
 fi
