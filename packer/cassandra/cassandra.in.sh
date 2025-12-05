@@ -75,7 +75,7 @@ fi
 
 # Set log directory based on user
 if [ "$(whoami)" = "cassandra" ]; then
-    CASSANDRA_LOG_DIR="/mnt/cassandra/logs"
+    CASSANDRA_LOG_DIR="/mnt/db1/cassandra/logs"
 else
     CASSANDRA_LOG_DIR="$HOME/logs"
 fi
@@ -86,3 +86,6 @@ mkdir -p "$CASSANDRA_LOG_DIR"
 if [ "$ECL_JAVA_VERSION" = "17" ] || [ "$ECL_JAVA_VERSION" = "21" ]; then
     export JVM_OPTS="$JVM_OPTS -Xlog:gc=info:file=${CASSANDRA_LOG_DIR}/gc.log:time,uptime,pid,tid,level,tags:filecount=10,filesize=1M"
 fi
+
+# Reduce ring delay since we control the startup sequence
+export JVM_OPTS="$JVM_OPTS -Dcassandra.ring_delay_ms=1"

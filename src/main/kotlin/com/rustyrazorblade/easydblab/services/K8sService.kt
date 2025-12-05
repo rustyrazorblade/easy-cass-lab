@@ -63,6 +63,110 @@ interface K8sService {
         controlHost: ClusterHost,
         timeoutSeconds: Int = 120,
     ): Result<Unit>
+
+    /**
+     * Waits for all pods in a specific namespace to be ready.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param timeoutSeconds Maximum time to wait for pods to be ready
+     * @param namespace The namespace to check pods in
+     * @return Result indicating success or failure
+     */
+    fun waitForPodsReady(
+        controlHost: ClusterHost,
+        timeoutSeconds: Int = 120,
+        namespace: String,
+    ): Result<Unit>
+
+    /**
+     * Gets the status of pods in a specific namespace.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to get pod status for
+     * @return Result containing pod status output or failure
+     */
+    fun getNamespaceStatus(
+        controlHost: ClusterHost,
+        namespace: String,
+    ): Result<String>
+
+    /**
+     * Deletes a namespace and all its resources.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to delete
+     * @return Result indicating success or failure
+     */
+    fun deleteNamespace(
+        controlHost: ClusterHost,
+        namespace: String,
+    ): Result<Unit>
+
+    /**
+     * Deletes Kubernetes resources by label selector.
+     *
+     * Deletes all resources matching the specified label in the given namespace.
+     * Deletion order: StatefulSets, Deployments, Services, ConfigMaps, Secrets, PVCs.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to delete resources from
+     * @param labelKey The label key to match (e.g., "app.kubernetes.io/name")
+     * @param labelValues List of label values to match
+     * @return Result indicating success or failure
+     */
+    fun deleteResourcesByLabel(
+        controlHost: ClusterHost,
+        namespace: String,
+        labelKey: String,
+        labelValues: List<String>,
+    ): Result<Unit>
+
+    /**
+     * Creates a Kubernetes secret for ClickHouse S3 storage configuration.
+     *
+     * This creates a secret containing only the S3 endpoint URL. AWS credentials
+     * are obtained from EC2 instance IAM roles via the instance metadata service.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to create the secret in
+     * @param region AWS region for the S3 bucket
+     * @param bucket S3 bucket name
+     * @return Result indicating success or failure
+     */
+    fun createClickHouseS3Secret(
+        controlHost: ClusterHost,
+        namespace: String,
+        region: String,
+        bucket: String,
+    ): Result<Unit>
+
+    /**
+     * Applies a single Kubernetes manifest from resources.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param resourcePath Path to the manifest resource (relative to k8s/ directory)
+     * @return Result indicating success or failure
+     */
+    fun applyManifestFromResources(
+        controlHost: ClusterHost,
+        resourcePath: String,
+    ): Result<Unit>
+
+    /**
+     * Scales a StatefulSet to the specified number of replicas.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace containing the StatefulSet
+     * @param statefulSetName The name of the StatefulSet to scale
+     * @param replicas The desired number of replicas
+     * @return Result indicating success or failure
+     */
+    fun scaleStatefulSet(
+        controlHost: ClusterHost,
+        namespace: String,
+        statefulSetName: String,
+        replicas: Int,
+    ): Result<Unit>
 }
 
 /**
@@ -129,7 +233,7 @@ class DefaultK8sService(
                         listOf(pathFile)
                     } else {
                         // Directory - get all YAML files sorted lexicographically
-                        // (namespace.yaml sorts first due to 'n' coming before 'o', 'p', 'g')
+                        // Files use number prefixes (00-, 10-, etc.) to ensure correct ordering
                         pathFile
                             .listFiles { file ->
                                 file.extension == "yaml" || file.extension == "yml"
@@ -248,5 +352,349 @@ class DefaultK8sService(
             }
 
             outputHandler.handleMessage("All observability pods are ready")
+        }
+
+    override fun waitForPodsReady(
+        controlHost: ClusterHost,
+        timeoutSeconds: Int,
+        namespace: String,
+    ): Result<Unit> =
+        runCatching {
+            log.debug { "Waiting for pods to be ready in $namespace namespace" }
+
+            outputHandler.handleMessage("Waiting for pods in $namespace to be ready...")
+
+            createClient(controlHost).use { client ->
+                val pods =
+                    client
+                        .pods()
+                        .inNamespace(namespace)
+                        .list()
+
+                if (pods.items.isEmpty()) {
+                    log.warn { "No pods found in $namespace namespace" }
+                    return@runCatching
+                }
+
+                // Wait for each pod to be ready
+                for (pod in pods.items) {
+                    val podName = pod.metadata?.name ?: continue
+                    log.debug { "Waiting for pod $podName to be ready" }
+
+                    client
+                        .pods()
+                        .inNamespace(namespace)
+                        .withName(podName)
+                        .waitUntilCondition(
+                            { p ->
+                                p?.status?.conditions?.any {
+                                    it.type == "Ready" && it.status == "True"
+                                } == true
+                            },
+                            timeoutSeconds.toLong(),
+                            TimeUnit.SECONDS,
+                        )
+                }
+            }
+
+            outputHandler.handleMessage("All pods in $namespace are ready")
+        }
+
+    override fun getNamespaceStatus(
+        controlHost: ClusterHost,
+        namespace: String,
+    ): Result<String> =
+        runCatching {
+            log.debug { "Getting status for namespace $namespace via SOCKS proxy" }
+
+            createClient(controlHost).use { client ->
+                val pods =
+                    client
+                        .pods()
+                        .inNamespace(namespace)
+                        .list()
+
+                // Format output similar to kubectl get pods -o wide
+                val header = "NAME                          READY   STATUS    RESTARTS   AGE"
+                val lines =
+                    pods.items.map { pod ->
+                        val name = pod.metadata?.name ?: "unknown"
+                        val containerStatuses = pod.status?.containerStatuses ?: emptyList()
+                        val readyContainers = containerStatuses.count { it.ready == true }
+                        val totalContainers = containerStatuses.size.coerceAtLeast(1)
+                        val ready = "$readyContainers/$totalContainers"
+                        val status = pod.status?.phase ?: "Unknown"
+                        val restarts = containerStatuses.sumOf { it.restartCount ?: 0 }
+                        val age = "N/A" // Simplified - could calculate from creationTimestamp
+
+                        "%-30s %-7s %-9s %-10d %s".format(name, ready, status, restarts, age)
+                    }
+
+                (listOf(header) + lines).joinToString("\n")
+            }
+        }
+
+    override fun deleteNamespace(
+        controlHost: ClusterHost,
+        namespace: String,
+    ): Result<Unit> =
+        runCatching {
+            log.debug { "Deleting namespace $namespace via SOCKS proxy" }
+
+            outputHandler.handleMessage("Deleting $namespace namespace...")
+
+            createClient(controlHost).use { client ->
+                val ns = client.namespaces().withName(namespace).get()
+                if (ns != null) {
+                    client.namespaces().withName(namespace).delete()
+                    log.info { "Deleted namespace: $namespace" }
+                } else {
+                    log.info { "Namespace $namespace does not exist, nothing to delete" }
+                }
+            }
+
+            outputHandler.handleMessage("Namespace $namespace deleted")
+        }
+
+    override fun deleteResourcesByLabel(
+        controlHost: ClusterHost,
+        namespace: String,
+        labelKey: String,
+        labelValues: List<String>,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Deleting resources with $labelKey in $labelValues from namespace $namespace" }
+
+            outputHandler.handleMessage("Deleting resources with label $labelKey...")
+
+            createClient(controlHost).use { client ->
+                // Build label selector for "key in (value1, value2, ...)"
+                val labelSelector = "$labelKey in (${labelValues.joinToString(",")})"
+                log.debug { "Using label selector: $labelSelector" }
+
+                // Delete StatefulSets first (they manage pods)
+                val statefulSets =
+                    client
+                        .apps()
+                        .statefulSets()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                statefulSets.items.forEach { sts ->
+                    val name = sts.metadata?.name ?: return@forEach
+                    log.info { "Deleting StatefulSet: $name" }
+                    client
+                        .apps()
+                        .statefulSets()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Delete Deployments
+                val deployments =
+                    client
+                        .apps()
+                        .deployments()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                deployments.items.forEach { deploy ->
+                    val name = deploy.metadata?.name ?: return@forEach
+                    log.info { "Deleting Deployment: $name" }
+                    client
+                        .apps()
+                        .deployments()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Delete Services
+                val services =
+                    client
+                        .services()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                services.items.forEach { svc ->
+                    val name = svc.metadata?.name ?: return@forEach
+                    log.info { "Deleting Service: $name" }
+                    client
+                        .services()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Delete ConfigMaps
+                val configMaps =
+                    client
+                        .configMaps()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                configMaps.items.forEach { cm ->
+                    val name = cm.metadata?.name ?: return@forEach
+                    log.info { "Deleting ConfigMap: $name" }
+                    client
+                        .configMaps()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Delete Secrets
+                val secrets =
+                    client
+                        .secrets()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                secrets.items.forEach { secret ->
+                    val name = secret.metadata?.name ?: return@forEach
+                    log.info { "Deleting Secret: $name" }
+                    client
+                        .secrets()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Delete PVCs (persistent volume claims)
+                val pvcs =
+                    client
+                        .persistentVolumeClaims()
+                        .inNamespace(namespace)
+                        .withLabelSelector(labelSelector)
+                        .list()
+                pvcs.items.forEach { pvc ->
+                    val name = pvc.metadata?.name ?: return@forEach
+                    log.info { "Deleting PVC: $name" }
+                    client
+                        .persistentVolumeClaims()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                log.info { "All resources with label $labelKey deleted" }
+            }
+
+            outputHandler.handleMessage("Resources deleted successfully")
+        }
+
+    override fun createClickHouseS3Secret(
+        controlHost: ClusterHost,
+        namespace: String,
+        region: String,
+        bucket: String,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Creating ClickHouse S3 secret in namespace $namespace" }
+
+            // Build the S3 endpoint URL
+            val s3Endpoint = "https://$bucket.s3.$region.amazonaws.com/clickhouse/"
+            log.info { "S3 endpoint: $s3Endpoint" }
+
+            createClient(controlHost).use { client ->
+                // Check if secret already exists and delete it
+                val existingSecret =
+                    client
+                        .secrets()
+                        .inNamespace(namespace)
+                        .withName(Constants.ClickHouse.S3_SECRET_NAME)
+                        .get()
+
+                if (existingSecret != null) {
+                    log.info { "Deleting existing secret ${Constants.ClickHouse.S3_SECRET_NAME}" }
+                    client
+                        .secrets()
+                        .inNamespace(namespace)
+                        .withName(Constants.ClickHouse.S3_SECRET_NAME)
+                        .delete()
+                }
+
+                // Create the secret with S3 endpoint
+                val secret =
+                    io.fabric8.kubernetes.api.model
+                        .SecretBuilder()
+                        .withNewMetadata()
+                        .withName(Constants.ClickHouse.S3_SECRET_NAME)
+                        .withNamespace(namespace)
+                        .addToLabels("app.kubernetes.io/name", "clickhouse-server")
+                        .endMetadata()
+                        .withType("Opaque")
+                        .addToStringData("CLICKHOUSE_S3_ENDPOINT", s3Endpoint)
+                        .build()
+
+                client
+                    .secrets()
+                    .inNamespace(namespace)
+                    .resource(secret)
+                    .create()
+                log.info { "Created secret ${Constants.ClickHouse.S3_SECRET_NAME}" }
+            }
+
+            outputHandler.handleMessage("Created ClickHouse S3 secret")
+        }
+
+    override fun applyManifestFromResources(
+        controlHost: ClusterHost,
+        resourcePath: String,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Applying K8s manifest from resources: $resourcePath" }
+
+            createClient(controlHost).use { client ->
+                // Load manifest from resources
+                val resourceStream =
+                    this::class.java.getResourceAsStream("/com/rustyrazorblade/easydblab/commands/$resourcePath")
+                        ?: throw IllegalStateException("Resource not found: $resourcePath")
+
+                // Create temp file from resource
+                val tempFile =
+                    kotlin.io.path
+                        .createTempFile("manifest", ".yaml")
+                        .toFile()
+                try {
+                    resourceStream.use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    log.info { "Applying manifest: ${tempFile.name}" }
+                    ManifestApplier.applyManifest(client, tempFile)
+                    log.info { "Manifest applied successfully" }
+                } finally {
+                    tempFile.delete()
+                }
+            }
+
+            outputHandler.handleMessage("Manifest applied: $resourcePath")
+        }
+
+    override fun scaleStatefulSet(
+        controlHost: ClusterHost,
+        namespace: String,
+        statefulSetName: String,
+        replicas: Int,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Scaling StatefulSet $statefulSetName in namespace $namespace to $replicas replicas" }
+
+            createClient(controlHost).use { client ->
+                client
+                    .apps()
+                    .statefulSets()
+                    .inNamespace(namespace)
+                    .withName(statefulSetName)
+                    .scale(replicas)
+
+                log.info { "StatefulSet $statefulSetName scaled to $replicas replicas" }
+            }
+
+            outputHandler.handleMessage("Scaled $statefulSetName to $replicas replicas")
         }
 }

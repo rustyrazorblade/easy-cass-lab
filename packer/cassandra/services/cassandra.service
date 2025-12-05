@@ -5,8 +5,8 @@ Description=Apache Cassandra
 ExecStart=/usr/local/cassandra/current/bin/cassandra -f
 ExecStop=/usr/local/cassandra/current/bin/nodetool drain
 User=cassandra
-Environment=CASSANDRA_LOG_DIR=/mnt/cassandra/logs
-Environment=CASSANDRA_HEAPDUMP_DIR=/mnt/cassandra/artifacts
+Environment=CASSANDRA_LOG_DIR=/mnt/db1/cassandra/logs
+Environment=CASSANDRA_HEAPDUMP_DIR=/mnt/db1/cassandra/artifacts
 
 [Install]
 WantedBy=multi-user.target

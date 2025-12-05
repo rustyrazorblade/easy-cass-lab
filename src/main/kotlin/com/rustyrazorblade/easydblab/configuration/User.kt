@@ -41,7 +41,6 @@ data class User(
     var awsSecret: String,
     var axonOpsOrg: String = "",
     var axonOpsKey: String = "",
-    var s3Bucket: String = "",
 ) {
     companion object {
         val log = KotlinLogging.logger {}
@@ -186,22 +185,5 @@ data class User(
                 throw e
             }
         }
-
-        /**
-         * Generates a valid S3 bucket name if the user doesn't have one.
-         * Generated names follow the pattern: easy-db-lab-{uuid} (lowercase).
-         *
-         * NOTE: This method does NOT modify the User object. Callers must update
-         * the User object after successfully creating the S3 bucket.
-         *
-         * @param user The User object to check
-         * @return The bucket name (existing or newly generated)
-         */
-        fun generateBucketName(user: User): String =
-            if (user.s3Bucket.isBlank()) {
-                "easy-db-lab-${UUID.randomUUID()}".lowercase()
-            } else {
-                user.s3Bucket
-            }
     }
 }

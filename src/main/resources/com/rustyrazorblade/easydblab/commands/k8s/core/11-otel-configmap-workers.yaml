@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-config-workers
-  namespace: observability
+  namespace: default
   labels:
     app.kubernetes.io/name: otel-collector
     app.kubernetes.io/component: forwarder
@@ -21,7 +21,7 @@ data:
           processes:
       filelog:
         include:
-          - /mnt/cassandra/logs/*.log
+          - /mnt/db1/otel/logs/*.log
         start_at: end
         operators:
           - type: regex_parser

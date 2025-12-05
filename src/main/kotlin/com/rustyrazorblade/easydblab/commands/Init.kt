@@ -13,6 +13,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
+import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
@@ -284,20 +285,32 @@ class Init(
             manifestDir.mkdirs()
         }
 
-        for (manifestFile in Constants.K8s.CORE_MANIFEST_FILES) {
-            val resourcePath = "/com/rustyrazorblade/easydblab/commands/k8s/$manifestFile"
-            val targetFile = File("${Constants.K8s.MANIFEST_DIR}/$manifestFile")
+        ClassGraph()
+            .acceptPackages(Constants.K8s.RESOURCE_PACKAGE)
+            .scan()
+            .use { scanResult ->
+                val yamlResources =
+                    scanResult.getResourcesWithExtension("yaml") +
+                        scanResult.getResourcesWithExtension("yml")
 
-            // Create parent directory (e.g., k8s/core) if it doesn't exist
-            targetFile.parentFile?.mkdirs()
+                for (resource in yamlResources) {
+                    // Extract relative path: "com/rustyrazorblade/.../k8s/core/file.yaml" -> "core/file.yaml"
+                    val resourcePath = resource.path
+                    val k8sIndex = resourcePath.indexOf("/k8s/")
+                    if (k8sIndex == -1) continue
 
-            this::class.java.getResourceAsStream(resourcePath).use { stream ->
-                requireNotNull(stream) { "K8s manifest resource not found: $resourcePath" }
-                targetFile.outputStream().use { output ->
-                    stream.copyTo(output)
+                    val relativePath = resourcePath.substring(k8sIndex + 5) // Skip "/k8s/"
+                    val targetFile = File(Constants.K8s.MANIFEST_DIR, relativePath)
+
+                    targetFile.parentFile?.mkdirs()
+
+                    resource.open().use { input ->
+                        targetFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
                 }
             }
-        }
     }
 
     private fun extractResourceFile(

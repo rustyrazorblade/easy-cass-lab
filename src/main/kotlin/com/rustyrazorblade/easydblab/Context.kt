@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.rustyrazorblade.easydblab.core.YamlDelegate
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
@@ -44,7 +43,6 @@ data class Context(
         profileDir.mkdirs()
     }
 
-    val cwdPath = System.getProperty("user.dir")
     val home = File(System.getProperty("user.home"))
 
     /**
@@ -64,7 +62,4 @@ data class Context(
      * val state = mapper.readValue<MyStateObject>(json)
      */
     val yaml: ObjectMapper by YamlDelegate()
-
-    // if you need to anything funky with the mapper (settings etc) use this
-    fun getJsonMapper() = jacksonObjectMapper()
 }

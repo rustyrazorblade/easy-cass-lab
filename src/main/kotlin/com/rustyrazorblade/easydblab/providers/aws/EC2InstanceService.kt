@@ -16,6 +16,8 @@ import software.amazon.awssdk.services.ec2.model.RunInstancesRequest
 import software.amazon.awssdk.services.ec2.model.Tag
 import software.amazon.awssdk.services.ec2.model.TagSpecification
 import software.amazon.awssdk.services.ec2.model.VolumeType
+import software.amazon.awssdk.services.ec2.waiters.Ec2Waiter
+import java.time.Duration
 
 /**
  * Service for creating and managing EC2 instances.
@@ -33,6 +35,9 @@ class EC2InstanceService(
 
         /** Default timeout for waiting on instances to reach running state (10 minutes) */
         const val DEFAULT_RUNNING_TIMEOUT_MS = 10 * 60 * 1000L
+
+        /** Default timeout for waiting on instance status checks (10 minutes) */
+        const val DEFAULT_STATUS_CHECK_TIMEOUT_MINUTES = 10
 
         /** Polling interval for checking instance state */
         const val POLL_INTERVAL_MS = 5000L
@@ -234,6 +239,51 @@ class EC2InstanceService(
         }
 
         error("Timeout waiting for instances to reach running state after ${timeoutMs}ms")
+    }
+
+    /**
+     * Waits for instance status checks to pass (both system and instance reachability).
+     *
+     * This ensures the OS has fully booted and networking is configured before attempting SSH.
+     * The EC2 "running" state only indicates the instance has launched, not that the OS is ready.
+     * Instance status checks verify:
+     * - System status: AWS infrastructure (network, host, power) is healthy
+     * - Instance status: OS has booted, networking is configured, instance is reachable
+     *
+     * @param instanceIds List of instance IDs to wait for
+     * @param timeoutMinutes Maximum time to wait in minutes (default 10)
+     */
+    fun waitForInstanceStatusOk(
+        instanceIds: List<InstanceId>,
+        timeoutMinutes: Int = DEFAULT_STATUS_CHECK_TIMEOUT_MINUTES,
+    ) {
+        if (instanceIds.isEmpty()) {
+            return
+        }
+
+        log.info { "Waiting for instance status checks on ${instanceIds.size} instances..." }
+        outputHandler.handleMessage("Waiting for instance status checks to pass...")
+
+        val waiter =
+            Ec2Waiter
+                .builder()
+                .client(ec2Client)
+                .overrideConfiguration { config ->
+                    config.waitTimeout(Duration.ofMinutes(timeoutMinutes.toLong()))
+                }.build()
+
+        val request =
+            software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest
+                .builder()
+                .instanceIds(instanceIds)
+                .build()
+
+        waiter.use { w ->
+            w.waitUntilInstanceStatusOk(request)
+        }
+
+        log.info { "Instance status checks passed for all ${instanceIds.size} instances" }
+        outputHandler.handleMessage("Instance status checks passed")
     }
 
     /**

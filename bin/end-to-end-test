@@ -2,18 +2,30 @@
 
 set -e  # Exit on any error
 
+# Check if SOCKS tunnel is running (interferes with AWS API calls)
+if pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
+  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
+  echo "Please stop it first with: socks5-stop"
+  exit 1
+fi
+
 # Store project root directory
 PROJECT_ROOT="$(pwd)"
 
-# Shorthand function for easy-db-lab
-easy-db-lab() {
-    "$PROJECT_ROOT/bin/easy-db-lab" "$@"
-}
-export -f easy-db-lab
+# Prepend bin directory to PATH so easy-db-lab uses this worktree's version
+export PATH="$PROJECT_ROOT/bin:$PATH"
+
+# Track current step for resume functionality
+CURRENT_STEP=0
+CURRENT_STEP_NAME=""
 
 # Parse command line arguments (must be before cleanup trap setup)
 WAIT_BEFORE_TEARDOWN=false
 BUILD_IMAGE=false
+NO_SPARK=false
+NO_CASSANDRA=false
+NO_CLICKHOUSE=false
+USE_EBS=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --wait)
@@ -24,9 +36,25 @@ while [[ $# -gt 0 ]]; do
       BUILD_IMAGE=true
       shift
       ;;
+    --no-spark)
+      NO_SPARK=true
+      shift
+      ;;
+    --no-cassandra)
+      NO_CASSANDRA=true
+      shift
+      ;;
+    --no-clickhouse)
+      NO_CLICKHOUSE=true
+      shift
+      ;;
+    --ebs)
+      USE_EBS=true
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--wait] [--build]"
+      echo "Usage: $0 [--wait] [--build] [--no-spark] [--no-cassandra] [--no-clickhouse] [--ebs]"
       exit 1
       ;;
   esac
@@ -36,32 +64,391 @@ done
 TEST_WORKDIR=$(mktemp -d -t easy-db-lab-e2e-XXXXXX)
 echo "=== Using temporary work directory: $TEST_WORKDIR ==="
 
-# Cleanup function - offers options for temp directory handling
+# ============================================================================
+# Test Step Functions
+# ============================================================================
+
+step_build_project() {
+    echo "=== Building project ==="
+    if [ "$NO_SPARK" = true ]; then
+        (cd "$PROJECT_ROOT" && ./gradlew clean test shadowJar installDist)
+    else
+        (cd "$PROJECT_ROOT" && ./gradlew clean test shadowJar installDist :spark-connector-test1:jar)
+    fi
+}
+
+step_check_version() {
+    echo "=== Checking version ==="
+    easy-db-lab version
+}
+
+step_build_image() {
+    if [ "$BUILD_IMAGE" = true ]; then
+        echo "=== Building packer images ==="
+        easy-db-lab build-image
+    else
+        echo "=== Skipping packer image build (use --build to enable) ==="
+    fi
+}
+
+step_set_policies() {
+    echo "=== Creating IAM managed policies ==="
+    "$PROJECT_ROOT/bin/set-policies" --group-name EasyDBLabUsers --profile sandbox-admin
+}
+
+step_init_cluster() {
+    echo "=== Initializing cluster ==="
+    local spark_opts=""
+    if [ "$NO_SPARK" != true ]; then
+        spark_opts="--spark.enable --spark.master.instance.type m5.xlarge --spark.worker.instance.type m5.xlarge --spark.worker.instance.count 2"
+    else
+        echo "=== Spark provisioning disabled (--no-spark) ==="
+    fi
+    local ebs_opts=""
+    if [ "$USE_EBS" = true ]; then
+        ebs_opts="--ebs.type gp3 --ebs.size 256"
+        echo "=== EBS volumes enabled (gp3, 256GB) ==="
+    fi
+    easy-db-lab init -c 3 -i c5.2xlarge test --clean --up -s 1 $spark_opts $ebs_opts
+}
+
+step_setup_kubectl() {
+    echo "=== Setting up kubectl access ==="
+    source env.sh
+}
+
+step_wait_k3s_ready() {
+    echo "=== Waiting for K3s cluster to be ready ==="
+    local timeout=60
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+      if kubectl get nodes &>/dev/null; then
+        echo "kubectl connectivity established"
+        return 0
+      fi
+      echo "Waiting for kubectl to connect... ($elapsed/$timeout seconds)"
+      sleep 5
+      elapsed=$((elapsed + 5))
+    done
+    echo "ERROR: kubectl failed to connect to K3s cluster after $timeout seconds"
+    return 1
+}
+
+step_verify_k3s() {
+    echo "=== Verifying K3s cluster nodes ==="
+    kubectl get nodes
+
+    echo "=== Verifying K3s system pods ==="
+    kubectl get pods -A
+
+    echo "=== Waiting for all nodes to be Ready ==="
+    kubectl wait --for=condition=Ready nodes --all --timeout=120s
+}
+
+step_list_hosts() {
+    echo "=== Listing cluster hosts ==="
+    easy-db-lab hosts
+
+    echo "=== Status Without Cassandra Version ==="
+    easy-db-lab status
+
+    echo "=== Listing available Cassandra versions ==="
+    easy-db-lab list
+}
+
+step_setup_cassandra() {
+    if [ "$NO_CASSANDRA" = true ]; then
+        echo "=== Skipping Cassandra setup (--no-cassandra enabled) ==="
+        return 0
+    fi
+    echo "=== Setting Cassandra version to 5.0 ==="
+    easy-db-lab use 5.0
+
+    echo "=== Updating configuration ==="
+    easy-db-lab update-config
+}
+
+step_cassandra_start_stop() {
+    if [ "$NO_CASSANDRA" = true ]; then
+        echo "=== Skipping Cassandra start/stop cycle (--no-cassandra enabled) ==="
+        return 0
+    fi
+    echo "=== Starting Cassandra ==="
+    easy-db-lab start
+
+    echo "=== Status With Cassandra Running ==="
+    easy-db-lab status
+
+    echo "=== Stopping Cassandra ==="
+    easy-db-lab stop
+
+    echo "=== Waiting for Cassandra to stop ==="
+    sleep 10
+
+    echo "=== Starting Cassandra again ==="
+    easy-db-lab start
+
+    echo "=== Restarting Cassandra ==="
+    easy-db-lab restart
+}
+
+step_test_ssh_nodetool() {
+    if [ "$NO_CASSANDRA" = true ]; then
+        echo "=== Skipping SSH nodetool test (--no-cassandra enabled) ==="
+        return 0
+    fi
+    echo "=== Testing SSH access and nodetool via env.sh aliases ==="
+    ssh cassandra0 nodetool status
+}
+
+step_check_sidecar() {
+    if [ "$NO_CASSANDRA" = true ]; then
+        echo "=== Skipping Sidecar check (--no-cassandra enabled) ==="
+        return 0
+    fi
+    echo "=== Check Sidecar ==="
+    ssh cassandra0 "curl -s http://$(easy-db-lab ip cassandra0 --private):9043/api/v1/cassandra/schema" | jq 'keys'
+}
+
+step_test_exec() {
+    echo "=== Testing exec command (sequential) ==="
+    easy-db-lab exec -t cassandra hostname
+
+    echo "=== Testing exec command (parallel) ==="
+    easy-db-lab exec -t cassandra -p uptime
+
+    echo "=== Testing exec command (with host filter) ==="
+    easy-db-lab exec -t cassandra --hosts cassandra0,cassandra1 date
+}
+
+step_stress_test() {
+    if [ "$NO_CASSANDRA" = true ]; then
+        echo "=== Skipping stress test (--no-cassandra enabled) ==="
+        return 0
+    fi
+    echo "=== Running stress test ==="
+    ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
+}
+
+step_spark_submit() {
+    if [ "$NO_SPARK" = true ]; then
+        echo "=== Skipping Spark job submission (--no-spark enabled) ==="
+        return 0
+    fi
+    echo "=== Submitting Spark job to EMR ==="
+    easy-db-lab spark submit \
+      --jar "$PROJECT_ROOT/spark-connector-test1/build/libs/spark-connector-test1-12.jar" \
+      --main-class com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount \
+      --args "$(easy-db-lab ip cassandra0 --private)" \
+      --wait
+}
+
+step_spark_status() {
+    if [ "$NO_SPARK" = true ]; then
+        echo "=== Skipping Spark status check (--no-spark enabled) ==="
+        return 0
+    fi
+    echo "=== Listing Spark jobs ==="
+    easy-db-lab spark jobs
+
+    echo "=== Checking Spark job status (automatically downloads logs) ==="
+    easy-db-lab spark status
+
+    echo "=== Downloading all EMR logs (standalone command) ==="
+    easy-db-lab spark logs
+}
+
+step_clickhouse_start() {
+    if [ "$NO_CLICKHOUSE" = true ]; then
+        echo "=== Skipping ClickHouse deployment (--no-clickhouse enabled) ==="
+        return 0
+    fi
+    echo "=== Deploying ClickHouse cluster ==="
+    easy-db-lab clickhouse start
+
+    echo "=== Checking ClickHouse cluster status ==="
+    easy-db-lab clickhouse status
+
+    echo "=== Waiting for ClickHouse pods to be ready ==="
+    kubectl wait --for=condition=Ready pods --all -n clickhouse --timeout=300s
+
+    echo "=== Verifying ClickHouse pods ==="
+    kubectl get pods -n clickhouse
+}
+
+step_clickhouse_test() {
+    if [ "$NO_CLICKHOUSE" = true ]; then
+        echo "=== Skipping ClickHouse test (--no-clickhouse enabled) ==="
+        return 0
+    fi
+    echo "=== Testing ClickHouse connectivity ==="
+
+    clickhouse-query "SELECT version()"
+
+    clickhouse-query <<'EOF'
+CREATE OR REPLACE TABLE test (
+    id UInt64,
+    updated_at DateTime DEFAULT now(),
+    updated_at_date Date DEFAULT toDate(updated_at)
+) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/default/test', '{replica}')
+ORDER BY id
+SETTINGS storage_policy = 's3_main'
+EOF
+
+    clickhouse-query "INSERT INTO test (id) VALUES (1)"
+}
+
+step_clickhouse_stop() {
+    if [ "$NO_CLICKHOUSE" = true ]; then
+        echo "=== Skipping ClickHouse stop (--no-clickhouse enabled) ==="
+        return 0
+    fi
+    echo "=== Stopping ClickHouse cluster ==="
+    easy-db-lab clickhouse stop --force
+
+    echo "=== Verifying ClickHouse namespace is deleted ==="
+    local timeout=60
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+      if ! kubectl get namespace clickhouse &>/dev/null; then
+        echo "ClickHouse namespace successfully deleted"
+        return 0
+      fi
+      echo "Waiting for ClickHouse namespace to be deleted... ($elapsed/$timeout seconds)"
+      sleep 5
+      elapsed=$((elapsed + 5))
+    done
+}
+
+step_teardown() {
+    echo "=== Tearing down cluster ==="
+    easy-db-lab down --yes
+
+    echo "=== End-to-end test completed successfully ==="
+}
+
+# ============================================================================
+# Step Registry and Runner
+# ============================================================================
+
+# Steps that run from project root (before cd to TEST_WORKDIR)
+STEPS_PROJECT_ROOT=(
+    "step_build_project:Build project"
+    "step_check_version:Check version"
+    "step_build_image:Build packer image"
+)
+
+# Steps that run from TEST_WORKDIR
+STEPS_WORKDIR=(
+    "step_set_policies:Set IAM policies"
+    "step_init_cluster:Initialize cluster"
+    "step_setup_kubectl:Setup kubectl"
+    "step_wait_k3s_ready:Wait for K3s"
+    "step_verify_k3s:Verify K3s cluster"
+    "step_list_hosts:List hosts"
+    "step_setup_cassandra:Setup Cassandra"
+    "step_cassandra_start_stop:Cassandra start/stop cycle"
+    "step_test_ssh_nodetool:Test SSH and nodetool"
+    "step_check_sidecar:Check Sidecar"
+    "step_test_exec:Test exec command"
+    "step_stress_test:Run stress test"
+    "step_spark_submit:Submit Spark job"
+    "step_spark_status:Check Spark status"
+    "step_clickhouse_start:Start ClickHouse"
+    "step_clickhouse_test:Test ClickHouse"
+    "step_clickhouse_stop:Stop ClickHouse"
+    "step_teardown:Teardown cluster"
+)
+
+# Combined steps for resume
+ALL_STEPS=("${STEPS_PROJECT_ROOT[@]}" "${STEPS_WORKDIR[@]}")
+PROJECT_ROOT_STEP_COUNT=${#STEPS_PROJECT_ROOT[@]}
+
+run_from_step() {
+    local start_step=${1:-0}
+    local total_steps=${#ALL_STEPS[@]}
+
+    for ((i=start_step; i<total_steps; i++)); do
+        CURRENT_STEP=$i
+        local step_entry="${ALL_STEPS[$i]}"
+        local step_func="${step_entry%%:*}"
+        local step_name="${step_entry#*:}"
+        CURRENT_STEP_NAME="$step_name"
+
+        echo ""
+        echo "=========================================="
+        echo "Step $((i+1))/$total_steps: $step_name"
+        echo "=========================================="
+
+        # Determine which directory to run in and execute step
+        # Disable errexit temporarily for controlled error handling
+        set +e
+        if [ $i -lt $PROJECT_ROOT_STEP_COUNT ]; then
+            pushd "$PROJECT_ROOT" > /dev/null
+            $step_func
+            local result=$?
+            popd > /dev/null
+        else
+            pushd "$TEST_WORKDIR" > /dev/null
+            [ -f env.sh ] && source env.sh
+            $step_func
+            local result=$?
+            popd > /dev/null
+        fi
+        set -e
+        if [ $result -ne 0 ]; then return 1; fi
+    done
+
+    return 0
+}
+
+# Export variables for use in subshells (e.g., zsh session)
+export PROJECT_ROOT TEST_WORKDIR
+
+# ============================================================================
+# Cleanup Function
+# ============================================================================
+
 cleanup() {
     local exit_code=$?
     if [ "$WAIT_BEFORE_TEARDOWN" != true ]; then
         while true; do
             echo ""
             echo "=== Test work directory: $TEST_WORKDIR ==="
-            echo "What would you like to do?"
-            echo "  1) Delete temporary work directory"
-            echo "  2) Start a shell session in the directory"
-            echo "  3) Keep directory and exit"
-            echo "  4) Tear down environment (easy-db-lab down --yes)"
+            if [ -n "$CURRENT_STEP_NAME" ]; then
+                echo "Failed at step $((CURRENT_STEP+1)): $CURRENT_STEP_NAME"
+            fi
             echo ""
-            read -p "Choose [1-4]: " -n 1 -r choice
+            echo "What would you like to do?"
+            echo "  1) Retry from failed step (resume test)"
+            echo "  2) Start a shell session in the directory"
+            echo "  3) Tear down environment (easy-db-lab down --yes)"
+            echo "  4) Delete temporary work directory"
+            echo "  5) Keep directory and exit"
+            echo ""
+            read -p "Choose [1-5]: " -n 1 -r choice
             echo
             case $choice in
                 1)
-                    echo "=== Cleaning up temp directory ==="
-                    rm -rf "$TEST_WORKDIR"
-                    break
+                    if [ -n "$CURRENT_STEP" ]; then
+                        echo "=== Resuming from step $((CURRENT_STEP+1)): $CURRENT_STEP_NAME ==="
+                        if run_from_step "$CURRENT_STEP"; then
+                            echo "=== Test completed successfully ==="
+                            exit_code=0
+                            break
+                        else
+                            echo "=== Step failed again ==="
+                        fi
+                    else
+                        echo "No step to retry."
+                    fi
                     ;;
                 2)
                     echo "=== Starting shell session in $TEST_WORKDIR ==="
                     echo "Available commands:"
                     echo "  easy-db-lab  - Run easy-db-lab commands"
                     echo "  rebuild      - Rebuild the project (shadowJar + installDist)"
+                    echo "  rerun        - Rebuild and resume from failed step"
                     echo "Type 'exit' to return to cleanup menu"
                     echo ""
                     (
@@ -71,19 +458,29 @@ cleanup() {
                         TEMP_ZDOTDIR=$(mktemp -d)
 
                         # Create custom .zshrc with our functions
-                        cat > "$TEMP_ZDOTDIR/.zshrc" << 'ZSHRC_EOF'
+                        cat > "$TEMP_ZDOTDIR/.zshrc" << ZSHRC_EOF
 # Easy DB Lab shell session
 
-# Define easy-db-lab function
-easy-db-lab() {
-    "$PROJECT_ROOT/bin/easy-db-lab" "$@"
-}
+# easy-db-lab is available via PATH (set by parent script)
 
 # Rebuild function - runs gradle in project root
 rebuild() {
     echo "=== Rebuilding project ==="
-    (cd "$PROJECT_ROOT" && ./gradlew shadowJar installDist)
+    (cd "\$PROJECT_ROOT" && ./gradlew shadowJar installDist)
     echo "=== Rebuild complete ==="
+}
+
+# Rerun function - rebuild and resume from failed step
+rerun() {
+    echo "=== Rebuilding project ==="
+    (cd "\$PROJECT_ROOT" && ./gradlew shadowJar installDist)
+    if [ \$? -ne 0 ]; then
+        echo "=== Rebuild failed ==="
+        return 1
+    fi
+    echo "=== Rebuild complete ==="
+    echo "=== Resuming from step $((CURRENT_STEP+1)): $CURRENT_STEP_NAME ==="
+    echo "NOTE: For full resume with proper environment, exit shell and choose option 1"
 }
 
 # Source env.sh if it exists in current directory
@@ -105,23 +502,28 @@ ZSHRC_EOF
                     # Loop back to menu after shell exits
                     ;;
                 3)
-                    echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
-                    break
-                    ;;
-                4)
                     echo "=== Tearing down environment ==="
                     (
                         cd "$TEST_WORKDIR"
                         if [ -f env.sh ]; then
                             source env.sh
                         fi
-                        "$PROJECT_ROOT/bin/easy-db-lab" down --yes
+                        easy-db-lab down --yes
                     )
                     echo "=== Environment torn down ==="
                     # Loop back to menu for directory cleanup
                     ;;
+                4)
+                    echo "=== Cleaning up temp directory ==="
+                    rm -rf "$TEST_WORKDIR"
+                    break
+                    ;;
+                5)
+                    echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+                    break
+                    ;;
                 *)
-                    echo "Invalid choice. Please enter 1, 2, 3, or 4."
+                    echo "Invalid choice. Please enter 1, 2, 3, 4, or 5."
                     ;;
             esac
         done
@@ -132,148 +534,34 @@ ZSHRC_EOF
 }
 trap cleanup EXIT
 
-echo "=== Building project ==="
-./gradlew clean test shadowJar installDist :spark-connector-test1:jar
+# ============================================================================
+# Main Execution
+# ============================================================================
 
-echo "=== Checking version ==="
-"$PROJECT_ROOT/bin/easy-db-lab" version
-
-if [ "$BUILD_IMAGE" = true ]; then
-  echo "=== Building packer images ==="
-  "$PROJECT_ROOT/bin/easy-db-lab" build-image
-fi
-
-# Change to temp directory for all easy-db-lab commands that create files
+# Change to temp directory for workdir steps
 cd "$TEST_WORKDIR"
 echo "=== Changed to work directory: $(pwd) ==="
 
-echo "=== Creating IAM managed policies ==="
-"$PROJECT_ROOT/bin/set-policies" --group-name EasyDBLabUsers --profile sandbox-admin
-
-echo "=== Initializing cluster ==="
-"$PROJECT_ROOT/bin/easy-db-lab" init -c 2 -i c5.2xlarge test --clean --up -s 1 \
-  --spark.enable \
-  --spark.master.instance.type m5.xlarge \
-  --spark.worker.instance.type m5.xlarge \
-  --spark.worker.instance.count 2
-
-echo "=== Setting up kubectl access ==="
-shopt -s expand_aliases
-source env.sh
-
-echo "=== Waiting for K3s cluster to be ready ==="
-# Wait up to 60 seconds for nodes to be ready
-timeout=60
-elapsed=0
-while [ $elapsed -lt $timeout ]; do
-  if kubectl get nodes &>/dev/null; then
-    echo "kubectl connectivity established"
-    break
-  fi
-  echo "Waiting for kubectl to connect... ($elapsed/$timeout seconds)"
-  sleep 5
-  elapsed=$((elapsed + 5))
-done
-
-if [ $elapsed -ge $timeout ]; then
-  echo "ERROR: kubectl failed to connect to K3s cluster after $timeout seconds"
-  exit 1
-fi
-
-echo "=== Verifying K3s cluster nodes ==="
-kubectl get nodes
-
-echo "=== Verifying K3s system pods ==="
-kubectl get pods -A
-
-echo "=== Waiting for all nodes to be Ready ==="
-# Wait for all nodes to reach Ready state
-kubectl wait --for=condition=Ready nodes --all --timeout=120s
-
-echo "=== Listing cluster hosts ==="
-"$PROJECT_ROOT/bin/easy-db-lab" hosts
-
-echo "=== Status Without Cassandra Version ==="
-"$PROJECT_ROOT/bin/easy-db-lab" status
-
-echo "=== Listing available Cassandra versions ==="
-"$PROJECT_ROOT/bin/easy-db-lab" list
-
-echo "=== Setting Cassandra version to 5.0 ==="
-"$PROJECT_ROOT/bin/easy-db-lab" use 5.0
-
-echo "=== Updating configuration ==="
-"$PROJECT_ROOT/bin/easy-db-lab" update-config
-
-echo "=== Starting Cassandra ==="
-"$PROJECT_ROOT/bin/easy-db-lab" start
-
-echo "=== Status With Cassandra Running ==="
-"$PROJECT_ROOT/bin/easy-db-lab" status
-
-echo "=== Stopping Cassandra ==="
-"$PROJECT_ROOT/bin/easy-db-lab" stop
-
-echo "=== Waiting for Cassandra to stop ==="
-sleep 10
-
-echo "=== Starting Cassandra again ==="
-"$PROJECT_ROOT/bin/easy-db-lab" start
-
-echo "=== Restarting Cassandra ==="
-"$PROJECT_ROOT/bin/easy-db-lab" restart
-
-echo "=== Testing SSH access and nodetool via env.sh aliases ==="
-ssh cassandra0 nodetool status
-
-echo "=== Check Sidecar ==="
-ssh cassandra0 "curl http://$("$PROJECT_ROOT/bin/easy-db-lab" ip cassandra0 --private):9043/api/v1/cassandra/schema"
-
-echo "=== Testing exec command (sequential) ==="
-"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra hostname
-
-echo "=== Testing exec command (parallel) ==="
-"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra -p uptime
-
-echo "=== Testing exec command (with host filter) ==="
-"$PROJECT_ROOT/bin/easy-db-lab" exec -t cassandra --hosts cassandra0,cassandra1 date
-
-echo "=== Running stress test ==="
-which ssh
-ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
-
-echo "=== Submitting Spark job to EMR ==="
-"$PROJECT_ROOT/bin/easy-db-lab" spark submit \
-  --jar "$PROJECT_ROOT/spark-connector-test1/build/libs/spark-connector-test1-12.jar" \
-  --main-class com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount \
-  --args "$("$PROJECT_ROOT/bin/easy-db-lab" ip cassandra0 --private)" \
-  --wait
-
-echo "=== Listing Spark jobs ==="
-"$PROJECT_ROOT/bin/easy-db-lab" spark jobs
-
-echo "=== Checking Spark job status (automatically downloads logs) ==="
-"$PROJECT_ROOT/bin/easy-db-lab" spark status
-
-echo "=== Downloading all EMR logs (standalone command) ==="
-"$PROJECT_ROOT/bin/easy-db-lab" spark logs
-
+# Handle --wait flag for inspection before teardown
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
-  echo ""
-  echo "=== Cluster is ready for inspection ==="
-  echo "The cluster is now running and ready to inspect."
-  echo "Work directory: $TEST_WORKDIR"
-  echo "You can:"
-  echo "  - Run: kubectl get nodes"
-  echo "  - Run: kubectl get pods -A"
-  echo "  - SSH to nodes using the aliases from env.sh"
-  echo "  - Test Cassandra connectivity"
-  echo ""
-  read -p "Press Enter to tear down the cluster and complete the test..."
-  echo ""
+    # Run all steps except teardown
+    TOTAL_STEPS=${#ALL_STEPS[@]}
+    run_from_step 0 || exit 1
+
+    # Remove teardown from the run and prompt instead
+    echo ""
+    echo "=== Cluster is ready for inspection ==="
+    echo "The cluster is now running and ready to inspect."
+    echo "Work directory: $TEST_WORKDIR"
+    echo "You can:"
+    echo "  - Run: kubectl get nodes"
+    echo "  - Run: kubectl get pods -A"
+    echo "  - SSH to nodes using the aliases from env.sh"
+    echo "  - Test Cassandra connectivity"
+    echo ""
+    read -p "Press Enter to tear down the cluster and complete the test..."
+    echo ""
+else
+    # Run all steps
+    run_from_step 0
 fi
-
-echo "=== Tearing down cluster ==="
-"$PROJECT_ROOT/bin/easy-db-lab" down --yes
-
-echo "=== End-to-end test completed successfully ==="

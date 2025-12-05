@@ -13,14 +13,17 @@ echo -e "To undo these changes exit this terminal.\n"
 mkdir -p artifacts
 
 SSH_CONFIG="$(pwd)/sshConfig"
-alias ssh="ssh -F $SSH_CONFIG"
-alias sftp="sftp -F $SSH_CONFIG"
-alias scp="scp -F $SSH_CONFIG"
-alias rsync="rsync -ave 'ssh -F $SSH_CONFIG'"
+ssh() { command ssh -F "$SSH_CONFIG" "$@"; }
+sftp() { command sftp -F "$SSH_CONFIG" "$@"; }
+scp() { command scp -F "$SSH_CONFIG" "$@"; }
+rsync() { command rsync -ave "ssh -F $SSH_CONFIG" "$@"; }
 
 # Configure kubectl to use the K3s cluster kubeconfig (if it exists)
 if [ -f "$(pwd)/kubeconfig" ]; then
   export KUBECONFIG="$(pwd)/kubeconfig"
+  # k9s function to ensure kubeconfig is passed explicitly
+  # (k9s has historical issues with KUBECONFIG env var)
+  k9s() { command k9s --kubeconfig "$KUBECONFIG" "$@"; }
 fi
 
 # general purpose function for executing commands on all cassandra nodes
@@ -35,8 +38,8 @@ c-all () {
 c-dl () {
     for i in "${SERVERS[@]}"
     do
-        ssh $i "sudo chown -R ubuntu /mnt/cassandra/artifacts/"
-        rsync $i:/mnt/cassandra/artifacts/ artifacts/$i
+        ssh $i "sudo chown -R ubuntu /mnt/db1/cassandra/artifacts/"
+        rsync $i:/mnt/db1/cassandra/artifacts/ artifacts/$i
     done
 }
 
@@ -118,6 +121,21 @@ c-flame-sepworker() {
 SOCKS5_PROXY_PID=""
 SOCKS5_PROXY_PORT=1080
 
+# Proxy wrapper for commands that need to access internal network (10.x.x.x)
+# Usage: with-proxy curl http://10.0.1.50:8080/api
+with-proxy() {
+  ALL_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  HTTP_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  HTTPS_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  NO_PROXY="localhost,127.0.0.1" \
+  "$@"
+}
+
+# kubectl wrapper that routes through SOCKS5 proxy to reach K3s API server
+kubectl() {
+  HTTPS_PROXY="socks5://localhost:$SOCKS5_PROXY_PORT" command kubectl "$@"
+}
+
 # Start SOCKS5 proxy via SSH dynamic port forwarding
 start-socks5() {
   local port=${1:-$SOCKS5_PROXY_PORT}
@@ -173,12 +191,8 @@ start-socks5() {
     else
       echo -e "${YELLOW}Valid SOCKS5 proxy already running on localhost:$port [PID: $existing_pid]${NC}"
 
-      # Configure environment variables
-      export ALL_PROXY="socks5h://localhost:$port"
-      export HTTPS_PROXY="socks5h://localhost:$port"
-      export NO_PROXY="localhost,127.0.0.1"
-
-      echo "  - curl, kubectl, and other tools will automatically use this proxy"
+      echo "  - Use 'with-proxy <command>' to route commands through the proxy"
+      echo "  - kubectl is automatically configured to use the proxy"
       echo "  - Use 'socks5-status' to check the status"
       return 0
     fi
@@ -189,13 +203,8 @@ start-socks5() {
     echo -e "${YELLOW}SOCKS5 proxy already running on localhost:$port (managed externally)${NC}"
     echo "  - This may be managed by easy-db-lab in MCP mode"
 
-    # Configure curl, kubectl, and other tools to use existing SOCKS5 proxy
-    export ALL_PROXY="socks5h://localhost:$port"
-    export HTTPS_PROXY="socks5h://localhost:$port"
-    export NO_PROXY="localhost,127.0.0.1"
-
-    echo "  - curl, kubectl, and other tools will automatically use this proxy"
-    echo "  - Configure your browser to use localhost:$port (SOCKS5)"
+    echo "  - Use 'with-proxy <command>' to route commands through the proxy"
+    echo "  - kubectl is automatically configured to use the proxy"
     echo "  - Use 'socks5-status' to check the status"
     return 0
   fi
@@ -227,16 +236,12 @@ EOF
 
     echo "  - Proxy state saved to $proxy_state_file"
 
-    # Configure curl, kubectl, and other tools to use SOCKS5 proxy
-    export ALL_PROXY="socks5h://localhost:$port"
-    export HTTPS_PROXY="socks5h://localhost:$port"
-    export NO_PROXY="localhost,127.0.0.1"
-
     echo ""
     echo -e "${NC_BOLD}SOCKS5 proxy is now active:${NC}"
     echo "  - SOCKS Host: localhost"
     echo "  - SOCKS Port: $port"
-    echo "  - curl, kubectl, and other tools will automatically use this proxy"
+    echo "  - Use 'with-proxy <command>' to route commands through the proxy"
+    echo "  - kubectl is automatically configured to use the proxy"
     echo ""
     echo -e "${NC_BOLD}To configure your browser:${NC}"
     echo "  - SOCKS Host: localhost"
@@ -290,13 +295,7 @@ stop-socks5() {
     fi
   fi
 
-  # Unset proxy environment variables
-  unset ALL_PROXY
-  unset HTTPS_PROXY
-  unset NO_PROXY
-
   echo "SOCKS5 proxy stopped."
-  echo "  - Proxy environment variables cleared"
 }
 
 # Check SOCKS5 proxy status
@@ -327,6 +326,19 @@ socks5-status() {
 # Aliases for convenience
 alias socks5-start="start-socks5"
 alias socks5-stop="stop-socks5"
+
+# ClickHouse client helper (interactive)
+clickhouse-client() {
+  ssh -t control0 kubectl exec -it clickhouse-0 -c clickhouse -- clickhouse-client
+}
+
+# ClickHouse query helper (non-interactive, sends query via HTTP POST)
+# Usage: clickhouse-query "SELECT 1" or clickhouse-query <<< "SELECT 1"
+clickhouse-query() {
+  local query="${1:-$(cat)}"
+  local control_ip=$(easy-db-lab ip cassandra0 --private)
+  with-proxy curl -s "http://${control_ip}:8123/" -d "$query"
+}
 
 # Automatically start SOCKS5 proxy
 start-socks5

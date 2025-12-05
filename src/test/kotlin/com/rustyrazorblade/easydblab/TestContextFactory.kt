@@ -38,7 +38,6 @@ object TestContextFactory {
                 awsSecret = "test",
                 axonOpsOrg = "",
                 axonOpsKey = "",
-                s3Bucket = "",
             )
 
         val context =

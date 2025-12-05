@@ -140,8 +140,8 @@ build {
   provisioner "shell" {
     inline = [
       "sudo mkdir -p /etc/cassandra-sidecar",
-      "sudo mkdir -p /mnt/cassandra/import",
-      "sudo chown ubuntu:ubuntu /mnt/cassandra/import"
+      "sudo mkdir -p /mnt/db1/cassandra/import",
+      "sudo chown ubuntu:ubuntu /mnt/db1/cassandra/import"
     ]
   }
 

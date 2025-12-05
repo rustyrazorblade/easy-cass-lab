@@ -73,26 +73,27 @@ class SparkSubmitTest : BaseKoinTest() {
         val stateFile = File(tempDir, "state.json")
         val manager = ClusterStateManager(stateFile)
 
+        val testBucket = "easy-db-lab-test-12345678"
         val state =
             ClusterState(
                 name = "test-cluster",
                 versions = mutableMapOf(),
+                s3Bucket = testBucket,
             )
         manager.save(state)
 
         // Verify the S3 path format by examining what would be constructed
-        val userConfig: com.rustyrazorblade.easydblab.configuration.User = get()
-        val s3Path = state.s3Path(userConfig)
-        val jarPath = s3Path.sparkJars().resolve("test-app.jar")
+        val s3Path = state.s3Path()
+        val jarPath = s3Path.spark().resolve("test-app.jar")
 
-        // Verify the full URI follows cluster-specific format
-        assertThat(jarPath.toString()).contains("clusters/${state.clusterId}/spark-jars/test-app.jar")
+        // Verify the full URI follows per-environment bucket format
+        assertThat(jarPath.toString()).isEqualTo("s3://$testBucket/spark/test-app.jar")
 
         // Verify the key (for S3 SDK) follows the correct format
-        assertThat(jarPath.getKey()).isEqualTo("clusters/${state.clusterId}/spark-jars/test-app.jar")
+        assertThat(jarPath.getKey()).isEqualTo("spark/test-app.jar")
 
         // Verify bucket is correct
-        assertThat(jarPath.bucket).isEqualTo(userConfig.s3Bucket)
+        assertThat(jarPath.bucket).isEqualTo(testBucket)
     }
 
     // Helper to initialize mocks by triggering Koin injection
@@ -154,7 +155,7 @@ class SparkSubmitTest : BaseKoinTest() {
         @TempDir tempDir: File,
     ) {
         // Given - set up cluster state and local JAR
-        val state = ClusterState(name = "test-cluster", versions = mutableMapOf())
+        val state = ClusterState(name = "test-cluster", versions = mutableMapOf(), s3Bucket = "easy-db-lab-test-12345678")
 
         val localJar = File(tempDir, "app.jar")
         localJar.writeText("test jar content")
@@ -176,8 +177,7 @@ class SparkSubmitTest : BaseKoinTest() {
         command.mainClass = "com.example.Main"
 
         // Set up mocks - need to capture the S3 path from upload
-        val userConfig: com.rustyrazorblade.easydblab.configuration.User = get()
-        val expectedS3Path = state.s3Path(userConfig).sparkJars().resolve("app.jar")
+        val expectedS3Path = state.s3Path().spark().resolve("app.jar")
 
         whenever(mockClusterStateManager.load()).thenReturn(state)
         whenever(mockSparkService.validateCluster()).thenReturn(Result.success(validClusterInfo))

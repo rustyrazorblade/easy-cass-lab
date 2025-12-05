@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easydblab.configuration
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -643,24 +644,26 @@ class ClusterStateTest {
             ClusterState(
                 name = "test-cluster",
                 versions = mutableMapOf(),
+                s3Bucket = "easy-db-lab-test-abc12345",
             )
 
-        val user =
-            User(
-                email = "test@example.com",
-                region = "us-west-2",
-                keyName = "test-key",
-                sshKeyPath = "/path/to/key",
-                awsProfile = "",
-                awsAccessKey = "",
-                awsSecret = "",
-                s3Bucket = "my-test-bucket",
+        val s3Path = state.s3Path()
+
+        assertThat(s3Path.bucket).isEqualTo("easy-db-lab-test-abc12345")
+        assertThat(s3Path.toString()).isEqualTo("s3://easy-db-lab-test-abc12345")
+    }
+
+    @Test
+    fun `s3Path extension function should throw when s3Bucket not configured`() {
+        val state =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                s3Bucket = null,
             )
 
-        val s3Path = state.s3Path(user)
-
-        assertThat(s3Path.bucket).isEqualTo("my-test-bucket")
-        assertThat(s3Path.toString()).contains(state.clusterId)
-        assertThat(s3Path.toString()).startsWith("s3://my-test-bucket/clusters/")
+        assertThatThrownBy { state.s3Path() }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessageContaining("S3 bucket not configured")
     }
 }

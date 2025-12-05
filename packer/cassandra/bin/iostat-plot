@@ -3,12 +3,12 @@
 # requires pip install iostat-tool to be installed
 
 DEFAULT_NAME="iostat-"$(date +%s)
-OUTPUT_BASE=/mnt/cassandra/artifacts/${1:-$DEFAULT_NAME}
+OUTPUT_BASE=/mnt/db1/cassandra/artifacts/${1:-$DEFAULT_NAME}
 RAW=${OUTPUT_BASE}.output
 PLOT=${OUTPUT_BASE}.png
 ITERATIONS=60
 
-DISK=$(lsblk | grep '/mnt/cassandra' | awk '{print $1}')
+DISK=$(lsblk | grep '/mnt/db1' | awk '{print $1}')
 
 iostat -ymxt 1 $ITERATIONS | tee $RAW
 

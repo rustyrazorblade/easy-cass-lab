@@ -164,8 +164,8 @@ object Constants {
 
     // Cassandra Sidecar configuration
     object Sidecar {
-        const val STORAGE_DIR = "/mnt/cassandra/data"
-        const val STAGING_DIR = "/mnt/cassandra/import"
+        const val STORAGE_DIR = "/mnt/db1/cassandra/data"
+        const val STAGING_DIR = "/mnt/db1/cassandra/import"
     }
 
     // Remote file existence checks
@@ -186,25 +186,28 @@ object Constants {
 
     // K8s observability configuration
     object K8s {
-        const val NAMESPACE = "observability"
+        const val NAMESPACE = "default"
         const val MANIFEST_DIR = "k8s"
+        const val RESOURCE_PACKAGE = "com.rustyrazorblade.easydblab.commands.k8s"
+        const val GRAFANA_PORT = 3000
+        const val PROMETHEUS_PORT = 9090
+        const val S3MANAGER_PORT = 8080
+    }
 
-        val CORE_MANIFEST_FILES =
-            listOf(
-                "core/namespace.yaml",
-                "core/otel-service.yaml",
-                "core/otel-configmap-control.yaml",
-                "core/otel-configmap-workers.yaml",
-                "core/otel-daemonset-control.yaml",
-                "core/otel-daemonset-workers.yaml",
-                "core/prometheus-configmap.yaml",
-                "core/prometheus-deployment.yaml",
-                "core/grafana-datasource-configmap.yaml",
-                "core/grafana-dashboards-configmap.yaml",
-                "core/grafana-deployment.yaml",
-                "core/grafana-dashboard-system.yaml",
-                "core/registry-deployment.yaml",
-            )
+    // ClickHouse configuration
+    object ClickHouse {
+        const val NAMESPACE = "default"
+        const val HTTP_PORT = 8123
+        const val NATIVE_PORT = 9000
+        const val INTERSERVER_PORT = 9009
+        const val METRICS_PORT = 9363
+        const val KEEPER_CLIENT_PORT = 2181
+        const val KEEPER_RAFT_PORT = 9234
+        const val DEFAULT_REPLICAS = 2
+        const val DEFAULT_KEEPER_REPLICAS = 3
+        const val MINIMUM_NODES_REQUIRED = 3
+        const val DATA_PATH = "/mnt/db1/clickhouse"
+        const val S3_SECRET_NAME = "clickhouse-s3-credentials"
     }
 
     // Proxy configuration

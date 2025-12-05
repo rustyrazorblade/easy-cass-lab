@@ -51,7 +51,7 @@ sudo swapoff --all
 sudo sysctl -p /etc/sysctl.d/60-cassandra.conf
 ########
 
-sudo mkdir -p /mnt/cassandra
+sudo mkdir -p /mnt/db1
 
 if [[ -n "$DISK" ]]; then
   FS_TYPE=$(sudo blkid -o value -s TYPE $DISK )
@@ -69,24 +69,35 @@ if [[ -n "$DISK" ]]; then
       echo "$1 is mounted already."
   else
       echo "$1 is not mounted yet, mounting."
-      sudo mount $DISK /mnt/cassandra
+      sudo mount $DISK /mnt/db1
   fi
 
   sudo blockdev --setra $READAHEAD $DISK
 fi
 
+# Create database-specific subdirectories
+sudo mkdir -p /mnt/db1/cassandra
+sudo mkdir -p /mnt/db1/clickhouse
+sudo mkdir -p /mnt/db1/otel
 
-sudo mkdir -p /mnt/cassandra/artifacts
-chmod 777 /mnt/cassandra/artifacts
+# Create symlink for backwards compatibility
+sudo ln -sf /mnt/db1/cassandra /mnt/cassandra
 
-sudo mkdir -p /mnt/cassandra/import
-sudo mkdir -p /mnt/cassandra/logs/sidecar
-sudo mkdir -p /mnt/cassandra/saved_caches
+sudo mkdir -p /mnt/db1/cassandra/artifacts
+chmod 777 /mnt/db1/cassandra/artifacts
 
-sudo chown -R cassandra:cassandra /mnt/cassandra
+sudo mkdir -p /mnt/db1/cassandra/import
+sudo mkdir -p /mnt/db1/cassandra/logs/sidecar
+sudo mkdir -p /mnt/db1/cassandra/saved_caches
 
-sudo mkdir -p /mnt/cassandra/tmp
-sudo chmod 777 /mnt/cassandra/tmp/
+sudo chown -R cassandra:cassandra /mnt/db1/cassandra
+
+# ClickHouse runs as UID 101 inside the container
+sudo mkdir -p /mnt/db1/clickhouse/keeper
+sudo chown -R 101:101 /mnt/db1/clickhouse
+
+sudo mkdir -p /mnt/db1/cassandra/tmp
+sudo chmod 777 /mnt/db1/cassandra/tmp/
 
 # enable cap_perfmon for all JVMs to allow for off-cpu profiling
 sudo find /usr/lib/jvm/ -type f -name 'java' -exec setcap "cap_perfmon,cap_sys_ptrace,cap_syslog=ep" {} \;

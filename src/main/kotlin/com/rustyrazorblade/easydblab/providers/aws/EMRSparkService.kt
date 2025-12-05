@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.providers.aws
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.EMRClusterInfo
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.services.ObjectStore
@@ -50,7 +49,6 @@ class EMRSparkService(
     private val outputHandler: OutputHandler,
     private val objectStore: ObjectStore,
     private val clusterStateManager: ClusterStateManager,
-    private val userConfig: User,
 ) : SparkService {
     private val log = KotlinLogging.logger {}
 
@@ -243,7 +241,7 @@ class EMRSparkService(
         runCatching {
             // Build the S3 path for logs: {emrLogs}/{cluster-id}/steps/{step-id}/{logType}.gz
             val clusterState = clusterStateManager.load()
-            val s3Path = clusterState.s3Path(userConfig)
+            val s3Path = clusterState.s3Path()
             val logPath =
                 s3Path
                     .emrLogs()
@@ -277,7 +275,7 @@ class EMRSparkService(
     override fun downloadAllLogs(stepId: String): Result<Path> =
         runCatching {
             val clusterState = clusterStateManager.load()
-            val s3Path = clusterState.s3Path(userConfig)
+            val s3Path = clusterState.s3Path()
             val emrLogsPath = s3Path.emrLogs()
 
             // Save to logs/emr/<step-id>/
@@ -298,7 +296,7 @@ class EMRSparkService(
     ): Result<Path> =
         runCatching {
             val clusterState = clusterStateManager.load()
-            val s3Path = clusterState.s3Path(userConfig)
+            val s3Path = clusterState.s3Path()
 
             // Create local logs directory: ./logs/{cluster-id}/{step-id}/
             val localLogsDir = Paths.get("logs", clusterId, stepId)

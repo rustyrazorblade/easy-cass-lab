@@ -254,19 +254,18 @@ class AWS(
     }
 
     /**
-     * Attaches an inline S3 access policy to an IAM role, granting full access to the specified bucket.
+     * Attaches an inline S3 access policy to an IAM role, granting full access to all easy-db-lab buckets.
      *
      * Uses retry logic with exponential backoff for transient AWS failures.
      *
+     * This is idempotent - PutRolePolicy overwrites existing policies with the same name.
+     * Uses wildcard pattern (easy-db-lab-*) to support per-environment buckets.
+     *
      * @param roleName The name of the IAM role to attach the policy to
-     * @param bucketName The S3 bucket name to grant access to
      * @throws IamException if IAM operations fail after retries
      */
-    private fun attachS3Policy(
-        roleName: String,
-        bucketName: String,
-    ) {
-        val s3Policy = AWSPolicy.Inline.S3Access(bucketName).toJson()
+    fun attachS3Policy(roleName: String) {
+        val s3Policy = AWSPolicy.Inline.S3AccessWildcard.toJson()
         val retryConfig = RetryUtil.createIAMRetryConfig()
         val retry = Retry.of("attach-s3-policy-$roleName", retryConfig)
 
@@ -283,7 +282,7 @@ class AWS(
 
                     iamClient.putRolePolicy(putPolicyRequest)
                 }.run()
-            log.info { "✓ Attached S3 access policy to role: $roleName for bucket: $bucketName" }
+            log.info { "✓ Attached S3 wildcard access policy to role: $roleName" }
         } catch (e: IamException) {
             log.error(e) { "Failed to attach S3 policy to role: $roleName - ${e.message}" }
             throw e
@@ -558,21 +557,18 @@ class AWS(
     }
 
     /**
-     * Creates an IAM role with EC2 trust policy and attaches an inline S3 policy granting full access to the specified bucket.
+     * Creates an IAM role with EC2 trust policy and attaches an inline S3 policy granting access to all easy-db-lab buckets.
      * Idempotent - will succeed even if role already exists.
      *
      * Uses retry logic with exponential backoff for instance profile creation to handle AWS eventual consistency.
+     * Uses wildcard pattern (easy-db-lab-*) to support per-environment buckets.
      *
      * @param roleName The name of the IAM role to create
-     * @param bucketName The S3 bucket name to grant access to
      * @return The role name
      * @throws IllegalArgumentException if role name is invalid
      * @throws IamException if IAM operations fail after retries
      */
-    fun createRoleWithS3Policy(
-        roleName: String,
-        bucketName: String,
-    ): String {
+    fun createRoleWithS3Policy(roleName: String): String {
         require(roleName.matches(Regex("^[\\w+=,.@-]{1,64}$"))) {
             "Invalid IAM role name: $roleName. Must be 1-64 chars, alphanumeric plus +=,.@-_ only."
         }
@@ -582,8 +578,8 @@ class AWS(
         // Step 1: Create IAM role
         createRole(roleName, AWSPolicy.Trust.EC2Service.toJson(), "IAM role for easy-db-lab with S3 access")
 
-        // Step 2: Attach S3 access policy
-        attachS3Policy(roleName, bucketName)
+        // Step 2: Attach S3 access policy (wildcard for all easy-db-lab-* buckets)
+        attachS3Policy(roleName)
 
         // Step 3: Create instance profile with retry logic for AWS eventual consistency
         createInstanceProfile(roleName, roleName)

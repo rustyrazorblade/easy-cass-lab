@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.commands
 
+import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
@@ -11,12 +12,16 @@ import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.kubernetes.getLocalKubeconfigPath
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.output.displayClickHouseAccess
+import com.rustyrazorblade.easydblab.output.displayObservabilityAccess
+import com.rustyrazorblade.easydblab.output.displayS3ManagerAccess
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
 import com.rustyrazorblade.easydblab.providers.aws.SecurityGroupRuleInfo
 import com.rustyrazorblade.easydblab.providers.aws.SecurityGroupService
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easydblab.services.K3sService
+import com.rustyrazorblade.easydblab.services.K8sService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -48,7 +53,7 @@ class Status(
     companion object {
         private val log = KotlinLogging.logger {}
         private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        private const val JOB_NAME_MAX_LENGTH = 30
+        private const val POD_NAME_MAX_LENGTH = 40
         private const val HOURS_PER_DAY = 24
     }
 
@@ -57,6 +62,7 @@ class Status(
     private val ec2InstanceService: EC2InstanceService by inject()
     private val securityGroupService: SecurityGroupService by inject()
     private val k3sService: K3sService by inject()
+    private val k8sService: K8sService by inject()
     private val remoteOperationsService: RemoteOperationsService by inject()
     private val emrService: EMRService by inject()
     private val userConfig: User by inject()
@@ -78,6 +84,9 @@ class Status(
         displaySparkClusterSection()
         displayS3BucketSection()
         displayKubernetesSection()
+        displayObservabilitySection()
+        displayClickHouseSection()
+        displayS3ManagerSection()
         displayCassandraVersionSection()
     }
 
@@ -263,24 +272,25 @@ class Status(
         outputHandler.handleMessage("")
         outputHandler.handleMessage("=== S3 BUCKET ===")
 
-        if (userConfig.s3Bucket.isBlank()) {
+        if (clusterState.s3Bucket.isNullOrBlank()) {
             outputHandler.handleMessage("(no S3 bucket configured)")
             return
         }
 
-        val s3Path = clusterState.s3Path(userConfig)
-        outputHandler.handleMessage("Bucket:       ${userConfig.s3Bucket}")
-        outputHandler.handleMessage("Spark JARs:   ${s3Path.sparkJars()}")
-        outputHandler.handleMessage("Logs:         ${s3Path.logs()}")
+        val s3Path = clusterState.s3Path()
+        outputHandler.handleMessage("Bucket:       ${clusterState.s3Bucket}")
+        outputHandler.handleMessage("Cassandra:    ${s3Path.cassandra()}")
+        outputHandler.handleMessage("ClickHouse:   ${s3Path.clickhouse()}")
+        outputHandler.handleMessage("Spark:        ${s3Path.spark()}")
         outputHandler.handleMessage("EMR Logs:     ${s3Path.emrLogs()}")
     }
 
     /**
-     * Display Kubernetes jobs section
+     * Display Kubernetes pods section
      */
     private fun displayKubernetesSection() {
         outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== KUBERNETES JOBS ===")
+        outputHandler.handleMessage("=== KUBERNETES PODS ===")
 
         val controlHost = clusterState.getControlHost()
         if (controlHost == null) {
@@ -295,32 +305,102 @@ class Status(
             return
         }
 
-        // Try to connect and list jobs via K3sService
-        val result = k3sService.listJobs(controlHost, Paths.get(kubeconfigPath))
+        // Try to connect and list pods via K3sService
+        val result = k3sService.listPods(controlHost, Paths.get(kubeconfigPath))
 
         result.fold(
-            onSuccess = { jobs ->
-                if (jobs.isEmpty()) {
-                    outputHandler.handleMessage("(no jobs running)")
+            onSuccess = { pods ->
+                if (pods.isEmpty()) {
+                    outputHandler.handleMessage("(no pods running)")
                 } else {
-                    outputHandler.handleMessage("%-12s %-30s %-12s %s".format("NAMESPACE", "NAME", "STATUS", "AGE"))
-                    jobs.forEach { job ->
+                    outputHandler.handleMessage(
+                        "%-14s %-40s %-8s %-10s %-10s %s".format(
+                            "NAMESPACE",
+                            "NAME",
+                            "READY",
+                            "STATUS",
+                            "RESTARTS",
+                            "AGE",
+                        ),
+                    )
+                    pods.forEach { pod ->
                         outputHandler.handleMessage(
-                            "%-12s %-30s %-12s %s".format(
-                                job.namespace,
-                                job.name.take(JOB_NAME_MAX_LENGTH),
-                                job.status,
-                                formatAge(job.age),
+                            "%-14s %-40s %-8s %-10s %-10s %s".format(
+                                pod.namespace,
+                                pod.name.take(POD_NAME_MAX_LENGTH),
+                                pod.ready,
+                                pod.status,
+                                pod.restarts.toString(),
+                                formatAge(pod.age),
                             ),
                         )
                     }
                 }
             },
             onFailure = { e ->
-                log.debug(e) { "Failed to get Kubernetes jobs" }
+                log.debug(e) { "Failed to get Kubernetes pods" }
                 outputHandler.handleMessage("(unable to connect to K3s: ${e.message})")
             },
         )
+    }
+
+    /**
+     * Display observability stack access information
+     */
+    private fun displayObservabilitySection() {
+        val controlHost = clusterState.getControlHost() ?: return
+
+        // Check if kubeconfig exists locally (indicates K3s is initialized)
+        val kubeconfigPath = getLocalKubeconfigPath(context.workingDirectory.absolutePath)
+        if (!File(kubeconfigPath).exists()) {
+            return
+        }
+
+        outputHandler.displayObservabilityAccess(controlHost.privateIp)
+    }
+
+    /**
+     * Display ClickHouse access information if ClickHouse is running
+     */
+    private fun displayClickHouseSection() {
+        val controlHost = clusterState.getControlHost() ?: return
+
+        // Get a db node IP for ClickHouse access (ClickHouse pods run on db nodes)
+        val dbHosts = clusterState.hosts[ServerType.Cassandra]
+        if (dbHosts.isNullOrEmpty()) {
+            return
+        }
+        val dbNodeIp = dbHosts.first().privateIp
+
+        // Check if kubeconfig exists locally (indicates K3s is initialized)
+        val kubeconfigPath = getLocalKubeconfigPath(context.workingDirectory.absolutePath)
+        if (!File(kubeconfigPath).exists()) {
+            return
+        }
+
+        // Check if ClickHouse namespace has running pods
+        val status = k8sService.getNamespaceStatus(controlHost, Constants.ClickHouse.NAMESPACE)
+        status.onSuccess { podStatus ->
+            // Only show if there are pods running (status contains pod info)
+            if (podStatus.isNotBlank() && !podStatus.contains("No resources found")) {
+                outputHandler.displayClickHouseAccess(dbNodeIp)
+            }
+        }
+    }
+
+    /**
+     * Display S3Manager access information if K3s is initialized
+     */
+    private fun displayS3ManagerSection() {
+        val controlHost = clusterState.getControlHost() ?: return
+
+        // Check if kubeconfig exists locally (indicates K3s is initialized)
+        val kubeconfigPath = getLocalKubeconfigPath(context.workingDirectory.absolutePath)
+        if (!File(kubeconfigPath).exists()) {
+            return
+        }
+
+        outputHandler.displayS3ManagerAccess(controlHost.privateIp, clusterState.s3Bucket ?: "")
     }
 
     /**
@@ -359,7 +439,8 @@ class Status(
                     log.debug(e) { "Failed to get version from ${host.alias}" }
                 }.getOrNull()
 
-            if (!version.isNullOrEmpty()) {
+            // "current" means symlink not configured - treat as unavailable
+            if (!version.isNullOrEmpty() && version != "current") {
                 return version
             }
         }

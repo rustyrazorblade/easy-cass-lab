@@ -95,8 +95,8 @@ sudo useradd -m cassandra
 mkdir cassandra
 
 sudo mkdir -p /usr/local/cassandra
-sudo mkdir -p /mnt/cassandra/logs
-sudo chown -R cassandra:cassandra /mnt/cassandra
+sudo mkdir -p /mnt/db1/cassandra/logs
+sudo chown -R cassandra:cassandra /mnt/db1/cassandra
 
 # Install cqlsh globally (works with all Cassandra versions)
 echo "Installing cqlsh via uv..."

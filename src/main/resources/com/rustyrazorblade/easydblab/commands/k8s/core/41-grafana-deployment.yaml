@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: observability
+  namespace: default
   labels:
     app.kubernetes.io/name: grafana
 spec:
@@ -34,6 +34,8 @@ spec:
               hostPort: 3000
               protocol: TCP
           env:
+            - name: GF_INSTALL_PLUGINS
+              value: grafana-clickhouse-datasource
             - name: GF_SECURITY_ADMIN_USER
               value: admin
             - name: GF_SECURITY_ADMIN_PASSWORD

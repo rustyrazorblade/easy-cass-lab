@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easydblab.commands
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
+import com.rustyrazorblade.easydblab.TestContextFactory
 import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
@@ -8,9 +9,9 @@ import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 import org.koin.dsl.module
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -23,31 +24,14 @@ import java.io.File
  * with all required environment variables for stress testing.
  */
 class UpTest : BaseKoinTest() {
+    @TempDir
+    lateinit var workingDir: File
+
     private lateinit var environmentFile: File
-    private lateinit var clusterStateFile: File
 
     @BeforeEach
     fun setupTestEnvironmentFile() {
-        environmentFile = File("environment.sh")
-        clusterStateFile = File("state.json")
-
-        // Ensure files don't exist before test
-        if (environmentFile.exists()) {
-            environmentFile.delete()
-        }
-        if (clusterStateFile.exists()) {
-            clusterStateFile.delete()
-        }
-    }
-
-    @AfterEach
-    fun cleanupTestEnvironmentFile() {
-        if (environmentFile.exists()) {
-            environmentFile.delete()
-        }
-        if (clusterStateFile.exists()) {
-            clusterStateFile.delete()
-        }
+        environmentFile = File(workingDir, "environment.sh")
     }
 
     @Test
@@ -91,8 +75,11 @@ class UpTest : BaseKoinTest() {
         org.koin.core.context
             .loadKoinModules(customModules)
 
-        // Create Up command instance
-        val upCommand = Up(context)
+        // Create test context with working directory
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDir)
+
+        // Create Up command instance with test context
+        val upCommand = Up(testContext)
 
         // Initialize workingState via reflection (normally done in execute())
         val workingStateField =
@@ -167,8 +154,11 @@ class UpTest : BaseKoinTest() {
         org.koin.core.context
             .loadKoinModules(customModules)
 
-        // Create Up command instance
-        val upCommand = Up(context)
+        // Create test context with working directory
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDir)
+
+        // Create Up command instance with test context
+        val upCommand = Up(testContext)
 
         // Initialize workingState via reflection (normally done in execute())
         val workingStateField =
@@ -236,8 +226,11 @@ class UpTest : BaseKoinTest() {
         org.koin.core.context
             .loadKoinModules(customModules)
 
-        // Create Up command instance
-        val upCommand = Up(context)
+        // Create test context with working directory
+        val testContext = TestContextFactory.createTestContext(tempDir, workingDir)
+
+        // Create Up command instance with test context
+        val upCommand = Up(testContext)
 
         // Initialize workingState via reflection (normally done in execute())
         val workingStateField =

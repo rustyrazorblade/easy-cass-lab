@@ -67,9 +67,9 @@ class WriteConfig(
                                         .joinToString(",")
                             }
                     }
-                val hints_directory = "/mnt/cassandra/hints"
-                val data_file_directories = listOf("/mnt/cassandra/data")
-                val commitlog_directory = "/mnt/cassandra/commitlog"
+                val hints_directory = "/mnt/db1/cassandra/hints"
+                val data_file_directories = listOf("/mnt/db1/cassandra/data")
+                val commitlog_directory = "/mnt/db1/cassandra/commitlog"
                 val concurrent_reads = DEFAULT_CONCURRENT_READS
                 val concurrent_writes = DEFAULT_CONCURRENT_WRITES
                 val trickle_fsync = true

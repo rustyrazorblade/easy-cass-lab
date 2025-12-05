@@ -16,7 +16,9 @@ import com.rustyrazorblade.easydblab.configuration.InfrastructureState
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.getHosts
+import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.configuration.toHost
+import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.EBSConfig
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EC2Service
@@ -36,7 +38,6 @@ import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import java.io.File
 import java.net.URL
-import java.nio.file.Path
 import java.time.Duration
 
 /**
@@ -53,6 +54,7 @@ class Up(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
+    private val aws: AWS by inject()
     private val k3sService: K3sService by inject()
     private val k3sAgentService: K3sAgentService by inject()
     private val vpcService: VpcService by inject()
@@ -67,6 +69,7 @@ class Up(
     companion object {
         private val log = KotlinLogging.logger {}
         private val SSH_STARTUP_DELAY = Duration.ofSeconds(5)
+        private const val BUCKET_UUID_LENGTH = 8
 
         /**
          * Gets the external IP address of the machine running easy-db-lab.
@@ -87,11 +90,52 @@ class Up(
             workingState.initConfig
                 ?: error("No init config found. Please run 'easy-db-lab init' first.")
 
+        createS3BucketIfNeeded(initConfig)
+        reapplyS3Policy()
         provisionInfrastructure(initConfig)
         writeConfigurationFiles()
         WriteConfig(context).execute()
         waitForSshAndDownloadVersions()
         setupInstancesIfNeeded()
+    }
+
+    /**
+     * Re-applies the S3Access inline policy to ensure existing roles have the latest permissions.
+     * This is idempotent - PutRolePolicy overwrites existing policies with the same name.
+     * Uses a wildcard policy that grants access to all easy-db-lab-* buckets.
+     */
+    private fun reapplyS3Policy() {
+        outputHandler.handleMessage("Ensuring IAM policies are up to date...")
+        runCatching {
+            aws.attachS3Policy(Constants.AWS.Roles.EC2_INSTANCE_ROLE)
+        }.onFailure { e ->
+            log.warn(e) { "Failed to re-apply S3 policy (cluster may still work if policy exists)" }
+        }.onSuccess {
+            log.debug { "S3 policy re-applied successfully" }
+        }
+    }
+
+    /**
+     * Creates the S3 bucket for this environment if it doesn't already exist.
+     * Each environment gets its own dedicated bucket for isolation.
+     */
+    private fun createS3BucketIfNeeded(initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig) {
+        if (!workingState.s3Bucket.isNullOrBlank()) {
+            log.debug { "S3 bucket already configured: ${workingState.s3Bucket}" }
+            return
+        }
+
+        val shortUuid = workingState.clusterId.take(BUCKET_UUID_LENGTH)
+        val bucketName = "easy-db-lab-${initConfig.name}-$shortUuid"
+
+        outputHandler.handleMessage("Creating S3 bucket: $bucketName")
+        aws.createS3Bucket(bucketName)
+        aws.putS3BucketPolicy(bucketName)
+
+        workingState.s3Bucket = bucketName
+        clusterStateManager.save(workingState)
+
+        outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
     }
 
     @Suppress("TooGenericExceptionCaught", "LongMethod")
@@ -367,6 +411,9 @@ class Up(
         val instanceIds = createdInstances.map { it.instanceId }
         ec2InstanceService.waitForInstancesRunning(instanceIds)
 
+        // Wait for instance status checks to pass (OS boot complete, networking ready)
+        ec2InstanceService.waitForInstanceStatusOk(instanceIds)
+
         // Update with final IPs
         val updatedInstances = ec2InstanceService.updateInstanceIps(createdInstances)
 
@@ -391,7 +438,7 @@ class Up(
         val emrConfig =
             EMRClusterConfig(
                 clusterName = "${initConfig.name}-spark",
-                logUri = "s3://${userConfig.s3Bucket}/emr-logs/${workingState.clusterId}/",
+                logUri = workingState.s3Path().emrLogs().toString(),
                 subnetId = subnetId,
                 ec2KeyName = userConfig.keyName,
                 masterInstanceType = initConfig.sparkMasterInstanceType,
@@ -416,10 +463,10 @@ class Up(
     }
 
     private fun writeConfigurationFiles() {
-        val config = File("sshConfig").bufferedWriter()
+        val config = File(context.workingDirectory, "sshConfig").bufferedWriter()
         ClusterConfigWriter.writeSshConfig(config, userConfig.sshKeyPath, workingState.hosts)
-        val envFile = File("env.sh").bufferedWriter()
-        ClusterConfigWriter.writeEnvironmentFile(envFile, workingState.hosts, userConfig.sshKeyPath)
+        val envFile = File(context.workingDirectory, "env.sh").bufferedWriter()
+        ClusterConfigWriter.writeEnvironmentFile(envFile, workingState.hosts, userConfig.sshKeyPath, workingState.name)
         writeStressEnvironmentVariables()
         writeAxonOpsWorkbenchConfig()
     }
@@ -436,7 +483,7 @@ class Up(
                         userConfig = userConfig,
                         clusterName = "easy-db-lab",
                     )
-                val configFile = File("axonops-workbench.json")
+                val configFile = File(context.workingDirectory, "axonops-workbench.json")
                 AxonOpsWorkbenchConfig.writeToFile(config, configFile)
                 outputHandler.handleMessage(
                     "AxonOps Workbench configuration written to axonops-workbench.json",
@@ -458,7 +505,7 @@ class Up(
         val cassandraHost = cassandraHosts.first().private
         val datacenter = workingState.initConfig?.region ?: userConfig.region
 
-        val stressEnvironmentVars = File("environment.sh").bufferedWriter()
+        val stressEnvironmentVars = File(context.workingDirectory, "environment.sh").bufferedWriter()
         stressEnvironmentVars.write("#!/usr/bin/env bash")
         stressEnvironmentVars.newLine()
         stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$cassandraHost")
@@ -494,11 +541,12 @@ class Up(
                 ) { clusterHost ->
                     val host = clusterHost.toHost()
                     remoteOps.executeRemotely(host, "echo 1").text
-                    if (!File("cassandra_versions.yaml").exists()) {
+                    val versionsFile = File(context.workingDirectory, "cassandra_versions.yaml")
+                    if (!versionsFile.exists()) {
                         remoteOps.download(
                             host,
                             "/etc/cassandra_versions.yaml",
-                            Path.of("cassandra_versions.yaml"),
+                            versionsFile.toPath(),
                         )
                     }
                 }
@@ -559,7 +607,7 @@ class Up(
         log.info { "Retrieved K3s node token from ${controlNode.alias}" }
 
         k3sService
-            .downloadAndConfigureKubeconfig(controlNode, File("kubeconfig").toPath())
+            .downloadAndConfigureKubeconfig(controlNode, File(context.workingDirectory, "kubeconfig").toPath())
             .onFailure { error ->
                 log.error(error) { "Failed to download kubeconfig from ${controlNode.alias}" }
                 outputHandler.handleError("Failed to download kubeconfig: ${error.message}")

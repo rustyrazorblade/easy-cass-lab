@@ -26,11 +26,11 @@ cassandra_instances:
     username: cassandra
     password: cassandra
     data_dirs:
-      - /mnt/cassandra/data/
-    commitlog_dir: /mnt/cassandra/commitlog
-    hints_dir: /mnt/cassandra/hints
-    saved_caches_dir: /mnt/cassandra/saved_caches
-    staging_dir: /mnt/cassandra/import
+      - /mnt/db1/cassandra/data/
+    commitlog_dir: /mnt/db1/cassandra/commitlog
+    hints_dir: /mnt/db1/cassandra/hints
+    saved_caches_dir: /mnt/db1/cassandra/saved_caches
+    staging_dir: /mnt/db1/cassandra/import
     jmx_host: 127.0.0.1
     jmx_port: 7199
     jmx_ssl_enabled: false

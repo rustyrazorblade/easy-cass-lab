@@ -24,13 +24,15 @@ import java.io.File
  *
  * These tests verify that all actual project manifests can be applied successfully
  * to a real K3s cluster, catching errors before production deployment.
+ *
+ * Note: All resources are deployed to the 'default' namespace.
  */
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 class K8sServiceIntegrationTest {
     companion object {
-        private const val OBSERVABILITY_NAMESPACE = "observability"
+        private const val DEFAULT_NAMESPACE = "default"
         private const val K8S_MANIFEST_DIR = "src/main/resources/com/rustyrazorblade/easydblab/commands/k8s/core"
 
         @Container
@@ -65,38 +67,38 @@ class K8sServiceIntegrationTest {
      */
     private val manifestTestCases =
         listOf(
-            ManifestTestCase("otel-service.yaml", ResourceType.SERVICE, "otel-collector"),
+            ManifestTestCase("20-otel-service.yaml", ResourceType.SERVICE, "otel-collector"),
             ManifestTestCase(
-                "otel-configmap-control.yaml",
+                "10-otel-configmap-control.yaml",
                 ResourceType.CONFIGMAP,
                 "otel-collector-config-control",
                 "otel-collector-config.yaml",
             ),
             ManifestTestCase(
-                "otel-configmap-workers.yaml",
+                "11-otel-configmap-workers.yaml",
                 ResourceType.CONFIGMAP,
                 "otel-collector-config-workers",
                 "otel-collector-config.yaml",
             ),
-            ManifestTestCase("otel-daemonset-control.yaml", ResourceType.DAEMONSET, "otel-collector-control"),
-            ManifestTestCase("otel-daemonset-workers.yaml", ResourceType.DAEMONSET, "otel-collector-workers"),
-            ManifestTestCase("prometheus-configmap.yaml", ResourceType.CONFIGMAP, "prometheus-config", "prometheus.yml"),
-            ManifestTestCase("prometheus-deployment.yaml", ResourceType.DEPLOYMENT, "prometheus"),
+            ManifestTestCase("30-otel-daemonset-control.yaml", ResourceType.DAEMONSET, "otel-collector-control"),
+            ManifestTestCase("31-otel-daemonset-workers.yaml", ResourceType.DAEMONSET, "otel-collector-workers"),
+            ManifestTestCase("12-prometheus-configmap.yaml", ResourceType.CONFIGMAP, "prometheus-config", "prometheus.yml"),
+            ManifestTestCase("40-prometheus-deployment.yaml", ResourceType.DEPLOYMENT, "prometheus"),
             ManifestTestCase(
-                "grafana-datasource-configmap.yaml",
+                "13-grafana-datasource-configmap.yaml",
                 ResourceType.CONFIGMAP,
                 "grafana-datasources",
                 "datasources.yaml",
             ),
             ManifestTestCase(
-                "grafana-dashboards-configmap.yaml",
+                "14-grafana-dashboards-configmap.yaml",
                 ResourceType.CONFIGMAP,
                 "grafana-dashboards-config",
                 "dashboards.yaml",
             ),
-            ManifestTestCase("grafana-dashboard-system.yaml", ResourceType.CONFIGMAP, "grafana-dashboard-system"),
-            ManifestTestCase("grafana-deployment.yaml", ResourceType.DEPLOYMENT, "grafana"),
-            ManifestTestCase("registry-deployment.yaml", ResourceType.DEPLOYMENT, "registry"),
+            ManifestTestCase("15-grafana-dashboard-system.yaml", ResourceType.CONFIGMAP, "grafana-dashboard-system"),
+            ManifestTestCase("41-grafana-deployment.yaml", ResourceType.DEPLOYMENT, "grafana"),
+            ManifestTestCase("42-registry-deployment.yaml", ResourceType.DEPLOYMENT, "registry"),
         )
 
     @BeforeAll
@@ -111,20 +113,12 @@ class K8sServiceIntegrationTest {
 
     @Test
     @Order(1)
-    fun `should apply namespace manifest first`() {
-        val manifestFile = File(K8S_MANIFEST_DIR, "namespace.yaml")
-        assertThat(manifestFile.exists())
-            .withFailMessage("Manifest file not found: ${manifestFile.absolutePath}")
-            .isTrue()
-
-        applyManifest(manifestFile)
-
-        val namespace = client.namespaces().withName(OBSERVABILITY_NAMESPACE).get()
+    fun `default namespace should exist`() {
+        // The default namespace is pre-existing in K3s, so we just verify it exists
+        val namespace = client.namespaces().withName(DEFAULT_NAMESPACE).get()
         assertThat(namespace)
-            .withFailMessage("Namespace '$OBSERVABILITY_NAMESPACE' was not created by namespace.yaml")
+            .withFailMessage("Namespace '$DEFAULT_NAMESPACE' does not exist")
             .isNotNull
-        assertThat(namespace.metadata.labels)
-            .containsEntry("app.kubernetes.io/name", "observability")
     }
 
     @TestFactory
@@ -140,13 +134,13 @@ class K8sServiceIntegrationTest {
     @Order(3)
     fun `should have created all expected resources`() {
         // Final verification - check counts of all resource types
-        val namespaces = client.namespaces().withName(OBSERVABILITY_NAMESPACE).get()
+        val namespaces = client.namespaces().withName(DEFAULT_NAMESPACE).get()
         assertThat(namespaces).isNotNull
 
         val configMaps =
             client
                 .configMaps()
-                .inNamespace(OBSERVABILITY_NAMESPACE)
+                .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(configMaps.items)
             .withFailMessage("Expected at least 6 ConfigMaps, found ${configMaps.items.size}")
@@ -156,7 +150,7 @@ class K8sServiceIntegrationTest {
             client
                 .apps()
                 .deployments()
-                .inNamespace(OBSERVABILITY_NAMESPACE)
+                .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(deployments.items)
             .withFailMessage("Expected at least 3 Deployments (prometheus, grafana, registry)")
@@ -166,7 +160,7 @@ class K8sServiceIntegrationTest {
             client
                 .apps()
                 .daemonSets()
-                .inNamespace(OBSERVABILITY_NAMESPACE)
+                .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(daemonSets.items)
             .withFailMessage("Expected at least 2 DaemonSets (otel-control, otel-workers)")
@@ -175,12 +169,13 @@ class K8sServiceIntegrationTest {
         val services =
             client
                 .services()
-                .inNamespace(OBSERVABILITY_NAMESPACE)
+                .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         // Only otel-collector has a Service; prometheus/grafana use hostNetwork
+        // Note: default namespace also has kubernetes service
         assertThat(services.items)
-            .withFailMessage("Expected at least 1 Service (otel-collector)")
-            .hasSizeGreaterThanOrEqualTo(1)
+            .withFailMessage("Expected at least 2 Services (kubernetes, otel-collector)")
+            .hasSizeGreaterThanOrEqualTo(2)
     }
 
     /**
@@ -210,7 +205,7 @@ class K8sServiceIntegrationTest {
                 val service =
                     client
                         .services()
-                        .inNamespace(OBSERVABILITY_NAMESPACE)
+                        .inNamespace(DEFAULT_NAMESPACE)
                         .withName(testCase.resourceName)
                         .get()
                 assertThat(service)
@@ -221,7 +216,7 @@ class K8sServiceIntegrationTest {
                 val configMap =
                     client
                         .configMaps()
-                        .inNamespace(OBSERVABILITY_NAMESPACE)
+                        .inNamespace(DEFAULT_NAMESPACE)
                         .withName(testCase.resourceName)
                         .get()
                 assertThat(configMap)
@@ -238,7 +233,7 @@ class K8sServiceIntegrationTest {
                     client
                         .apps()
                         .daemonSets()
-                        .inNamespace(OBSERVABILITY_NAMESPACE)
+                        .inNamespace(DEFAULT_NAMESPACE)
                         .withName(testCase.resourceName)
                         .get()
                 assertThat(daemonSet)
@@ -250,7 +245,7 @@ class K8sServiceIntegrationTest {
                     client
                         .apps()
                         .deployments()
-                        .inNamespace(OBSERVABILITY_NAMESPACE)
+                        .inNamespace(DEFAULT_NAMESPACE)
                         .withName(testCase.resourceName)
                         .get()
                 assertThat(deployment)

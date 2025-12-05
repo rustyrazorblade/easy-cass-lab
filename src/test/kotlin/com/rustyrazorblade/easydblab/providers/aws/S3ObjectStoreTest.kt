@@ -56,7 +56,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         // Given
         val testFile = tempDir.resolve("test.jar").toFile()
         testFile.writeText("test content")
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -77,7 +77,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     fun `uploadFile throws exception when file does not exist`() {
         // Given
         val nonexistentFile = File("/nonexistent/file.jar")
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // When/Then
         objectStore = get()
@@ -92,7 +92,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         @TempDir tempDir: Path,
     ) {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
         val localPath = tempDir.resolve("downloaded.jar")
         val testContent = "test content".toByteArray()
 
@@ -119,7 +119,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `fileExists returns true when file exists in S3`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -143,7 +143,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `fileExists returns false when file does not exist in S3`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -161,7 +161,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `getFileInfo returns metadata when file exists`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
         val lastModified = Instant.now()
 
         // Initialize ObjectStore (triggers mock creation)
@@ -189,7 +189,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `getFileInfo returns null when file does not exist`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -207,7 +207,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `listFiles returns files under prefix`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars()
+        val s3Path = ClusterS3Path.root("test-bucket").spark()
         val lastModified = Instant.now()
 
         // Initialize ObjectStore (triggers mock creation)
@@ -216,7 +216,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         val s3Object1 =
             S3Object
                 .builder()
-                .key("clusters/cluster-123/spark-jars/app1.jar")
+                .key("spark/app1.jar")
                 .size(1024L)
                 .lastModified(lastModified)
                 .build()
@@ -224,7 +224,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         val s3Object2 =
             S3Object
                 .builder()
-                .key("clusters/cluster-123/spark-jars/app2.jar")
+                .key("spark/app2.jar")
                 .size(2048L)
                 .lastModified(lastModified)
                 .build()
@@ -252,7 +252,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `deleteFile removes file from S3`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -272,7 +272,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `listFiles returns empty list when no files exist`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars()
+        val s3Path = ClusterS3Path.root("test-bucket").spark()
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -298,7 +298,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `listFiles returns empty list when contents is null`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars()
+        val s3Path = ClusterS3Path.root("test-bucket").spark()
 
         // Initialize ObjectStore (triggers mock creation)
         objectStore = get()
@@ -329,7 +329,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         // Given
         val testFile = tempDir.resolve("test.jar").toFile()
         testFile.writeText("test content")
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         objectStore = get()
 
@@ -353,7 +353,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
         @TempDir tempDir: Path,
     ) {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
         val localPath = tempDir.resolve("downloaded.jar")
 
         objectStore = get()
@@ -376,7 +376,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `fileExists throws exception on S3 server error`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         objectStore = get()
 
@@ -398,7 +398,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `getFileInfo throws exception on S3 server error`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         objectStore = get()
 
@@ -420,7 +420,7 @@ class S3ObjectStoreTest : BaseKoinTest() {
     @Test
     fun `deleteFile throws exception on S3 error`() {
         // Given
-        val s3Path = ClusterS3Path.from("test-bucket", "cluster-123").sparkJars().resolve("test.jar")
+        val s3Path = ClusterS3Path.root("test-bucket").spark().resolve("test.jar")
 
         objectStore = get()
 

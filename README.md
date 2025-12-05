@@ -358,19 +358,26 @@ easy-db-lab start
 
 ```shell
 # The ephemeral or EBS disk is automatically formatted as XFS and mounted here.
-/mnt/cassandra
+/mnt/db1
 
-# data files
-/mnt/cassandra/data
+# Database-specific subdirectories
+/mnt/db1/cassandra    # Cassandra data
+/mnt/db1/clickhouse   # ClickHouse data
+/mnt/db1/otel         # OpenTelemetry logs
+
+# Cassandra data files
+/mnt/db1/cassandra/data
 
 # hints
-/mnt/cassandra/hints
+/mnt/db1/cassandra/hints
 
 # commitlogs
-/mnt/cassandra/commitlog
+/mnt/db1/cassandra/commitlog
 
-# flame graphs
-/mnt/cassandra/artifacts
+# flame graphs and artifacts
+/mnt/db1/cassandra/artifacts
+
+# Note: /mnt/cassandra symlinks to /mnt/db1/cassandra for backwards compatibility
 
 # axonops agents for different versions of Cassandra
 /usr/local/share/axonops
@@ -421,14 +428,14 @@ You may pass extra parameters, they will be passed along automatically.
 
 On each node there are several aliases for commonly run commands:
 
-| command | action                                |
-| --------|---------------------------------------|
- | c | cqlsh (auto use the correct hostname) |
-| ts | tail cassandra system log             |
-| nt | nodetool                              |
-| d | cd to /mnt/cassandra/data directory   |
-| l | list /mnt/cassandra/logs directory    |
-| v | ls -lahG (friendly output)            |
+| command | action                                     |
+| --------|---------------------------------------------|
+ | c | cqlsh (auto use the correct hostname)      |
+| ts | tail cassandra system log                  |
+| nt | nodetool                                   |
+| d | cd to /mnt/db1/cassandra/data directory    |
+| l | cd to /mnt/db1/cassandra/logs directory    |
+| v | ls -lahG (friendly output)                 |
 
 
 ### Shut it Down
