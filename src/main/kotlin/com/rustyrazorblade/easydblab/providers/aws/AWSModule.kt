@@ -147,7 +147,6 @@ val awsModule =
         single {
             AWSResourceSetupService(
                 get<AWS>(),
-                get(),
                 get<OutputHandler>(),
             )
         }
@@ -167,7 +166,6 @@ val awsModule =
                 get<OutputHandler>(),
                 get<ObjectStore>(),
                 get<ClusterStateManager>(),
-                get<User>(),
             )
         }
 

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: registry
-  namespace: observability
+  namespace: default
   labels:
     app.kubernetes.io/name: registry
 spec:

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-system
-  namespace: observability
+  namespace: default
   labels:
     app.kubernetes.io/name: grafana
     grafana_dashboard: "1"

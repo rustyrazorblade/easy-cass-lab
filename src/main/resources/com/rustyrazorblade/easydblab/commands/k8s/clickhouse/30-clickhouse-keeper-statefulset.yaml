@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clickhouse-keeper
+  namespace: default
+  labels:
+    app.kubernetes.io/name: clickhouse-keeper
+spec:
+  serviceName: clickhouse-keeper
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse-keeper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse-keeper
+    spec:
+      nodeSelector:
+        type: db
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: clickhouse-keeper
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: init-data-dir
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /var/lib/clickhouse-keeper/log
+              mkdir -p /var/lib/clickhouse-keeper/snapshots
+              chown -R 101:101 /var/lib/clickhouse-keeper
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/clickhouse-keeper
+      containers:
+        - name: clickhouse-keeper
+          image: clickhouse/clickhouse-keeper:latest
+          securityContext:
+            runAsUser: 101
+            runAsGroup: 101
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 9234
+              name: raft
+            - containerPort: 9363
+              name: metrics
+            - containerPort: 9182
+              name: http-control
+          env:
+            - name: KEEPER_SERVER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command:
+            - /bin/bash
+            - -c
+            - |
+              export KEEPER_SERVER_ID=$((${HOSTNAME##*-} + 1))
+              exec clickhouse-keeper --config-file=/etc/clickhouse-keeper/keeper_config.xml
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              memory: 256Mi
+              cpu: 100m
+          volumeMounts:
+            - name: config
+              mountPath: /etc/clickhouse-keeper
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/clickhouse-keeper
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 9182
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9182
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: clickhouse-keeper-config
+        - name: data
+          hostPath:
+            path: /mnt/db1/clickhouse/keeper
+            type: DirectoryOrCreate

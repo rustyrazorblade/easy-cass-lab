@@ -2,6 +2,13 @@
 
 set -e  # Exit on any error
 
+# Check if SOCKS tunnel is running (interferes with AWS API calls)
+if pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
+  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
+  echo "Please stop it first with: socks5-stop"
+  exit 1
+fi
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

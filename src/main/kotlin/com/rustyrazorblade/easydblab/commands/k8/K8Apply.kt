@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.configuration.ServerType
+import com.rustyrazorblade.easydblab.output.displayObservabilityAccess
 import com.rustyrazorblade.easydblab.services.K8sService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
@@ -57,8 +58,6 @@ class K8Apply(
 
     companion object {
         private const val K8S_CORE_MANIFEST_DIR = "k8s/core"
-        private const val GRAFANA_PORT = 3000
-        private const val PROMETHEUS_PORT = 9090
     }
 
     override fun execute() {
@@ -94,9 +93,6 @@ class K8Apply(
         // Display access information
         outputHandler.handleMessage("")
         outputHandler.handleMessage("Observability stack deployed successfully!")
-        outputHandler.handleMessage("  Grafana:    http://${controlNode.publicIp}:$GRAFANA_PORT")
-        outputHandler.handleMessage("  Prometheus: http://${controlNode.publicIp}:$PROMETHEUS_PORT")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Grafana credentials: admin/admin")
+        outputHandler.displayObservabilityAccess(controlNode.privateIp)
     }
 }

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: observability
+  namespace: default
   labels:
     app.kubernetes.io/name: grafana
 data:
@@ -14,4 +14,13 @@ data:
         access: proxy
         url: http://localhost:9090
         isDefault: true
+        editable: false
+      - name: ClickHouse
+        type: grafana-clickhouse-datasource
+        access: proxy
+        jsonData:
+          defaultDatabase: default
+          port: 9000
+          protocol: native
+          host: cassandra0
         editable: false

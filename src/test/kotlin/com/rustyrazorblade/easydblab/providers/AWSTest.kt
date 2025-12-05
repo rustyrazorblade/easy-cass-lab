@@ -151,7 +151,6 @@ internal class AWSTest :
     @Test
     fun createRoleWithS3PolicySuccess() {
         val roleName = "easy-db-lab-test-role"
-        val bucketName = "easy-db-lab-test-bucket"
 
         // Setup mock responses
         val mockRole =
@@ -211,7 +210,7 @@ internal class AWSTest :
             .thenReturn(listPoliciesResponse)
 
         // Execute the method
-        val result = aws.createRoleWithS3Policy(roleName, bucketName)
+        val result = aws.createRoleWithS3Policy(roleName)
 
         // Verify the expected calls were made
         verify(mockIamClient).createRole(any<CreateRoleRequest>())
@@ -228,7 +227,6 @@ internal class AWSTest :
     @Test
     fun createRoleWithS3PolicyRoleAlreadyExists() {
         val roleName = "easy-db-lab-existing-role"
-        val bucketName = "easy-db-lab-test-bucket"
 
         val mockRole =
             Role
@@ -288,7 +286,7 @@ internal class AWSTest :
             .thenReturn(listPoliciesResponse)
 
         // Execute the method - should not throw exception
-        val result = aws.createRoleWithS3Policy(roleName, bucketName)
+        val result = aws.createRoleWithS3Policy(roleName)
 
         // Verify the createRole was attempted
         verify(mockIamClient).createRole(any<CreateRoleRequest>())
@@ -301,17 +299,15 @@ internal class AWSTest :
 
     @Test
     fun createRoleWithS3PolicyInvalidRoleName() {
-        val bucketName = "easy-db-lab-test-bucket"
-
         // Test with invalid characters
         assertThrows<IllegalArgumentException> {
-            aws.createRoleWithS3Policy("invalid role name with spaces", bucketName)
+            aws.createRoleWithS3Policy("invalid role name with spaces")
         }
 
         // Test with too long name (> 64 chars)
         val longName = "a".repeat(65)
         assertThrows<IllegalArgumentException> {
-            aws.createRoleWithS3Policy(longName, bucketName)
+            aws.createRoleWithS3Policy(longName)
         }
     }
 

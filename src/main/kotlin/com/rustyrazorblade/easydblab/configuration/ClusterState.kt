@@ -152,6 +152,8 @@ data class ClusterState(
     var emrCluster: EMRClusterState? = null,
     // Infrastructure resource IDs for cleanup
     var infrastructure: InfrastructureState? = null,
+    // S3 bucket for this environment (per-cluster bucket, created during 'up')
+    var s3Bucket: String? = null,
 ) {
     /**
      * Update hosts
@@ -228,18 +230,18 @@ data class ClusterState(
 }
 
 /**
- * Extension function to create a ClusterS3Path from ClusterState and User configuration.
- * Provides convenient access to cluster-namespaced S3 paths.
+ * Extension function to create a ClusterS3Path from ClusterState.
+ * Provides convenient access to S3 paths for this environment's bucket.
  *
  * Example:
  * ```
  * val manager = ClusterStateManager()
  * val state = manager.load()
- * val s3Path = state.s3Path(userConfig)
- * val jarPath = s3Path.sparkJars().resolve("myapp.jar")
+ * val s3Path = state.s3Path()
+ * val jarPath = s3Path.spark().resolve("myapp.jar")
  * ```
  *
- * @param user The user configuration containing s3Bucket
- * @return A ClusterS3Path rooted at this cluster's namespace
+ * @return A ClusterS3Path for this cluster's S3 bucket
+ * @throws IllegalStateException if s3Bucket is not configured
  */
-fun ClusterState.s3Path(user: User): ClusterS3Path = ClusterS3Path.from(this, user)
+fun ClusterState.s3Path(): ClusterS3Path = ClusterS3Path.from(this)

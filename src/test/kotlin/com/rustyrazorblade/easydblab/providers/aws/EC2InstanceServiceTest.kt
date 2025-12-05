@@ -369,6 +369,21 @@ internal class EC2InstanceServiceTest {
         assertThat(capturedRequests[1].subnetId()).isEqualTo("subnet-b")
     }
 
+    @Test
+    fun `waitForInstanceStatusOk should return immediately for empty list`() {
+        // Should not throw and should not call the EC2 client
+        ec2InstanceService.waitForInstanceStatusOk(emptyList())
+
+        // Verify no calls were made to the EC2 client (waiter is never created for empty list)
+        // Note: The waiter uses its own client internally, so we verify no status calls were made
+        verify(
+            mockEc2Client,
+            times(0),
+        ).describeInstanceStatus(
+            any<software.amazon.awssdk.services.ec2.model.DescribeInstanceStatusRequest>(),
+        )
+    }
+
     private fun createInstance(
         instanceId: String,
         serverType: String,

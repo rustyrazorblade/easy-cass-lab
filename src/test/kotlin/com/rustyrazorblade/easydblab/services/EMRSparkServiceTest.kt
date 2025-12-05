@@ -5,7 +5,6 @@ import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.EMRClusterInfo
 import com.rustyrazorblade.easydblab.configuration.EMRClusterState
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.providers.aws.EMRSparkService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -38,7 +37,6 @@ class EMRSparkServiceTest : BaseKoinTest() {
     private lateinit var mockEmrClient: EmrClient
     private lateinit var mockObjectStore: ObjectStore
     private lateinit var mockClusterStateManager: ClusterStateManager
-    private lateinit var mockUserConfig: User
     private lateinit var sparkService: SparkService
 
     private val testClusterId = "j-ABC123DEF456"
@@ -68,8 +66,7 @@ class EMRSparkServiceTest : BaseKoinTest() {
                 single<EmrClient> { mockEmrClient }
                 single<ObjectStore> { mockObjectStore }
                 single<ClusterStateManager> { mockClusterStateManager }
-                single<User> { mockUserConfig }
-                factory<SparkService> { EMRSparkService(get(), get(), get(), get(), get()) }
+                factory<SparkService> { EMRSparkService(get(), get(), get(), get()) }
             },
         )
 
@@ -78,7 +75,6 @@ class EMRSparkServiceTest : BaseKoinTest() {
         mockEmrClient = mock()
         mockObjectStore = mock()
         mockClusterStateManager = mock()
-        mockUserConfig = mock()
         sparkService = getKoin().get()
     }
 

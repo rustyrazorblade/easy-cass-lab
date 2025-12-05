@@ -34,6 +34,10 @@ import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.UseCassandra
 import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.WriteConfig
+import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouse
+import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStart
+import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStatus
+import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStop
 import com.rustyrazorblade.easydblab.commands.k8.K8
 import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.spark.Spark
@@ -182,6 +186,14 @@ class CommandLineParser(
         val k8CommandLine = CommandLine(K8())
         k8CommandLine.addSubcommand("apply", K8Apply(context))
         commandLine.addSubcommand("k8", k8CommandLine)
+
+        // Register ClickHouse parent command with its sub-commands
+        // ClickHouse is a parent command for ClickHouse cluster operations on K8s
+        val clickHouseCommandLine = CommandLine(ClickHouse())
+        clickHouseCommandLine.addSubcommand("start", ClickHouseStart(context))
+        clickHouseCommandLine.addSubcommand("status", ClickHouseStatus(context))
+        clickHouseCommandLine.addSubcommand("stop", ClickHouseStop(context))
+        commandLine.addSubcommand("clickhouse", clickHouseCommandLine)
 
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =

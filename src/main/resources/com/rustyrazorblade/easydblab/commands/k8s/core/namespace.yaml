@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: observability
-  labels:
-    app.kubernetes.io/name: observability
-    app.kubernetes.io/part-of: easy-db-lab

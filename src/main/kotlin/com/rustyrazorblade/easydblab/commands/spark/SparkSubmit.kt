@@ -4,7 +4,6 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.services.ObjectStore
 import com.rustyrazorblade.easydblab.services.SparkService
@@ -31,7 +30,6 @@ class SparkSubmit(
 ) : PicoBaseCommand(context) {
     private val sparkService: SparkService by inject()
     private val objectStore: ObjectStore by inject()
-    private val userConfig: User by inject()
 
     @Option(
         names = ["--jar"],
@@ -122,8 +120,8 @@ class SparkSubmit(
         val clusterState = clusterStateManager.load()
 
         // Build cluster-specific S3 path using ClusterS3Path API
-        val s3Path = clusterState.s3Path(userConfig)
-        val jarS3Path = s3Path.sparkJars().resolve(localFile.name)
+        val s3Path = clusterState.s3Path()
+        val jarS3Path = s3Path.spark().resolve(localFile.name)
 
         // Upload using ObjectStore (handles retry logic and progress)
         val result = objectStore.uploadFile(localFile, jarS3Path, showProgress = true)

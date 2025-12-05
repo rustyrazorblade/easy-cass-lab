@@ -43,11 +43,13 @@ object ClusterConfigWriter {
      * @param writer BufferedWriter to write environment file to
      * @param hosts Map of server types to their hosts
      * @param identityFile Path to the SSH identity file (for embedded SSH config generation)
+     * @param clusterName Name of the cluster for prompt customization
      */
     fun writeEnvironmentFile(
         writer: BufferedWriter,
         hosts: Map<ServerType, List<ClusterHost>>,
         identityFile: String,
+        clusterName: String,
     ) {
         // write the initial SSH aliases
         writer.appendLine("#!/bin/bash")
@@ -60,6 +62,12 @@ object ClusterConfigWriter {
             i++
         }
         writer.appendLine(")")
+
+        // Cluster metadata for prompt customization
+        writer.appendLine("CLUSTER_NAME=\"$clusterName\"")
+        writer.appendLine("DB_NODE_COUNT=${hosts[ServerType.Cassandra]?.size ?: 0}")
+        writer.appendLine("APP_NODE_COUNT=${hosts[ServerType.Stress]?.size ?: 0}")
+        writer.appendLine()
 
         i = 0
         hosts[ServerType.Cassandra]?.forEach { _ ->

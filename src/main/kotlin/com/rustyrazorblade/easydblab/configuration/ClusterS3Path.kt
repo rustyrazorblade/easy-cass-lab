@@ -2,16 +2,17 @@ package com.rustyrazorblade.easydblab.configuration
 
 /**
  * Immutable S3 path abstraction following java.nio.file.Path patterns.
- * Provides type-safe S3 path construction with cluster namespacing.
+ * Provides type-safe S3 path construction for per-environment buckets.
  *
- * All cluster-specific paths are automatically prefixed with "clusters/{clusterId}"
- * to support multiple clusters sharing the same S3 bucket without conflicts.
+ * Each environment has its own dedicated S3 bucket, so paths are organized
+ * by technology subdirectories (cassandra/, clickhouse/, spark/) rather than
+ * cluster IDs.
  *
  * Example usage:
  * ```
- * val s3Path = ClusterS3Path.from("my-bucket", "cluster-abc-123")
- * val jarPath = s3Path.sparkJars().resolve("myapp.jar")
- * println(jarPath) // s3://my-bucket/clusters/cluster-abc-123/spark-jars/myapp.jar
+ * val s3Path = ClusterS3Path.from(clusterState)
+ * val jarPath = s3Path.spark().resolve("myapp.jar")
+ * println(jarPath) // s3://easy-db-lab-mycluster-abc123/spark/myapp.jar
  *
  * // For S3 SDK calls:
  * val putRequest = PutObjectRequest.builder()
@@ -28,41 +29,31 @@ data class ClusterS3Path(
     private val segments: List<String> = emptyList(),
 ) {
     companion object {
-        private const val CLUSTERS_PREFIX = "clusters"
-        private const val SPARK_JARS_DIR = "spark-jars"
+        private const val CASSANDRA_DIR = "cassandra"
+        private const val CLICKHOUSE_DIR = "clickhouse"
+        private const val SPARK_DIR = "spark"
+        private const val EMR_LOGS_DIR = "emr-logs"
         private const val BACKUPS_DIR = "backups"
         private const val LOGS_DIR = "logs"
         private const val DATA_DIR = "data"
-        private const val EMR_LOGS_DIR = "emr-logs"
 
         /**
-         * Create a cluster-namespaced S3 path.
-         * Paths are prefixed with "clusters/{clusterId}" for multi-cluster support.
+         * Create a ClusterS3Path from ClusterState.
+         * Uses the per-environment bucket stored in ClusterState.
          *
-         * @param bucket The S3 bucket name
-         * @param clusterId The cluster identifier (typically from ClusterState.clusterId)
-         * @return A new ClusterS3Path rooted at clusters/{clusterId}
+         * @param clusterState The cluster state containing s3Bucket
+         * @return A new ClusterS3Path for this cluster's bucket
+         * @throws IllegalStateException if s3Bucket is not configured
          */
-        fun from(
-            bucket: String,
-            clusterId: String,
-        ): ClusterS3Path = ClusterS3Path(bucket, listOf(CLUSTERS_PREFIX, clusterId))
+        fun from(clusterState: ClusterState): ClusterS3Path {
+            val bucket =
+                clusterState.s3Bucket
+                    ?: error("S3 bucket not configured for cluster '${clusterState.name}'. Run 'easy-db-lab up' first.")
+            return ClusterS3Path(bucket)
+        }
 
         /**
-         * Convenience factory from ClusterState and User configuration.
-         *
-         * @param clusterState The cluster state containing clusterId
-         * @param user The user configuration containing s3Bucket
-         * @return A new ClusterS3Path for this cluster
-         */
-        fun from(
-            clusterState: ClusterState,
-            user: User,
-        ): ClusterS3Path = from(user.s3Bucket, clusterState.clusterId)
-
-        /**
-         * Create a root S3 path without cluster namespacing.
-         * Use sparingly - prefer from() with cluster ID for proper namespacing.
+         * Create a root S3 path for a specific bucket.
          *
          * @param bucket The S3 bucket name
          * @return A new ClusterS3Path at bucket root
@@ -77,7 +68,7 @@ data class ClusterS3Path(
          * where the full key is returned.
          *
          * @param bucket The S3 bucket name
-         * @param key The S3 object key (e.g., "clusters/abc123/spark-jars/myapp.jar")
+         * @param key The S3 object key (e.g., "spark/myapp.jar")
          * @return A new ClusterS3Path representing the key
          */
         fun fromKey(
@@ -157,7 +148,7 @@ data class ClusterS3Path(
      *
      * Example:
      * ```
-     * val path = ClusterS3Path.from("bucket", "id").resolve("file.txt")
+     * val path = ClusterS3Path.root("bucket").resolve("file.txt")
      * putRequest.bucket(path.bucket).key(path.getKey())
      * ```
      *
@@ -165,40 +156,54 @@ data class ClusterS3Path(
      */
     fun getKey(): String = segments.joinToString("/")
 
-    // Convenience methods for common directories
+    // Convenience methods for technology-specific directories
 
     /**
-     * Path for Spark JAR uploads.
+     * Path for Cassandra data and backups.
      *
-     * @return Path: s3://bucket/clusters/{clusterId}/spark-jars
+     * @return Path: s3://bucket/cassandra
      */
-    fun sparkJars(): ClusterS3Path = resolve(SPARK_JARS_DIR)
+    fun cassandra(): ClusterS3Path = resolve(CASSANDRA_DIR)
 
     /**
-     * Path for Cassandra backups.
+     * Path for ClickHouse data.
      *
-     * @return Path: s3://bucket/clusters/{clusterId}/backups
+     * @return Path: s3://bucket/clickhouse
+     */
+    fun clickhouse(): ClusterS3Path = resolve(CLICKHOUSE_DIR)
+
+    /**
+     * Path for Spark JARs and data.
+     *
+     * @return Path: s3://bucket/spark
+     */
+    fun spark(): ClusterS3Path = resolve(SPARK_DIR)
+
+    /**
+     * Path for EMR logs.
+     *
+     * @return Path: s3://bucket/spark/emr-logs
+     */
+    fun emrLogs(): ClusterS3Path = resolve(SPARK_DIR).resolve(EMR_LOGS_DIR)
+
+    /**
+     * Path for backups.
+     *
+     * @return Path: s3://bucket/backups
      */
     fun backups(): ClusterS3Path = resolve(BACKUPS_DIR)
 
     /**
      * Path for log aggregation.
      *
-     * @return Path: s3://bucket/clusters/{clusterId}/logs
+     * @return Path: s3://bucket/logs
      */
     fun logs(): ClusterS3Path = resolve(LOGS_DIR)
 
     /**
      * Path for general data storage.
      *
-     * @return Path: s3://bucket/clusters/{clusterId}/data
+     * @return Path: s3://bucket/data
      */
     fun data(): ClusterS3Path = resolve(DATA_DIR)
-
-    /**
-     * Path for EMR logs.
-     *
-     * @return Path: s3://bucket/clusters/{clusterId}/emr-logs
-     */
-    fun emrLogs(): ClusterS3Path = resolve(EMR_LOGS_DIR)
 }

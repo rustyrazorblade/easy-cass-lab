@@ -123,7 +123,6 @@ class SetupProfile(
                 awsSecret = awsSecret,
                 axonOpsOrg = existingConfig["axonOpsOrg"] as? String ?: "",
                 axonOpsKey = existingConfig["axonOpsKey"] as? String ?: "",
-                s3Bucket = existingConfig["s3Bucket"] as? String ?: "",
             )
 
         userConfigProvider.saveUserConfig(userConfig)
@@ -168,15 +167,10 @@ class SetupProfile(
             outputHandler.handleMessage("Key pair saved")
         }
 
-        // Create S3 bucket and IAM role if not already present
-        if (userConfig.s3Bucket.isBlank()) {
-            outputHandler.handleMessage("Creating AWS resources (S3 bucket, IAM role)...")
-
-            awsResourceSetup.ensureAWSResources(userConfig)
-            // Service saves config automatically
-
-            outputHandler.handleMessage("AWS resources created successfully")
-        }
+        // Create IAM roles if not already present
+        outputHandler.handleMessage("Ensuring IAM roles are configured...")
+        awsResourceSetup.ensureAWSResources(userConfig)
+        outputHandler.handleMessage("IAM resources validated")
 
         // Create Packer VPC infrastructure
         outputHandler.handleMessage("Creating Packer VPC infrastructure...")

@@ -9,7 +9,6 @@ import com.rustyrazorblade.easydblab.configuration.InfrastructureState
 import com.rustyrazorblade.easydblab.configuration.InfrastructureStatus
 import com.rustyrazorblade.easydblab.configuration.NodeState
 import com.rustyrazorblade.easydblab.configuration.ServerType
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRClusterStatus
@@ -41,7 +40,6 @@ class StatusTest : BaseKoinTest() {
     private val mockSocksProxyService: SocksProxyService = mock()
     private val mockRemoteOperationsService: RemoteOperationsService = mock()
     private val mockEmrService: EMRService = mock()
-    private val mockUserConfig: User = mock()
 
     private val testHosts =
         mapOf(
@@ -103,7 +101,6 @@ class StatusTest : BaseKoinTest() {
                 single<SocksProxyService> { mockSocksProxyService }
                 single<RemoteOperationsService> { mockRemoteOperationsService }
                 single<EMRService> { mockEmrService }
-                single<User> { mockUserConfig }
             },
         )
 
@@ -206,7 +203,6 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
 
         val command = Status(context)
         command.execute()
@@ -233,7 +229,6 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
 
         val command = Status(context)
         command.execute()
@@ -261,7 +256,6 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
         // Make getRemoteVersion throw an exception to simulate unavailable nodes
         whenever(mockRemoteOperationsService.getRemoteVersion(any(), any()))
             .thenThrow(RuntimeException("Connection refused"))
@@ -296,7 +290,6 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
 
         val command = Status(context)
         command.execute()
@@ -305,7 +298,7 @@ class StatusTest : BaseKoinTest() {
         verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
-        assertThat(allMessages).contains("=== KUBERNETES JOBS ===")
+        assertThat(allMessages).contains("=== KUBERNETES PODS ===")
         assertThat(allMessages).contains("(no control node configured)")
     }
 
@@ -363,8 +356,7 @@ class StatusTest : BaseKoinTest() {
 
     @Test
     fun `execute displays S3 bucket section`() {
-        setupBasicClusterState()
-        whenever(mockUserConfig.s3Bucket).thenReturn("test-bucket-123")
+        setupBasicClusterStateWithS3Bucket("test-bucket-123")
 
         val command = Status(context)
         command.execute()
@@ -375,15 +367,13 @@ class StatusTest : BaseKoinTest() {
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== S3 BUCKET ===")
         assertThat(allMessages).contains("test-bucket-123")
-        assertThat(allMessages).contains("spark-jars")
-        assertThat(allMessages).contains("logs")
-        assertThat(allMessages).contains("emr-logs")
+        assertThat(allMessages).contains("spark")
+        assertThat(allMessages).contains("cassandra")
     }
 
     @Test
     fun `execute handles missing S3 bucket gracefully`() {
         setupBasicClusterState()
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
 
         val command = Status(context)
         command.execute()
@@ -418,7 +408,6 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
     }
 
     private fun setupBasicClusterState() {
@@ -436,7 +425,24 @@ class StatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
-        whenever(mockUserConfig.s3Bucket).thenReturn("")
+    }
+
+    private fun setupBasicClusterStateWithS3Bucket(bucketName: String) {
+        val clusterState =
+            ClusterState(
+                name = "test-cluster",
+                clusterId = "test-123",
+                versions = mutableMapOf(),
+                hosts = testHosts,
+                infrastructure = testInfrastructure,
+                infrastructureStatus = InfrastructureStatus.UP,
+                createdAt = Instant.parse("2024-01-15T10:00:00Z"),
+                default = NodeState(version = "5.0"),
+                s3Bucket = bucketName,
+            )
+
+        whenever(mockClusterStateManager.exists()).thenReturn(true)
+        whenever(mockClusterStateManager.load()).thenReturn(clusterState)
     }
 
     private fun setupInstanceStates() {

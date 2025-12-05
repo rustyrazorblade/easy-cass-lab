@@ -464,3 +464,57 @@ class FilteringChannelOutputHandler(
         }
     }
 }
+
+/**
+ * Display observability stack access information.
+ * Used by both K8Apply (after deployment) and Status (for reference).
+ */
+fun OutputHandler.displayObservabilityAccess(controlNodeIp: String) {
+    handleMessage("")
+    handleMessage("Observability:")
+    handleMessage("  Grafana:    http://$controlNodeIp:${Constants.K8s.GRAFANA_PORT}")
+    handleMessage("  Prometheus: http://$controlNodeIp:${Constants.K8s.PROMETHEUS_PORT}")
+    handleMessage("")
+    handleMessage("Grafana credentials: admin/admin")
+}
+
+/**
+ * Display ClickHouse access information.
+ * Used by both ClickHouseStatus (after start) and Status (for reference).
+ * @param dbNodeIp IP address of a db node where ClickHouse pods are scheduled
+ */
+fun OutputHandler.displayClickHouseAccess(dbNodeIp: String) {
+    handleMessage("")
+    handleMessage("ClickHouse:")
+    handleMessage("  Play UI:         http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}/play")
+    handleMessage("  HTTP Interface:  http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}")
+    handleMessage("  Native Protocol: $dbNodeIp:${Constants.ClickHouse.NATIVE_PORT}")
+}
+
+/**
+ * Display S3Manager access information.
+ * @param controlNodeIp IP address of the control node where S3Manager runs
+ * @param bucketName S3 bucket name to link directly to
+ */
+fun OutputHandler.displayS3ManagerAccess(
+    controlNodeIp: String,
+    bucketName: String,
+) {
+    handleMessage("")
+    handleMessage("S3 Manager:")
+    handleMessage("  Web UI: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName")
+}
+
+/**
+ * Display S3Manager access information for ClickHouse data directory.
+ * @param controlNodeIp IP address of the control node where S3Manager runs
+ * @param bucketName S3 bucket name
+ */
+fun OutputHandler.displayS3ManagerClickHouseAccess(
+    controlNodeIp: String,
+    bucketName: String,
+) {
+    handleMessage("")
+    handleMessage("S3 Manager:")
+    handleMessage("  ClickHouse Data: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName/clickhouse/")
+}

@@ -8,6 +8,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.kubernetes.DefaultKubernetesService
 import com.rustyrazorblade.easydblab.kubernetes.KubernetesJob
+import com.rustyrazorblade.easydblab.kubernetes.KubernetesPod
 import com.rustyrazorblade.easydblab.kubernetes.ProxiedKubernetesClientFactory
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
@@ -78,6 +79,23 @@ interface K3sService : SystemDServiceManager {
         controlHost: ClusterHost,
         kubeconfigPath: Path,
     ): Result<List<KubernetesJob>>
+
+    /**
+     * Lists Kubernetes pods from the K3s cluster.
+     *
+     * This method handles the complete connection chain:
+     * 1. Establishes SOCKS proxy to the control node
+     * 2. Creates proxied Kubernetes client
+     * 3. Lists all pods across namespaces
+     *
+     * @param controlHost The control node running K3s
+     * @param kubeconfigPath Local path to the kubeconfig file
+     * @return Result containing list of pods or an error
+     */
+    fun listPods(
+        controlHost: ClusterHost,
+        kubeconfigPath: Path,
+    ): Result<List<KubernetesPod>>
 }
 
 /**
@@ -207,5 +225,25 @@ class DefaultK3sService(
 
             // List all jobs
             kubeService.listJobs().getOrThrow()
+        }
+
+    override fun listPods(
+        controlHost: ClusterHost,
+        kubeconfigPath: Path,
+    ): Result<List<KubernetesPod>> =
+        runCatching {
+            // Start the SOCKS proxy to the control node
+            socksProxyService.ensureRunning(controlHost)
+
+            // Create Kubernetes service with the proxy
+            val clientFactory =
+                ProxiedKubernetesClientFactory(
+                    proxyHost = "localhost",
+                    proxyPort = socksProxyService.getLocalPort(),
+                )
+            val kubeService = DefaultKubernetesService(clientFactory, kubeconfigPath)
+
+            // List all pods
+            kubeService.listPods().getOrThrow()
         }
 }

@@ -135,24 +135,27 @@ sealed class AWSPolicy {
      */
     sealed class Inline : AWSPolicy() {
         /**
-         * S3 access policy granting full S3 access to a specific bucket.
+         * S3 access policy granting full S3 access to all easy-db-lab buckets.
+         * Uses wildcard pattern to support per-environment buckets.
          * Attached to IAM roles to allow EC2 instances to access cluster data.
-         *
-         * @param bucketName The S3 bucket name to grant access to
+         * Also includes s3:ListAllMyBuckets for S3Manager web UI.
          */
-        data class S3Access(
-            val bucketName: String,
-        ) : Inline() {
+        data object S3AccessWildcard : Inline() {
             override fun toJson() =
                 """{
             "Version": "2012-10-17",
             "Statement": [
                 {
                     "Effect": "Allow",
+                    "Action": "s3:ListAllMyBuckets",
+                    "Resource": "*"
+                },
+                {
+                    "Effect": "Allow",
                     "Action": "s3:*",
                     "Resource": [
-                        "arn:aws:s3:::$bucketName",
-                        "arn:aws:s3:::$bucketName/*"
+                        "arn:aws:s3:::easy-db-lab-*",
+                        "arn:aws:s3:::easy-db-lab-*/*"
                     ]
                 }
             ]

@@ -54,7 +54,12 @@ object TestModules {
      */
     fun testContextModule(tempDir: File): Module {
         val testContext = TestContextFactory.createTestContext(tempDir)
-        val contextFactory = ContextFactory(testContext.easyDbLabUserDirectory)
+        // Use the testContext's workingDirectory to ensure tests don't affect the real project
+        val contextFactory =
+            ContextFactory(
+                baseDirectory = testContext.easyDbLabUserDirectory,
+                workingDirectory = testContext.workingDirectory,
+            )
         return module {
             // Include all context module definitions
             includes(contextModule(contextFactory))
