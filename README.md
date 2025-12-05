@@ -285,7 +285,9 @@ source env.sh # to setup local environment with commands to access the cluster
 # ssh to a node
 ssh cassandra0
 ssh cassandra1 # number corresponds to an instance
-c0 # short cut to ssh cassandra0
+c0 # shortcut to ssh cassandra0
+db0 # alternative alias for cassandra0
+app0 # alternative alias for stress0
 ```
 
 ### Select The Cassandra Version
