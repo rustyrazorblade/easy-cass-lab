@@ -13,6 +13,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.EMRClusterState
 import com.rustyrazorblade.easydblab.configuration.InfrastructureState
+import com.rustyrazorblade.easydblab.configuration.OpenSearchClusterState
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.getHosts
@@ -25,6 +26,8 @@ import com.rustyrazorblade.easydblab.providers.aws.EC2Service
 import com.rustyrazorblade.easydblab.providers.aws.EMRClusterConfig
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
 import com.rustyrazorblade.easydblab.providers.aws.InstanceCreationConfig
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchDomainConfig
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import com.rustyrazorblade.easydblab.providers.aws.RetryUtil
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import com.rustyrazorblade.easydblab.services.HostOperationsService
@@ -60,6 +63,7 @@ class Up(
     private val vpcService: VpcService by inject()
     private val ec2InstanceService: EC2InstanceService by inject()
     private val emrService: EMRService by inject()
+    private val openSearchService: OpenSearchService by inject()
     private val ec2Service: EC2Service by inject()
     private val hostOperationsService: HostOperationsService by inject()
 
@@ -295,6 +299,11 @@ class Up(
             createEmrCluster(initConfig, subnetIds.first(), baseTags)
         }
 
+        // Create OpenSearch domain if enabled
+        if (initConfig.opensearchEnabled) {
+            createOpenSearchDomain(initConfig, subnetIds.first(), securityGroupId, baseTags)
+        }
+
         clusterStateManager.save(workingState)
 
         with(TermColors()) {
@@ -460,6 +469,58 @@ class Up(
         )
 
         outputHandler.handleMessage("EMR cluster ready: ${readyResult.masterPublicDns}")
+    }
+
+    private fun createOpenSearchDomain(
+        initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig,
+        subnetId: String,
+        securityGroupId: String,
+        tags: Map<String, String>,
+    ) {
+        outputHandler.handleMessage("Creating OpenSearch domain...")
+
+        // Generate domain name from cluster name (must be 3-28 lowercase chars)
+        val domainName = generateOpenSearchDomainName(initConfig.name)
+
+        val config = OpenSearchDomainConfig(
+            domainName = domainName,
+            instanceType = initConfig.opensearchInstanceType,
+            instanceCount = initConfig.opensearchInstanceCount,
+            ebsVolumeSize = initConfig.opensearchEbsSize,
+            engineVersion = "OpenSearch_${initConfig.opensearchVersion}",
+            subnetId = subnetId,
+            securityGroupIds = listOf(securityGroupId),
+            tags = tags,
+        )
+
+        val result = openSearchService.createDomain(config)
+        val activeResult = openSearchService.waitForDomainActive(domainName)
+
+        workingState.updateOpenSearchDomain(
+            OpenSearchClusterState(
+                domainName = activeResult.domainName,
+                domainId = activeResult.domainId,
+                endpoint = activeResult.endpoint,
+                dashboardsEndpoint = activeResult.dashboardsEndpoint,
+                state = activeResult.state,
+            ),
+        )
+
+        outputHandler.handleMessage("OpenSearch domain ready: https://${activeResult.endpoint}")
+        outputHandler.handleMessage("Dashboards: ${activeResult.dashboardsEndpoint}")
+    }
+
+    private fun generateOpenSearchDomainName(clusterName: String): String {
+        // OpenSearch domain names must be 3-28 lowercase characters
+        val baseName = clusterName.lowercase().replace(Regex("[^a-z0-9-]"), "-")
+        val suffix = "-os"
+        val maxBaseLength = 28 - suffix.length
+        val truncatedBase = if (baseName.length > maxBaseLength) {
+            baseName.take(maxBaseLength)
+        } else {
+            baseName
+        }
+        return "$truncatedBase$suffix".trimEnd('-')
     }
 
     private fun writeConfigurationFiles() {

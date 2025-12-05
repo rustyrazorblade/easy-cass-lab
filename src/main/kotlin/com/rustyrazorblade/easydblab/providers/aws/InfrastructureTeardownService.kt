@@ -25,6 +25,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 class InfrastructureTeardownService(
     private val vpcService: VpcService,
     private val emrTeardownService: EMRTeardownService,
+    private val openSearchService: OpenSearchService,
     private val outputHandler: OutputHandler,
 ) {
     companion object {
@@ -49,12 +50,14 @@ class InfrastructureTeardownService(
         val internetGatewayId = vpcService.findInternetGatewayByVpc(vpcId)
         val routeTableIds = vpcService.findRouteTablesInVpc(vpcId)
         val emrClusterIds = emrTeardownService.findClustersInVpc(vpcId, subnetIds)
+        val openSearchDomainNames = openSearchService.findDomainsInVpc(subnetIds)
 
         return DiscoveredResources(
             vpcId = vpcId,
             vpcName = vpcName,
             instanceIds = instanceIds,
             emrClusterIds = emrClusterIds,
+            openSearchDomainNames = openSearchDomainNames,
             securityGroupIds = securityGroupIds,
             subnetIds = subnetIds,
             internetGatewayId = internetGatewayId,
@@ -180,6 +183,7 @@ class InfrastructureTeardownService(
 
             // Execute teardown steps in order
             if (!terminateEmrClusters(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
+            deleteOpenSearchDomains(resources, errors)
             if (!terminateEc2Instances(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
             deleteNatGateways(resources, errors)
             revokeAllSecurityGroupRules(resources, errors)
@@ -213,6 +217,29 @@ class InfrastructureTeardownService(
             errors.add(logError("Failed to terminate EMR clusters", e))
             false // EMR failure is fatal - EMR instances may block subnet/SG deletion
         }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun deleteOpenSearchDomains(
+        resources: DiscoveredResources,
+        errors: MutableList<String>,
+    ) {
+        if (resources.openSearchDomainNames.isEmpty()) return
+
+        outputHandler.handleMessage("Deleting ${resources.openSearchDomainNames.size} OpenSearch domains...")
+
+        resources.openSearchDomainNames.forEach { domainName ->
+            try {
+                openSearchService.deleteDomain(domainName)
+            } catch (e: Exception) {
+                errors.add(logError("Failed to delete OpenSearch domain $domainName", e))
+            }
+        }
+
+        // Note: OpenSearch domain deletion is asynchronous and can take several minutes.
+        // We don't wait for completion to avoid blocking the teardown, but the security
+        // group and subnet deletion may fail if the domain is still being deleted.
+        // In that case, running 'down' again should succeed once the domain is fully deleted.
     }
 
     @Suppress("TooGenericExceptionCaught")

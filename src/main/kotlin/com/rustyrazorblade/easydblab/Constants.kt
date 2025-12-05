@@ -200,6 +200,19 @@ object Constants {
         const val REGISTRY_PORT = 5000
     }
 
+    // OpenSearch configuration
+    object OpenSearch {
+        const val DEFAULT_VERSION = "2.11"
+        const val DEFAULT_INSTANCE_TYPE = "t3.small.search"
+        const val DEFAULT_INSTANCE_COUNT = 1
+        const val DEFAULT_EBS_SIZE_GB = 100
+        const val MINIMUM_NODES_REQUIRED = 1
+        const val POLL_INTERVAL_MS = 30_000L // 30 seconds - domains take 10-30 min to create
+        const val MAX_POLL_TIMEOUT_MS = 45 * 60 * 1000L // 45 minutes max wait
+        const val LOG_INTERVAL_POLLS = 2 // Log every 2 polls (60 seconds at 30s interval)
+        const val DOMAIN_NAME_MAX_LENGTH = 28 // AWS OpenSearch domain names must be 3-28 lowercase chars
+    }
+
     // ClickHouse configuration
     object ClickHouse {
         const val NAMESPACE = "default"

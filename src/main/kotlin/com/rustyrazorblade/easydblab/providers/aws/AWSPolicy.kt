@@ -111,6 +111,7 @@ sealed class AWSPolicy {
                         "iam-policy-ec2.json" to "EasyDBLabEC2",
                         "iam-policy-iam-s3.json" to "EasyDBLabIAM",
                         "iam-policy-emr.json" to "EasyDBLabEMR",
+                        "iam-policy-opensearch.json" to "EasyDBLabOpenSearch",
                     )
 
                 return policyData.map { (fileName, policyName) ->

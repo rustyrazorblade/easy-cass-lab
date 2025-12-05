@@ -48,6 +48,10 @@ import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStart
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStatus
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStop
 import com.rustyrazorblade.easydblab.commands.k8.K8
+import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearch
+import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStart
+import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStatus
+import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStop
 import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.spark.Spark
 import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
@@ -220,6 +224,14 @@ class CommandLineParser(
         cassandraCommandLine.addSubcommand("stress", stressCommandLine)
 
         commandLine.addSubcommand("cassandra", cassandraCommandLine)
+
+        // Register OpenSearch parent command with its sub-commands
+        // OpenSearch is a parent command for AWS-managed OpenSearch domain operations
+        val openSearchCommandLine = CommandLine(OpenSearch())
+        openSearchCommandLine.addSubcommand("start", OpenSearchStart(context))
+        openSearchCommandLine.addSubcommand("status", OpenSearchStatus(context))
+        openSearchCommandLine.addSubcommand("stop", OpenSearchStop(context))
+        commandLine.addSubcommand("opensearch", openSearchCommandLine)
 
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =
