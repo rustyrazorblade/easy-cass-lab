@@ -104,7 +104,7 @@ In addition, the following are defined:
 * *c-collect-artifacts* will collect metrics, nodetool output and system information into the artifacts directory.  It takes a name as a parameter.  This is useful when doing performance testing to capture the state of the system at a given moment.
 * *c-start* Starts cassandra on all nodes.
 * *c-restart* Restarts cassandra on all nodes.  Not a graceful operation.  To test true rolling restarts we recommend using https://github.com/spotify/cstar[cstar].
-* *c-status*: Executes `nodetool status` on cassandra0.
+* *c-status*: Executes `nodetool status` on db0.
 * *c-tpstats*: Executes `nodetool tpstats` on all nodes.
 
 

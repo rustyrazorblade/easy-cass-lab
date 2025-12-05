@@ -57,7 +57,7 @@ data class EBSConfig(
  * @property instanceId AWS EC2 instance ID (e.g., "i-123abc456def")
  * @property publicIp Public IP address of the instance
  * @property privateIp Private IP address of the instance
- * @property alias Instance alias (e.g., "cassandra0", "stress1")
+ * @property alias Instance alias (e.g., "db0", "stress1")
  * @property availabilityZone AWS availability zone where the instance is running
  * @property serverType The type of server (Cassandra, Stress, Control)
  */
@@ -96,7 +96,7 @@ data class InstanceDetails(
  * @property instanceId AWS EC2 instance ID
  * @property publicIp Public IP address (may be null if stopped)
  * @property privateIp Private IP address
- * @property alias Instance alias from Name tag (e.g., "cassandra0")
+ * @property alias Instance alias from Name tag (e.g., "db0")
  * @property availabilityZone AWS availability zone
  * @property serverType Server type from ServerType tag (Cassandra, Stress, Control)
  * @property state Current instance state (running, stopped, etc.)

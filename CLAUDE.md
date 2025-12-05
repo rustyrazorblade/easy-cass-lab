@@ -171,7 +171,7 @@ The codebase manages hostnames and IP addresses through the `TFState` class, whi
 Represents a single host with:
 - `public`: Public IP address
 - `private`: Private/internal IP address
-- `alias`: Host alias (e.g., "cassandra0", "stress0", "control0")
+- `alias`: Host alias (e.g., "db0", "stress0", "control0")
 - `availabilityZone`: AWS availability zone
 
 #### 2. ServerType Enum (`configuration/ServerType.kt`)
@@ -213,7 +213,7 @@ context.tfstate.withHosts(ServerType.Control, hosts) { host ->
 
 #### Docker Compose Templating
 The `docker-compose.yaml` file is:
-1. Initially extracted from resources with placeholder values (e.g., `cassandra0`)
+1. Initially extracted from resources with placeholder values (e.g., `db0`)
 2. Updated in `Up.kt::uploadDockerComposeToControlNodes()` to replace placeholders with actual IPs
 3. Uploaded to control nodes with real IP addresses
 

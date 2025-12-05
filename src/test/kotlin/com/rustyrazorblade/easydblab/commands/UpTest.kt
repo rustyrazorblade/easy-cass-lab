@@ -42,7 +42,7 @@ class UpTest : BaseKoinTest() {
             ClusterHost(
                 publicIp = "3.3.3.3",
                 privateIp = "10.0.1.5",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "us-west-2a",
             )
 
@@ -119,7 +119,7 @@ class UpTest : BaseKoinTest() {
             ClusterHost(
                 publicIp = "4.4.4.4",
                 privateIp = "10.0.1.10",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "eu-west-1a",
             )
 
@@ -193,7 +193,7 @@ class UpTest : BaseKoinTest() {
             ClusterHost(
                 publicIp = "5.5.5.5",
                 privateIp = "10.0.1.15",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "ap-south-1a",
             )
 

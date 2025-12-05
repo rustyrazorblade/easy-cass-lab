@@ -198,7 +198,7 @@ step_test_ssh_nodetool() {
         return 0
     fi
     echo "=== Testing SSH access and nodetool via env.sh aliases ==="
-    ssh cassandra0 nodetool status
+    ssh db0 nodetool status
 }
 
 step_check_sidecar() {
@@ -207,7 +207,7 @@ step_check_sidecar() {
         return 0
     fi
     echo "=== Check Sidecar ==="
-    ssh cassandra0 "curl -s http://$(easy-db-lab ip cassandra0 --private):9043/api/v1/cassandra/schema" | jq 'keys'
+    ssh db0 "curl -s http://$(easy-db-lab ip db0 --private):9043/api/v1/cassandra/schema" | jq 'keys'
 }
 
 step_test_exec() {
@@ -218,7 +218,7 @@ step_test_exec() {
     easy-db-lab exec -t cassandra -p uptime
 
     echo "=== Testing exec command (with host filter) ==="
-    easy-db-lab exec -t cassandra --hosts cassandra0,cassandra1 date
+    easy-db-lab exec -t cassandra --hosts db0,db1 date
 }
 
 step_stress_test() {
@@ -239,7 +239,7 @@ step_spark_submit() {
     easy-db-lab spark submit \
       --jar "$PROJECT_ROOT/spark-connector-test1/build/libs/spark-connector-test1-12.jar" \
       --main-class com.rustyrazorblade.easydblab.spark.KeyValuePrefixCount \
-      --args "$(easy-db-lab ip cassandra0 --private)" \
+      --args "$(easy-db-lab ip db0 --private)" \
       --wait
 }
 

@@ -283,10 +283,9 @@ To access the cluster, follow the instructions at the end of the output of the `
 source env.sh # to setup local environment with commands to access the cluster
 
 # ssh to a node
-ssh cassandra0
-ssh cassandra1 # number corresponds to an instance
-c0 # shortcut to ssh cassandra0
-db0 # alternative alias for cassandra0
+ssh db0
+ssh db1 # number corresponds to an instance
+c0 # shortcut to ssh db0
 app0 # alternative alias for stress0
 ```
 
@@ -328,7 +327,7 @@ Doing this will update each nodes local copy of `/etc/cassandra_versions.yaml`.
 You can switch just one host:
 
 ```shell
-easy-db-lab use 5.0 -j 17 --hosts cassandra0
+easy-db-lab use 5.0 -j 17 --hosts db0
 ```
 
 Unlike production tools, easy-db-lab is designed for testing and breaking things, which I find is the best way to learn.
@@ -390,7 +389,7 @@ Multiple cassandra versions are installed at /usr/local/cassandra.
 The current version is symlinked as /usr/local/cassandra/current:
 
 ```shell
-ubuntu@cassandra0:~$ readlink /usr/local/cassandra/current
+ubuntu@db0:~$ readlink /usr/local/cassandra/current
 /usr/local/cassandra/4.1
 ```
 
@@ -405,10 +404,10 @@ Using easy-db-lab `env.sh`, you can run a profile and generate a flamegraph,
 which will automatically download after it's complete by doing the following:
 
 ```shell
-c-flame cassandra0
+c-flame db0
 ```
 
-The data will be saved in `artifacts/cassandra0`
+The data will be saved in `artifacts/db0`
 
 Or on a node, generate flame graphs with `flamegraph`.
 

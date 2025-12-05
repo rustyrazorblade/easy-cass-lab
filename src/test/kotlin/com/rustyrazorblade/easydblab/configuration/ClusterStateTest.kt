@@ -267,13 +267,13 @@ class ClusterStateTest {
                 ClusterHost(
                     publicIp = "54.1.2.3",
                     privateIp = "10.0.1.10",
-                    alias = "cassandra0",
+                    alias = "db0",
                     availabilityZone = "us-west-2a",
                 ),
                 ClusterHost(
                     publicIp = "54.1.2.4",
                     privateIp = "10.0.1.11",
-                    alias = "cassandra1",
+                    alias = "db1",
                     availabilityZone = "us-west-2b",
                 ),
             )
@@ -314,7 +314,7 @@ class ClusterStateTest {
         val loadedCassandra = loadedState.hosts[ServerType.Cassandra]!!
         assertThat(loadedCassandra[0].publicIp).isEqualTo("54.1.2.3")
         assertThat(loadedCassandra[0].privateIp).isEqualTo("10.0.1.10")
-        assertThat(loadedCassandra[0].alias).isEqualTo("cassandra0")
+        assertThat(loadedCassandra[0].alias).isEqualTo("db0")
         assertThat(loadedCassandra[0].availabilityZone).isEqualTo("us-west-2a")
 
         val loadedControl = loadedState.hosts[ServerType.Control]!!
@@ -388,7 +388,7 @@ class ClusterStateTest {
                         ClusterHost(
                             publicIp = "54.1.2.3",
                             privateIp = "10.0.1.10",
-                            alias = "cassandra0",
+                            alias = "db0",
                             availabilityZone = "us-west-2a",
                         ),
                     ),
@@ -447,8 +447,8 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Cassandra to
                     listOf(
-                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
-                        ClusterHost("54.1.2.4", "10.0.1.11", "cassandra1", "us-west-2b"),
+                        ClusterHost("54.1.2.3", "10.0.1.10", "db0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.1.11", "db1", "us-west-2b"),
                     ),
                 ServerType.Control to
                     listOf(
@@ -471,8 +471,8 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Cassandra to
                     listOf(
-                        ClusterHost("54.1.2.3", "10.0.2.10", "cassandra0", "us-west-2a"),
-                        ClusterHost("54.1.2.4", "10.0.2.11", "cassandra1", "us-west-2b"),
+                        ClusterHost("54.1.2.3", "10.0.2.10", "db0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.2.11", "db1", "us-west-2b"),
                     ),
                 ServerType.Control to
                     listOf(
@@ -488,7 +488,7 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Cassandra to
                     listOf(
-                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.1.2.3", "10.0.1.10", "db0", "us-west-2a"),
                     ),
             )
 
@@ -504,7 +504,7 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Cassandra to
                     listOf(
-                        ClusterHost("54.9.9.9", "10.0.1.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.9.9.9", "10.0.1.10", "db0", "us-west-2a"),
                     ),
             )
         assertThat(state.validateHostsMatch(hostsDifferentIP)).isFalse()
@@ -524,7 +524,7 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Stress to
                     listOf(
-                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
+                        ClusterHost("54.1.2.3", "10.0.1.10", "db0", "us-west-2a"),
                     ),
             )
         assertThat(state.validateHostsMatch(hostsDifferentType)).isFalse()
@@ -534,8 +534,8 @@ class ClusterStateTest {
             mapOf(
                 ServerType.Cassandra to
                     listOf(
-                        ClusterHost("54.1.2.3", "10.0.1.10", "cassandra0", "us-west-2a"),
-                        ClusterHost("54.1.2.4", "10.0.1.11", "cassandra1", "us-west-2b"),
+                        ClusterHost("54.1.2.3", "10.0.1.10", "db0", "us-west-2a"),
+                        ClusterHost("54.1.2.4", "10.0.1.11", "db1", "us-west-2b"),
                     ),
             )
         assertThat(state.validateHostsMatch(hostsMoreHosts)).isFalse()

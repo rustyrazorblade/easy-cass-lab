@@ -29,7 +29,7 @@ data class AxonOpsWorkbenchConfig(
         /**
          * Creates an AxonOps Workbench configuration for a given host and user configuration
          *
-         * @param host The Cassandra host to connect to (typically cassandra0)
+         * @param host The Cassandra host to connect to (typically db0)
          * @param userConfig The user configuration containing SSH key information
          * @param clusterName The name of the Cassandra cluster
          * @return A configured AxonOpsWorkbenchConfig instance

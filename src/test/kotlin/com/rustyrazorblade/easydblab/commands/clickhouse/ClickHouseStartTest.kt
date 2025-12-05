@@ -44,7 +44,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         ClusterHost(
             publicIp = "54.123.45.68",
             privateIp = "10.0.1.6",
-            alias = "cassandra0",
+            alias = "db0",
             availabilityZone = "us-west-2a",
             instanceId = "i-test124",
         )
@@ -53,7 +53,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         ClusterHost(
             publicIp = "54.123.45.69",
             privateIp = "10.0.1.7",
-            alias = "cassandra1",
+            alias = "db1",
             availabilityZone = "us-west-2b",
             instanceId = "i-test125",
         )
@@ -62,7 +62,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         ClusterHost(
             publicIp = "54.123.45.70",
             privateIp = "10.0.1.8",
-            alias = "cassandra2",
+            alias = "db2",
             availabilityZone = "us-west-2c",
             instanceId = "i-test126",
         )

@@ -27,13 +27,13 @@ class IpTest : BaseKoinTest() {
                     ClusterHost(
                         publicIp = "54.1.2.3",
                         privateIp = "10.0.1.100",
-                        alias = "cassandra0",
+                        alias = "db0",
                         availabilityZone = "us-west-2a",
                     ),
                     ClusterHost(
                         publicIp = "54.1.2.4",
                         privateIp = "10.0.1.101",
-                        alias = "cassandra1",
+                        alias = "db1",
                         availabilityZone = "us-west-2b",
                     ),
                 ),
@@ -79,7 +79,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns public IP by default`() {
         val command = Ip(context)
-        command.host = "cassandra0"
+        command.host = "db0"
 
         command.execute()
 
@@ -91,7 +91,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns public IP when --public flag is set`() {
         val command = Ip(context)
-        command.host = "cassandra0"
+        command.host = "db0"
         command.publicIp = true
 
         command.execute()
@@ -104,7 +104,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns private IP when --private flag is set`() {
         val command = Ip(context)
-        command.host = "cassandra0"
+        command.host = "db0"
         command.privateIp = true
 
         command.execute()
@@ -130,7 +130,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `returns correct IP for second cassandra node`() {
         val command = Ip(context)
-        command.host = "cassandra1"
+        command.host = "db1"
         command.privateIp = true
 
         command.execute()

@@ -46,9 +46,9 @@ internal class EC2InstanceServiceTest {
     fun `findInstancesByClusterId should return instances grouped by ServerType`() {
         val cassandraInstance =
             createInstance(
-                instanceId = "i-cassandra0",
-                serverType = "cassandra",
-                alias = "cassandra0",
+                instanceId = "i-db0",
+                serverType = "db",
+                alias = "db0",
                 az = "us-east-1a",
             )
         val stressInstance =
@@ -83,33 +83,33 @@ internal class EC2InstanceServiceTest {
         assertThat(result[ServerType.Control]).hasSize(1)
 
         val cassandra = result[ServerType.Cassandra]!!.first()
-        assertThat(cassandra.instanceId).isEqualTo("i-cassandra0")
-        assertThat(cassandra.alias).isEqualTo("cassandra0")
+        assertThat(cassandra.instanceId).isEqualTo("i-db0")
+        assertThat(cassandra.alias).isEqualTo("db0")
         assertThat(cassandra.availabilityZone).isEqualTo("us-east-1a")
         assertThat(cassandra.serverType).isEqualTo(ServerType.Cassandra)
     }
 
     @Test
     fun `findInstancesByClusterId should handle multiple instances of same type`() {
-        val cassandra0 =
+        val db0 =
             createInstance(
-                instanceId = "i-cassandra0",
-                serverType = "cassandra",
-                alias = "cassandra0",
+                instanceId = "i-db0",
+                serverType = "db",
+                alias = "db0",
                 az = "us-east-1a",
             )
-        val cassandra1 =
+        val db1 =
             createInstance(
-                instanceId = "i-cassandra1",
-                serverType = "cassandra",
-                alias = "cassandra1",
+                instanceId = "i-db1",
+                serverType = "db",
+                alias = "db1",
                 az = "us-east-1b",
             )
-        val cassandra2 =
+        val db2 =
             createInstance(
-                instanceId = "i-cassandra2",
-                serverType = "cassandra",
-                alias = "cassandra2",
+                instanceId = "i-db2",
+                serverType = "db",
+                alias = "db2",
                 az = "us-east-1c",
             )
 
@@ -117,7 +117,7 @@ internal class EC2InstanceServiceTest {
             DescribeInstancesResponse
                 .builder()
                 .reservations(
-                    Reservation.builder().instances(cassandra0, cassandra1, cassandra2).build(),
+                    Reservation.builder().instances(db0, db1, db2).build(),
                 ).build()
 
         whenever(mockEc2Client.describeInstances(any<DescribeInstancesRequest>())).thenReturn(response)
@@ -128,7 +128,7 @@ internal class EC2InstanceServiceTest {
         assertThat(result[ServerType.Cassandra]).hasSize(3)
 
         val aliases = result[ServerType.Cassandra]!!.map { it.alias }
-        assertThat(aliases).containsExactlyInAnyOrder("cassandra0", "cassandra1", "cassandra2")
+        assertThat(aliases).containsExactlyInAnyOrder("db0", "db1", "db2")
     }
 
     @Test
@@ -136,8 +136,8 @@ internal class EC2InstanceServiceTest {
         val validInstance =
             createInstance(
                 instanceId = "i-valid",
-                serverType = "cassandra",
-                alias = "cassandra0",
+                serverType = "db",
+                alias = "db0",
                 az = "us-east-1a",
             )
 
@@ -178,8 +178,8 @@ internal class EC2InstanceServiceTest {
         val validInstance =
             createInstance(
                 instanceId = "i-valid",
-                serverType = "cassandra",
-                alias = "cassandra0",
+                serverType = "db",
+                alias = "db0",
                 az = "us-east-1a",
             )
 
@@ -227,7 +227,7 @@ internal class EC2InstanceServiceTest {
                 instanceId = "i-123",
                 publicIp = "1.2.3.4",
                 privateIp = "10.0.0.1",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "us-east-1a",
                 serverType = ServerType.Cassandra,
                 state = "running",
@@ -237,7 +237,7 @@ internal class EC2InstanceServiceTest {
 
         assertThat(clusterHost.publicIp).isEqualTo("1.2.3.4")
         assertThat(clusterHost.privateIp).isEqualTo("10.0.0.1")
-        assertThat(clusterHost.alias).isEqualTo("cassandra0")
+        assertThat(clusterHost.alias).isEqualTo("db0")
         assertThat(clusterHost.availabilityZone).isEqualTo("us-east-1a")
         assertThat(clusterHost.instanceId).isEqualTo("i-123")
     }
@@ -249,7 +249,7 @@ internal class EC2InstanceServiceTest {
                 instanceId = "i-123",
                 publicIp = null,
                 privateIp = null,
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "us-east-1a",
                 serverType = ServerType.Cassandra,
                 state = "running",

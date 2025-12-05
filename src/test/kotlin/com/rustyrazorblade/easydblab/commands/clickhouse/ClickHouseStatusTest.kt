@@ -41,7 +41,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
         ClusterHost(
             publicIp = "54.123.45.68",
             privateIp = "10.0.1.6",
-            alias = "cassandra0",
+            alias = "db0",
             availabilityZone = "us-west-2a",
             instanceId = "i-test124",
         )
