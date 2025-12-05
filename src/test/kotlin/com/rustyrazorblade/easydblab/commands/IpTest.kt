@@ -42,7 +42,7 @@ class IpTest : BaseKoinTest() {
                     ClusterHost(
                         publicIp = "54.2.3.4",
                         privateIp = "10.0.2.100",
-                        alias = "stress0",
+                        alias = "app0",
                         availabilityZone = "us-west-2a",
                     ),
                 ),
@@ -117,7 +117,7 @@ class IpTest : BaseKoinTest() {
     @Test
     fun `finds host across different server types`() {
         val command = Ip(context)
-        command.host = "stress0"
+        command.host = "app0"
         command.privateIp = true
 
         command.execute()

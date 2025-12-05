@@ -227,7 +227,7 @@ step_stress_test() {
         return 0
     fi
     echo "=== Running stress test ==="
-    ssh stress0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
+    ssh app0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 }
 
 step_spark_submit() {

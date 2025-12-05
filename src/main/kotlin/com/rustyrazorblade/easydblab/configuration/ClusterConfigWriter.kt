@@ -35,15 +35,6 @@ object ClusterConfigWriter {
             }
         }
 
-        // Add app aliases for Stress nodes (app0, app1, etc.)
-        var appIndex = 0
-        hosts[ServerType.Stress]?.forEach { host ->
-            writer.appendLine("Host app$appIndex")
-            writer.appendLine(" Hostname ${host.publicIp}")
-            writer.appendLine()
-            appIndex++
-        }
-
         writer.flush()
     }
 
@@ -87,14 +78,7 @@ object ClusterConfigWriter {
 
         i = 0
         hosts[ServerType.Stress]?.forEach { _ ->
-            writer.appendLine("alias s$i=\"ssh stress${i}\"")
-            i++
-        }
-
-        // Add app aliases for Stress nodes (app0, app1, etc.)
-        i = 0
-        hosts[ServerType.Stress]?.forEach { _ ->
-            writer.appendLine("alias app$i=\"ssh app${i}\"")
+            writer.appendLine("alias s$i=\"ssh app${i}\"")
             i++
         }
 

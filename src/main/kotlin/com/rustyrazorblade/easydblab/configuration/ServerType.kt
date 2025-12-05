@@ -4,6 +4,6 @@ enum class ServerType(
     val serverType: String,
 ) {
     Cassandra("db"),
-    Stress("stress"),
+    Stress("app"),
     Control("control"),
 }

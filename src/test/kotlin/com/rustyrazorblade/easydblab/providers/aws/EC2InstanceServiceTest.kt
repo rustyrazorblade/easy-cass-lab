@@ -53,9 +53,9 @@ internal class EC2InstanceServiceTest {
             )
         val stressInstance =
             createInstance(
-                instanceId = "i-stress0",
-                serverType = "stress",
-                alias = "stress0",
+                instanceId = "i-app0",
+                serverType = "app",
+                alias = "app0",
                 az = "us-east-1b",
             )
         val controlInstance =
