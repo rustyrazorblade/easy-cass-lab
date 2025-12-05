@@ -29,7 +29,7 @@ class CassandraServiceTest : BaseKoinTest() {
         Host(
             public = "54.123.45.67",
             private = "10.0.1.5",
-            alias = "cassandra0",
+            alias = "db0",
             availabilityZone = "us-west-2a",
         )
 

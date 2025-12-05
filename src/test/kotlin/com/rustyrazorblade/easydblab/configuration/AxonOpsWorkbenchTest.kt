@@ -13,7 +13,7 @@ class AxonOpsWorkbenchTest {
             Host(
                 public = "54.123.45.67",
                 private = "10.0.1.100",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "us-west-2a",
             )
 
@@ -68,7 +68,7 @@ class AxonOpsWorkbenchTest {
             Host(
                 public = "54.123.45.67",
                 private = "10.0.1.100",
-                alias = "cassandra0",
+                alias = "db0",
                 availabilityZone = "us-west-2a",
             )
 

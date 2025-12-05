@@ -7,7 +7,7 @@ typealias Alias = String
  *
  * @property public Public IP address of the host
  * @property private Private IP address of the host
- * @property alias Host alias (e.g., "cassandra0", "stress0", "control0")
+ * @property alias Host alias (e.g., "db0", "stress0", "control0")
  * @property availabilityZone AWS availability zone where the host is located
  */
 data class Host(

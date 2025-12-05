@@ -22,5 +22,5 @@ data:
           defaultDatabase: default
           port: 9000
           protocol: native
-          host: cassandra0
+          host: db0
         editable: false

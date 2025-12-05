@@ -16,14 +16,14 @@ import picocli.CommandLine.Parameters
 /**
  * Get IP address for a host by alias.
  *
- * This command looks up a host by its alias (e.g., cassandra0, stress0) and
+ * This command looks up a host by its alias (e.g., db0, stress0) and
  * returns either its public or private IP address. Useful for scripts that
  * need to pass IP addresses to other commands.
  *
  * Examples:
- *   easy-db-lab ip cassandra0           # Returns public IP (default)
- *   easy-db-lab ip cassandra0 --public  # Returns public IP
- *   easy-db-lab ip cassandra0 --private # Returns private IP
+ *   easy-db-lab ip db0           # Returns public IP (default)
+ *   easy-db-lab ip db0 --public  # Returns public IP
+ *   easy-db-lab ip db0 --private # Returns private IP
  */
 @McpCommand
 @RequireProfileSetup
@@ -41,7 +41,7 @@ class Ip(
 
     @Parameters(
         index = "0",
-        description = ["Host alias (e.g., cassandra0, stress0)"],
+        description = ["Host alias (e.g., db0, stress0)"],
     )
     lateinit var host: String
 

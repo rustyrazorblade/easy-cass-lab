@@ -55,12 +55,12 @@ c-flame() {
   HOST=$1
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  if [[ $HOST =~ cassandra[0-9*] ]]; then
+  if [[ $HOST =~ db[0-9*] ]]; then
     mkdir -p artifacts/$1
     ssh $HOST -C /usr/local/bin/flamegraph "${@:2}"
     c-dl
   else
-    echo "Host must be in the format cassandra[0-9*]."
+    echo "Host must be in the format db[0-9*]."
   fi
 }
 
@@ -68,12 +68,12 @@ c-flame-wall() {
   HOST=$1
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  if [[ $HOST =~ cassandra[0-9*] ]]; then
+  if [[ $HOST =~ db[0-9*] ]]; then
     mkdir -p artifacts/$1
     ssh $HOST -C /usr/local/bin/flamegraph -e wall -X '*Unsafe.park*'  -X '*Native.epollWait'  "${@:2}"
     c-dl
   else
-    echo "Host must be in the format cassandra[0-9*]."
+    echo "Host must be in the format db[0-9*]."
   fi
 }
 
@@ -81,12 +81,12 @@ c-flame-compaction() {
   HOST=$1
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  if [[ $HOST =~ cassandra[0-9*] ]]; then
+  if [[ $HOST =~ db[0-9*] ]]; then
     mkdir -p artifacts/$1
     ssh $HOST -C /usr/local/bin/flamegraph -e wall -X '*Unsafe.park*' -X '*Native.epollWait' -I '*compaction*' "${@:2}"
     c-dl
   else
-    echo "Host must be in the format cassandra[0-9*]."
+    echo "Host must be in the format db[0-9*]."
   fi
 }
 
@@ -94,12 +94,12 @@ c-flame-offcpu() {
   HOST=$1
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  if [[ $HOST =~ cassandra[0-9*] ]]; then
+  if [[ $HOST =~ db[0-9*] ]]; then
     mkdir -p artifacts/$1
     ssh $HOST -C /usr/local/bin/flamegraph -e kprobe:schedule -i 2 --cstack dwarf -X '*Unsafe.park*' "${@:2}"
     c-dl
   else
-    echo "Host must be in the format cassandra[0-9*]."
+    echo "Host must be in the format db[0-9*]."
   fi
 }
 
@@ -107,12 +107,12 @@ c-flame-sepworker() {
   HOST=$1
   [ -z "$HOST" ] &&  echo "Host is required"
 
-  if [[ $HOST =~ cassandra[0-9*] ]]; then
+  if [[ $HOST =~ db[0-9*] ]]; then
     mkdir -p artifacts/$1
     ssh $HOST -C /usr/local/bin/flamegraph -I '*SEPWorker*'  "${@:2}"
     c-dl
   else
-    echo "Host must be in the format cassandra[0-9*]."
+    echo "Host must be in the format db[0-9*]."
   fi
 }
 
@@ -336,7 +336,7 @@ clickhouse-client() {
 # Usage: clickhouse-query "SELECT 1" or clickhouse-query <<< "SELECT 1"
 clickhouse-query() {
   local query="${1:-$(cat)}"
-  local control_ip=$(easy-db-lab ip cassandra0 --private)
+  local control_ip=$(easy-db-lab ip db0 --private)
   with-proxy curl -s "http://${control_ip}:8123/" -d "$query"
 }
 

@@ -35,15 +35,6 @@ object ClusterConfigWriter {
             }
         }
 
-        // Add db aliases for Cassandra nodes (db0, db1, etc.)
-        var dbIndex = 0
-        hosts[ServerType.Cassandra]?.forEach { host ->
-            writer.appendLine("Host db$dbIndex")
-            writer.appendLine(" Hostname ${host.publicIp}")
-            writer.appendLine()
-            dbIndex++
-        }
-
         // Add app aliases for Stress nodes (app0, app1, etc.)
         var appIndex = 0
         hosts[ServerType.Stress]?.forEach { host ->
@@ -77,7 +68,7 @@ object ClusterConfigWriter {
         var i = 0
         writer.append("SERVERS=(")
         hosts[ServerType.Cassandra]?.forEach { _ ->
-            writer.append("cassandra$i ")
+            writer.append("db$i ")
             i++
         }
         writer.appendLine(")")
@@ -90,14 +81,7 @@ object ClusterConfigWriter {
 
         i = 0
         hosts[ServerType.Cassandra]?.forEach { _ ->
-            writer.appendLine("alias c$i=\"ssh cassandra${i}\"")
-            i++
-        }
-
-        // Add db aliases for Cassandra nodes (db0, db1, etc.)
-        i = 0
-        hosts[ServerType.Cassandra]?.forEach { _ ->
-            writer.appendLine("alias db$i=\"ssh db${i}\"")
+            writer.appendLine("alias c$i=\"ssh db${i}\"")
             i++
         }
 

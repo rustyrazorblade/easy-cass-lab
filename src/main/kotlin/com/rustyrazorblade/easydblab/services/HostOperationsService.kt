@@ -13,7 +13,7 @@ import org.koin.core.component.KoinComponent
  *
  * Usage:
  * ```
- * hostOperationsService.withHosts(ServerType.Cassandra, "cassandra0,cassandra1") { host ->
+ * hostOperationsService.withHosts(ServerType.Cassandra, "db0,db1") { host ->
  *     remoteOperationsService.executeRemotely(host.toHost(), "nodetool status")
  * }
  * ```

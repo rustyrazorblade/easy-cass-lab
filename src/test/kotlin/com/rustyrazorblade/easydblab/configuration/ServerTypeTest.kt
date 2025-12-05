@@ -12,7 +12,7 @@ class ServerTypeTest {
 
     @Test
     fun `ServerType serverType property returns correct strings`() {
-        assertThat(ServerType.Cassandra.serverType).isEqualTo("cassandra")
+        assertThat(ServerType.Cassandra.serverType).isEqualTo("db")
         assertThat(ServerType.Stress.serverType).isEqualTo("stress")
         assertThat(ServerType.Control.serverType).isEqualTo("control")
     }

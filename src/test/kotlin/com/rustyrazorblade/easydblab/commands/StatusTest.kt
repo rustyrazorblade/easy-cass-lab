@@ -48,16 +48,16 @@ class StatusTest : BaseKoinTest() {
                     ClusterHost(
                         publicIp = "54.1.2.3",
                         privateIp = "10.0.1.100",
-                        alias = "cassandra0",
+                        alias = "db0",
                         availabilityZone = "us-west-2a",
-                        instanceId = "i-cassandra0",
+                        instanceId = "i-db0",
                     ),
                     ClusterHost(
                         publicIp = "54.1.2.4",
                         privateIp = "10.0.1.101",
-                        alias = "cassandra1",
+                        alias = "db1",
                         availabilityZone = "us-west-2b",
-                        instanceId = "i-cassandra1",
+                        instanceId = "i-db1",
                     ),
                 ),
             ServerType.Stress to
@@ -147,8 +147,8 @@ class StatusTest : BaseKoinTest() {
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== NODES ===")
         assertThat(allMessages).contains("CASSANDRA NODES")
-        assertThat(allMessages).contains("cassandra0")
-        assertThat(allMessages).contains("i-cassandra0")
+        assertThat(allMessages).contains("db0")
+        assertThat(allMessages).contains("i-db0")
         assertThat(allMessages).contains("RUNNING")
     }
 
@@ -449,14 +449,14 @@ class StatusTest : BaseKoinTest() {
         val instanceDetails =
             listOf(
                 InstanceDetails(
-                    instanceId = "i-cassandra0",
+                    instanceId = "i-db0",
                     state = "running",
                     publicIp = "54.1.2.3",
                     privateIp = "10.0.1.100",
                     availabilityZone = "us-west-2a",
                 ),
                 InstanceDetails(
-                    instanceId = "i-cassandra1",
+                    instanceId = "i-db1",
                     state = "running",
                     publicIp = "54.1.2.4",
                     privateIp = "10.0.1.101",
