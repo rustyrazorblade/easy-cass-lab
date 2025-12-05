@@ -171,7 +171,7 @@ The codebase manages hostnames and IP addresses through the `TFState` class, whi
 Represents a single host with:
 - `public`: Public IP address
 - `private`: Private/internal IP address
-- `alias`: Host alias (e.g., "db0", "stress0", "control0")
+- `alias`: Host alias (e.g., "db0", "app0", "control0")
 - `availabilityZone`: AWS availability zone
 
 #### 2. ServerType Enum (`configuration/ServerType.kt`)

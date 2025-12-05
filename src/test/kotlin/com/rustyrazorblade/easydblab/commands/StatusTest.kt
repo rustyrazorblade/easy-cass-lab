@@ -65,9 +65,9 @@ class StatusTest : BaseKoinTest() {
                     ClusterHost(
                         publicIp = "54.2.3.4",
                         privateIp = "10.0.2.100",
-                        alias = "stress0",
+                        alias = "app0",
                         availabilityZone = "us-west-2a",
-                        instanceId = "i-stress0",
+                        instanceId = "i-app0",
                     ),
                 ),
             ServerType.Control to
@@ -463,7 +463,7 @@ class StatusTest : BaseKoinTest() {
                     availabilityZone = "us-west-2b",
                 ),
                 InstanceDetails(
-                    instanceId = "i-stress0",
+                    instanceId = "i-app0",
                     state = "running",
                     publicIp = "54.2.3.4",
                     privateIp = "10.0.2.100",
