@@ -23,7 +23,7 @@ if [ -f "$(pwd)/kubeconfig" ]; then
   export KUBECONFIG="$(pwd)/kubeconfig"
   # k9s function to ensure kubeconfig is passed explicitly
   # (k9s has historical issues with KUBECONFIG env var)
-  k9s() { command k9s --kubeconfig "$KUBECONFIG" "$@"; }
+  k9s() { HTTPS_PROXY="socks5://localhost:$SOCKS5_PROXY_PORT" command k9s --kubeconfig "$KUBECONFIG" "$@"; }
 fi
 
 # general purpose function for executing commands on all cassandra nodes
