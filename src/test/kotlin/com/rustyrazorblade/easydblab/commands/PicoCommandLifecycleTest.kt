@@ -13,11 +13,13 @@ class PicoCommandLifecycleTest {
     class LifecycleTrackingCommand : PicoCommand {
         val executionOrder = mutableListOf<String>()
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PreExecute
         private fun preExecuteA() {
             executionOrder.add("preA")
         }
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PreExecute
         private fun preExecuteB() {
             executionOrder.add("preB")
@@ -27,11 +29,13 @@ class PicoCommandLifecycleTest {
             executionOrder.add("execute")
         }
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PostExecute
         private fun postExecuteA() {
             executionOrder.add("postA")
         }
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PostExecute
         private fun postExecuteB() {
             executionOrder.add("postB")
@@ -55,16 +59,18 @@ class PicoCommandLifecycleTest {
     class PreExecuteThrowsCommand : PicoCommand {
         val executionOrder = mutableListOf<String>()
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PreExecute
         private fun preExecute() {
             executionOrder.add("pre")
-            throw IllegalStateException("PreExecute failed")
+            error("PreExecute failed")
         }
 
         override fun execute() {
             executionOrder.add("execute")
         }
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PostExecute
         private fun postExecute() {
             executionOrder.add("post")
@@ -77,6 +83,7 @@ class PicoCommandLifecycleTest {
     class ExecuteThrowsCommand : PicoCommand {
         val executionOrder = mutableListOf<String>()
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PreExecute
         private fun preExecute() {
             executionOrder.add("pre")
@@ -84,9 +91,10 @@ class PicoCommandLifecycleTest {
 
         override fun execute() {
             executionOrder.add("execute")
-            throw IllegalStateException("Execute failed")
+            error("Execute failed")
         }
 
+        @Suppress("UnusedPrivateMember") // Called via reflection
         @PostExecute
         private fun postExecute() {
             executionOrder.add("post")

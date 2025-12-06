@@ -42,6 +42,9 @@ object Constants {
         // Display formatting for spark jobs table
         const val JOB_NAME_MAX_LENGTH = 30
         const val TRUNCATION_SUFFIX_LENGTH = 3 // Length of "..."
+
+        // Log display settings
+        const val STDERR_TAIL_LINES = 100
     }
 
     // Retry configuration
@@ -90,6 +93,8 @@ object Constants {
 
     // Network configuration
     object Network {
+        const val MIN_PORT = 0
+        const val MAX_PORT = 65535
         const val DEFAULT_MCP_PORT = 8888
         const val EASY_CASS_MCP_PORT = 8000
         const val CASSANDRA_EASY_STRESS_PORT = 9000
@@ -209,6 +214,17 @@ object Constants {
         const val MINIMUM_NODES_REQUIRED = 3
         const val DATA_PATH = "/mnt/db1/clickhouse"
         const val S3_SECRET_NAME = "clickhouse-s3-credentials"
+    }
+
+    // Cassandra stress testing configuration
+    object Stress {
+        const val NAMESPACE = "default"
+        const val IMAGE = "ghcr.io/apache/cassandra-easy-stress:latest"
+        const val JOB_PREFIX = "stress"
+        const val LABEL_KEY = "app.kubernetes.io/name"
+        const val LABEL_VALUE = "cassandra-stress"
+        const val PROFILE_MOUNT_PATH = "/profiles"
+        const val DEFAULT_CASSANDRA_PORT = 9042
     }
 
     // Proxy configuration

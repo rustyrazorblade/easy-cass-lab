@@ -92,6 +92,10 @@ sudo mkdir -p /mnt/db1/cassandra/saved_caches
 
 sudo chown -R cassandra:cassandra /mnt/db1/cassandra
 
+# Stress directory owned by ubuntu for stress test output
+sudo mkdir -p /mnt/db1/cassandra/stress
+sudo chown ubuntu:ubuntu /mnt/db1/cassandra/stress
+
 # ClickHouse runs as UID 101 inside the container
 sudo mkdir -p /mnt/db1/clickhouse/keeper
 sudo chown -R 101:101 /mnt/db1/clickhouse

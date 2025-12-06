@@ -34,6 +34,15 @@ import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.UseCassandra
 import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.WriteConfig
+import com.rustyrazorblade.easydblab.commands.cassandra.Cassandra
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.Stress
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressFields
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressInfo
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressList
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressLogs
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStart
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStatus
+import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStop
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouse
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStart
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStatus
@@ -194,6 +203,23 @@ class CommandLineParser(
         clickHouseCommandLine.addSubcommand("status", ClickHouseStatus(context))
         clickHouseCommandLine.addSubcommand("stop", ClickHouseStop(context))
         commandLine.addSubcommand("clickhouse", clickHouseCommandLine)
+
+        // Register Cassandra parent command with nested stress commands
+        // Cassandra is a parent command for Cassandra tooling operations
+        val cassandraCommandLine = CommandLine(Cassandra())
+
+        // Stress is a nested parent command for cassandra-easy-stress job operations on K8s
+        val stressCommandLine = CommandLine(Stress())
+        stressCommandLine.addSubcommand("start", StressStart(context))
+        stressCommandLine.addSubcommand("status", StressStatus(context))
+        stressCommandLine.addSubcommand("stop", StressStop(context))
+        stressCommandLine.addSubcommand("logs", StressLogs(context))
+        stressCommandLine.addSubcommand("list", StressList(context))
+        stressCommandLine.addSubcommand("fields", StressFields(context))
+        stressCommandLine.addSubcommand("info", StressInfo(context))
+        cassandraCommandLine.addSubcommand("stress", stressCommandLine)
+
+        commandLine.addSubcommand("cassandra", cassandraCommandLine)
 
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =

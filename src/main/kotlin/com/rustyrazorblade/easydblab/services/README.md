@@ -8,7 +8,7 @@ All SystemD services follow a common pattern using the **Template Method** desig
 
 - `SystemDServiceManager` - Interface defining the common service lifecycle operations
 - `AbstractSystemDServiceManager` - Abstract base class providing shared implementation
-- Concrete service classes (e.g., `CassandraService`, `EasyStressService`) - Service-specific implementations
+- Concrete service classes (e.g., `CassandraService`, `SidecarService`) - Service-specific implementations
 
 ## Creating a New SystemD Service
 
@@ -157,7 +157,7 @@ class DefaultMyService(...) : AbstractSystemDServiceManager(...), MyService {
 ## Examples
 
 ### Simple Service (No Custom Logic)
-See `EasyStressService` or `SidecarService` - these use all default implementations.
+See `SidecarService` - it uses all default implementations.
 
 ### Service with Custom Behavior
 See `CassandraService` - overrides `restart()` to use a custom script and adds `waitForUpNormal()` method.

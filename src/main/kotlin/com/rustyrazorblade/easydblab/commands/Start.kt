@@ -10,7 +10,6 @@ import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.toHost
 import com.rustyrazorblade.easydblab.services.CassandraService
-import com.rustyrazorblade.easydblab.services.EasyStressService
 import com.rustyrazorblade.easydblab.services.HostOperationsService
 import com.rustyrazorblade.easydblab.services.SidecarService
 import org.koin.core.component.inject
@@ -34,7 +33,6 @@ class Start(
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val cassandraService: CassandraService by inject()
-    private val easyStressService: EasyStressService by inject()
     private val sidecarService: SidecarService by inject()
     private val hostOperationsService: HostOperationsService by inject()
 
@@ -67,9 +65,6 @@ class Start(
             }
         }
 
-        // Start cassandra-easy-stress on stress nodes
-        startCassandraEasyStress()
-
         // Start axon-agent on Cassandra nodes if configured
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
             outputHandler.handleMessage("Starting axon-agent on Cassandra nodes...")
@@ -89,22 +84,5 @@ class Start(
             )
             outputHandler.handleMessage("")
         }
-    }
-
-    /**
-     * Start cassandra-easy-stress service on stress nodes
-     */
-    private fun startCassandraEasyStress() {
-        outputHandler.handleMessage("Starting cassandra-easy-stress on stress nodes...")
-
-        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, hosts.hostList, parallel = true) { host ->
-            easyStressService
-                .start(host.toHost())
-                .onFailure { e ->
-                    outputHandler.handleMessage("Warning: Failed to start cassandra-easy-stress on ${host.alias}: ${e.message}")
-                }
-        }
-
-        outputHandler.handleMessage("cassandra-easy-stress startup completed on stress nodes")
     }
 }

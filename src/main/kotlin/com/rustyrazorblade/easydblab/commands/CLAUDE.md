@@ -1,0 +1,140 @@
+# Commands Package
+
+This package contains all CLI commands for easy-db-lab. Commands are implemented using PicoCLI and serve as a thin orchestration layer between the user and the service layer.
+
+## Architecture Principles
+
+### Commands Are Thin Orchestration Layers
+
+Commands should:
+- Parse and validate user input
+- Load cluster state and configuration
+- Delegate work to services
+- Format and display output to the user
+
+Commands should NOT:
+- Execute SSH commands directly (use `RemoteOperationsService` or domain services)
+- Make K8s API calls directly (use `K8sService` or `StressJobService`)
+- Call AWS/cloud provider APIs directly (use `AWS`, `EC2Service`, etc.)
+- Contain business logic (belongs in services)
+
+### Example: Good vs Bad
+
+**Bad - Direct SSH in command:**
+```kotlin
+class MyCommand : PicoBaseCommand(context) {
+    override fun execute() {
+        remoteOps.executeRemotely(host, "sudo systemctl start cassandra")
+    }
+}
+```
+
+**Good - Delegating to service:**
+```kotlin
+class MyCommand : PicoBaseCommand(context) {
+    private val cassandraService: CassandraService by inject()
+
+    override fun execute() {
+        cassandraService.start(host).getOrThrow()
+    }
+}
+```
+
+## Package Organization
+
+```
+commands/
+├── CLAUDE.md              # This file
+├── PicoBaseCommand.kt     # Base class for all commands
+├── PicoCommand.kt         # Interface for commands
+├── cassandra/             # Cassandra-related commands
+│   ├── Cassandra.kt       # Parent command group
+│   ├── stress/            # Stress testing subcommands
+│   │   ├── Stress.kt      # Parent stress command
+│   │   ├── StressStart.kt
+│   │   ├── StressStop.kt
+│   │   ├── StressStatus.kt
+│   │   └── StressLogs.kt
+│   └── ...
+├── clickhouse/            # ClickHouse commands
+├── spark/                 # Spark commands
+├── k8/                    # Kubernetes commands
+├── mixins/                # Reusable PicoCLI mixins
+├── converters/            # Type converters for PicoCLI
+├── formatters/            # Output formatters
+└── *.kt                   # Top-level commands (Up, Down, Start, Stop, etc.)
+```
+
+## Creating New Commands
+
+### 1. Extend PicoBaseCommand
+
+```kotlin
+@Command(
+    name = "my-command",
+    description = ["Description for help text"],
+)
+class MyCommand(
+    context: Context,
+) : PicoBaseCommand(context) {
+
+    override fun execute() {
+        // Implementation
+    }
+}
+```
+
+### 2. Inject Services
+
+```kotlin
+class MyCommand(context: Context) : PicoBaseCommand(context) {
+    private val myService: MyService by inject()
+
+    override fun execute() {
+        myService.doSomething().getOrThrow()
+    }
+}
+```
+
+### 3. Use Annotations
+
+- `@McpCommand` - Expose command to MCP server for AI agents
+- `@RequireProfileSetup` - Require AWS profile configuration
+- `@RequireSSHKey` - Require SSH key to be available
+
+### 4. Register in CommandLineParser
+
+Add to `CommandLineParser.kt`:
+```kotlin
+commandLine.addSubcommand("my-command", MyCommand(context))
+```
+
+For nested commands:
+```kotlin
+val parentCommand = CommandLine(Parent())
+parentCommand.addSubcommand("child", ChildCommand(context))
+commandLine.addSubcommand("parent", parentCommand)
+```
+
+## Available Services
+
+Commands should delegate to these services:
+
+| Service | Purpose |
+|---------|---------|
+| `CassandraService` | Cassandra lifecycle (start, stop, restart) |
+| `K8sService` | Kubernetes operations |
+| `StressJobService` | Stress testing jobs on K8s |
+| `SidecarService` | Cassandra sidecar management |
+| `K3sService` | K3s cluster management |
+| `HostOperationsService` | Parallel operations across hosts |
+| `RemoteOperationsService` | SSH execution (use sparingly, prefer domain services) |
+
+## Output
+
+Use `outputHandler.handleMessage()` for user-facing output:
+```kotlin
+outputHandler.handleMessage("Starting Cassandra on ${host.alias}...")
+```
+
+Do not use logging frameworks for user output - this breaks the CLI UX.

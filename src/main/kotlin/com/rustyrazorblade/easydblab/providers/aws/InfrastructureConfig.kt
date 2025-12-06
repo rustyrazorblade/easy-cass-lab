@@ -132,8 +132,22 @@ data class InfrastructureConfig(
                 rules.add(SecurityGroupRule.singlePort(sshPort, cidr))
             }
             // Internal VPC traffic (all ports within VPC CIDR)
-            rules.add(SecurityGroupRule(0, 65535, Constants.Vpc.DEFAULT_CIDR, "tcp"))
-            rules.add(SecurityGroupRule(0, 65535, Constants.Vpc.DEFAULT_CIDR, "udp"))
+            rules.add(
+                SecurityGroupRule(
+                    Constants.Network.MIN_PORT,
+                    Constants.Network.MAX_PORT,
+                    Constants.Vpc.DEFAULT_CIDR,
+                    "tcp",
+                ),
+            )
+            rules.add(
+                SecurityGroupRule(
+                    Constants.Network.MIN_PORT,
+                    Constants.Network.MAX_PORT,
+                    Constants.Vpc.DEFAULT_CIDR,
+                    "udp",
+                ),
+            )
 
             return InfrastructureConfig(
                 vpcName = "easy-db-lab-$clusterName",

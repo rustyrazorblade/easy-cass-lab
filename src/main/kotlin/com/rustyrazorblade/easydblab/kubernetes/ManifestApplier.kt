@@ -125,6 +125,7 @@ object ManifestApplier {
                 "Deployment" -> applyDeployment(client, stream)
                 "StatefulSet" -> applyStatefulSet(client, stream)
                 "Secret" -> applySecret(client, stream)
+                "Job" -> applyJob(client, stream)
                 else -> error("Unsupported resource kind: $kind")
             }
         }
@@ -192,6 +193,17 @@ object ManifestApplier {
         stream: ByteArrayInputStream,
     ) = client
         .secrets()
+        .load(stream)
+        .forceConflicts()
+        .serverSideApply()
+
+    private fun applyJob(
+        client: KubernetesClient,
+        stream: ByteArrayInputStream,
+    ) = client
+        .batch()
+        .v1()
+        .jobs()
         .load(stream)
         .forceConflicts()
         .serverSideApply()

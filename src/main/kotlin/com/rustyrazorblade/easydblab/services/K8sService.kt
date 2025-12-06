@@ -2,6 +2,8 @@ package com.rustyrazorblade.easydblab.services
 
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.configuration.ClusterHost
+import com.rustyrazorblade.easydblab.kubernetes.KubernetesJob
+import com.rustyrazorblade.easydblab.kubernetes.KubernetesPod
 import com.rustyrazorblade.easydblab.kubernetes.ManifestApplier
 import com.rustyrazorblade.easydblab.kubernetes.ProxiedKubernetesClientFactory
 import com.rustyrazorblade.easydblab.output.OutputHandler
@@ -9,6 +11,8 @@ import com.rustyrazorblade.easydblab.proxy.SocksProxyService
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.nio.file.Path
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
@@ -167,6 +171,112 @@ interface K8sService {
         statefulSetName: String,
         replicas: Int,
     ): Result<Unit>
+
+    /**
+     * Creates a Kubernetes Job from YAML content.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to create the job in
+     * @param jobYaml YAML content defining the job
+     * @return Result containing the job name or failure
+     */
+    fun createJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobYaml: String,
+    ): Result<String>
+
+    /**
+     * Deletes a Kubernetes Job.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace containing the job
+     * @param jobName The name of the job to delete
+     * @return Result indicating success or failure
+     */
+    fun deleteJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobName: String,
+    ): Result<Unit>
+
+    /**
+     * Gets all jobs matching a label selector.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to search in
+     * @param labelKey The label key to match
+     * @param labelValue The label value to match
+     * @return Result containing list of jobs or failure
+     */
+    fun getJobsByLabel(
+        controlHost: ClusterHost,
+        namespace: String,
+        labelKey: String,
+        labelValue: String,
+    ): Result<List<KubernetesJob>>
+
+    /**
+     * Gets pods associated with a job.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace containing the job
+     * @param jobName The name of the job
+     * @return Result containing list of pods or failure
+     */
+    fun getPodsForJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobName: String,
+    ): Result<List<KubernetesPod>>
+
+    /**
+     * Gets logs from a pod.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace containing the pod
+     * @param podName The name of the pod
+     * @param tailLines Optional number of lines to return from the end
+     * @return Result containing log content or failure
+     */
+    fun getPodLogs(
+        controlHost: ClusterHost,
+        namespace: String,
+        podName: String,
+        tailLines: Int? = null,
+    ): Result<String>
+
+    /**
+     * Creates a ConfigMap from data.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace to create the ConfigMap in
+     * @param name The name of the ConfigMap
+     * @param data Map of keys to values
+     * @param labels Optional labels to apply
+     * @return Result indicating success or failure
+     */
+    fun createConfigMap(
+        controlHost: ClusterHost,
+        namespace: String,
+        name: String,
+        data: Map<String, String>,
+        labels: Map<String, String> = emptyMap(),
+    ): Result<Unit>
+
+    /**
+     * Deletes a ConfigMap.
+     *
+     * @param controlHost The control node running the K3s server
+     * @param namespace The namespace containing the ConfigMap
+     * @param name The name of the ConfigMap to delete
+     * @return Result indicating success or failure
+     */
+    fun deleteConfigMap(
+        controlHost: ClusterHost,
+        namespace: String,
+        name: String,
+    ): Result<Unit>
 }
 
 /**
@@ -240,9 +350,7 @@ class DefaultK8sService(
                             }?.sorted() ?: emptyList()
                     }
 
-                if (manifestFiles.isEmpty()) {
-                    throw IllegalStateException("No manifest files found at $manifestPath")
-                }
+                check(manifestFiles.isNotEmpty()) { "No manifest files found at $manifestPath" }
 
                 log.info { "Found ${manifestFiles.size} manifest files to apply" }
                 manifestFiles.forEachIndexed { index, file ->
@@ -650,7 +758,7 @@ class DefaultK8sService(
                 // Load manifest from resources
                 val resourceStream =
                     this::class.java.getResourceAsStream("/com/rustyrazorblade/easydblab/commands/$resourcePath")
-                        ?: throw IllegalStateException("Resource not found: $resourcePath")
+                        ?: error("Resource not found: $resourcePath")
 
                 // Create temp file from resource
                 val tempFile =
@@ -696,5 +804,256 @@ class DefaultK8sService(
             }
 
             outputHandler.handleMessage("Scaled $statefulSetName to $replicas replicas")
+        }
+
+    override fun createJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobYaml: String,
+    ): Result<String> =
+        runCatching {
+            log.info { "Creating K8s job in namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                ManifestApplier.applyYaml(client, jobYaml)
+
+                // Extract job name from YAML for return value
+                val yamlLines = jobYaml.lines()
+                val nameLine = yamlLines.find { it.trim().startsWith("name:") }
+                val jobName =
+                    nameLine?.substringAfter("name:")?.trim()?.trim('"', '\'')
+                        ?: error("Could not extract job name from YAML")
+
+                log.info { "Created job: $jobName" }
+                jobName
+            }
+        }
+
+    override fun deleteJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobName: String,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Deleting job $jobName from namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                // Delete associated pods first (propagation policy)
+                client
+                    .batch()
+                    .v1()
+                    .jobs()
+                    .inNamespace(namespace)
+                    .withName(jobName)
+                    .withPropagationPolicy(io.fabric8.kubernetes.api.model.DeletionPropagation.FOREGROUND)
+                    .delete()
+
+                log.info { "Deleted job: $jobName" }
+            }
+
+            outputHandler.handleMessage("Deleted job: $jobName")
+        }
+
+    override fun getJobsByLabel(
+        controlHost: ClusterHost,
+        namespace: String,
+        labelKey: String,
+        labelValue: String,
+    ): Result<List<KubernetesJob>> =
+        runCatching {
+            log.debug { "Getting jobs with label $labelKey=$labelValue in namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                val jobs =
+                    client
+                        .batch()
+                        .v1()
+                        .jobs()
+                        .inNamespace(namespace)
+                        .withLabel(labelKey, labelValue)
+                        .list()
+
+                jobs.items.map { job ->
+                    val name = job.metadata?.name ?: "unknown"
+                    val succeeded = job.status?.succeeded ?: 0
+                    val failed = job.status?.failed ?: 0
+                    val active = job.status?.active ?: 0
+                    val completions = job.spec?.completions ?: 1
+
+                    val status =
+                        when {
+                            succeeded >= completions -> "Completed"
+                            failed > 0 -> "Failed"
+                            active > 0 -> "Running"
+                            else -> "Pending"
+                        }
+
+                    val creationTime =
+                        job.metadata?.creationTimestamp?.let {
+                            Instant.parse(it)
+                        } ?: Instant.now()
+                    val age = Duration.between(creationTime, Instant.now())
+
+                    KubernetesJob(
+                        namespace = namespace,
+                        name = name,
+                        status = status,
+                        completions = "$succeeded/$completions",
+                        age = age,
+                    )
+                }
+            }
+        }
+
+    override fun getPodsForJob(
+        controlHost: ClusterHost,
+        namespace: String,
+        jobName: String,
+    ): Result<List<KubernetesPod>> =
+        runCatching {
+            log.debug { "Getting pods for job $jobName in namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                val pods =
+                    client
+                        .pods()
+                        .inNamespace(namespace)
+                        .withLabel("job-name", jobName)
+                        .list()
+
+                pods.items.map { pod ->
+                    val name = pod.metadata?.name ?: "unknown"
+                    val containerStatuses = pod.status?.containerStatuses ?: emptyList()
+                    val readyContainers = containerStatuses.count { it.ready == true }
+                    val totalContainers = containerStatuses.size.coerceAtLeast(1)
+                    val status = pod.status?.phase ?: "Unknown"
+                    val restarts = containerStatuses.sumOf { it.restartCount ?: 0 }
+
+                    val creationTime =
+                        pod.metadata?.creationTimestamp?.let {
+                            Instant.parse(it)
+                        } ?: Instant.now()
+                    val age = Duration.between(creationTime, Instant.now())
+
+                    KubernetesPod(
+                        namespace = namespace,
+                        name = name,
+                        status = status,
+                        ready = "$readyContainers/$totalContainers",
+                        restarts = restarts,
+                        age = age,
+                    )
+                }
+            }
+        }
+
+    override fun getPodLogs(
+        controlHost: ClusterHost,
+        namespace: String,
+        podName: String,
+        tailLines: Int?,
+    ): Result<String> =
+        runCatching {
+            log.debug { "Getting logs for pod $podName in namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                val logRequest =
+                    client
+                        .pods()
+                        .inNamespace(namespace)
+                        .withName(podName)
+
+                val logs =
+                    if (tailLines != null) {
+                        logRequest.tailingLines(tailLines).log
+                    } else {
+                        logRequest.log
+                    }
+
+                logs ?: ""
+            }
+        }
+
+    override fun createConfigMap(
+        controlHost: ClusterHost,
+        namespace: String,
+        name: String,
+        data: Map<String, String>,
+        labels: Map<String, String>,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Creating ConfigMap $name in namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                // Delete existing ConfigMap if it exists
+                val existing =
+                    client
+                        .configMaps()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .get()
+
+                if (existing != null) {
+                    log.info { "Deleting existing ConfigMap $name" }
+                    client
+                        .configMaps()
+                        .inNamespace(namespace)
+                        .withName(name)
+                        .delete()
+                }
+
+                // Create new ConfigMap
+                val configMapBuilder =
+                    io.fabric8.kubernetes.api.model
+                        .ConfigMapBuilder()
+                        .withNewMetadata()
+                        .withName(name)
+                        .withNamespace(namespace)
+
+                // Add labels
+                labels.forEach { (key, value) ->
+                    configMapBuilder.addToLabels(key, value)
+                }
+
+                val metadataFinished = configMapBuilder.endMetadata()
+
+                // Add data entries
+                data.forEach { (key, value) ->
+                    metadataFinished.addToData(key, value)
+                }
+
+                val configMap = metadataFinished.build()
+
+                client
+                    .configMaps()
+                    .inNamespace(namespace)
+                    .resource(configMap)
+                    .create()
+
+                log.info { "Created ConfigMap: $name" }
+            }
+
+            outputHandler.handleMessage("Created ConfigMap: $name")
+        }
+
+    override fun deleteConfigMap(
+        controlHost: ClusterHost,
+        namespace: String,
+        name: String,
+    ): Result<Unit> =
+        runCatching {
+            log.info { "Deleting ConfigMap $name from namespace $namespace" }
+
+            createClient(controlHost).use { client ->
+                client
+                    .configMaps()
+                    .inNamespace(namespace)
+                    .withName(name)
+                    .delete()
+
+                log.info { "Deleted ConfigMap: $name" }
+            }
+
+            outputHandler.handleMessage("Deleted ConfigMap: $name")
         }
 }
