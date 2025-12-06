@@ -13,6 +13,8 @@ import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.EMRClusterState
 import com.rustyrazorblade.easydblab.configuration.InfrastructureState
+import com.rustyrazorblade.easydblab.configuration.InitConfig
+import com.rustyrazorblade.easydblab.configuration.OpenSearchClusterState
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.getHosts
@@ -25,6 +27,8 @@ import com.rustyrazorblade.easydblab.providers.aws.EC2Service
 import com.rustyrazorblade.easydblab.providers.aws.EMRClusterConfig
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
 import com.rustyrazorblade.easydblab.providers.aws.InstanceCreationConfig
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchDomainConfig
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import com.rustyrazorblade.easydblab.providers.aws.RetryUtil
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import com.rustyrazorblade.easydblab.services.HostOperationsService
@@ -39,10 +43,21 @@ import picocli.CommandLine.Option
 import java.io.File
 import java.net.URL
 import java.time.Duration
+import kotlin.concurrent.thread
 
 /**
- * Provisions instances and prepares the cluster.
- * Sets up K3s on all nodes, and installs the manifests.
+ * Provisions and configures the complete cluster infrastructure.
+ *
+ * This command orchestrates parallel creation of:
+ * - EC2 instances (Cassandra, Stress, Control nodes)
+ * - EMR Spark cluster (if enabled)
+ * - OpenSearch domain (if enabled)
+ *
+ * After provisioning, it configures K3s on all nodes and applies Kubernetes manifests.
+ * State is persisted incrementally as each resource type completes.
+ *
+ * @see Init for cluster initialization (must be run first)
+ * @see Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup
@@ -60,6 +75,7 @@ class Up(
     private val vpcService: VpcService by inject()
     private val ec2InstanceService: EC2InstanceService by inject()
     private val emrService: EMRService by inject()
+    private val openSearchService: OpenSearchService by inject()
     private val ec2Service: EC2Service by inject()
     private val hostOperationsService: HostOperationsService by inject()
 
@@ -77,6 +93,9 @@ class Up(
          */
         private fun getExternalIpAddress(): String = URL("https://api.ipify.org/").readText()
     }
+
+    // Lock for synchronizing access to workingState from parallel threads
+    private val stateLock = Any()
 
     @Option(names = ["--no-setup", "-n"])
     var noSetup = false
@@ -119,7 +138,7 @@ class Up(
      * Creates the S3 bucket for this environment if it doesn't already exist.
      * Each environment gets its own dedicated bucket for isolation.
      */
-    private fun createS3BucketIfNeeded(initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig) {
+    private fun createS3BucketIfNeeded(initConfig: InitConfig) {
         if (!workingState.s3Bucket.isNullOrBlank()) {
             log.debug { "S3 bucket already configured: ${workingState.s3Bucket}" }
             return
@@ -138,8 +157,14 @@ class Up(
         outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
     }
 
+    /**
+     * Provisions all infrastructure resources in parallel.
+     *
+     * Creates EC2 instances, EMR clusters, and OpenSearch domains concurrently.
+     * Each resource type updates cluster state atomically when complete.
+     */
     @Suppress("TooGenericExceptionCaught", "LongMethod")
-    private fun provisionInfrastructure(initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig) {
+    private fun provisionInfrastructure(initConfig: InitConfig) {
         outputHandler.handleMessage("Provisioning infrastructure...")
 
         val vpcId = workingState.vpcId ?: error("VPC ID not found. Please run 'easy-db-lab init' first.")
@@ -215,87 +240,123 @@ class Up(
             }
         }
 
-        // Cassandra instances - create only what's needed
-        val neededCassandraCount = initConfig.cassandraInstances - existingCassandraCount
-        if (neededCassandraCount > 0) {
-            val cassandraHosts =
-                createInstancesForType(
-                    serverType = ServerType.Cassandra,
-                    count = neededCassandraCount,
-                    instanceType = initConfig.instanceType,
-                    amiId = amiId,
-                    securityGroupId = securityGroupId,
-                    subnetIds = subnetIds,
-                    ebsConfig = ebsConfig,
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingCassandraCount,
-                )
-            allHosts[ServerType.Cassandra] = (allHosts[ServerType.Cassandra] ?: emptyList()) + cassandraHosts
-        } else if (initConfig.cassandraInstances > 0 && existingCassandraCount > 0) {
-            outputHandler.handleMessage("Found $existingCassandraCount existing Cassandra instances, no new instances needed")
+        // Define instance specifications for each server type
+        data class InstanceSpec(
+            val serverType: ServerType,
+            val configuredCount: Int,
+            val existingCount: Int,
+            val instanceType: String,
+            val ebsConfig: EBSConfig?,
+        ) {
+            val neededCount: Int get() = configuredCount - existingCount
         }
 
-        // Stress instances - create only what's needed
-        val neededStressCount = initConfig.stressInstances - existingStressCount
-        if (neededStressCount > 0) {
-            val stressHosts =
-                createInstancesForType(
-                    serverType = ServerType.Stress,
-                    count = neededStressCount,
-                    instanceType = initConfig.stressInstanceType,
-                    amiId = amiId,
-                    securityGroupId = securityGroupId,
-                    subnetIds = subnetIds,
-                    ebsConfig = null, // stress instances don't need EBS
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingStressCount,
+        val instanceSpecs =
+            listOf(
+                InstanceSpec(
+                    ServerType.Cassandra,
+                    initConfig.cassandraInstances,
+                    existingCassandraCount,
+                    initConfig.instanceType,
+                    ebsConfig,
+                ),
+                InstanceSpec(
+                    ServerType.Stress,
+                    initConfig.stressInstances,
+                    existingStressCount,
+                    initConfig.stressInstanceType,
+                    null,
+                ),
+                InstanceSpec(
+                    ServerType.Control,
+                    initConfig.controlInstances,
+                    existingControlCount,
+                    initConfig.controlInstanceType,
+                    null,
+                ),
+            )
+
+        // Log messages for existing instances that don't need creation
+        instanceSpecs
+            .filter { it.neededCount <= 0 && it.configuredCount > 0 && it.existingCount > 0 }
+            .forEach { spec ->
+                outputHandler.handleMessage(
+                    "Found ${spec.existingCount} existing ${spec.serverType.name} instances, no new instances needed",
                 )
-            allHosts[ServerType.Stress] = (allHosts[ServerType.Stress] ?: emptyList()) + stressHosts
-        } else if (initConfig.stressInstances > 0 && existingStressCount > 0) {
-            outputHandler.handleMessage("Found $existingStressCount existing Stress instances, no new instances needed")
+            }
+
+        // Build list of instance creation tasks to run in parallel
+        val creationTasks =
+            instanceSpecs
+                .filter { it.neededCount > 0 }
+                .map { spec ->
+                    spec.serverType to {
+                        createInstancesForType(
+                            serverType = spec.serverType,
+                            count = spec.neededCount,
+                            instanceType = spec.instanceType,
+                            amiId = amiId,
+                            securityGroupId = securityGroupId,
+                            subnetIds = subnetIds,
+                            ebsConfig = spec.ebsConfig,
+                            tags = baseTags,
+                            clusterName = initConfig.name,
+                            startIndex = spec.existingCount,
+                        )
+                    }
+                }
+
+        // Collect all infrastructure tasks to run in parallel
+        val allInfraThreads = mutableListOf<Thread>()
+
+        // Instance creation threads (Cassandra, Stress, Control)
+        creationTasks.forEach { (serverType, createFn) ->
+            allInfraThreads.add(
+                thread(start = true, name = "create-${serverType.name}") {
+                    val hosts = createFn()
+                    synchronized(stateLock) {
+                        allHosts[serverType] = (allHosts[serverType] ?: emptyList()) + hosts
+                        workingState.updateHosts(allHosts)
+                        clusterStateManager.save(workingState)
+                    }
+                },
+            )
         }
 
-        // Control instances - create only what's needed
-        val neededControlCount = initConfig.controlInstances - existingControlCount
-        if (neededControlCount > 0) {
-            val controlHosts =
-                createInstancesForType(
-                    serverType = ServerType.Control,
-                    count = neededControlCount,
-                    instanceType = initConfig.controlInstanceType,
-                    amiId = amiId,
-                    securityGroupId = securityGroupId,
-                    subnetIds = subnetIds,
-                    ebsConfig = null, // control instances don't need EBS
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingControlCount,
-                )
-            allHosts[ServerType.Control] = (allHosts[ServerType.Control] ?: emptyList()) + controlHosts
-        } else if (initConfig.controlInstances > 0 && existingControlCount > 0) {
-            outputHandler.handleMessage("Found $existingControlCount existing Control instances, no new instances needed")
-        }
-
-        // Update cluster state with hosts and infrastructure
-        workingState.updateHosts(allHosts)
-        workingState.updateInfrastructure(
-            InfrastructureState(
-                vpcId = vpcId,
-                subnetIds = subnetIds,
-                securityGroupId = securityGroupId,
-                internetGatewayId = igwId,
-            ),
-        )
-        workingState.markInfrastructureUp()
-
-        // Create EMR cluster if enabled
+        // EMR thread
         if (initConfig.sparkEnabled) {
-            createEmrCluster(initConfig, subnetIds.first(), baseTags)
+            allInfraThreads.add(
+                thread(start = true, name = "create-EMR") {
+                    createEmrCluster(initConfig, subnetIds.first(), baseTags)
+                },
+            )
         }
 
-        clusterStateManager.save(workingState)
+        // OpenSearch thread
+        if (initConfig.opensearchEnabled) {
+            allInfraThreads.add(
+                thread(start = true, name = "create-OpenSearch") {
+                    createOpenSearchDomain(initConfig, subnetIds.first(), securityGroupId, baseTags)
+                },
+            )
+        }
+
+        // Wait for ALL infrastructure to complete
+        allInfraThreads.forEach { it.join() }
+
+        // Update infrastructure state and mark as up after all resources are created
+        synchronized(stateLock) {
+            workingState.updateInfrastructure(
+                InfrastructureState(
+                    vpcId = vpcId,
+                    subnetIds = subnetIds,
+                    securityGroupId = securityGroupId,
+                    internetGatewayId = igwId,
+                ),
+            )
+            workingState.markInfrastructureUp()
+            clusterStateManager.save(workingState)
+        }
 
         with(TermColors()) {
             outputHandler.handleMessage(
@@ -318,9 +379,14 @@ class Up(
         outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
     }
 
+    /**
+     * Creates or finds VPC networking components (subnets, security groups, internet gateway).
+     *
+     * @return Triple of (subnetIds, securityGroupId, internetGatewayId)
+     */
     private fun setupVpcInfrastructure(
         vpcId: String,
-        initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig,
+        initConfig: InitConfig,
     ): Triple<List<String>, String, String> {
         val baseTags = mapOf("easy_cass_lab" to "1", "ClusterId" to workingState.clusterId)
 
@@ -377,6 +443,11 @@ class Up(
         return Triple(subnetIds, securityGroupId, igwId)
     }
 
+    /**
+     * Creates EC2 instances for a specific server type and waits for them to be ready.
+     *
+     * Waits for instances to reach running state and pass status checks before returning.
+     */
     private fun createInstancesForType(
         serverType: ServerType,
         count: Int,
@@ -428,8 +499,9 @@ class Up(
         }
     }
 
+    /** Creates an EMR Spark cluster and waits for it to become ready. */
     private fun createEmrCluster(
-        initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig,
+        initConfig: InitConfig,
         subnetId: String,
         tags: Map<String, String>,
     ) {
@@ -450,18 +522,83 @@ class Up(
         val result = emrService.createCluster(emrConfig)
         val readyResult = emrService.waitForClusterReady(result.clusterId)
 
-        workingState.updateEmrCluster(
-            EMRClusterState(
-                clusterId = readyResult.clusterId,
-                clusterName = readyResult.clusterName,
-                masterPublicDns = readyResult.masterPublicDns,
-                state = readyResult.state,
-            ),
-        )
+        synchronized(stateLock) {
+            workingState.updateEmrCluster(
+                EMRClusterState(
+                    clusterId = readyResult.clusterId,
+                    clusterName = readyResult.clusterName,
+                    masterPublicDns = readyResult.masterPublicDns,
+                    state = readyResult.state,
+                ),
+            )
+            clusterStateManager.save(workingState)
+        }
 
         outputHandler.handleMessage("EMR cluster ready: ${readyResult.masterPublicDns}")
     }
 
+    /** Creates an OpenSearch domain in the VPC and waits for it to become active. */
+    private fun createOpenSearchDomain(
+        initConfig: InitConfig,
+        subnetId: String,
+        securityGroupId: String,
+        tags: Map<String, String>,
+    ) {
+        outputHandler.handleMessage("Creating OpenSearch domain...")
+
+        // Ensure the OpenSearch service-linked role exists (required for VPC access)
+        aws.ensureOpenSearchServiceLinkedRole()
+
+        // Generate domain name from cluster name (must be 3-28 lowercase chars)
+        val domainName = generateOpenSearchDomainName(initConfig.name)
+
+        val config =
+            OpenSearchDomainConfig(
+                domainName = domainName,
+                instanceType = initConfig.opensearchInstanceType,
+                instanceCount = initConfig.opensearchInstanceCount,
+                ebsVolumeSize = initConfig.opensearchEbsSize,
+                engineVersion = "OpenSearch_${initConfig.opensearchVersion}",
+                subnetId = subnetId,
+                securityGroupIds = listOf(securityGroupId),
+                tags = tags,
+            )
+
+        openSearchService.createDomain(config)
+        val activeResult = openSearchService.waitForDomainActive(domainName)
+
+        synchronized(stateLock) {
+            workingState.updateOpenSearchDomain(
+                OpenSearchClusterState(
+                    domainName = activeResult.domainName,
+                    domainId = activeResult.domainId,
+                    endpoint = activeResult.endpoint,
+                    dashboardsEndpoint = activeResult.dashboardsEndpoint,
+                    state = activeResult.state,
+                ),
+            )
+            clusterStateManager.save(workingState)
+        }
+
+        outputHandler.handleMessage("OpenSearch domain ready: https://${activeResult.endpoint}")
+        outputHandler.handleMessage("Dashboards: ${activeResult.dashboardsEndpoint}")
+    }
+
+    /** Generates a valid OpenSearch domain name (3-28 lowercase chars) from the cluster name. */
+    private fun generateOpenSearchDomainName(clusterName: String): String {
+        val baseName = clusterName.lowercase().replace(Regex("[^a-z0-9-]"), "-")
+        val suffix = "-os"
+        val maxBaseLength = Constants.OpenSearch.DOMAIN_NAME_MAX_LENGTH - suffix.length
+        val truncatedBase =
+            if (baseName.length > maxBaseLength) {
+                baseName.take(maxBaseLength)
+            } else {
+                baseName
+            }
+        return "$truncatedBase$suffix".trimEnd('-')
+    }
+
+    /** Writes SSH config, environment files, and AxonOps configuration to the working directory. */
     private fun writeConfigurationFiles() {
         val config = File(context.workingDirectory, "sshConfig").bufferedWriter()
         ClusterConfigWriter.writeSshConfig(config, userConfig.sshKeyPath, workingState.hosts)
@@ -518,6 +655,7 @@ class Up(
         stressEnvironmentVars.close()
     }
 
+    /** Waits for SSH to become available on instances and downloads Cassandra version info. */
     private fun waitForSshAndDownloadVersions() {
         outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
@@ -553,6 +691,7 @@ class Up(
             }.run()
     }
 
+    /** Runs instance setup, K3s configuration, and optional AxonOps setup unless --no-setup. */
     private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
@@ -572,6 +711,7 @@ class Up(
         }
     }
 
+    /** Starts K3s server on control node and joins Cassandra/Stress nodes as agents. */
     @Suppress("ReturnCount")
     private fun startK3sOnAllNodes() {
         outputHandler.handleMessage("Starting K3s cluster...")

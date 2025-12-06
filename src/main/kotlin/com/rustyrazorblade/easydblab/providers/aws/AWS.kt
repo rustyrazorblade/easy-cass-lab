@@ -10,8 +10,10 @@ import software.amazon.awssdk.services.iam.model.AddRoleToInstanceProfileRequest
 import software.amazon.awssdk.services.iam.model.AttachRolePolicyRequest
 import software.amazon.awssdk.services.iam.model.CreateInstanceProfileRequest
 import software.amazon.awssdk.services.iam.model.CreateRoleRequest
+import software.amazon.awssdk.services.iam.model.CreateServiceLinkedRoleRequest
 import software.amazon.awssdk.services.iam.model.EntityAlreadyExistsException
 import software.amazon.awssdk.services.iam.model.IamException
+import software.amazon.awssdk.services.iam.model.InvalidInputException
 import software.amazon.awssdk.services.iam.model.PutRolePolicyRequest
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException
@@ -599,5 +601,46 @@ class AWS(
 
         log.info { "✓ IAM role setup complete and validated: $roleName" }
         return roleName
+    }
+
+    /**
+     * Ensures the OpenSearch service-linked role exists.
+     *
+     * OpenSearch requires a service-linked role to access VPC resources. This role is
+     * automatically managed by AWS once created. The role name follows AWS convention:
+     * AWSServiceRoleForAmazonOpenSearchService
+     *
+     * This method is idempotent - it will succeed if the role already exists.
+     *
+     * @throws IamException if unable to create the service-linked role
+     */
+    fun ensureOpenSearchServiceLinkedRole() {
+        val serviceName = "opensearchservice.amazonaws.com"
+        log.info { "Ensuring OpenSearch service-linked role exists..." }
+
+        try {
+            val request =
+                CreateServiceLinkedRoleRequest
+                    .builder()
+                    .awsServiceName(serviceName)
+                    .description("Service-linked role for Amazon OpenSearch Service VPC access")
+                    .build()
+
+            iamClient.createServiceLinkedRole(request)
+            log.info { "✓ Created OpenSearch service-linked role" }
+        } catch (e: InvalidInputException) {
+            // Role already exists - this is the expected error when the role is present
+            if (e.message?.contains("has been taken") == true ||
+                e.message?.contains("already exists") == true
+            ) {
+                log.info { "✓ OpenSearch service-linked role already exists" }
+            } else {
+                log.error(e) { "Failed to create OpenSearch service-linked role: ${e.message}" }
+                throw e
+            }
+        } catch (e: IamException) {
+            log.error(e) { "Failed to create OpenSearch service-linked role: ${e.message}" }
+            throw e
+        }
     }
 }

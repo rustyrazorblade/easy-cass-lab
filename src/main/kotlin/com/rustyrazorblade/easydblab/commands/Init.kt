@@ -7,6 +7,7 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.converters.PicoAZConverter
+import com.rustyrazorblade.easydblab.commands.mixins.OpenSearchInitMixin
 import com.rustyrazorblade.easydblab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easydblab.configuration.Arch
 import com.rustyrazorblade.easydblab.configuration.ClusterState
@@ -145,6 +146,9 @@ class Init(
 
     @Mixin
     var spark = SparkInitMixin()
+
+    @Mixin
+    var opensearch = OpenSearchInitMixin()
 
     @Option(
         names = ["--tag."],
