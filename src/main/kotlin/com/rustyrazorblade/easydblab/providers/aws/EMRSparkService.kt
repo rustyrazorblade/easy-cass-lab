@@ -336,9 +336,14 @@ class EMRSparkService(
             if (Files.exists(stderrFile)) {
                 val stderrContent = Files.readString(stderrFile)
                 if (stderrContent.isNotBlank()) {
-                    outputHandler.handleMessage("\n=== stderr (last 100 lines) ===")
+                    outputHandler.handleMessage("\n=== stderr (last ${Constants.EMR.STDERR_TAIL_LINES} lines) ===")
                     val lines = stderrContent.lines()
-                    val lastLines = if (lines.size > 100) lines.takeLast(100) else lines
+                    val lastLines =
+                        if (lines.size > Constants.EMR.STDERR_TAIL_LINES) {
+                            lines.takeLast(Constants.EMR.STDERR_TAIL_LINES)
+                        } else {
+                            lines
+                        }
                     lastLines.forEach { outputHandler.handleMessage(it) }
                     outputHandler.handleMessage("=== end stderr ===\n")
                 }

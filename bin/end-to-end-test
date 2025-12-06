@@ -2,13 +2,6 @@
 
 set -e  # Exit on any error
 
-# Check if SOCKS tunnel is running (interferes with AWS API calls)
-if pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
-  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
-  echo "Please stop it first with: socks5-stop"
-  exit 1
-fi
-
 # Store project root directory
 PROJECT_ROOT="$(pwd)"
 
@@ -22,13 +15,23 @@ CURRENT_STEP_NAME=""
 # Parse command line arguments (must be before cleanup trap setup)
 WAIT_BEFORE_TEARDOWN=false
 BUILD_IMAGE=false
-NO_SPARK=false
-NO_CASSANDRA=false
-NO_CLICKHOUSE=false
+ENABLE_SPARK=false
+ENABLE_CASSANDRA=false
+ENABLE_CLICKHOUSE=false
 USE_EBS=false
 EXIT_OK=false
+LIST_STEPS=false
+BREAKPOINTS=""
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --list-steps|-l)
+      LIST_STEPS=true
+      shift
+      ;;
+    --break)
+      BREAKPOINTS="$2"
+      shift 2
+      ;;
     --wait)
       WAIT_BEFORE_TEARDOWN=true
       shift
@@ -37,16 +40,22 @@ while [[ $# -gt 0 ]]; do
       BUILD_IMAGE=true
       shift
       ;;
-    --no-spark)
-      NO_SPARK=true
+    --spark)
+      ENABLE_SPARK=true
       shift
       ;;
-    --no-cassandra)
-      NO_CASSANDRA=true
+    --cassandra)
+      ENABLE_CASSANDRA=true
       shift
       ;;
-    --no-clickhouse)
-      NO_CLICKHOUSE=true
+    --clickhouse)
+      ENABLE_CLICKHOUSE=true
+      shift
+      ;;
+    --all)
+      ENABLE_SPARK=true
+      ENABLE_CASSANDRA=true
+      ENABLE_CLICKHOUSE=true
       shift
       ;;
     --ebs)
@@ -55,15 +64,19 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--wait] [--build] [--no-spark] [--no-cassandra] [--no-clickhouse] [--ebs]"
+      echo "Usage: $0 [--list-steps|-l] [--break <steps>] [--wait] [--build] [--spark] [--cassandra] [--clickhouse] [--all] [--ebs]"
       exit 1
       ;;
   esac
 done
 
-# Create temp directory for test execution
-TEST_WORKDIR=$(mktemp -d -t easy-db-lab-e2e-XXXXXX)
-echo "=== Using temporary work directory: $TEST_WORKDIR ==="
+# Check if SOCKS tunnel is running (interferes with AWS API calls)
+# Skip this check if we're just listing steps
+if [ "$LIST_STEPS" != true ] && pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
+  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
+  echo "Please stop it first with: socks5-stop"
+  exit 1
+fi
 
 # ============================================================================
 # Test Step Functions
@@ -71,10 +84,10 @@ echo "=== Using temporary work directory: $TEST_WORKDIR ==="
 
 step_build_project() {
     echo "=== Building project ==="
-    if [ "$NO_SPARK" = true ]; then
-        (cd "$PROJECT_ROOT" && ./gradlew clean test shadowJar installDist)
-    else
+    if [ "$ENABLE_SPARK" = true ]; then
         (cd "$PROJECT_ROOT" && ./gradlew clean test shadowJar installDist :spark-connector-test1:jar)
+    else
+        (cd "$PROJECT_ROOT" && ./gradlew clean test shadowJar installDist)
     fi
 }
 
@@ -100,10 +113,9 @@ step_set_policies() {
 step_init_cluster() {
     echo "=== Initializing cluster ==="
     local spark_opts=""
-    if [ "$NO_SPARK" != true ]; then
+    if [ "$ENABLE_SPARK" = true ]; then
         spark_opts="--spark.enable --spark.master.instance.type m5.xlarge --spark.worker.instance.type m5.xlarge --spark.worker.instance.count 2"
-    else
-        echo "=== Spark provisioning disabled (--no-spark) ==="
+        echo "=== Spark provisioning enabled ==="
     fi
     local ebs_opts=""
     if [ "$USE_EBS" = true ]; then
@@ -158,8 +170,8 @@ step_list_hosts() {
 }
 
 step_setup_cassandra() {
-    if [ "$NO_CASSANDRA" = true ]; then
-        echo "=== Skipping Cassandra setup (--no-cassandra enabled) ==="
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping Cassandra setup (use --cassandra to enable) ==="
         return 0
     fi
     echo "=== Setting Cassandra version to 5.0 ==="
@@ -170,8 +182,8 @@ step_setup_cassandra() {
 }
 
 step_cassandra_start_stop() {
-    if [ "$NO_CASSANDRA" = true ]; then
-        echo "=== Skipping Cassandra start/stop cycle (--no-cassandra enabled) ==="
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping Cassandra start/stop cycle (use --cassandra to enable) ==="
         return 0
     fi
     echo "=== Starting Cassandra ==="
@@ -194,8 +206,8 @@ step_cassandra_start_stop() {
 }
 
 step_test_ssh_nodetool() {
-    if [ "$NO_CASSANDRA" = true ]; then
-        echo "=== Skipping SSH nodetool test (--no-cassandra enabled) ==="
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping SSH nodetool test (use --cassandra to enable) ==="
         return 0
     fi
     echo "=== Testing SSH access and nodetool via env.sh aliases ==="
@@ -203,8 +215,8 @@ step_test_ssh_nodetool() {
 }
 
 step_check_sidecar() {
-    if [ "$NO_CASSANDRA" = true ]; then
-        echo "=== Skipping Sidecar check (--no-cassandra enabled) ==="
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping Sidecar check (use --cassandra to enable) ==="
         return 0
     fi
     echo "=== Check Sidecar ==="
@@ -223,17 +235,56 @@ step_test_exec() {
 }
 
 step_stress_test() {
-    if [ "$NO_CASSANDRA" = true ]; then
-        echo "=== Skipping stress test (--no-cassandra enabled) ==="
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping stress test (use --cassandra to enable) ==="
         return 0
     fi
     echo "=== Running stress test ==="
     ssh app0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 }
 
+step_stress_k8s() {
+    if [ "$ENABLE_CASSANDRA" != true ]; then
+        echo "=== Skipping stress K8s test (use --cassandra to enable) ==="
+        return 0
+    fi
+    echo "=== Starting stress job on K8s ==="
+    easy-db-lab cassandra stress run --name e2e-test -- KeyValue -d 30s
+
+    echo "=== Checking stress job status ==="
+    easy-db-lab cassandra stress status
+
+    echo "=== Waiting for stress job to complete ==="
+    local timeout=120
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        local status=$(kubectl get jobs -l app.kubernetes.io/name=cassandra-stress -o jsonpath='{.items[0].status.succeeded}' 2>/dev/null || echo "")
+        if [ "$status" = "1" ]; then
+            echo "Stress job completed successfully"
+            break
+        fi
+        echo "Waiting for stress job to complete... ($elapsed/$timeout seconds)"
+        sleep 10
+        elapsed=$((elapsed + 10))
+    done
+
+    echo "=== Viewing stress job logs ==="
+    # Get the job name that we just created (most recent)
+    local job_name=$(kubectl get jobs -l app.kubernetes.io/name=cassandra-stress --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}')
+    if [ -n "$job_name" ]; then
+        easy-db-lab cassandra stress logs "$job_name" --tail 50
+    fi
+
+    echo "=== Stopping stress job ==="
+    easy-db-lab cassandra stress stop --all
+
+    echo "=== Verifying stress jobs are deleted ==="
+    easy-db-lab cassandra stress status
+}
+
 step_spark_submit() {
-    if [ "$NO_SPARK" = true ]; then
-        echo "=== Skipping Spark job submission (--no-spark enabled) ==="
+    if [ "$ENABLE_SPARK" != true ]; then
+        echo "=== Skipping Spark job submission (use --spark to enable) ==="
         return 0
     fi
     echo "=== Submitting Spark job to EMR ==="
@@ -245,8 +296,8 @@ step_spark_submit() {
 }
 
 step_spark_status() {
-    if [ "$NO_SPARK" = true ]; then
-        echo "=== Skipping Spark status check (--no-spark enabled) ==="
+    if [ "$ENABLE_SPARK" != true ]; then
+        echo "=== Skipping Spark status check (use --spark to enable) ==="
         return 0
     fi
     echo "=== Listing Spark jobs ==="
@@ -260,8 +311,8 @@ step_spark_status() {
 }
 
 step_clickhouse_start() {
-    if [ "$NO_CLICKHOUSE" = true ]; then
-        echo "=== Skipping ClickHouse deployment (--no-clickhouse enabled) ==="
+    if [ "$ENABLE_CLICKHOUSE" != true ]; then
+        echo "=== Skipping ClickHouse deployment (use --clickhouse to enable) ==="
         return 0
     fi
     echo "=== Deploying ClickHouse cluster ==="
@@ -278,8 +329,8 @@ step_clickhouse_start() {
 }
 
 step_clickhouse_test() {
-    if [ "$NO_CLICKHOUSE" = true ]; then
-        echo "=== Skipping ClickHouse test (--no-clickhouse enabled) ==="
+    if [ "$ENABLE_CLICKHOUSE" != true ]; then
+        echo "=== Skipping ClickHouse test (use --clickhouse to enable) ==="
         return 0
     fi
     echo "=== Testing ClickHouse connectivity ==="
@@ -300,8 +351,8 @@ EOF
 }
 
 step_clickhouse_stop() {
-    if [ "$NO_CLICKHOUSE" = true ]; then
-        echo "=== Skipping ClickHouse stop (--no-clickhouse enabled) ==="
+    if [ "$ENABLE_CLICKHOUSE" != true ]; then
+        echo "=== Skipping ClickHouse stop (use --clickhouse to enable) ==="
         return 0
     fi
     echo "=== Stopping ClickHouse cluster ==="
@@ -353,6 +404,7 @@ STEPS_WORKDIR=(
     "step_check_sidecar:Check Sidecar"
     "step_test_exec:Test exec command"
     "step_stress_test:Run stress test"
+    "step_stress_k8s:Run stress K8s test"
     "step_spark_submit:Submit Spark job"
     "step_spark_status:Check Spark status"
     "step_clickhouse_start:Start ClickHouse"
@@ -364,6 +416,31 @@ STEPS_WORKDIR=(
 # Combined steps for resume
 ALL_STEPS=("${STEPS_PROJECT_ROOT[@]}" "${STEPS_WORKDIR[@]}")
 PROJECT_ROOT_STEP_COUNT=${#STEPS_PROJECT_ROOT[@]}
+
+list_steps() {
+    echo "Available steps:"
+    echo ""
+    local total_steps=${#ALL_STEPS[@]}
+    for ((i=0; i<total_steps; i++)); do
+        local step_entry="${ALL_STEPS[$i]}"
+        local step_name="${step_entry#*:}"
+        printf "  %2d) %s\n" "$((i+1))" "$step_name"
+    done
+}
+
+is_breakpoint() {
+    local step_num=$1
+    if [ -z "$BREAKPOINTS" ]; then
+        return 1
+    fi
+    IFS=',' read -ra BP_ARRAY <<< "$BREAKPOINTS"
+    for bp in "${BP_ARRAY[@]}"; do
+        if [ "$bp" = "$step_num" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 run_from_step() {
     local start_step=${1:-0}
@@ -380,6 +457,14 @@ run_from_step() {
         echo "=========================================="
         echo "Step $((i+1))/$total_steps: $step_name"
         echo "=========================================="
+
+        # Check for breakpoint
+        if is_breakpoint "$((i+1))"; then
+            echo ""
+            echo ">>> BREAKPOINT at step $((i+1)): $step_name"
+            read -p "Press Enter to continue..."
+            echo ""
+        fi
 
         # Determine which directory to run in and execute step
         # Disable errexit temporarily for controlled error handling
@@ -548,6 +633,13 @@ trap cleanup EXIT
 # ============================================================================
 # Main Execution
 # ============================================================================
+
+# Handle --list-steps flag
+if [ "$LIST_STEPS" = true ]; then
+    list_steps
+    EXIT_OK=true
+    exit 0
+fi
 
 # Change to temp directory for workdir steps
 cd "$TEST_WORKDIR"

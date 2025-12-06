@@ -2,6 +2,7 @@
 
 export PATH="$PATH:/usr/share/bcc/tools:/usr/local/cassandra/current/bin:/usr/local/cassandra/current/tools/bin:/usr/local/async-profiler/bin:/usr/local/cassandra-easy-stress/bin"
 export ART="/mnt/db1/cassandra/artifacts"
+export CASSANDRA_EASY_STRESS_LOG_DIR=/mnt/db1/cassandra/stress
 export CASSANDRA_YAML="/usr/local/cassandra/current/conf/cassandra.yaml"
 # use ubuntu users's logs directory for nodetool commands
 export CASSANDRA_LOG_DIR=/home/ubuntu/logs

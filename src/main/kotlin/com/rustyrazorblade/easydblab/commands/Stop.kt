@@ -7,7 +7,6 @@ import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.toHost
 import com.rustyrazorblade.easydblab.services.CassandraService
-import com.rustyrazorblade.easydblab.services.EasyStressService
 import com.rustyrazorblade.easydblab.services.HostOperationsService
 import com.rustyrazorblade.easydblab.services.SidecarService
 import org.koin.core.component.inject
@@ -29,7 +28,6 @@ class Stop(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val cassandraService: CassandraService by inject()
-    private val easyStressService: EasyStressService by inject()
     private val sidecarService: SidecarService by inject()
     private val hostOperationsService: HostOperationsService by inject()
 
@@ -44,7 +42,6 @@ class Stop(
         }
 
         stopSidecar()
-        stopCassandraEasyStress()
     }
 
     /**
@@ -62,22 +59,5 @@ class Stop(
         }
 
         outputHandler.handleMessage("cassandra-sidecar shutdown completed on Cassandra nodes")
-    }
-
-    /**
-     * Stop cassandra-easy-stress service on stress nodes
-     */
-    private fun stopCassandraEasyStress() {
-        outputHandler.handleMessage("Stopping cassandra-easy-stress on stress nodes...")
-
-        hostOperationsService.withHosts(clusterState.hosts, ServerType.Stress, hosts.hostList, parallel = true) { host ->
-            easyStressService
-                .stop(host.toHost())
-                .onFailure { e ->
-                    outputHandler.handleMessage("Warning: Failed to stop cassandra-easy-stress on ${host.alias}: ${e.message}")
-                }
-        }
-
-        outputHandler.handleMessage("cassandra-easy-stress shutdown completed on stress nodes")
     }
 }
