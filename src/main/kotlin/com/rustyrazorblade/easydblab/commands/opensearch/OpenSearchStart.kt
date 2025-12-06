@@ -6,6 +6,7 @@ import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.configuration.OpenSearchClusterState
+import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.OpenSearchDomainConfig
 import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -33,6 +34,7 @@ class OpenSearchStart(
 ) : PicoBaseCommand(context) {
     private val log = KotlinLogging.logger {}
     private val openSearchService: OpenSearchService by inject()
+    private val aws: AWS by inject()
 
     @Option(
         names = ["--instance-type"],
@@ -82,6 +84,10 @@ class OpenSearchStart(
         val domainName = generateDomainName(clusterState.name)
 
         log.info { "Creating OpenSearch domain: $domainName" }
+
+        // Ensure the OpenSearch service-linked role exists (required for VPC access)
+        outputHandler.handleMessage("Ensuring OpenSearch service-linked role exists...")
+        aws.ensureOpenSearchServiceLinkedRole()
 
         val config =
             OpenSearchDomainConfig(

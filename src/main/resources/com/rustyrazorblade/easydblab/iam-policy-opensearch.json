@@ -18,7 +18,8 @@
       "Sid": "OpenSearchCreatePermissions",
       "Effect": "Allow",
       "Action": [
-        "es:CreateDomain"
+        "es:CreateDomain",
+        "es:AddTags"
       ],
       "Resource": "*"
     },
@@ -28,7 +29,6 @@
       "Action": [
         "es:DeleteDomain",
         "es:UpdateDomainConfig",
-        "es:AddTags",
         "es:RemoveTags",
         "es:UpgradeDomain",
         "es:StartServiceSoftwareUpdate"

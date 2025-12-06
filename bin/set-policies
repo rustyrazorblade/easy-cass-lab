@@ -2,18 +2,11 @@
 
 set -e  # Exit on any error
 
-# Check if SOCKS tunnel is running (interferes with AWS API calls)
-if pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
-  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
-  echo "Please stop it first with: socks5-stop"
-  exit 1
-fi
-
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Script to create managed IAM policies and attach to AWS users, groups, or roles
-# Always applies all three policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR
+# Always applies all four policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR, EasyDBLabOpenSearch
 # Useful for debugging setup issues with other developers
 
 # Initialize variables from environment or defaults
@@ -50,7 +43,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Create managed IAM policies and attach to AWS users, groups, or roles."
-      echo "Always applies all three policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR"
+      echo "Always applies all four policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR, EasyDBLabOpenSearch"
       echo ""
       echo "Uses managed policies (not inline) to avoid size limits and enable reusability."
       echo ""
@@ -109,8 +102,8 @@ else
   ATTACH_COMMAND="attach-role-policy --role-name"
 fi
 
-# Always apply all three policies
-POLICY_LIST=("ec2" "iam" "emr")
+# Always apply all four policies
+POLICY_LIST=("ec2" "iam" "emr" "opensearch")
 
 # Build AWS CLI profile argument if specified
 PROFILE_ARG=""
@@ -122,7 +115,7 @@ fi
 echo "=== Configuration ==="
 echo "Target type: $TARGET_TYPE"
 echo "Target name: $TARGET_NAME"
-echo "Policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR (all)"
+echo "Policies: EasyDBLabEC2, EasyDBLabIAM, EasyDBLabEMR, EasyDBLabOpenSearch (all)"
 [[ -n "$PROFILE" ]] && echo "AWS profile: $PROFILE"
 echo "Policy type: Managed (reusable, no size limits)"
 echo "Dry run: $DRY_RUN"
@@ -146,6 +139,9 @@ for policy in "${POLICY_LIST[@]}"; do
       ;;
     emr)
       POLICY_NAME="EasyDBLabEMR"
+      ;;
+    opensearch)
+      POLICY_NAME="EasyDBLabOpenSearch"
       ;;
   esac
 

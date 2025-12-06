@@ -233,6 +233,14 @@ class CommandLineParser(
         openSearchCommandLine.addSubcommand("stop", OpenSearchStop(context))
         commandLine.addSubcommand("opensearch", openSearchCommandLine)
 
+        // Set exception handler to ensure non-zero exit code on exceptions
+        commandLine.executionExceptionHandler =
+            CommandLine.IExecutionExceptionHandler { ex, cmd, _ ->
+                cmd.err.println(ex.message)
+                ex.printStackTrace(cmd.err)
+                Constants.ExitCodes.ERROR
+            }
+
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =
             CommandLine.IExecutionStrategy { parseResult ->
