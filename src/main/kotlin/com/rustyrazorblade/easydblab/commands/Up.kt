@@ -43,10 +43,21 @@ import picocli.CommandLine.Option
 import java.io.File
 import java.net.URL
 import java.time.Duration
+import kotlin.concurrent.thread
 
 /**
- * Provisions instances and prepares the cluster.
- * Sets up K3s on all nodes, and installs the manifests.
+ * Provisions and configures the complete cluster infrastructure.
+ *
+ * This command orchestrates parallel creation of:
+ * - EC2 instances (Cassandra, Stress, Control nodes)
+ * - EMR Spark cluster (if enabled)
+ * - OpenSearch domain (if enabled)
+ *
+ * After provisioning, it configures K3s on all nodes and applies Kubernetes manifests.
+ * State is persisted incrementally as each resource type completes.
+ *
+ * @see Init for cluster initialization (must be run first)
+ * @see Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup
@@ -146,6 +157,12 @@ class Up(
         outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
     }
 
+    /**
+     * Provisions all infrastructure resources in parallel.
+     *
+     * Creates EC2 instances, EMR clusters, and OpenSearch domains concurrently.
+     * Each resource type updates cluster state atomically when complete.
+     */
     @Suppress("TooGenericExceptionCaught", "LongMethod")
     private fun provisionInfrastructure(initConfig: InitConfig) {
         outputHandler.handleMessage("Provisioning infrastructure...")
@@ -295,7 +312,7 @@ class Up(
         // Instance creation threads (Cassandra, Stress, Control)
         creationTasks.forEach { (serverType, createFn) ->
             allInfraThreads.add(
-                kotlin.concurrent.thread(start = true, name = "create-${serverType.name}") {
+                thread(start = true, name = "create-${serverType.name}") {
                     val hosts = createFn()
                     synchronized(stateLock) {
                         allHosts[serverType] = (allHosts[serverType] ?: emptyList()) + hosts
@@ -309,7 +326,7 @@ class Up(
         // EMR thread
         if (initConfig.sparkEnabled) {
             allInfraThreads.add(
-                kotlin.concurrent.thread(start = true, name = "create-EMR") {
+                thread(start = true, name = "create-EMR") {
                     createEmrCluster(initConfig, subnetIds.first(), baseTags)
                 },
             )
@@ -318,7 +335,7 @@ class Up(
         // OpenSearch thread
         if (initConfig.opensearchEnabled) {
             allInfraThreads.add(
-                kotlin.concurrent.thread(start = true, name = "create-OpenSearch") {
+                thread(start = true, name = "create-OpenSearch") {
                     createOpenSearchDomain(initConfig, subnetIds.first(), securityGroupId, baseTags)
                 },
             )
@@ -362,6 +379,11 @@ class Up(
         outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
     }
 
+    /**
+     * Creates or finds VPC networking components (subnets, security groups, internet gateway).
+     *
+     * @return Triple of (subnetIds, securityGroupId, internetGatewayId)
+     */
     private fun setupVpcInfrastructure(
         vpcId: String,
         initConfig: InitConfig,
@@ -421,6 +443,11 @@ class Up(
         return Triple(subnetIds, securityGroupId, igwId)
     }
 
+    /**
+     * Creates EC2 instances for a specific server type and waits for them to be ready.
+     *
+     * Waits for instances to reach running state and pass status checks before returning.
+     */
     private fun createInstancesForType(
         serverType: ServerType,
         count: Int,
@@ -472,6 +499,7 @@ class Up(
         }
     }
 
+    /** Creates an EMR Spark cluster and waits for it to become ready. */
     private fun createEmrCluster(
         initConfig: InitConfig,
         subnetId: String,
@@ -509,6 +537,7 @@ class Up(
         outputHandler.handleMessage("EMR cluster ready: ${readyResult.masterPublicDns}")
     }
 
+    /** Creates an OpenSearch domain in the VPC and waits for it to become active. */
     private fun createOpenSearchDomain(
         initConfig: InitConfig,
         subnetId: String,
@@ -555,6 +584,7 @@ class Up(
         outputHandler.handleMessage("Dashboards: ${activeResult.dashboardsEndpoint}")
     }
 
+    /** Generates a valid OpenSearch domain name (3-28 lowercase chars) from the cluster name. */
     private fun generateOpenSearchDomainName(clusterName: String): String {
         val baseName = clusterName.lowercase().replace(Regex("[^a-z0-9-]"), "-")
         val suffix = "-os"
@@ -568,6 +598,7 @@ class Up(
         return "$truncatedBase$suffix".trimEnd('-')
     }
 
+    /** Writes SSH config, environment files, and AxonOps configuration to the working directory. */
     private fun writeConfigurationFiles() {
         val config = File(context.workingDirectory, "sshConfig").bufferedWriter()
         ClusterConfigWriter.writeSshConfig(config, userConfig.sshKeyPath, workingState.hosts)
@@ -624,6 +655,7 @@ class Up(
         stressEnvironmentVars.close()
     }
 
+    /** Waits for SSH to become available on instances and downloads Cassandra version info. */
     private fun waitForSshAndDownloadVersions() {
         outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
@@ -659,6 +691,7 @@ class Up(
             }.run()
     }
 
+    /** Runs instance setup, K3s configuration, and optional AxonOps setup unless --no-setup. */
     private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
@@ -678,6 +711,7 @@ class Up(
         }
     }
 
+    /** Starts K3s server on control node and joins Cassandra/Stress nodes as agents. */
     @Suppress("ReturnCount")
     private fun startK3sOnAllNodes() {
         outputHandler.handleMessage("Starting K3s cluster...")
