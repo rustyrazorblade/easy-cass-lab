@@ -3,6 +3,67 @@
 - Do not add logging frameworks to command classes unless there is a specific internal debugging need separate from user output.
 - When logging is needed, use: `import io.github.oshai.kotlinlogging.KotlinLogging` and create a logger with `private val log = KotlinLogging.logger {}`
 
+## Project Organization
+
+### Architecture Overview
+
+The project follows a layered architecture with clear separation of concerns:
+
+```
+Commands (PicoCLI) → Services → External Systems (K8s, AWS, Filesystem)
+```
+
+### Layer Responsibilities
+
+**Commands (`commands/`)**: Lightweight PicoCLI execution units. Commands are thin wrappers that:
+- Parse CLI arguments and options
+- Delegate to service layers for actual work
+- Handle user-facing output via `outputHandler`
+- Should contain minimal business logic
+
+**Services (`services/`, `providers/`)**: Business logic layer that:
+- Interacts with Kubernetes clusters
+- Calls cloud provider APIs (AWS EC2, S3, IAM, etc.)
+- Manages filesystem operations
+- Contains the actual implementation logic
+
+### Dependency Injection
+
+Use **Koin** for dependency injection throughout the codebase:
+- Services are registered in Koin modules
+- Commands receive dependencies via Koin injection
+- Tests use `BaseKoinTest` which provides mocked dependencies
+
+### Design Principles
+
+Follow **SOLID principles**:
+- **S**ingle Responsibility: Each class has one reason to change
+- **O**pen/Closed: Open for extension, closed for modification
+- **L**iskov Substitution: Subtypes must be substitutable for base types
+- **I**nterface Segregation: Prefer small, focused interfaces
+- **D**ependency Inversion: Depend on abstractions, not concretions
+
+### Testing Approach
+
+Practice **reasonable TDD**:
+- Write tests for non-trivial code with meaningful behavior
+- Skip trivial tests on simple configs, small wrappers, and data classes
+- Review tests after writing to evaluate test quality
+- Focus on testing behavior, not implementation details
+
+**Quality tools workflow**:
+```bash
+# Find test coverage gaps
+./gradlew koverHtmlReport
+# Report at build/reports/kover/html/index.html
+
+# Format code before committing
+./gradlew ktlintFormat
+
+# Find potential code issues
+./gradlew detekt
+```
+
 ## Development Setup
 
 ### Pre-commit Hook Installation
