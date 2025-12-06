@@ -482,16 +482,17 @@ class Up(
         // Generate domain name from cluster name (must be 3-28 lowercase chars)
         val domainName = generateOpenSearchDomainName(initConfig.name)
 
-        val config = OpenSearchDomainConfig(
-            domainName = domainName,
-            instanceType = initConfig.opensearchInstanceType,
-            instanceCount = initConfig.opensearchInstanceCount,
-            ebsVolumeSize = initConfig.opensearchEbsSize,
-            engineVersion = "OpenSearch_${initConfig.opensearchVersion}",
-            subnetId = subnetId,
-            securityGroupIds = listOf(securityGroupId),
-            tags = tags,
-        )
+        val config =
+            OpenSearchDomainConfig(
+                domainName = domainName,
+                instanceType = initConfig.opensearchInstanceType,
+                instanceCount = initConfig.opensearchInstanceCount,
+                ebsVolumeSize = initConfig.opensearchEbsSize,
+                engineVersion = "OpenSearch_${initConfig.opensearchVersion}",
+                subnetId = subnetId,
+                securityGroupIds = listOf(securityGroupId),
+                tags = tags,
+            )
 
         val result = openSearchService.createDomain(config)
         val activeResult = openSearchService.waitForDomainActive(domainName)
@@ -515,11 +516,12 @@ class Up(
         val baseName = clusterName.lowercase().replace(Regex("[^a-z0-9-]"), "-")
         val suffix = "-os"
         val maxBaseLength = 28 - suffix.length
-        val truncatedBase = if (baseName.length > maxBaseLength) {
-            baseName.take(maxBaseLength)
-        } else {
-            baseName
-        }
+        val truncatedBase =
+            if (baseName.length > maxBaseLength) {
+                baseName.take(maxBaseLength)
+            } else {
+                baseName
+            }
         return "$truncatedBase$suffix".trimEnd('-')
     }
 

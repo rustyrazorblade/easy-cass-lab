@@ -15,8 +15,8 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.emr.EmrClient
 import software.amazon.awssdk.services.iam.IamClient
-import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.opensearch.OpenSearchClient
+import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sts.StsClient
 
 /**

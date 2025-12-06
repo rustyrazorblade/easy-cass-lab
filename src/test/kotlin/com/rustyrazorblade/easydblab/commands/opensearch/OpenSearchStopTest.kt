@@ -28,28 +28,31 @@ class OpenSearchStopTest : BaseKoinTest() {
     private lateinit var mockOpenSearchService: OpenSearchService
     private lateinit var mockClusterStateManager: ClusterStateManager
 
-    private val testControlHost = ClusterHost(
-        publicIp = "54.123.45.67",
-        privateIp = "10.0.1.5",
-        alias = "control0",
-        availabilityZone = "us-west-2a",
-        instanceId = "i-test123",
-    )
+    private val testControlHost =
+        ClusterHost(
+            publicIp = "54.123.45.67",
+            privateIp = "10.0.1.5",
+            alias = "control0",
+            availabilityZone = "us-west-2a",
+            instanceId = "i-test123",
+        )
 
-    private val testOpenSearchState = OpenSearchClusterState(
-        domainName = "test-cluster-os",
-        domainId = "123456789012/test-cluster-os",
-        endpoint = "search-test.us-west-2.es.amazonaws.com",
-        dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
-        state = "Active",
-    )
+    private val testOpenSearchState =
+        OpenSearchClusterState(
+            domainName = "test-cluster-os",
+            domainId = "123456789012/test-cluster-os",
+            endpoint = "search-test.us-west-2.es.amazonaws.com",
+            dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
+            state = "Active",
+        )
 
-    override fun additionalTestModules(): List<Module> = listOf(
-        module {
-            single { mock<OpenSearchService>().also { mockOpenSearchService = it } }
-            single { mock<ClusterStateManager>().also { mockClusterStateManager = it } }
-        },
-    )
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            module {
+                single { mock<OpenSearchService>().also { mockOpenSearchService = it } }
+                single { mock<ClusterStateManager>().also { mockClusterStateManager = it } }
+            },
+        )
 
     @BeforeEach
     fun setupMocks() {
@@ -66,14 +69,16 @@ class OpenSearchStopTest : BaseKoinTest() {
 
     @Test
     fun `execute should do nothing when no OpenSearch domain exists`() {
-        val stateWithoutOpenSearch = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(
-                ServerType.Control to listOf(testControlHost),
-            ),
-            openSearchDomain = null,
-        )
+        val stateWithoutOpenSearch =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mutableMapOf(
+                        ServerType.Control to listOf(testControlHost),
+                    ),
+                openSearchDomain = null,
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithoutOpenSearch)
 
@@ -86,14 +91,16 @@ class OpenSearchStopTest : BaseKoinTest() {
 
     @Test
     fun `execute without force flag should not delete domain`() {
-        val stateWithOpenSearch = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(
-                ServerType.Control to listOf(testControlHost),
-            ),
-            openSearchDomain = testOpenSearchState,
-        )
+        val stateWithOpenSearch =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mutableMapOf(
+                        ServerType.Control to listOf(testControlHost),
+                    ),
+                openSearchDomain = testOpenSearchState,
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 
@@ -106,14 +113,16 @@ class OpenSearchStopTest : BaseKoinTest() {
 
     @Test
     fun `execute with force flag should delete domain`() {
-        val stateWithOpenSearch = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(
-                ServerType.Control to listOf(testControlHost),
-            ),
-            openSearchDomain = testOpenSearchState,
-        )
+        val stateWithOpenSearch =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mutableMapOf(
+                        ServerType.Control to listOf(testControlHost),
+                    ),
+                openSearchDomain = testOpenSearchState,
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 
@@ -127,14 +136,16 @@ class OpenSearchStopTest : BaseKoinTest() {
 
     @Test
     fun `execute should clear OpenSearch state after deletion`() {
-        val stateWithOpenSearch = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(
-                ServerType.Control to listOf(testControlHost),
-            ),
-            openSearchDomain = testOpenSearchState,
-        )
+        val stateWithOpenSearch =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mutableMapOf(
+                        ServerType.Control to listOf(testControlHost),
+                    ),
+                openSearchDomain = testOpenSearchState,
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 

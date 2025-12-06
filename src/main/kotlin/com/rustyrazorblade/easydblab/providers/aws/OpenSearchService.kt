@@ -8,10 +8,10 @@ import software.amazon.awssdk.services.opensearch.model.ClusterConfig
 import software.amazon.awssdk.services.opensearch.model.CreateDomainRequest
 import software.amazon.awssdk.services.opensearch.model.DeleteDomainRequest
 import software.amazon.awssdk.services.opensearch.model.DescribeDomainRequest
-import software.amazon.awssdk.services.opensearch.model.ListDomainNamesRequest
 import software.amazon.awssdk.services.opensearch.model.DomainEndpointOptions
 import software.amazon.awssdk.services.opensearch.model.EBSOptions
 import software.amazon.awssdk.services.opensearch.model.EncryptionAtRestOptions
+import software.amazon.awssdk.services.opensearch.model.ListDomainNamesRequest
 import software.amazon.awssdk.services.opensearch.model.NodeToNodeEncryptionOptions
 import software.amazon.awssdk.services.opensearch.model.OpenSearchPartitionInstanceType
 import software.amazon.awssdk.services.opensearch.model.Tag
@@ -89,58 +89,75 @@ class OpenSearchService(
         log.info { "Creating OpenSearch domain: ${config.domainName}" }
         outputHandler.handleMessage("Creating OpenSearch domain: ${config.domainName}...")
 
-        val tags = config.tags.map { (key, value) ->
-            Tag.builder()
-                .key(key)
-                .value(value)
+        val tags =
+            config.tags.map { (key, value) ->
+                Tag
+                    .builder()
+                    .key(key)
+                    .value(value)
+                    .build()
+            }
+
+        val clusterConfig =
+            ClusterConfig
+                .builder()
+                .instanceType(OpenSearchPartitionInstanceType.fromValue(config.instanceType))
+                .instanceCount(config.instanceCount)
+                .dedicatedMasterEnabled(false)
+                .zoneAwarenessEnabled(false)
                 .build()
-        }
 
-        val clusterConfig = ClusterConfig.builder()
-            .instanceType(OpenSearchPartitionInstanceType.fromValue(config.instanceType))
-            .instanceCount(config.instanceCount)
-            .dedicatedMasterEnabled(false)
-            .zoneAwarenessEnabled(false)
-            .build()
+        val ebsOptions =
+            EBSOptions
+                .builder()
+                .ebsEnabled(true)
+                .volumeType(VolumeType.GP3)
+                .volumeSize(config.ebsVolumeSize)
+                .build()
 
-        val ebsOptions = EBSOptions.builder()
-            .ebsEnabled(true)
-            .volumeType(VolumeType.GP3)
-            .volumeSize(config.ebsVolumeSize)
-            .build()
+        val vpcOptions =
+            VPCOptions
+                .builder()
+                .subnetIds(config.subnetId)
+                .securityGroupIds(config.securityGroupIds)
+                .build()
 
-        val vpcOptions = VPCOptions.builder()
-            .subnetIds(config.subnetId)
-            .securityGroupIds(config.securityGroupIds)
-            .build()
+        val encryptionAtRest =
+            EncryptionAtRestOptions
+                .builder()
+                .enabled(true)
+                .build()
 
-        val encryptionAtRest = EncryptionAtRestOptions.builder()
-            .enabled(true)
-            .build()
+        val nodeToNode =
+            NodeToNodeEncryptionOptions
+                .builder()
+                .enabled(true)
+                .build()
 
-        val nodeToNode = NodeToNodeEncryptionOptions.builder()
-            .enabled(true)
-            .build()
+        val domainEndpointOptions =
+            DomainEndpointOptions
+                .builder()
+                .enforceHTTPS(true)
+                .build()
 
-        val domainEndpointOptions = DomainEndpointOptions.builder()
-            .enforceHTTPS(true)
-            .build()
+        val request =
+            CreateDomainRequest
+                .builder()
+                .domainName(config.domainName)
+                .engineVersion(config.engineVersion)
+                .clusterConfig(clusterConfig)
+                .ebsOptions(ebsOptions)
+                .vpcOptions(vpcOptions)
+                .encryptionAtRestOptions(encryptionAtRest)
+                .nodeToNodeEncryptionOptions(nodeToNode)
+                .domainEndpointOptions(domainEndpointOptions)
+                .tagList(tags)
+                .build()
 
-        val request = CreateDomainRequest.builder()
-            .domainName(config.domainName)
-            .engineVersion(config.engineVersion)
-            .clusterConfig(clusterConfig)
-            .ebsOptions(ebsOptions)
-            .vpcOptions(vpcOptions)
-            .encryptionAtRestOptions(encryptionAtRest)
-            .nodeToNodeEncryptionOptions(nodeToNode)
-            .domainEndpointOptions(domainEndpointOptions)
-            .tagList(tags)
-            .build()
-
-        val response = RetryUtil.withAwsRetry("create-opensearch-domain") {
-            openSearchClient.createDomain(request)
-        }
+        val response =
+            RetryUtil.withAwsRetry("create-opensearch-domain") {
+                openSearchClient.createDomain(request)
+            }
 
         val domainStatus = response.domainStatus()
 
@@ -163,21 +180,25 @@ class OpenSearchService(
      * @return Current domain status
      */
     fun describeDomain(domainName: String): OpenSearchDomainResult {
-        val request = DescribeDomainRequest.builder()
-            .domainName(domainName)
-            .build()
+        val request =
+            DescribeDomainRequest
+                .builder()
+                .domainName(domainName)
+                .build()
 
-        val response = RetryUtil.withAwsRetry("describe-opensearch-domain") {
-            openSearchClient.describeDomain(request)
-        }
+        val response =
+            RetryUtil.withAwsRetry("describe-opensearch-domain") {
+                openSearchClient.describeDomain(request)
+            }
 
         val domainStatus = response.domainStatus()
 
-        val state = when {
-            domainStatus.deleted() -> "Deleted"
-            domainStatus.processing() -> "Processing"
-            else -> "Active"
-        }
+        val state =
+            when {
+                domainStatus.deleted() -> "Deleted"
+                domainStatus.processing() -> "Processing"
+                else -> "Active"
+            }
 
         return OpenSearchDomainResult(
             domainName = domainStatus.domainName(),
@@ -197,9 +218,11 @@ class OpenSearchService(
         log.info { "Deleting OpenSearch domain: $domainName" }
         outputHandler.handleMessage("Deleting OpenSearch domain: $domainName...")
 
-        val request = DeleteDomainRequest.builder()
-            .domainName(domainName)
-            .build()
+        val request =
+            DeleteDomainRequest
+                .builder()
+                .domainName(domainName)
+                .build()
 
         RetryUtil.withAwsRetry("delete-opensearch-domain") {
             openSearchClient.deleteDomain(request)
@@ -296,9 +319,10 @@ class OpenSearchService(
 
         // List all domain names in the account
         val listRequest = ListDomainNamesRequest.builder().build()
-        val domainNames = RetryUtil.withAwsRetry("list-opensearch-domains") {
-            openSearchClient.listDomainNames(listRequest).domainNames().map { it.domainName() }
-        }
+        val domainNames =
+            RetryUtil.withAwsRetry("list-opensearch-domains") {
+                openSearchClient.listDomainNames(listRequest).domainNames().map { it.domainName() }
+            }
 
         if (domainNames.isEmpty()) {
             return emptyList()
@@ -308,13 +332,16 @@ class OpenSearchService(
         val domainsInVpc = mutableListOf<String>()
         for (domainName in domainNames) {
             try {
-                val describeRequest = DescribeDomainRequest.builder()
-                    .domainName(domainName)
-                    .build()
+                val describeRequest =
+                    DescribeDomainRequest
+                        .builder()
+                        .domainName(domainName)
+                        .build()
 
-                val domain = RetryUtil.withAwsRetry("describe-opensearch-domain") {
-                    openSearchClient.describeDomain(describeRequest).domainStatus()
-                }
+                val domain =
+                    RetryUtil.withAwsRetry("describe-opensearch-domain") {
+                        openSearchClient.describeDomain(describeRequest).domainStatus()
+                    }
 
                 // Check if the domain's VPC config includes our subnets
                 val domainSubnets = domain.vpcOptions()?.subnetIds() ?: emptyList()

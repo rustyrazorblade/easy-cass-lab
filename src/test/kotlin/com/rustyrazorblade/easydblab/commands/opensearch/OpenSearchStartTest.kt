@@ -30,28 +30,31 @@ class OpenSearchStartTest : BaseKoinTest() {
     private lateinit var mockOpenSearchService: OpenSearchService
     private lateinit var mockClusterStateManager: ClusterStateManager
 
-    private val testControlHost = ClusterHost(
-        publicIp = "54.123.45.67",
-        privateIp = "10.0.1.5",
-        alias = "control0",
-        availabilityZone = "us-west-2a",
-        instanceId = "i-test123",
-    )
+    private val testControlHost =
+        ClusterHost(
+            publicIp = "54.123.45.67",
+            privateIp = "10.0.1.5",
+            alias = "control0",
+            availabilityZone = "us-west-2a",
+            instanceId = "i-test123",
+        )
 
-    private val testDbHost = ClusterHost(
-        publicIp = "54.123.45.68",
-        privateIp = "10.0.1.6",
-        alias = "db0",
-        availabilityZone = "us-west-2a",
-        instanceId = "i-test124",
-    )
+    private val testDbHost =
+        ClusterHost(
+            publicIp = "54.123.45.68",
+            privateIp = "10.0.1.6",
+            alias = "db0",
+            availabilityZone = "us-west-2a",
+            instanceId = "i-test124",
+        )
 
-    override fun additionalTestModules(): List<Module> = listOf(
-        module {
-            single { mock<OpenSearchService>().also { mockOpenSearchService = it } }
-            single { mock<ClusterStateManager>().also { mockClusterStateManager = it } }
-        },
-    )
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            module {
+                single { mock<OpenSearchService>().also { mockOpenSearchService = it } }
+                single { mock<ClusterStateManager>().also { mockClusterStateManager = it } }
+            },
+        )
 
     @BeforeEach
     fun setupMocks() {
@@ -61,12 +64,13 @@ class OpenSearchStartTest : BaseKoinTest() {
 
     @Test
     fun `execute should fail when infrastructure is not ready`() {
-        val stateWithoutInfrastructure = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(),
-            infrastructure = null,
-        )
+        val stateWithoutInfrastructure =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts = mutableMapOf(),
+                infrastructure = null,
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithoutInfrastructure)
 
@@ -79,18 +83,21 @@ class OpenSearchStartTest : BaseKoinTest() {
 
     @Test
     fun `execute should fail when no subnet available`() {
-        val stateWithEmptySubnets = ClusterState(
-            name = "test-cluster",
-            versions = mutableMapOf(),
-            hosts = mutableMapOf(
-                ServerType.Control to listOf(testControlHost),
-            ),
-            infrastructure = InfrastructureState(
-                vpcId = "vpc-123",
-                subnetIds = emptyList(),
-                securityGroupId = "sg-123",
-            ),
-        )
+        val stateWithEmptySubnets =
+            ClusterState(
+                name = "test-cluster",
+                versions = mutableMapOf(),
+                hosts =
+                    mutableMapOf(
+                        ServerType.Control to listOf(testControlHost),
+                    ),
+                infrastructure =
+                    InfrastructureState(
+                        vpcId = "vpc-123",
+                        subnetIds = emptyList(),
+                        securityGroupId = "sg-123",
+                    ),
+            )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithEmptySubnets)
 
@@ -103,13 +110,14 @@ class OpenSearchStartTest : BaseKoinTest() {
 
     @Test
     fun `execute should create domain with correct configuration`() {
-        val domainResult = OpenSearchDomainResult(
-            domainName = "test-cluster-opensearch",
-            domainId = "123456789012/test-cluster-opensearch",
-            endpoint = "search-test.us-west-2.es.amazonaws.com",
-            dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
-            state = "Active",
-        )
+        val domainResult =
+            OpenSearchDomainResult(
+                domainName = "test-cluster-opensearch",
+                domainId = "123456789012/test-cluster-opensearch",
+                endpoint = "search-test.us-west-2.es.amazonaws.com",
+                dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
+                state = "Active",
+            )
 
         val stateWithInfrastructure = createValidClusterState()
 
@@ -128,13 +136,14 @@ class OpenSearchStartTest : BaseKoinTest() {
 
     @Test
     fun `execute should skip waiting when skipWait is true`() {
-        val domainResult = OpenSearchDomainResult(
-            domainName = "test-cluster-opensearch",
-            domainId = "123456789012/test-cluster-opensearch",
-            endpoint = null,
-            dashboardsEndpoint = null,
-            state = "Processing",
-        )
+        val domainResult =
+            OpenSearchDomainResult(
+                domainName = "test-cluster-opensearch",
+                domainId = "123456789012/test-cluster-opensearch",
+                endpoint = null,
+                dashboardsEndpoint = null,
+                state = "Processing",
+            )
 
         val stateWithInfrastructure = createValidClusterState()
 
@@ -151,13 +160,14 @@ class OpenSearchStartTest : BaseKoinTest() {
 
     @Test
     fun `execute should use custom instance type`() {
-        val domainResult = OpenSearchDomainResult(
-            domainName = "test-cluster-opensearch",
-            domainId = "123456789012/test-cluster-opensearch",
-            endpoint = "search-test.us-west-2.es.amazonaws.com",
-            dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
-            state = "Active",
-        )
+        val domainResult =
+            OpenSearchDomainResult(
+                domainName = "test-cluster-opensearch",
+                domainId = "123456789012/test-cluster-opensearch",
+                endpoint = "search-test.us-west-2.es.amazonaws.com",
+                dashboardsEndpoint = "https://search-test.us-west-2.es.amazonaws.com/_dashboards",
+                state = "Active",
+            )
 
         val stateWithInfrastructure = createValidClusterState()
 
@@ -172,21 +182,25 @@ class OpenSearchStartTest : BaseKoinTest() {
         verify(mockOpenSearchService).createDomain(any())
     }
 
-    private fun createValidClusterState(): ClusterState = ClusterState(
-        name = "test-cluster",
-        versions = mutableMapOf(),
-        hosts = mutableMapOf(
-            ServerType.Control to listOf(testControlHost),
-            ServerType.Cassandra to listOf(testDbHost),
-        ),
-        infrastructure = InfrastructureState(
-            vpcId = "vpc-123",
-            subnetIds = listOf("subnet-123"),
-            securityGroupId = "sg-123",
-        ),
-        initConfig = InitConfig(
+    private fun createValidClusterState(): ClusterState =
+        ClusterState(
             name = "test-cluster",
-            region = "us-west-2",
-        ),
-    )
+            versions = mutableMapOf(),
+            hosts =
+                mutableMapOf(
+                    ServerType.Control to listOf(testControlHost),
+                    ServerType.Cassandra to listOf(testDbHost),
+                ),
+            infrastructure =
+                InfrastructureState(
+                    vpcId = "vpc-123",
+                    subnetIds = listOf("subnet-123"),
+                    securityGroupId = "sg-123",
+                ),
+            initConfig =
+                InitConfig(
+                    name = "test-cluster",
+                    region = "us-west-2",
+                ),
+        )
 }

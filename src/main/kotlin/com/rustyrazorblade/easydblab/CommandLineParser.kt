@@ -48,11 +48,11 @@ import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStart
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStatus
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStop
 import com.rustyrazorblade.easydblab.commands.k8.K8
+import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearch
 import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStart
 import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStatus
 import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStop
-import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.spark.Spark
 import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
 import com.rustyrazorblade.easydblab.commands.spark.SparkLogs

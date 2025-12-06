@@ -66,33 +66,38 @@ class OpenSearchStart(
 
     override fun execute() {
         // Validate infrastructure is ready
-        val infrastructure = clusterState.infrastructure
-            ?: error("Infrastructure not ready. Please run 'up' first.")
+        val infrastructure =
+            clusterState.infrastructure
+                ?: error("Infrastructure not ready. Please run 'up' first.")
 
-        val subnetId = infrastructure.subnetIds.firstOrNull()
-            ?: error("No subnet found in infrastructure. Please run 'up' first.")
+        val subnetId =
+            infrastructure.subnetIds.firstOrNull()
+                ?: error("No subnet found in infrastructure. Please run 'up' first.")
 
-        val securityGroupId = infrastructure.securityGroupId
-            ?: error("No security group found in infrastructure. Please run 'up' first.")
+        val securityGroupId =
+            infrastructure.securityGroupId
+                ?: error("No security group found in infrastructure. Please run 'up' first.")
 
         // Generate domain name from cluster name (must be 3-28 lowercase chars)
         val domainName = generateDomainName(clusterState.name)
 
         log.info { "Creating OpenSearch domain: $domainName" }
 
-        val config = OpenSearchDomainConfig(
-            domainName = domainName,
-            instanceType = instanceType,
-            instanceCount = instanceCount,
-            ebsVolumeSize = ebsSize,
-            engineVersion = "OpenSearch_$version",
-            subnetId = subnetId,
-            securityGroupIds = listOf(securityGroupId),
-            tags = mapOf(
-                Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE,
-                "ClusterId" to clusterState.clusterId,
-            ),
-        )
+        val config =
+            OpenSearchDomainConfig(
+                domainName = domainName,
+                instanceType = instanceType,
+                instanceCount = instanceCount,
+                ebsVolumeSize = ebsSize,
+                engineVersion = "OpenSearch_$version",
+                subnetId = subnetId,
+                securityGroupIds = listOf(securityGroupId),
+                tags =
+                    mapOf(
+                        Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE,
+                        "ClusterId" to clusterState.clusterId,
+                    ),
+            )
 
         val result = openSearchService.createDomain(config)
 
@@ -135,15 +140,19 @@ class OpenSearchStart(
         val baseName = clusterName.lowercase().replace(Regex("[^a-z0-9-]"), "-")
         val suffix = "-os"
         val maxBaseLength = Constants.OpenSearch.DOMAIN_NAME_MAX_LENGTH - suffix.length
-        val truncatedBase = if (baseName.length > maxBaseLength) {
-            baseName.take(maxBaseLength)
-        } else {
-            baseName
-        }
+        val truncatedBase =
+            if (baseName.length > maxBaseLength) {
+                baseName.take(maxBaseLength)
+            } else {
+                baseName
+            }
         return "$truncatedBase$suffix".trimEnd('-')
     }
 
-    private fun displayAccessInfo(endpoint: String?, dashboardsEndpoint: String?) {
+    private fun displayAccessInfo(
+        endpoint: String?,
+        dashboardsEndpoint: String?,
+    ) {
         outputHandler.handleMessage("")
         outputHandler.handleMessage("OpenSearch domain created successfully!")
         outputHandler.handleMessage("")

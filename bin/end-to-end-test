@@ -18,6 +18,7 @@ BUILD_IMAGE=false
 ENABLE_SPARK=false
 ENABLE_CASSANDRA=false
 ENABLE_CLICKHOUSE=false
+ENABLE_OPENSEARCH=false
 USE_EBS=false
 EXIT_OK=false
 LIST_STEPS=false
@@ -52,10 +53,15 @@ while [[ $# -gt 0 ]]; do
       ENABLE_CLICKHOUSE=true
       shift
       ;;
+    --opensearch)
+      ENABLE_OPENSEARCH=true
+      shift
+      ;;
     --all)
       ENABLE_SPARK=true
       ENABLE_CASSANDRA=true
       ENABLE_CLICKHOUSE=true
+      ENABLE_OPENSEARCH=true
       shift
       ;;
     --ebs)
@@ -64,7 +70,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--list-steps|-l] [--break <steps>] [--wait] [--build] [--spark] [--cassandra] [--clickhouse] [--all] [--ebs]"
+      echo "Usage: $0 [--list-steps|-l] [--break <steps>] [--wait] [--build] [--spark] [--cassandra] [--clickhouse] [--opensearch] [--all] [--ebs]"
       exit 1
       ;;
   esac
@@ -372,6 +378,60 @@ step_clickhouse_stop() {
     done
 }
 
+step_opensearch_start() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch deployment (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Deploying OpenSearch domain ==="
+    easy-db-lab opensearch start
+
+    echo "=== Checking OpenSearch domain status ==="
+    easy-db-lab opensearch status
+}
+
+step_opensearch_test() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch test (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Testing OpenSearch connectivity ==="
+
+    # Get endpoint using --endpoint flag
+    local endpoint=$(easy-db-lab opensearch status --endpoint)
+    if [ -z "$endpoint" ]; then
+        echo "ERROR: Could not get OpenSearch endpoint"
+        return 1
+    fi
+
+    echo "=== OpenSearch endpoint: $endpoint ==="
+
+    # Test cluster health via control node
+    echo "=== Testing cluster health ==="
+    ssh control0 "curl -s -k https://${endpoint}/_cluster/health" | jq .
+
+    # Create test index
+    echo "=== Creating test index ==="
+    ssh control0 "curl -s -k -X PUT https://${endpoint}/test-index"
+
+    # Insert test document
+    echo "=== Inserting test document ==="
+    ssh control0 "curl -s -k -X POST https://${endpoint}/test-index/_doc/1 -H 'Content-Type: application/json' -d '{\"message\": \"hello from e2e test\"}'"
+
+    # Verify document
+    echo "=== Verifying test document ==="
+    ssh control0 "curl -s -k https://${endpoint}/test-index/_doc/1" | jq .
+}
+
+step_opensearch_stop() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch stop (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Stopping OpenSearch domain ==="
+    easy-db-lab opensearch stop --force
+}
+
 step_teardown() {
     echo "=== Tearing down cluster ==="
     easy-db-lab down --yes
@@ -410,6 +470,9 @@ STEPS_WORKDIR=(
     "step_clickhouse_start:Start ClickHouse"
     "step_clickhouse_test:Test ClickHouse"
     "step_clickhouse_stop:Stop ClickHouse"
+    "step_opensearch_start:Start OpenSearch"
+    "step_opensearch_test:Test OpenSearch"
+    "step_opensearch_stop:Stop OpenSearch"
     "step_teardown:Teardown cluster"
 )
 
