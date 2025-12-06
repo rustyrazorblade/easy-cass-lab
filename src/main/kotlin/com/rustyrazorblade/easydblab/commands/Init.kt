@@ -47,14 +47,14 @@ class Init(
     }
 
     @Option(
-        names = ["--cassandra", "-c"],
-        description = ["Number of Cassandra instances"],
+        names = ["--db", "--cassandra", "-c"],
+        description = ["Number of database instances"],
     )
     var cassandraInstances = DEFAULT_CASSANDRA_INSTANCE_COUNT
 
     @Option(
-        names = ["--stress", "-s"],
-        description = ["Number of stress instances"],
+        names = ["--app", "--stress", "-s"],
+        description = ["Number of application instances"],
     )
     var stressInstances = 0
 

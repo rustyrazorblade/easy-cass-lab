@@ -14,6 +14,7 @@ import com.rustyrazorblade.easydblab.kubernetes.getLocalKubeconfigPath
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.output.displayClickHouseAccess
 import com.rustyrazorblade.easydblab.output.displayObservabilityAccess
+import com.rustyrazorblade.easydblab.output.displayRegistryAccess
 import com.rustyrazorblade.easydblab.output.displayS3ManagerAccess
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
@@ -87,6 +88,7 @@ class Status(
         displayObservabilitySection()
         displayClickHouseSection()
         displayS3ManagerSection()
+        displayRegistrySection()
         displayCassandraVersionSection()
     }
 
@@ -401,6 +403,21 @@ class Status(
         }
 
         outputHandler.displayS3ManagerAccess(controlHost.privateIp, clusterState.s3Bucket ?: "")
+    }
+
+    /**
+     * Display container registry access information if K3s is initialized
+     */
+    private fun displayRegistrySection() {
+        val controlHost = clusterState.getControlHost() ?: return
+
+        // Check if kubeconfig exists locally (indicates K3s is initialized)
+        val kubeconfigPath = getLocalKubeconfigPath(context.workingDirectory.absolutePath)
+        if (!File(kubeconfigPath).exists()) {
+            return
+        }
+
+        outputHandler.displayRegistryAccess(controlHost.privateIp)
     }
 
     /**

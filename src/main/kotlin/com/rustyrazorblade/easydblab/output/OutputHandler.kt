@@ -518,3 +518,39 @@ fun OutputHandler.displayS3ManagerClickHouseAccess(
     handleMessage("S3 Manager:")
     handleMessage("  ClickHouse Data: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName/clickhouse/")
 }
+
+/**
+ * Display container registry access information with Jib push instructions.
+ * @param controlNodeIp IP address of the control node where the registry runs
+ * @param socksPort SOCKS5 proxy port (defaults to 1080)
+ */
+fun OutputHandler.displayRegistryAccess(
+    controlNodeIp: String,
+    socksPort: Int = Constants.Proxy.DEFAULT_SOCKS5_PORT,
+) {
+    val registryUrl = "$controlNodeIp:${Constants.K8s.REGISTRY_PORT}"
+    handleMessage(
+        """
+        |
+        |=== CONTAINER REGISTRY ===
+        |Registry URL: $registryUrl
+        |
+        |Push images with Gradle Jib (no build.gradle changes required):
+        |
+        |  1. Ensure SOCKS proxy is running:
+        |     source env.sh
+        |
+        |  2. Build and push:
+        |     ./gradlew jib \
+        |       -Djib.to.image=$registryUrl/your-image:tag \
+        |       -Djib.allowInsecureRegistries=true \
+        |       -Djib.httpTimeout=60000 \
+        |       -DsocksProxyHost=localhost \
+        |       -DsocksProxyPort=$socksPort
+        |
+        |  Or use environment variable:
+        |     export JAVA_TOOL_OPTIONS="-DsocksProxyHost=localhost -DsocksProxyPort=$socksPort"
+        |     ./gradlew jib -Djib.to.image=$registryUrl/your-image:tag -Djib.allowInsecureRegistries=true
+        """.trimMargin(),
+    )
+}

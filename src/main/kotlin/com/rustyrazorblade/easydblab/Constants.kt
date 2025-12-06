@@ -192,6 +192,7 @@ object Constants {
         const val GRAFANA_PORT = 3000
         const val PROMETHEUS_PORT = 9090
         const val S3MANAGER_PORT = 8080
+        const val REGISTRY_PORT = 5000
     }
 
     // ClickHouse configuration
