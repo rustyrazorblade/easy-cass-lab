@@ -183,7 +183,7 @@ class InfrastructureTeardownService(
 
             // Execute teardown steps in order
             if (!terminateEmrClusters(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
-            deleteOpenSearchDomains(resources, errors)
+            if (!deleteOpenSearchDomains(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
             if (!terminateEc2Instances(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
             deleteNatGateways(resources, errors)
             revokeAllSecurityGroupRules(resources, errors)
@@ -223,23 +223,34 @@ class InfrastructureTeardownService(
     private fun deleteOpenSearchDomains(
         resources: DiscoveredResources,
         errors: MutableList<String>,
-    ) {
-        if (resources.openSearchDomainNames.isEmpty()) return
+    ): Boolean {
+        if (resources.openSearchDomainNames.isEmpty()) return true
 
         outputHandler.handleMessage("Deleting ${resources.openSearchDomainNames.size} OpenSearch domains...")
+
+        val domainsToWait = mutableListOf<String>()
 
         resources.openSearchDomainNames.forEach { domainName ->
             try {
                 openSearchService.deleteDomain(domainName)
+                domainsToWait.add(domainName)
             } catch (e: Exception) {
                 errors.add(logError("Failed to delete OpenSearch domain $domainName", e))
             }
         }
 
-        // Note: OpenSearch domain deletion is asynchronous and can take several minutes.
-        // We don't wait for completion to avoid blocking the teardown, but the security
-        // group and subnet deletion may fail if the domain is still being deleted.
-        // In that case, running 'down' again should succeed once the domain is fully deleted.
+        // Wait for all domains to be fully deleted before proceeding
+        // OpenSearch domains have ENIs in the VPC that block security group/subnet deletion
+        domainsToWait.forEach { domainName ->
+            try {
+                openSearchService.waitForDomainDeleted(domainName)
+            } catch (e: Exception) {
+                errors.add(logError("Failed waiting for OpenSearch domain $domainName to delete", e))
+                return false
+            }
+        }
+
+        return true
     }
 
     @Suppress("TooGenericExceptionCaught")

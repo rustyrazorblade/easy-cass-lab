@@ -294,6 +294,62 @@ class OpenSearchService(
     }
 
     /**
+     * Waits for an OpenSearch domain to be fully deleted.
+     *
+     * OpenSearch domains take 10-20+ minutes to fully delete. This method
+     * polls the domain status until it no longer exists or times out.
+     *
+     * @param domainName The domain name
+     * @param timeoutMs Maximum time to wait in milliseconds (default: 45 minutes)
+     * @param pollIntervalMs Interval between status checks (default: 30 seconds)
+     * @throws IllegalStateException if timeout is exceeded
+     */
+    fun waitForDomainDeleted(
+        domainName: String,
+        timeoutMs: Long = Constants.OpenSearch.MAX_POLL_TIMEOUT_MS,
+        pollIntervalMs: Long = Constants.OpenSearch.POLL_INTERVAL_MS,
+    ) {
+        log.info { "Waiting for OpenSearch domain $domainName to be deleted..." }
+        outputHandler.handleMessage("Waiting for OpenSearch domain $domainName to be deleted (this may take 10-20 minutes)...")
+
+        val startTime = System.currentTimeMillis()
+        var pollCount = 0
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            pollCount++
+
+            try {
+                val result = describeDomain(domainName)
+                when (result.state) {
+                    "Deleted" -> {
+                        log.info { "OpenSearch domain $domainName is deleted" }
+                        outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+                        return
+                    }
+                    else -> {
+                        if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
+                            val elapsedMinutes =
+                                (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
+                            outputHandler.handleMessage(
+                                "Domain still deleting... ($elapsedMinutes minutes elapsed)",
+                            )
+                        }
+                    }
+                }
+            } catch (e: software.amazon.awssdk.services.opensearch.model.ResourceNotFoundException) {
+                // Domain no longer exists - deletion complete
+                log.info { "OpenSearch domain $domainName no longer exists (deleted)" }
+                outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+                return
+            }
+
+            Thread.sleep(pollIntervalMs)
+        }
+
+        error("Timeout waiting for OpenSearch domain $domainName to be deleted after ${timeoutMs}ms")
+    }
+
+    /**
      * Constructs the OpenSearch Dashboards URL from the domain endpoint.
      *
      * @param endpoint The domain REST API endpoint
