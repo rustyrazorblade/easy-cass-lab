@@ -348,6 +348,7 @@ class Down(
                 clusterState.markInfrastructureDown()
                 clusterState.updateHosts(emptyMap())
                 clusterState.updateEmrCluster(null)
+                clusterState.updateOpenSearchDomain(null)
                 clusterState.updateInfrastructure(null)
                 clusterStateManager.save(clusterState)
                 outputHandler.handleMessage("Cluster state updated: infrastructure marked as DOWN")

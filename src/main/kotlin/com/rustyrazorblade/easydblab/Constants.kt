@@ -23,6 +23,7 @@ object Constants {
 
     // Time-related constants
     object Time {
+        const val SECONDS_PER_MINUTE = 60
         const val MILLIS_PER_SECOND = 1000L
         const val MILLIS_PER_MINUTE = 60_000L
         const val THREAD_SLEEP_DELAY_MS = 10L
@@ -191,6 +192,7 @@ object Constants {
 
     // K8s observability configuration
     object K8s {
+        const val PATH_PREFIX = "/k8s/"
         const val NAMESPACE = "default"
         const val MANIFEST_DIR = "k8s"
         const val RESOURCE_PACKAGE = "com.rustyrazorblade.easydblab.commands.k8s"
@@ -198,6 +200,19 @@ object Constants {
         const val PROMETHEUS_PORT = 9090
         const val S3MANAGER_PORT = 8080
         const val REGISTRY_PORT = 5000
+    }
+
+    // OpenSearch configuration
+    object OpenSearch {
+        const val DEFAULT_VERSION = "2.11"
+        const val DEFAULT_INSTANCE_TYPE = "t3.small.search"
+        const val DEFAULT_INSTANCE_COUNT = 1
+        const val DEFAULT_EBS_SIZE_GB = 100
+        const val MINIMUM_NODES_REQUIRED = 1
+        const val POLL_INTERVAL_MS = 30_000L // 30 seconds - domains take 10-30 min to create
+        const val MAX_POLL_TIMEOUT_MS = 45 * 60 * 1000L // 45 minutes max wait
+        const val LOG_INTERVAL_POLLS = 2 // Log every 2 polls (60 seconds at 30s interval)
+        const val DOMAIN_NAME_MAX_LENGTH = 28 // AWS OpenSearch domain names must be 3-28 lowercase chars
     }
 
     // ClickHouse configuration

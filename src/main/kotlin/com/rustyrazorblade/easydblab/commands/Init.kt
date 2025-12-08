@@ -7,6 +7,7 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.converters.PicoAZConverter
+import com.rustyrazorblade.easydblab.commands.mixins.OpenSearchInitMixin
 import com.rustyrazorblade.easydblab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easydblab.configuration.Arch
 import com.rustyrazorblade.easydblab.configuration.ClusterState
@@ -145,6 +146,9 @@ class Init(
 
     @Mixin
     var spark = SparkInitMixin()
+
+    @Mixin
+    var opensearch = OpenSearchInitMixin()
 
     @Option(
         names = ["--tag."],
@@ -293,24 +297,26 @@ class Init(
                     scanResult.getResourcesWithExtension("yaml") +
                         scanResult.getResourcesWithExtension("yml")
 
-                for (resource in yamlResources) {
-                    // Extract relative path: "com/rustyrazorblade/.../k8s/core/file.yaml" -> "core/file.yaml"
-                    val resourcePath = resource.path
-                    val k8sIndex = resourcePath.indexOf("/k8s/")
-                    if (k8sIndex == -1) continue
-
-                    val relativePath = resourcePath.substring(k8sIndex + 5) // Skip "/k8s/"
-                    val targetFile = File(Constants.K8s.MANIFEST_DIR, relativePath)
-
-                    targetFile.parentFile?.mkdirs()
-
-                    resource.open().use { input ->
-                        targetFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
+                yamlResources.forEach { resource ->
+                    extractK8sResource(resource)
                 }
             }
+    }
+
+    private fun extractK8sResource(resource: io.github.classgraph.Resource) {
+        val resourcePath = resource.path
+        val k8sIndex = resourcePath.indexOf(Constants.K8s.PATH_PREFIX)
+        if (k8sIndex == -1) return
+
+        val relativePath = resourcePath.substring(k8sIndex + Constants.K8s.PATH_PREFIX.length)
+        val targetFile = File(Constants.K8s.MANIFEST_DIR, relativePath)
+
+        targetFile.parentFile?.mkdirs()
+        resource.open().use { input ->
+            targetFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
     }
 
     private fun extractResourceFile(

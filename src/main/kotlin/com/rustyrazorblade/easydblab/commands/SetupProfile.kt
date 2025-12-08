@@ -395,7 +395,7 @@ class SetupProfile(
                 .credentialsProvider(credentialsProvider)
                 .build()
 
-        return AWS(iamClient, s3Client, stsClient, outputHandler)
+        return AWS(iamClient, s3Client, stsClient)
     }
 
     /**

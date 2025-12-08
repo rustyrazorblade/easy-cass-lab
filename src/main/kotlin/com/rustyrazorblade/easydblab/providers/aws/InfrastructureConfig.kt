@@ -3,6 +3,30 @@ package com.rustyrazorblade.easydblab.providers.aws
 import com.rustyrazorblade.easydblab.Constants
 
 /**
+ * Configuration for setting up networking within an existing VPC.
+ *
+ * Used when the VPC already exists (e.g., created by terraform or init-config)
+ * and we need to set up subnets, security groups, and routing.
+ *
+ * @property vpcId The ID of the existing VPC
+ * @property clusterName Name of the cluster (used for resource naming)
+ * @property clusterId Unique cluster ID (used for tagging)
+ * @property region AWS region (used to construct full AZ names)
+ * @property availabilityZones List of availability zone suffixes (e.g., ["a", "b", "c"])
+ * @property isOpen Whether the cluster allows SSH from anywhere (0.0.0.0/0) or just the user's IP
+ * @property tags Additional tags to apply to resources
+ */
+data class VpcNetworkingConfig(
+    val vpcId: String,
+    val clusterName: String,
+    val clusterId: String,
+    val region: String,
+    val availabilityZones: List<String>,
+    val isOpen: Boolean,
+    val tags: Map<String, String> = emptyMap(),
+)
+
+/**
  * Configuration for a subnet to be created within a VPC.
  *
  * @property name Name tag for the subnet

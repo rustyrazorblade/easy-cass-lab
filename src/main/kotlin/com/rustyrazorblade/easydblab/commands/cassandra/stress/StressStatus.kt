@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.cassandra.stress
 
+import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
@@ -84,8 +85,8 @@ class StressStatus(
      */
     private fun formatDuration(duration: Duration): String {
         val hours = duration.toHours()
-        val minutes = duration.toMinutes() % 60
-        val seconds = duration.seconds % 60
+        val minutes = duration.toMinutes() % Constants.Time.SECONDS_PER_MINUTE
+        val seconds = duration.seconds % Constants.Time.SECONDS_PER_MINUTE
 
         return when {
             hours > 0 -> "${hours}h${if (minutes > 0) "${minutes}m" else ""}"

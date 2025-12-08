@@ -18,6 +18,7 @@ BUILD_IMAGE=false
 ENABLE_SPARK=false
 ENABLE_CASSANDRA=false
 ENABLE_CLICKHOUSE=false
+ENABLE_OPENSEARCH=false
 USE_EBS=false
 EXIT_OK=false
 LIST_STEPS=false
@@ -52,10 +53,15 @@ while [[ $# -gt 0 ]]; do
       ENABLE_CLICKHOUSE=true
       shift
       ;;
+    --opensearch)
+      ENABLE_OPENSEARCH=true
+      shift
+      ;;
     --all)
       ENABLE_SPARK=true
       ENABLE_CASSANDRA=true
       ENABLE_CLICKHOUSE=true
+      ENABLE_OPENSEARCH=true
       shift
       ;;
     --ebs)
@@ -64,19 +70,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $0 [--list-steps|-l] [--break <steps>] [--wait] [--build] [--spark] [--cassandra] [--clickhouse] [--all] [--ebs]"
+      echo "Usage: $0 [--list-steps|-l] [--break <steps>] [--wait] [--build] [--spark] [--cassandra] [--clickhouse] [--opensearch] [--all] [--ebs]"
       exit 1
       ;;
   esac
 done
-
-# Check if SOCKS tunnel is running (interferes with AWS API calls)
-# Skip this check if we're just listing steps
-if [ "$LIST_STEPS" != true ] && pgrep -f "ssh.*-D.*1080" > /dev/null 2>&1; then
-  echo "ERROR: SOCKS5 tunnel is currently running and will interfere with AWS API calls."
-  echo "Please stop it first with: socks5-stop"
-  exit 1
-fi
 
 # ============================================================================
 # Test Step Functions
@@ -372,6 +370,62 @@ step_clickhouse_stop() {
     done
 }
 
+step_opensearch_start() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch deployment (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Deploying OpenSearch domain (this takes 10-30 minutes) ==="
+    easy-db-lab opensearch start --wait
+
+    echo "=== Checking OpenSearch domain status ==="
+
+    # should be ready
+    easy-db-lab opensearch status
+}
+
+step_opensearch_test() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch test (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Testing OpenSearch connectivity ==="
+
+    # Get endpoint using --endpoint flag
+    local endpoint=$(easy-db-lab opensearch status --endpoint)
+    if [ -z "$endpoint" ]; then
+        echo "ERROR: Could not get OpenSearch endpoint"
+        return 1
+    fi
+
+    echo "=== OpenSearch endpoint: $endpoint ==="
+
+    # Test cluster health via control node
+    echo "=== Testing cluster health ==="
+    ssh control0 "curl -s -k https://${endpoint}/_cluster/health" | jq .
+
+    # Create test index
+    echo "=== Creating test index ==="
+    ssh control0 "curl -s -k -X PUT https://${endpoint}/test-index"
+
+    # Insert test document
+    echo "=== Inserting test document ==="
+    ssh control0 "curl -s -k -X POST https://${endpoint}/test-index/_doc/1 -H 'Content-Type: application/json' -d '{\"message\": \"hello from e2e test\"}'"
+
+    # Verify document
+    echo "=== Verifying test document ==="
+    ssh control0 "curl -s -k https://${endpoint}/test-index/_doc/1" | jq .
+}
+
+step_opensearch_stop() {
+    if [ "$ENABLE_OPENSEARCH" != true ]; then
+        echo "=== Skipping OpenSearch stop (use --opensearch to enable) ==="
+        return 0
+    fi
+    echo "=== Stopping OpenSearch domain ==="
+    easy-db-lab opensearch stop --force
+}
+
 step_teardown() {
     echo "=== Tearing down cluster ==="
     easy-db-lab down --yes
@@ -410,6 +464,9 @@ STEPS_WORKDIR=(
     "step_clickhouse_start:Start ClickHouse"
     "step_clickhouse_test:Test ClickHouse"
     "step_clickhouse_stop:Stop ClickHouse"
+    "step_opensearch_start:Start OpenSearch"
+    "step_opensearch_test:Test OpenSearch"
+    "step_opensearch_stop:Stop OpenSearch"
     "step_teardown:Teardown cluster"
 )
 
@@ -476,7 +533,12 @@ run_from_step() {
             popd > /dev/null
         else
             pushd "$TEST_WORKDIR" > /dev/null
-            [ -f env.sh ] && source env.sh
+            # Only source env.sh for steps after step_setup_kubectl (index 5)
+            # Earlier steps either don't need it or source it themselves
+            local setup_kubectl_index=$((PROJECT_ROOT_STEP_COUNT + 2))  # step_setup_kubectl position
+            if [ $i -gt $setup_kubectl_index ] && [ -f env.sh ]; then
+                source env.sh
+            fi
             $step_func
             local result=$?
             popd > /dev/null

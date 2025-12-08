@@ -210,7 +210,7 @@ class DefaultStressJobService(
         args: List<String>,
     ): Result<String> =
         runCatching {
-            val timestamp = System.currentTimeMillis() / 1000
+            val timestamp = System.currentTimeMillis() / Constants.Time.MILLIS_PER_SECOND
             val jobName = "${Constants.Stress.JOB_PREFIX}-cmd-$timestamp"
 
             log.info { "Running stress command: ${args.joinToString(" ")}" }
@@ -242,7 +242,7 @@ class DefaultStressJobService(
         jobName: String,
     ): String {
         val startTime = System.currentTimeMillis()
-        val timeoutMs = JOB_COMPLETION_TIMEOUT_SECONDS * 1000L
+        val timeoutMs = JOB_COMPLETION_TIMEOUT_SECONDS * Constants.Time.MILLIS_PER_SECOND
 
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             val jobs =

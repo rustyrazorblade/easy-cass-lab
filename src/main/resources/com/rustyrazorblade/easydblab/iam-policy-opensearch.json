@@ -1,0 +1,57 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OpenSearchDescribePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "es:DescribeDomain",
+        "es:DescribeDomains",
+        "es:DescribeDomainConfig",
+        "es:ListDomainNames",
+        "es:ListTags",
+        "es:GetCompatibleVersions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "OpenSearchCreatePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "es:CreateDomain",
+        "es:AddTags"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "OpenSearchModifyTaggedResourcesPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "es:DeleteDomain",
+        "es:UpdateDomainConfig",
+        "es:RemoveTags",
+        "es:UpgradeDomain",
+        "es:StartServiceSoftwareUpdate"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/easy_cass_lab": "1"
+        }
+      }
+    },
+    {
+      "Sid": "OpenSearchServiceLinkedRolePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/opensearchservice.amazonaws.com/AWSServiceRoleForAmazonOpenSearchService",
+      "Condition": {
+        "StringLike": {
+          "iam:AWSServiceName": "opensearchservice.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

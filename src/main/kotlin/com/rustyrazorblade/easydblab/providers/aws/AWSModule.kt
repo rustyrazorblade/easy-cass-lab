@@ -15,6 +15,7 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.emr.EmrClient
 import software.amazon.awssdk.services.iam.IamClient
+import software.amazon.awssdk.services.opensearch.OpenSearchClient
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sts.StsClient
 
@@ -101,8 +102,16 @@ val awsModule =
                 .build()
         }
 
+        single {
+            OpenSearchClient
+                .builder()
+                .region(get<Region>())
+                .credentialsProvider(get<AwsCredentialsProvider>())
+                .build()
+        }
+
         // Provide AWS service as singleton
-        single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>(), get()) }
+        single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>()) }
 
         // Provide EC2Service as singleton
         single { EC2Service(get<Ec2Client>()) }
@@ -185,11 +194,20 @@ val awsModule =
             )
         }
 
+        // Provide OpenSearchService as singleton
+        single {
+            OpenSearchService(
+                get<OpenSearchClient>(),
+                get<OutputHandler>(),
+            )
+        }
+
         // Provide InfrastructureTeardownService as singleton
         single {
             InfrastructureTeardownService(
                 get<VpcService>(),
                 get<EMRTeardownService>(),
+                get<OpenSearchService>(),
                 get<OutputHandler>(),
             )
         }
@@ -198,4 +216,12 @@ val awsModule =
         single<SecurityGroupService> {
             EC2SecurityGroupService(get<Ec2Client>())
         }
+
+        // Provide AMIResolver as singleton
+        single<AMIResolver> {
+            DefaultAMIResolver(get<EC2Service>())
+        }
+
+        // Provide InstanceSpecFactory as singleton
+        single<InstanceSpecFactory> { DefaultInstanceSpecFactory() }
     }

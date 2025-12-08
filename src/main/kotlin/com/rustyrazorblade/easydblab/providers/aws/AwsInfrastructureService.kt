@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.providers.aws
 
+import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -161,5 +162,94 @@ class AwsInfrastructureService(
     ): VpcInfrastructure {
         val config = InfrastructureConfig.forCluster(clusterName, availabilityZones, sshCidrs, sshPort)
         return ensureInfrastructure(config)
+    }
+
+    /**
+     * Sets up networking within an existing VPC for cluster deployment.
+     *
+     * This method is used when the VPC already exists and we need to create:
+     * - Subnets in each availability zone
+     * - Internet gateway for external connectivity
+     * - Route tables for each subnet
+     * - Security group with SSH access and VPC internal traffic rules
+     *
+     * @param config VPC networking configuration
+     * @param externalIpProvider Function to get external IP (used when isOpen is false)
+     * @return VpcInfrastructure with subnet IDs, security group ID, and IGW ID
+     */
+    fun setupVpcNetworking(
+        config: VpcNetworkingConfig,
+        externalIpProvider: () -> String,
+    ): VpcInfrastructure {
+        log.info { "Setting up VPC networking for cluster: ${config.clusterName}" }
+        outputHandler.handleMessage("Setting up VPC networking for: ${config.clusterName}")
+
+        val baseTags = config.tags + mapOf("easy_cass_lab" to "1", "ClusterId" to config.clusterId)
+
+        // Construct full availability zone names
+        val fullAzNames = config.availabilityZones.map { config.region + it }
+
+        // Create subnets in each AZ
+        val subnetIds =
+            fullAzNames.mapIndexed { index, az ->
+                vpcService.findOrCreateSubnet(
+                    vpcId = config.vpcId,
+                    name = "${config.clusterName}-subnet-$index",
+                    cidr = Constants.Vpc.subnetCidr(index),
+                    tags = baseTags,
+                    availabilityZone = az,
+                )
+            }
+
+        // Create internet gateway
+        val igwId =
+            vpcService.findOrCreateInternetGateway(
+                vpcId = config.vpcId,
+                name = "${config.clusterName}-igw",
+                tags = baseTags,
+            )
+
+        // Ensure route tables are configured for each subnet
+        subnetIds.forEach { subnetId ->
+            vpcService.ensureRouteTable(config.vpcId, subnetId, igwId)
+        }
+
+        // Create security group
+        val securityGroupId =
+            vpcService.findOrCreateSecurityGroup(
+                vpcId = config.vpcId,
+                name = "${config.clusterName}-sg",
+                description = "Security group for easy-db-lab cluster ${config.clusterName}",
+                tags = baseTags,
+            )
+
+        // Configure SSH access - either from anywhere or from the user's external IP
+        val sshCidr = if (config.isOpen) "0.0.0.0/0" else "${externalIpProvider()}/32"
+        vpcService.authorizeSecurityGroupIngress(securityGroupId, Constants.Network.SSH_PORT, Constants.Network.SSH_PORT, sshCidr)
+
+        // Allow all traffic within the VPC (for Cassandra communication) - both TCP and UDP
+        vpcService.authorizeSecurityGroupIngress(
+            securityGroupId,
+            Constants.Network.MIN_PORT,
+            Constants.Network.MAX_PORT,
+            Constants.Vpc.DEFAULT_CIDR,
+            "tcp",
+        )
+        vpcService.authorizeSecurityGroupIngress(
+            securityGroupId,
+            Constants.Network.MIN_PORT,
+            Constants.Network.MAX_PORT,
+            Constants.Vpc.DEFAULT_CIDR,
+            "udp",
+        )
+
+        val infrastructure = VpcInfrastructure(config.vpcId, subnetIds, securityGroupId, igwId)
+
+        log.info {
+            "VPC networking ready: Subnets=${subnetIds.size}, SG=$securityGroupId, IGW=$igwId"
+        }
+        outputHandler.handleMessage("VPC networking ready for: ${config.clusterName}")
+
+        return infrastructure
     }
 }

@@ -11,6 +11,7 @@ data class DiscoveredResources(
     val vpcName: String? = null,
     val instanceIds: List<InstanceId> = emptyList(),
     val emrClusterIds: List<ClusterId> = emptyList(),
+    val openSearchDomainNames: List<String> = emptyList(),
     val securityGroupIds: List<SecurityGroupId> = emptyList(),
     val subnetIds: List<SubnetId> = emptyList(),
     val internetGatewayId: InternetGatewayId? = null,
@@ -28,6 +29,7 @@ data class DiscoveredResources(
     fun hasResources(): Boolean =
         instanceIds.isNotEmpty() ||
             emrClusterIds.isNotEmpty() ||
+            openSearchDomainNames.isNotEmpty() ||
             securityGroupIds.isNotEmpty() ||
             subnetIds.isNotEmpty() ||
             internetGatewayId != null ||
@@ -41,6 +43,7 @@ data class DiscoveredResources(
         parts.add("VPC: $vpcId" + (vpcName?.let { " ($it)" } ?: ""))
         if (instanceIds.isNotEmpty()) parts.add("  EC2 Instances: ${instanceIds.size}")
         if (emrClusterIds.isNotEmpty()) parts.add("  EMR Clusters: ${emrClusterIds.size}")
+        if (openSearchDomainNames.isNotEmpty()) parts.add("  OpenSearch Domains: ${openSearchDomainNames.size}")
         if (securityGroupIds.isNotEmpty()) parts.add("  Security Groups: ${securityGroupIds.size}")
         if (subnetIds.isNotEmpty()) parts.add("  Subnets: ${subnetIds.size}")
         if (natGatewayIds.isNotEmpty()) parts.add("  NAT Gateways: ${natGatewayIds.size}")

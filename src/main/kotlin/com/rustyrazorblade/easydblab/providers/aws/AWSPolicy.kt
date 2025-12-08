@@ -3,6 +3,7 @@ package com.rustyrazorblade.easydblab.providers.aws
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.configuration.Policy
 import com.rustyrazorblade.easydblab.configuration.User
+import com.rustyrazorblade.easydblab.providers.aws.IamPolicyDocument.Companion.toJson
 
 /**
  * Centralized AWS policy definitions for easy-db-lab.
@@ -48,18 +49,16 @@ sealed class AWSPolicy {
          */
         data object EC2Service : Trust() {
             override fun toJson() =
-                """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ec2.amazonaws.com"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }"""
+                IamPolicyDocument(
+                    statement =
+                        listOf(
+                            IamPolicyStatement(
+                                effect = "Allow",
+                                principal = IamPolicyPrincipal.service("ec2.amazonaws.com"),
+                                action = IamPolicyAction.single("sts:AssumeRole"),
+                            ),
+                        ),
+                ).toJson()
         }
 
         /**
@@ -68,18 +67,16 @@ sealed class AWSPolicy {
          */
         data object EMRService : Trust() {
             override fun toJson() =
-                """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "elasticmapreduce.amazonaws.com"
-                    },
-                    "Action": "sts:AssumeRole"
-                }
-            ]
-        }"""
+                IamPolicyDocument(
+                    statement =
+                        listOf(
+                            IamPolicyStatement(
+                                effect = "Allow",
+                                principal = IamPolicyPrincipal.service("elasticmapreduce.amazonaws.com"),
+                                action = IamPolicyAction.single("sts:AssumeRole"),
+                            ),
+                        ),
+                ).toJson()
         }
     }
 
@@ -111,6 +108,7 @@ sealed class AWSPolicy {
                         "iam-policy-ec2.json" to "EasyDBLabEC2",
                         "iam-policy-iam-s3.json" to "EasyDBLabIAM",
                         "iam-policy-emr.json" to "EasyDBLabEMR",
+                        "iam-policy-opensearch.json" to "EasyDBLabOpenSearch",
                     )
 
                 return policyData.map { (fileName, policyName) ->
@@ -142,24 +140,27 @@ sealed class AWSPolicy {
          */
         data object S3AccessWildcard : Inline() {
             override fun toJson() =
-                """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": "s3:ListAllMyBuckets",
-                    "Resource": "*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": "s3:*",
-                    "Resource": [
-                        "arn:aws:s3:::easy-db-lab-*",
-                        "arn:aws:s3:::easy-db-lab-*/*"
-                    ]
-                }
-            ]
-        }"""
+                IamPolicyDocument(
+                    statement =
+                        listOf(
+                            IamPolicyStatement(
+                                effect = "Allow",
+                                action = IamPolicyAction.single("s3:ListAllMyBuckets"),
+                                resource = IamPolicyResource.single("*"),
+                            ),
+                            IamPolicyStatement(
+                                effect = "Allow",
+                                action = IamPolicyAction.single("s3:*"),
+                                resource =
+                                    IamPolicyResource.multiple(
+                                        listOf(
+                                            "arn:aws:s3:::easy-db-lab-*",
+                                            "arn:aws:s3:::easy-db-lab-*/*",
+                                        ),
+                                    ),
+                            ),
+                        ),
+                ).toJson()
         }
 
         /**
@@ -174,28 +175,30 @@ sealed class AWSPolicy {
             val bucketName: String,
         ) : Inline() {
             override fun toJson() =
-                """
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": [
-                    "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EC2_INSTANCE_ROLE}",
-                    "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EMR_SERVICE_ROLE}",
-                    "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EMR_EC2_ROLE}"
-                ]
-            },
-            "Action": "s3:*",
-            "Resource": [
-                "arn:aws:s3:::$bucketName",
-                "arn:aws:s3:::$bucketName/*"
-            ]
-        }
-    ]
-}
-                """.trimIndent()
+                IamPolicyDocument(
+                    statement =
+                        listOf(
+                            IamPolicyStatement(
+                                effect = "Allow",
+                                principal =
+                                    IamPolicyPrincipal.aws(
+                                        listOf(
+                                            "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EC2_INSTANCE_ROLE}",
+                                            "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EMR_SERVICE_ROLE}",
+                                            "arn:aws:iam::$accountId:role/${Constants.AWS.Roles.EMR_EC2_ROLE}",
+                                        ),
+                                    ),
+                                action = IamPolicyAction.single("s3:*"),
+                                resource =
+                                    IamPolicyResource.multiple(
+                                        listOf(
+                                            "arn:aws:s3:::$bucketName",
+                                            "arn:aws:s3:::$bucketName/*",
+                                        ),
+                                    ),
+                            ),
+                        ),
+                ).toJson()
         }
     }
 

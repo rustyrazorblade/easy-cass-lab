@@ -119,7 +119,7 @@ class AWSResourceSetupService(
             aws.checkPermissions()
         } catch (e: software.amazon.awssdk.services.sts.model.StsException) {
             // Check if this is an authorization error (403) vs authentication error (401/other)
-            if (e.statusCode() == 403) {
+            if (e.statusCode() == Constants.HttpStatus.FORBIDDEN) {
                 // Permission denied - credentials are valid but lack permissions
                 handlePermissionError(e)
             } else {

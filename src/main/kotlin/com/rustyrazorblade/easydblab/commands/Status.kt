@@ -8,7 +8,6 @@ import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.ServerType
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.kubernetes.getLocalKubeconfigPath
 import com.rustyrazorblade.easydblab.output.OutputHandler
@@ -18,6 +17,7 @@ import com.rustyrazorblade.easydblab.output.displayRegistryAccess
 import com.rustyrazorblade.easydblab.output.displayS3ManagerAccess
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import com.rustyrazorblade.easydblab.providers.aws.SecurityGroupRuleInfo
 import com.rustyrazorblade.easydblab.providers.aws.SecurityGroupService
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
@@ -66,7 +66,7 @@ class Status(
     private val k8sService: K8sService by inject()
     private val remoteOperationsService: RemoteOperationsService by inject()
     private val emrService: EMRService by inject()
-    private val userConfig: User by inject()
+    private val openSearchService: OpenSearchService by inject()
 
     private val clusterState by lazy { clusterStateManager.load() }
 
@@ -83,6 +83,7 @@ class Status(
         displayNetworkingSection()
         displaySecurityGroupSection()
         displaySparkClusterSection()
+        displayOpenSearchSection()
         displayS3BucketSection()
         displayKubernetesSection()
         displayObservabilitySection()
@@ -264,6 +265,36 @@ class Status(
         outputHandler.handleMessage("State:        $liveState")
         emrCluster.masterPublicDns?.let {
             outputHandler.handleMessage("Master DNS:   $it")
+        }
+    }
+
+    /**
+     * Display OpenSearch domain section
+     */
+    private fun displayOpenSearchSection() {
+        outputHandler.handleMessage("")
+        outputHandler.handleMessage("=== OPENSEARCH DOMAIN ===")
+
+        val openSearchDomain = clusterState.openSearchDomain
+        if (openSearchDomain == null) {
+            outputHandler.handleMessage("(no OpenSearch domain configured)")
+            return
+        }
+
+        // Try to get live status from AWS, fall back to cached state
+        val liveState =
+            runCatching {
+                openSearchService.describeDomain(openSearchDomain.domainName).state
+            }.getOrElse { openSearchDomain.state }
+
+        outputHandler.handleMessage("Domain Name:  ${openSearchDomain.domainName}")
+        outputHandler.handleMessage("Domain ID:    ${openSearchDomain.domainId}")
+        outputHandler.handleMessage("State:        $liveState")
+        openSearchDomain.endpoint?.let {
+            outputHandler.handleMessage("Endpoint:     https://$it")
+        }
+        openSearchDomain.dashboardsEndpoint?.let {
+            outputHandler.handleMessage("Dashboards:   $it")
         }
     }
 
