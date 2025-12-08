@@ -10,31 +10,31 @@ import com.rustyrazorblade.easydblab.commands.BuildImage
 import com.rustyrazorblade.easydblab.commands.Clean
 import com.rustyrazorblade.easydblab.commands.ConfigureAWS
 import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
-import com.rustyrazorblade.easydblab.commands.Down
-import com.rustyrazorblade.easydblab.commands.DownloadConfig
 import com.rustyrazorblade.easydblab.commands.Exec
 import com.rustyrazorblade.easydblab.commands.Hosts
 import com.rustyrazorblade.easydblab.commands.Init
 import com.rustyrazorblade.easydblab.commands.Ip
-import com.rustyrazorblade.easydblab.commands.ListVersions
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.commands.PruneAMIs
 import com.rustyrazorblade.easydblab.commands.Repl
-import com.rustyrazorblade.easydblab.commands.Restart
 import com.rustyrazorblade.easydblab.commands.Server
 import com.rustyrazorblade.easydblab.commands.SetupInstance
 import com.rustyrazorblade.easydblab.commands.SetupProfile
 import com.rustyrazorblade.easydblab.commands.ShowIamPolicies
-import com.rustyrazorblade.easydblab.commands.Start
 import com.rustyrazorblade.easydblab.commands.Status
-import com.rustyrazorblade.easydblab.commands.Stop
-import com.rustyrazorblade.easydblab.commands.Up
-import com.rustyrazorblade.easydblab.commands.UpdateConfig
 import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
-import com.rustyrazorblade.easydblab.commands.UseCassandra
 import com.rustyrazorblade.easydblab.commands.Version
-import com.rustyrazorblade.easydblab.commands.WriteConfig
 import com.rustyrazorblade.easydblab.commands.cassandra.Cassandra
+import com.rustyrazorblade.easydblab.commands.cassandra.Down
+import com.rustyrazorblade.easydblab.commands.cassandra.DownloadConfig
+import com.rustyrazorblade.easydblab.commands.cassandra.ListVersions
+import com.rustyrazorblade.easydblab.commands.cassandra.Restart
+import com.rustyrazorblade.easydblab.commands.cassandra.Start
+import com.rustyrazorblade.easydblab.commands.cassandra.Stop
+import com.rustyrazorblade.easydblab.commands.cassandra.Up
+import com.rustyrazorblade.easydblab.commands.cassandra.UpdateConfig
+import com.rustyrazorblade.easydblab.commands.cassandra.UseCassandra
+import com.rustyrazorblade.easydblab.commands.cassandra.WriteConfig
 import com.rustyrazorblade.easydblab.commands.cassandra.stress.Stress
 import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressFields
 import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressInfo
@@ -208,7 +208,7 @@ class CommandLineParser(
         clickHouseCommandLine.addSubcommand("stop", ClickHouseStop(context))
         commandLine.addSubcommand("clickhouse", clickHouseCommandLine)
 
-        // Register Cassandra parent command with nested stress commands
+        // Register Cassandra parent command with nested stress commands and cluster operations
         // Cassandra is a parent command for Cassandra tooling operations
         val cassandraCommandLine = CommandLine(Cassandra())
 
@@ -222,6 +222,18 @@ class CommandLineParser(
         stressCommandLine.addSubcommand("fields", StressFields(context))
         stressCommandLine.addSubcommand("info", StressInfo(context))
         cassandraCommandLine.addSubcommand("stress", stressCommandLine)
+
+        // Cassandra cluster management commands (also available at top level for backwards compatibility)
+        cassandraCommandLine.addSubcommand("up", Up(context))
+        cassandraCommandLine.addSubcommand("down", Down(context))
+        cassandraCommandLine.addSubcommand("start", Start(context))
+        cassandraCommandLine.addSubcommand("stop", Stop(context))
+        cassandraCommandLine.addSubcommand("restart", Restart(context))
+        cassandraCommandLine.addSubcommand("list", ListVersions(context))
+        cassandraCommandLine.addSubcommand("use", UseCassandra(context))
+        cassandraCommandLine.addSubcommand("download-config", DownloadConfig(context))
+        cassandraCommandLine.addSubcommand("write-config", WriteConfig(context))
+        cassandraCommandLine.addSubcommand("update-config", UpdateConfig(context))
 
         commandLine.addSubcommand("cassandra", cassandraCommandLine)
 

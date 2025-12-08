@@ -1,10 +1,13 @@
-package com.rustyrazorblade.easydblab.commands
+package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
+import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
+import com.rustyrazorblade.easydblab.commands.SetupInstance
 import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.ClusterState
@@ -16,6 +19,7 @@ import com.rustyrazorblade.easydblab.configuration.toHost
 import com.rustyrazorblade.easydblab.providers.aws.AMIResolver
 import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.AwsInfrastructureService
+import com.rustyrazorblade.easydblab.providers.aws.DiscoveredInstance
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.InstanceSpecFactory
 import com.rustyrazorblade.easydblab.providers.aws.RetryUtil
@@ -49,7 +53,7 @@ import java.time.Duration
  * After provisioning, it configures K3s on all nodes and applies Kubernetes manifests.
  * State is persisted incrementally as each resource type completes.
  *
- * @see Init for cluster initialization (must be run first)
+ * @see com.rustyrazorblade.easydblab.commands.Init for cluster initialization (must be run first)
  * @see Down for tearing down infrastructure
  */
 @McpCommand
@@ -305,9 +309,7 @@ class Up(
         outputHandler.handleMessage("Cluster state updated: ${result.hosts.values.flatten().size} hosts tracked")
     }
 
-    private fun logExistingInstances(
-        existingInstances: Map<ServerType, List<com.rustyrazorblade.easydblab.providers.aws.DiscoveredInstance>>,
-    ) {
+    private fun logExistingInstances(existingInstances: Map<ServerType, List<DiscoveredInstance>>) {
         if (existingInstances.values.flatten().isNotEmpty()) {
             val cassandra = existingInstances[ServerType.Cassandra]?.size ?: 0
             val stress = existingInstances[ServerType.Stress]?.size ?: 0

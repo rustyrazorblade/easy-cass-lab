@@ -1,4 +1,4 @@
-package com.rustyrazorblade.easydblab.commands
+package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -6,15 +6,14 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.providers.aws.DiscoveredResources
 import com.rustyrazorblade.easydblab.providers.aws.InfrastructureTeardownService
 import com.rustyrazorblade.easydblab.providers.aws.TeardownMode
 import com.rustyrazorblade.easydblab.providers.aws.TeardownResult
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
-import picocli.CommandLine.Command
-import picocli.CommandLine.Option
-import picocli.CommandLine.Parameters
+import picocli.CommandLine
 import java.io.File
 import java.util.Scanner
 
@@ -33,7 +32,7 @@ import java.util.Scanner
  */
 @McpCommand
 @RequireProfileSetup
-@Command(
+@CommandLine.Command(
     name = "down",
     description = ["Shut down AWS infrastructure"],
 )
@@ -41,32 +40,32 @@ import java.util.Scanner
 class Down(
     context: Context,
 ) : PicoBaseCommand(context) {
-    @Parameters(
+    @CommandLine.Parameters(
         index = "0",
         arity = "0..1",
         description = ["Optional VPC ID to tear down a specific VPC"],
     )
     var vpcId: String? = null
 
-    @Option(
+    @CommandLine.Option(
         names = ["--all"],
         description = ["Tear down all VPCs tagged with easy_cass_lab"],
     )
     var teardownAll = false
 
-    @Option(
+    @CommandLine.Option(
         names = ["--packer"],
         description = ["Tear down the packer infrastructure VPC"],
     )
     var teardownPacker = false
 
-    @Option(
+    @CommandLine.Option(
         names = ["--dry-run"],
         description = ["Preview what would be deleted without actually deleting"],
     )
     var dryRun = false
 
-    @Option(
+    @CommandLine.Option(
         names = ["--auto-approve", "-a", "--yes"],
         description = ["Auto approve changes without confirmation prompt"],
     )
@@ -134,7 +133,7 @@ class Down(
         // Get the VPC ID from cluster state
         if (!clusterStateManager.exists()) {
             outputHandler.handleMessage("No cluster state found. Use --all to find tagged VPCs or specify a VPC ID.")
-            return TeardownResult.failure("No cluster state found")
+            return TeardownResult.Companion.failure("No cluster state found")
         }
 
         val clusterState = clusterStateManager.load()
@@ -145,7 +144,7 @@ class Down(
                 "No VPC ID stored in cluster state for '${clusterState.name}'. " +
                     "Use --all to find tagged VPCs or specify a VPC ID.",
             )
-            return TeardownResult.failure("No VPC ID in cluster state")
+            return TeardownResult.Companion.failure("No VPC ID in cluster state")
         }
 
         return teardownSpecificVpc(currentVpcId)
@@ -175,7 +174,7 @@ class Down(
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
             outputHandler.handleMessage("Teardown cancelled by user")
-            return TeardownResult.failure("Teardown cancelled by user")
+            return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
         return teardownService.teardownVpc(targetVpcId, dryRun = false)
@@ -206,7 +205,7 @@ class Down(
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
             outputHandler.handleMessage("Teardown cancelled by user")
-            return TeardownResult.failure("Teardown cancelled by user")
+            return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
         return teardownService.teardownAllTagged(dryRun = false, includePackerVpc = teardownPacker)
@@ -236,7 +235,7 @@ class Down(
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
             outputHandler.handleMessage("Teardown cancelled by user")
-            return TeardownResult.failure("Teardown cancelled by user")
+            return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
         return teardownService.teardownPackerInfrastructure(dryRun = false)
