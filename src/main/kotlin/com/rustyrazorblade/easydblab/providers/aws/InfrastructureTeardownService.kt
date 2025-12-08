@@ -25,6 +25,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 class InfrastructureTeardownService(
     private val vpcService: VpcService,
     private val emrTeardownService: EMRTeardownService,
+    private val openSearchService: OpenSearchService,
     private val outputHandler: OutputHandler,
 ) {
     companion object {
@@ -49,12 +50,14 @@ class InfrastructureTeardownService(
         val internetGatewayId = vpcService.findInternetGatewayByVpc(vpcId)
         val routeTableIds = vpcService.findRouteTablesInVpc(vpcId)
         val emrClusterIds = emrTeardownService.findClustersInVpc(vpcId, subnetIds)
+        val openSearchDomainNames = openSearchService.findDomainsInVpc(subnetIds)
 
         return DiscoveredResources(
             vpcId = vpcId,
             vpcName = vpcName,
             instanceIds = instanceIds,
             emrClusterIds = emrClusterIds,
+            openSearchDomainNames = openSearchDomainNames,
             securityGroupIds = securityGroupIds,
             subnetIds = subnetIds,
             internetGatewayId = internetGatewayId,
@@ -180,6 +183,7 @@ class InfrastructureTeardownService(
 
             // Execute teardown steps in order
             if (!terminateEmrClusters(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
+            if (!deleteOpenSearchDomains(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
             if (!terminateEc2Instances(resources, errors)) return TeardownResult.failure(errors, listOf(resources))
             deleteNatGateways(resources, errors)
             revokeAllSecurityGroupRules(resources, errors)
@@ -213,6 +217,47 @@ class InfrastructureTeardownService(
             errors.add(logError("Failed to terminate EMR clusters", e))
             false // EMR failure is fatal - EMR instances may block subnet/SG deletion
         }
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun deleteOpenSearchDomains(
+        resources: DiscoveredResources,
+        errors: MutableList<String>,
+    ): Boolean {
+        if (resources.openSearchDomainNames.isEmpty()) return true
+
+        outputHandler.handleMessage("Deleting ${resources.openSearchDomainNames.size} OpenSearch domains...")
+
+        val domainsToWait = mutableListOf<String>()
+
+        resources.openSearchDomainNames.forEach { domainName ->
+            try {
+                openSearchService.deleteDomain(domainName)
+                domainsToWait.add(domainName)
+            } catch (e: Exception) {
+                errors.add(logError("Failed to delete OpenSearch domain $domainName", e))
+            }
+        }
+
+        // Wait for all domains to be fully deleted before proceeding
+        // OpenSearch domains have ENIs in the VPC that block security group/subnet deletion
+        var allDeleted = true
+        domainsToWait.forEach { domainName ->
+            try {
+                openSearchService.waitForDomainDeleted(domainName)
+            } catch (e: Exception) {
+                // Log error but continue - the domain deletion was initiated and will complete async
+                // Subsequent VPC resource cleanup may fail with "dependent object" errors
+                errors.add(logError("Timeout waiting for OpenSearch domain $domainName to delete", e))
+                outputHandler.handleMessage(
+                    "Warning: OpenSearch domain $domainName is still deleting. " +
+                        "VPC cleanup may fail - run teardown again later.",
+                )
+                allDeleted = false
+            }
+        }
+
+        return allDeleted
     }
 
     @Suppress("TooGenericExceptionCaught")

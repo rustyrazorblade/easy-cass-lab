@@ -7,29 +7,27 @@ import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
-import com.rustyrazorblade.easydblab.configuration.AxonOpsWorkbenchConfig
-import com.rustyrazorblade.easydblab.configuration.ClusterConfigWriter
-import com.rustyrazorblade.easydblab.configuration.ClusterHost
 import com.rustyrazorblade.easydblab.configuration.ClusterState
-import com.rustyrazorblade.easydblab.configuration.EMRClusterState
 import com.rustyrazorblade.easydblab.configuration.InfrastructureState
+import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
-import com.rustyrazorblade.easydblab.configuration.getHosts
-import com.rustyrazorblade.easydblab.configuration.s3Path
 import com.rustyrazorblade.easydblab.configuration.toHost
+import com.rustyrazorblade.easydblab.providers.aws.AMIResolver
 import com.rustyrazorblade.easydblab.providers.aws.AWS
-import com.rustyrazorblade.easydblab.providers.aws.EBSConfig
+import com.rustyrazorblade.easydblab.providers.aws.AwsInfrastructureService
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
-import com.rustyrazorblade.easydblab.providers.aws.EC2Service
-import com.rustyrazorblade.easydblab.providers.aws.EMRClusterConfig
-import com.rustyrazorblade.easydblab.providers.aws.EMRService
-import com.rustyrazorblade.easydblab.providers.aws.InstanceCreationConfig
+import com.rustyrazorblade.easydblab.providers.aws.InstanceSpecFactory
 import com.rustyrazorblade.easydblab.providers.aws.RetryUtil
+import com.rustyrazorblade.easydblab.providers.aws.VpcNetworkingConfig
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
+import com.rustyrazorblade.easydblab.services.ClusterConfigurationService
+import com.rustyrazorblade.easydblab.services.ClusterProvisioningService
 import com.rustyrazorblade.easydblab.services.HostOperationsService
-import com.rustyrazorblade.easydblab.services.K3sAgentService
-import com.rustyrazorblade.easydblab.services.K3sService
+import com.rustyrazorblade.easydblab.services.InstanceProvisioningConfig
+import com.rustyrazorblade.easydblab.services.K3sClusterConfig
+import com.rustyrazorblade.easydblab.services.K3sClusterService
+import com.rustyrazorblade.easydblab.services.OptionalServicesConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.resilience4j.retry.Retry
 import org.koin.core.component.inject
@@ -41,8 +39,18 @@ import java.net.URL
 import java.time.Duration
 
 /**
- * Provisions instances and prepares the cluster.
- * Sets up K3s on all nodes, and installs the manifests.
+ * Provisions and configures the complete cluster infrastructure.
+ *
+ * This command orchestrates parallel creation of:
+ * - EC2 instances (Cassandra, Stress, Control nodes)
+ * - EMR Spark cluster (if enabled)
+ * - OpenSearch domain (if enabled)
+ *
+ * After provisioning, it configures K3s on all nodes and applies Kubernetes manifests.
+ * State is persisted incrementally as each resource type completes.
+ *
+ * @see Init for cluster initialization (must be run first)
+ * @see Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup
@@ -55,13 +63,15 @@ class Up(
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val aws: AWS by inject()
-    private val k3sService: K3sService by inject()
-    private val k3sAgentService: K3sAgentService by inject()
     private val vpcService: VpcService by inject()
+    private val awsInfrastructureService: AwsInfrastructureService by inject()
     private val ec2InstanceService: EC2InstanceService by inject()
-    private val emrService: EMRService by inject()
-    private val ec2Service: EC2Service by inject()
     private val hostOperationsService: HostOperationsService by inject()
+    private val amiResolver: AMIResolver by inject()
+    private val instanceSpecFactory: InstanceSpecFactory by inject()
+    private val clusterProvisioningService: ClusterProvisioningService by inject()
+    private val clusterConfigurationService: ClusterConfigurationService by inject()
+    private val k3sClusterService: K3sClusterService by inject()
 
     // Working copy loaded during execute() - modified and saved
     private lateinit var workingState: ClusterState
@@ -77,6 +87,9 @@ class Up(
          */
         private fun getExternalIpAddress(): String = URL("https://api.ipify.org/").readText()
     }
+
+    // Lock for synchronizing access to workingState from parallel threads
+    private val stateLock = Any()
 
     @Option(names = ["--no-setup", "-n"])
     var noSetup = false
@@ -119,7 +132,7 @@ class Up(
      * Creates the S3 bucket for this environment if it doesn't already exist.
      * Each environment gets its own dedicated bucket for isolation.
      */
-    private fun createS3BucketIfNeeded(initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig) {
+    private fun createS3BucketIfNeeded(initConfig: InitConfig) {
         if (!workingState.s3Bucket.isNullOrBlank()) {
             log.debug { "S3 bucket already configured: ${workingState.s3Bucket}" }
             return
@@ -138,8 +151,13 @@ class Up(
         outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
     }
 
-    @Suppress("TooGenericExceptionCaught", "LongMethod")
-    private fun provisionInfrastructure(initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig) {
+    /**
+     * Provisions all infrastructure resources in parallel.
+     *
+     * Creates EC2 instances, EMR clusters, and OpenSearch domains concurrently.
+     * Each resource type updates cluster state atomically when complete.
+     */
+    private fun provisionInfrastructure(initConfig: InitConfig) {
         outputHandler.handleMessage("Provisioning infrastructure...")
 
         val vpcId = workingState.vpcId ?: error("VPC ID not found. Please run 'easy-db-lab init' first.")
@@ -154,34 +172,31 @@ class Up(
         }
         log.info { "Validated VPC exists: $vpcId ($vpcName)" }
 
-        // Set up VPC infrastructure
-        val (subnetIds, securityGroupId, igwId) = setupVpcInfrastructure(vpcId, initConfig)
-
-        // Get AMI ID
-        val amiId =
-            initConfig.ami.ifBlank {
-                val arch = initConfig.arch.lowercase()
-                val amiPattern = Constants.AWS.AMI_PATTERN_TEMPLATE.format(arch)
-                val amis = ec2Service.listPrivateAMIs(amiPattern)
-                if (amis.isEmpty()) {
-                    error("No AMI found for architecture $arch. Please build an AMI first with 'easy-db-lab build-image'.")
-                }
-                // Get the most recently created AMI
-                amis.maxByOrNull { it.creationDate }?.id
-                    ?: error("No AMI found for architecture $arch")
-            }
-
-        // Create EBS config if not NONE
-        val ebsConfig =
-            if (initConfig.ebsType != "NONE") {
-                EBSConfig(
-                    volumeType = initConfig.ebsType.lowercase(),
-                    volumeSize = initConfig.ebsSize,
-                    iops = if (initConfig.ebsIops > 0) initConfig.ebsIops else null,
-                    throughput = if (initConfig.ebsThroughput > 0) initConfig.ebsThroughput else null,
-                )
+        // Set up VPC networking (subnets, security groups, internet gateway)
+        val availabilityZones =
+            if (initConfig.azs.isNotEmpty()) {
+                initConfig.azs
             } else {
-                null
+                listOf("a", "b", "c")
+            }
+        val vpcNetworkingConfig =
+            VpcNetworkingConfig(
+                vpcId = vpcId,
+                clusterName = initConfig.name,
+                clusterId = workingState.clusterId,
+                region = initConfig.region,
+                availabilityZones = availabilityZones,
+                isOpen = initConfig.open,
+            )
+        val vpcInfra = awsInfrastructureService.setupVpcNetworking(vpcNetworkingConfig) { getExternalIpAddress() }
+        val subnetIds = vpcInfra.subnetIds
+        val securityGroupId = vpcInfra.securityGroupId
+        val igwId = vpcInfra.internetGatewayId
+
+        // Resolve AMI ID
+        val amiId =
+            amiResolver.resolveAmiId(initConfig.ami, initConfig.arch).getOrElse { error ->
+                error(error.message ?: "Failed to resolve AMI")
             }
 
         val baseTags =
@@ -190,113 +205,120 @@ class Up(
                 "ClusterId" to workingState.clusterId,
             ) + initConfig.tags
 
-        // Discover existing instances for this cluster
+        // Discover existing instances and create specs
         val existingInstances = ec2InstanceService.findInstancesByClusterId(workingState.clusterId)
-        val existingCassandraCount = existingInstances[ServerType.Cassandra]?.size ?: 0
-        val existingStressCount = existingInstances[ServerType.Stress]?.size ?: 0
-        val existingControlCount = existingInstances[ServerType.Control]?.size ?: 0
+        logExistingInstances(existingInstances)
 
-        if (existingInstances.values.flatten().isNotEmpty()) {
-            outputHandler.handleMessage(
-                "Discovered existing instances: " +
-                    "Cassandra=$existingCassandraCount, " +
-                    "Stress=$existingStressCount, " +
-                    "Control=$existingControlCount",
+        // Convert existing instances to ClusterHosts
+        val existingHosts =
+            existingInstances.mapValues { (_, instances) ->
+                instances.map { it.toClusterHost() }
+            }
+
+        // Create instance specs using factory
+        val instanceSpecs = instanceSpecFactory.createInstanceSpecs(initConfig, existingInstances)
+
+        // Configure provisioning
+        val instanceConfig =
+            InstanceProvisioningConfig(
+                specs = instanceSpecs,
+                amiId = amiId,
+                securityGroupId = securityGroupId,
+                subnetIds = subnetIds,
+                tags = baseTags,
+                clusterName = initConfig.name,
+                userConfig = userConfig,
+            )
+
+        val servicesConfig =
+            OptionalServicesConfig(
+                initConfig = initConfig,
+                subnetId = subnetIds.first(),
+                securityGroupId = securityGroupId,
+                tags = baseTags,
+                clusterState = workingState,
+            )
+
+        // Ensure OpenSearch service-linked role exists if needed
+        if (initConfig.opensearchEnabled) {
+            aws.ensureOpenSearchServiceLinkedRole()
+        }
+
+        // Provision all infrastructure in parallel
+        val result =
+            clusterProvisioningService.provisionAll(
+                instanceConfig = instanceConfig,
+                servicesConfig = servicesConfig,
+                existingHosts = existingHosts,
+                onHostsCreated = { serverType, hosts ->
+                    synchronized(stateLock) {
+                        val allHosts = workingState.hosts.toMutableMap()
+                        allHosts[serverType] = (allHosts[serverType] ?: emptyList()) + hosts
+                        workingState.updateHosts(allHosts)
+                        clusterStateManager.save(workingState)
+                    }
+                },
+                onEmrCreated = { emrState ->
+                    synchronized(stateLock) {
+                        workingState.updateEmrCluster(emrState)
+                        clusterStateManager.save(workingState)
+                    }
+                    outputHandler.handleMessage("EMR cluster ready: ${emrState.masterPublicDns}")
+                },
+                onOpenSearchCreated = { osState ->
+                    synchronized(stateLock) {
+                        workingState.updateOpenSearchDomain(osState)
+                        clusterStateManager.save(workingState)
+                    }
+                    outputHandler.handleMessage("OpenSearch domain ready: https://${osState.endpoint}")
+                    osState.dashboardsEndpoint?.let { outputHandler.handleMessage("Dashboards: $it") }
+                },
+            )
+
+        // Report any failures
+        if (result.errors.isNotEmpty()) {
+            outputHandler.handleMessage("\nInfrastructure creation had failures:")
+            result.errors.forEach { (resource, error) ->
+                outputHandler.handleMessage("  - $resource: ${error.message}")
+            }
+            error(
+                "Failed to create ${result.errors.size} infrastructure resource(s): " +
+                    result.errors.keys.joinToString(", "),
             )
         }
 
-        // Create instances for each server type (only if needed)
-        val allHosts = mutableMapOf<ServerType, List<ClusterHost>>()
-
-        // Convert existing instances to ClusterHosts
-        existingInstances.forEach { (serverType, instances) ->
-            if (instances.isNotEmpty()) {
-                allHosts[serverType] = instances.map { it.toClusterHost() }
-            }
-        }
-
-        // Cassandra instances - create only what's needed
-        val neededCassandraCount = initConfig.cassandraInstances - existingCassandraCount
-        if (neededCassandraCount > 0) {
-            val cassandraHosts =
-                createInstancesForType(
-                    serverType = ServerType.Cassandra,
-                    count = neededCassandraCount,
-                    instanceType = initConfig.instanceType,
-                    amiId = amiId,
-                    securityGroupId = securityGroupId,
+        // Update infrastructure state and mark as up
+        synchronized(stateLock) {
+            workingState.updateInfrastructure(
+                InfrastructureState(
+                    vpcId = vpcId,
                     subnetIds = subnetIds,
-                    ebsConfig = ebsConfig,
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingCassandraCount,
-                )
-            allHosts[ServerType.Cassandra] = (allHosts[ServerType.Cassandra] ?: emptyList()) + cassandraHosts
-        } else if (initConfig.cassandraInstances > 0 && existingCassandraCount > 0) {
-            outputHandler.handleMessage("Found $existingCassandraCount existing Cassandra instances, no new instances needed")
-        }
-
-        // Stress instances - create only what's needed
-        val neededStressCount = initConfig.stressInstances - existingStressCount
-        if (neededStressCount > 0) {
-            val stressHosts =
-                createInstancesForType(
-                    serverType = ServerType.Stress,
-                    count = neededStressCount,
-                    instanceType = initConfig.stressInstanceType,
-                    amiId = amiId,
                     securityGroupId = securityGroupId,
-                    subnetIds = subnetIds,
-                    ebsConfig = null, // stress instances don't need EBS
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingStressCount,
-                )
-            allHosts[ServerType.Stress] = (allHosts[ServerType.Stress] ?: emptyList()) + stressHosts
-        } else if (initConfig.stressInstances > 0 && existingStressCount > 0) {
-            outputHandler.handleMessage("Found $existingStressCount existing Stress instances, no new instances needed")
+                    internetGatewayId = igwId,
+                ),
+            )
+            workingState.markInfrastructureUp()
+            clusterStateManager.save(workingState)
         }
 
-        // Control instances - create only what's needed
-        val neededControlCount = initConfig.controlInstances - existingControlCount
-        if (neededControlCount > 0) {
-            val controlHosts =
-                createInstancesForType(
-                    serverType = ServerType.Control,
-                    count = neededControlCount,
-                    instanceType = initConfig.controlInstanceType,
-                    amiId = amiId,
-                    securityGroupId = securityGroupId,
-                    subnetIds = subnetIds,
-                    ebsConfig = null, // control instances don't need EBS
-                    tags = baseTags,
-                    clusterName = initConfig.name,
-                    startIndex = existingControlCount,
-                )
-            allHosts[ServerType.Control] = (allHosts[ServerType.Control] ?: emptyList()) + controlHosts
-        } else if (initConfig.controlInstances > 0 && existingControlCount > 0) {
-            outputHandler.handleMessage("Found $existingControlCount existing Control instances, no new instances needed")
+        printProvisioningSuccessMessage()
+        outputHandler.handleMessage("Cluster state updated: ${result.hosts.values.flatten().size} hosts tracked")
+    }
+
+    private fun logExistingInstances(
+        existingInstances: Map<ServerType, List<com.rustyrazorblade.easydblab.providers.aws.DiscoveredInstance>>,
+    ) {
+        if (existingInstances.values.flatten().isNotEmpty()) {
+            val cassandra = existingInstances[ServerType.Cassandra]?.size ?: 0
+            val stress = existingInstances[ServerType.Stress]?.size ?: 0
+            val control = existingInstances[ServerType.Control]?.size ?: 0
+            outputHandler.handleMessage(
+                "Discovered existing instances: Cassandra=$cassandra, Stress=$stress, Control=$control",
+            )
         }
+    }
 
-        // Update cluster state with hosts and infrastructure
-        workingState.updateHosts(allHosts)
-        workingState.updateInfrastructure(
-            InfrastructureState(
-                vpcId = vpcId,
-                subnetIds = subnetIds,
-                securityGroupId = securityGroupId,
-                internetGatewayId = igwId,
-            ),
-        )
-        workingState.markInfrastructureUp()
-
-        // Create EMR cluster if enabled
-        if (initConfig.sparkEnabled) {
-            createEmrCluster(initConfig, subnetIds.first(), baseTags)
-        }
-
-        clusterStateManager.save(workingState)
-
+    private fun printProvisioningSuccessMessage() {
         with(TermColors()) {
             outputHandler.handleMessage(
                 "Instances have been provisioned.\n\n" +
@@ -314,210 +336,21 @@ class Up(
                     " with any changes you'd like to see merge in into the remote cassandra.yaml file.",
             )
         }
-
-        outputHandler.handleMessage("Cluster state updated: ${allHosts.values.flatten().size} hosts tracked")
     }
 
-    private fun setupVpcInfrastructure(
-        vpcId: String,
-        initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig,
-    ): Triple<List<String>, String, String> {
-        val baseTags = mapOf("easy_cass_lab" to "1", "ClusterId" to workingState.clusterId)
-
-        // Determine availability zones
-        val azs =
-            if (initConfig.azs.isNotEmpty()) {
-                initConfig.azs.map { initConfig.region + it }
-            } else {
-                listOf(initConfig.region + "a", initConfig.region + "b", initConfig.region + "c")
-            }
-
-        // Create subnets in each AZ
-        val subnetIds =
-            azs.mapIndexed { index, az ->
-                vpcService.findOrCreateSubnet(
-                    vpcId = vpcId,
-                    name = "${initConfig.name}-subnet-$index",
-                    cidr = Constants.Vpc.subnetCidr(index),
-                    tags = baseTags,
-                    availabilityZone = az,
-                )
-            }
-
-        // Create internet gateway
-        val igwId =
-            vpcService.findOrCreateInternetGateway(
-                vpcId = vpcId,
-                name = "${initConfig.name}-igw",
-                tags = baseTags,
-            )
-
-        // Ensure route tables are configured
-        subnetIds.forEach { subnetId ->
-            vpcService.ensureRouteTable(vpcId, subnetId, igwId)
-        }
-
-        // Create security group
-        val securityGroupId =
-            vpcService.findOrCreateSecurityGroup(
-                vpcId = vpcId,
-                name = "${initConfig.name}-sg",
-                description = "Security group for easy-db-lab cluster ${initConfig.name}",
-                tags = baseTags,
-            )
-
-        // Configure security group rules
-        val sshCidr = if (initConfig.open) "0.0.0.0/0" else "${getExternalIpAddress()}/32"
-        vpcService.authorizeSecurityGroupIngress(securityGroupId, 22, 22, sshCidr) // SSH
-
-        // Allow all traffic within the VPC (for Cassandra communication) - both TCP and UDP
-        vpcService.authorizeSecurityGroupIngress(securityGroupId, 0, 65535, Constants.Vpc.DEFAULT_CIDR, "tcp")
-        vpcService.authorizeSecurityGroupIngress(securityGroupId, 0, 65535, Constants.Vpc.DEFAULT_CIDR, "udp")
-
-        return Triple(subnetIds, securityGroupId, igwId)
-    }
-
-    private fun createInstancesForType(
-        serverType: ServerType,
-        count: Int,
-        instanceType: String,
-        amiId: String,
-        securityGroupId: String,
-        subnetIds: List<String>,
-        ebsConfig: EBSConfig?,
-        tags: Map<String, String>,
-        clusterName: String,
-        startIndex: Int = 0,
-    ): List<ClusterHost> {
-        val config =
-            InstanceCreationConfig(
-                serverType = serverType,
-                count = count,
-                instanceType = instanceType,
-                amiId = amiId,
-                keyName = userConfig.keyName,
-                securityGroupId = securityGroupId,
-                subnetIds = subnetIds,
-                iamInstanceProfile = Constants.AWS.Roles.EC2_INSTANCE_ROLE,
-                ebsConfig = ebsConfig,
-                tags = tags,
-                clusterName = clusterName,
-                startIndex = startIndex,
-            )
-
-        val createdInstances = ec2InstanceService.createInstances(config)
-
-        // Wait for instances to be running
-        val instanceIds = createdInstances.map { it.instanceId }
-        ec2InstanceService.waitForInstancesRunning(instanceIds)
-
-        // Wait for instance status checks to pass (OS boot complete, networking ready)
-        ec2InstanceService.waitForInstanceStatusOk(instanceIds)
-
-        // Update with final IPs
-        val updatedInstances = ec2InstanceService.updateInstanceIps(createdInstances)
-
-        return updatedInstances.map { instance ->
-            ClusterHost(
-                publicIp = instance.publicIp,
-                privateIp = instance.privateIp,
-                alias = instance.alias,
-                availabilityZone = instance.availabilityZone,
-                instanceId = instance.instanceId,
-            )
-        }
-    }
-
-    private fun createEmrCluster(
-        initConfig: com.rustyrazorblade.easydblab.configuration.InitConfig,
-        subnetId: String,
-        tags: Map<String, String>,
-    ) {
-        outputHandler.handleMessage("Creating EMR Spark cluster...")
-
-        val emrConfig =
-            EMRClusterConfig(
-                clusterName = "${initConfig.name}-spark",
-                logUri = workingState.s3Path().emrLogs().toString(),
-                subnetId = subnetId,
-                ec2KeyName = userConfig.keyName,
-                masterInstanceType = initConfig.sparkMasterInstanceType,
-                coreInstanceType = initConfig.sparkWorkerInstanceType,
-                coreInstanceCount = initConfig.sparkWorkerCount,
-                tags = tags,
-            )
-
-        val result = emrService.createCluster(emrConfig)
-        val readyResult = emrService.waitForClusterReady(result.clusterId)
-
-        workingState.updateEmrCluster(
-            EMRClusterState(
-                clusterId = readyResult.clusterId,
-                clusterName = readyResult.clusterName,
-                masterPublicDns = readyResult.masterPublicDns,
-                state = readyResult.state,
-            ),
-        )
-
-        outputHandler.handleMessage("EMR cluster ready: ${readyResult.masterPublicDns}")
-    }
-
+    /** Writes SSH config, environment files, and AxonOps configuration to the working directory. */
     private fun writeConfigurationFiles() {
-        val config = File(context.workingDirectory, "sshConfig").bufferedWriter()
-        ClusterConfigWriter.writeSshConfig(config, userConfig.sshKeyPath, workingState.hosts)
-        val envFile = File(context.workingDirectory, "env.sh").bufferedWriter()
-        ClusterConfigWriter.writeEnvironmentFile(envFile, workingState.hosts, userConfig.sshKeyPath, workingState.name)
-        writeStressEnvironmentVariables()
-        writeAxonOpsWorkbenchConfig()
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    private fun writeAxonOpsWorkbenchConfig() {
-        try {
-            val cassandraHosts = workingState.getHosts(ServerType.Cassandra)
-            if (cassandraHosts.isNotEmpty()) {
-                val cassandra0 = cassandraHosts.first()
-                val config =
-                    AxonOpsWorkbenchConfig.create(
-                        host = cassandra0,
-                        userConfig = userConfig,
-                        clusterName = "easy-db-lab",
-                    )
-                val configFile = File(context.workingDirectory, "axonops-workbench.json")
-                AxonOpsWorkbenchConfig.writeToFile(config, configFile)
-                outputHandler.handleMessage(
-                    "AxonOps Workbench configuration written to axonops-workbench.json",
-                )
-            } else {
-                log.warn { "No Cassandra hosts found, skipping AxonOps Workbench configuration" }
+        clusterConfigurationService
+            .writeAllConfigurationFiles(
+                context.workingDirectory.toPath(),
+                workingState,
+                userConfig,
+            ).onFailure { error ->
+                log.error(error) { "Failed to write some configuration files" }
             }
-        } catch (e: Exception) {
-            log.error(e) { "Failed to write AxonOps Workbench configuration" }
-        }
     }
 
-    private fun writeStressEnvironmentVariables() {
-        val cassandraHosts = workingState.getHosts(ServerType.Cassandra)
-        if (cassandraHosts.isEmpty()) {
-            log.warn { "No Cassandra hosts found, skipping stress environment variables" }
-            return
-        }
-        val cassandraHost = cassandraHosts.first().private
-        val datacenter = workingState.initConfig?.region ?: userConfig.region
-
-        val stressEnvironmentVars = File(context.workingDirectory, "environment.sh").bufferedWriter()
-        stressEnvironmentVars.write("#!/usr/bin/env bash")
-        stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_CASSANDRA_HOST=$cassandraHost")
-        stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_PROM_PORT=0")
-        stressEnvironmentVars.newLine()
-        stressEnvironmentVars.write("export CASSANDRA_EASY_STRESS_DEFAULT_DC=$datacenter")
-        stressEnvironmentVars.newLine()
-        stressEnvironmentVars.flush()
-        stressEnvironmentVars.close()
-    }
-
+    /** Waits for SSH to become available on instances and downloads Cassandra version info. */
     private fun waitForSshAndDownloadVersions() {
         outputHandler.handleMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
@@ -553,6 +386,7 @@ class Up(
             }.run()
     }
 
+    /** Runs instance setup, K3s configuration, and optional AxonOps setup unless --no-setup. */
     private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
@@ -572,91 +406,34 @@ class Up(
         }
     }
 
-    @Suppress("ReturnCount")
+    /** Starts K3s server on control node and joins Cassandra/Stress nodes as agents. */
     private fun startK3sOnAllNodes() {
-        outputHandler.handleMessage("Starting K3s cluster...")
-
-        val controlHosts = workingState.getHosts(ServerType.Control)
+        val controlHosts = workingState.hosts[ServerType.Control] ?: emptyList()
         if (controlHosts.isEmpty()) {
             outputHandler.handleError("No control nodes found, skipping K3s setup")
             return
         }
 
-        val controlNode = controlHosts.first()
-        outputHandler.handleMessage("Starting K3s server on control node ${controlNode.alias}...")
+        val config =
+            K3sClusterConfig(
+                controlHost = controlHosts.first(),
+                workerHosts =
+                    mapOf(
+                        ServerType.Cassandra to (workingState.hosts[ServerType.Cassandra] ?: emptyList()),
+                        ServerType.Stress to (workingState.hosts[ServerType.Stress] ?: emptyList()),
+                    ),
+                kubeconfigPath = File(context.workingDirectory, "kubeconfig").toPath(),
+                hostFilter = hosts.hostList,
+            )
 
-        k3sService
-            .start(controlNode)
-            .onFailure { error ->
-                log.error(error) { "Failed to start K3s server on ${controlNode.alias}" }
-                outputHandler.handleError("Failed to start K3s server: ${error.message}")
-                return
-            }.onSuccess {
-                log.info { "Successfully started K3s server on ${controlNode.alias}" }
-            }
+        val result = k3sClusterService.setupCluster(config)
 
-        val nodeToken =
-            k3sService
-                .getNodeToken(controlNode)
-                .onFailure { error ->
-                    log.error(error) { "Failed to retrieve K3s node token from ${controlNode.alias}" }
-                    outputHandler.handleError("Failed to retrieve K3s node token: ${error.message}")
-                    return
-                }.getOrThrow()
-
-        log.info { "Retrieved K3s node token from ${controlNode.alias}" }
-
-        k3sService
-            .downloadAndConfigureKubeconfig(controlNode, File(context.workingDirectory, "kubeconfig").toPath())
-            .onFailure { error ->
-                log.error(error) { "Failed to download kubeconfig from ${controlNode.alias}" }
-                outputHandler.handleError("Failed to download kubeconfig: ${error.message}")
-            }.onSuccess {
-                outputHandler.handleMessage("Kubeconfig written to kubeconfig")
-                outputHandler.handleMessage("Use 'source env.sh' to configure kubectl for cluster access")
-            }
-
-        val serverUrl = "https://${controlNode.private}:6443"
-        val workerServerTypes = listOf(ServerType.Cassandra, ServerType.Stress)
-
-        workerServerTypes.forEach { serverType ->
-            val nodeLabels =
-                when (serverType) {
-                    ServerType.Cassandra -> mapOf("role" to "cassandra", "type" to "db")
-                    ServerType.Stress -> mapOf("role" to "stress", "type" to "app")
-                    ServerType.Control -> emptyMap()
-                }
-
-            hostOperationsService.withHosts(
-                workingState.hosts,
-                serverType,
-                hosts.hostList,
-                parallel = true,
-            ) { clusterHost ->
-                val host = clusterHost.toHost()
-                outputHandler.handleMessage("Configuring K3s agent on ${host.alias} with labels: $nodeLabels...")
-
-                k3sAgentService
-                    .configure(host, serverUrl, nodeToken, nodeLabels)
-                    .onFailure { error ->
-                        log.error(error) { "Failed to configure K3s agent on ${host.alias}" }
-                        outputHandler.handleError("Failed to configure K3s agent on ${host.alias}: ${error.message}")
-                        return@withHosts
-                    }
-
-                k3sAgentService
-                    .start(host)
-                    .onFailure { error ->
-                        log.error(error) { "Failed to start K3s agent on ${host.alias}" }
-                        outputHandler.handleError("Failed to start K3s agent on ${host.alias}: ${error.message}")
-                        return@withHosts
-                    }.onSuccess {
-                        log.info { "Successfully started K3s agent on ${host.alias}" }
-                    }
+        if (!result.isSuccessful) {
+            result.errors.forEach { (operation, error) ->
+                log.error(error) { "K3s setup failed: $operation" }
             }
         }
 
-        outputHandler.handleMessage("K3s cluster started successfully")
         K8Apply(context).execute()
     }
 }

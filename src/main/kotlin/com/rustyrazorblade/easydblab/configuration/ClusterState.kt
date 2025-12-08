@@ -45,6 +45,17 @@ data class EMRClusterState(
 )
 
 /**
+ * OpenSearch domain state tracking for AWS-managed OpenSearch
+ */
+data class OpenSearchClusterState(
+    val domainName: String,
+    val domainId: String,
+    val endpoint: String? = null,
+    val dashboardsEndpoint: String? = null,
+    val state: String = "Creating",
+)
+
+/**
  * Infrastructure resource IDs for cleanup and tracking
  * These are the AWS resource IDs that need to be cleaned up when the cluster is destroyed
  */
@@ -83,6 +94,11 @@ data class InitConfig(
     val sparkMasterInstanceType: String = "m5.xlarge",
     val sparkWorkerInstanceType: String = "m5.xlarge",
     val sparkWorkerCount: Int = 3,
+    val opensearchEnabled: Boolean = false,
+    val opensearchInstanceType: String = "t3.small.search",
+    val opensearchInstanceCount: Int = 1,
+    val opensearchVersion: String = "2.11",
+    val opensearchEbsSize: Int = 100,
 ) {
     companion object {
         /**
@@ -120,6 +136,11 @@ data class InitConfig(
                 sparkMasterInstanceType = init.spark.masterInstanceType,
                 sparkWorkerInstanceType = init.spark.workerInstanceType,
                 sparkWorkerCount = init.spark.workerCount,
+                opensearchEnabled = init.opensearch.enable,
+                opensearchInstanceType = init.opensearch.instanceType,
+                opensearchInstanceCount = init.opensearch.instanceCount,
+                opensearchVersion = init.opensearch.version,
+                opensearchEbsSize = init.opensearch.ebsSize,
             )
     }
 }
@@ -150,6 +171,8 @@ data class ClusterState(
     var vpcId: String? = null,
     // EMR cluster state for Spark jobs
     var emrCluster: EMRClusterState? = null,
+    // OpenSearch domain state
+    var openSearchDomain: OpenSearchClusterState? = null,
     // Infrastructure resource IDs for cleanup
     var infrastructure: InfrastructureState? = null,
     // S3 bucket for this environment (per-cluster bucket, created during 'up')
@@ -168,6 +191,14 @@ data class ClusterState(
      */
     fun updateEmrCluster(emrCluster: EMRClusterState?) {
         this.emrCluster = emrCluster
+        this.lastAccessedAt = Instant.now()
+    }
+
+    /**
+     * Update OpenSearch domain state
+     */
+    fun updateOpenSearchDomain(openSearchDomain: OpenSearchClusterState?) {
+        this.openSearchDomain = openSearchDomain
         this.lastAccessedAt = Instant.now()
     }
 

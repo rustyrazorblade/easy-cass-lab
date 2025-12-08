@@ -16,10 +16,14 @@ import com.rustyrazorblade.easydblab.ssh.MockSSHClient
 import com.rustyrazorblade.easydblab.ssh.Response
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import software.amazon.awssdk.services.iam.IamClient
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.sts.StsClient
+import software.amazon.awssdk.services.sts.model.GetCallerIdentityRequest
+import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse
 import java.io.File
 import java.nio.file.Path
 
@@ -105,7 +109,18 @@ object TestModules {
             // Mock individual AWS SDK clients
             single { mock<IamClient>() }
             single { mock<S3Client>() }
-            single { mock<StsClient>() }
+            single {
+                mock<StsClient>().also { mockSts ->
+                    val response =
+                        GetCallerIdentityResponse
+                            .builder()
+                            .account("123456789012")
+                            .arn("arn:aws:iam::123456789012:user/test")
+                            .userId("AIDATEST123")
+                            .build()
+                    whenever(mockSts.getCallerIdentity(any<GetCallerIdentityRequest>())).thenReturn(response)
+                }
+            }
 
             // AWS service with mocked IAM, S3, and STS clients
             // Using real AWS class with mocked clients ensures the service logic

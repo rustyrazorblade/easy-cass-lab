@@ -1,5 +1,11 @@
 package com.rustyrazorblade.easydblab.services
 
+import com.rustyrazorblade.easydblab.configuration.User
+import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.providers.aws.AWS
+import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
+import com.rustyrazorblade.easydblab.providers.aws.EMRService
+import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -21,4 +27,28 @@ val servicesModule =
         factoryOf(::DefaultSidecarService) bind SidecarService::class
         factoryOf(::DefaultStressJobService) bind StressJobService::class
         singleOf(::HostOperationsService)
+
+        // Cluster configuration service for writing config files
+        factoryOf(::DefaultClusterConfigurationService) bind ClusterConfigurationService::class
+
+        // Cluster provisioning service for parallel instance creation
+        single<ClusterProvisioningService> {
+            DefaultClusterProvisioningService(
+                get<EC2InstanceService>(),
+                get<EMRService>(),
+                get<OpenSearchService>(),
+                get<OutputHandler>(),
+                get<AWS>(),
+                get<User>(),
+            )
+        }
+
+        // K3s cluster orchestration service
+        single<K3sClusterService> {
+            DefaultK3sClusterService(
+                get<K3sService>(),
+                get<K3sAgentService>(),
+                get<OutputHandler>(),
+            )
+        }
     }
