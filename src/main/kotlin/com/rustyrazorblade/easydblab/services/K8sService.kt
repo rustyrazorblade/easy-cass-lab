@@ -294,12 +294,10 @@ class DefaultK8sService(
 ) : K8sService {
     private val log = KotlinLogging.logger {}
 
-    companion object
-
     /**
      * Creates a Kubernetes client connected via SOCKS proxy.
      */
-    private fun createClient(controlHost: ClusterHost): KubernetesClient {
+    fun createClient(controlHost: ClusterHost): KubernetesClient {
         log.info { "Creating K8s client for ${controlHost.alias} (${controlHost.privateIp})" }
 
         // Ensure proxy is running
