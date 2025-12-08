@@ -111,7 +111,7 @@ val awsModule =
         }
 
         // Provide AWS service as singleton
-        single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>(), get()) }
+        single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>()) }
 
         // Provide EC2Service as singleton
         single { EC2Service(get<Ec2Client>()) }

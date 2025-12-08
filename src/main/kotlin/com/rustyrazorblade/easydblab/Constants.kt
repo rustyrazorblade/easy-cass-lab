@@ -23,6 +23,7 @@ object Constants {
 
     // Time-related constants
     object Time {
+        const val SECONDS_PER_MINUTE = 60
         const val MILLIS_PER_SECOND = 1000L
         const val MILLIS_PER_MINUTE = 60_000L
         const val THREAD_SLEEP_DELAY_MS = 10L
@@ -191,6 +192,7 @@ object Constants {
 
     // K8s observability configuration
     object K8s {
+        const val PATH_PREFIX = "/k8s/"
         const val NAMESPACE = "default"
         const val MANIFEST_DIR = "k8s"
         const val RESOURCE_PACKAGE = "com.rustyrazorblade.easydblab.commands.k8s"

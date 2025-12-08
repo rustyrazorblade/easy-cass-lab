@@ -100,13 +100,11 @@ import software.amazon.awssdk.services.sts.model.StsException
  * @property iamClient AWS IAM client for identity and access management operations
  * @property s3Client AWS S3 client for bucket operations
  * @property stsClient AWS STS client for credential and account operations
- * @property outputHandler Handler for user-facing messages and error output
  */
 class AWS(
     private val iamClient: IamClient,
     private val s3Client: S3Client,
     private val stsClient: StsClient,
-    private val outputHandler: OutputHandler,
 ) {
     private var cachedAccountId: String? = null
 

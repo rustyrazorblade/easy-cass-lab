@@ -76,15 +76,7 @@ class AMIService(
 
             // Delete AMIs and their snapshots if not in dry-run mode
             if (!dryRun) {
-                for (ami in toDelete) {
-                    // Deregister the AMI
-                    ec2Service.deregisterAMI(ami.id)
-
-                    // Delete associated snapshots
-                    for (snapshotId in ami.snapshotIds) {
-                        ec2Service.deleteSnapshot(snapshotId)
-                    }
-                }
+                deleteAMIsWithSnapshots(toDelete)
             }
         }
 
@@ -95,5 +87,19 @@ class AMIService(
         val sortedDeleted = deletedAMIs.sortedBy { it.creationDate }
 
         return PruneResult(kept = sortedKept, deleted = sortedDeleted)
+    }
+
+    /**
+     * Deletes AMIs and their associated snapshots.
+     *
+     * @param amis List of AMIs to delete
+     */
+    private fun deleteAMIsWithSnapshots(amis: List<AMI>) {
+        for (ami in amis) {
+            ec2Service.deregisterAMI(ami.id)
+            ami.snapshotIds.forEach { snapshotId ->
+                ec2Service.deleteSnapshot(snapshotId)
+            }
+        }
     }
 }

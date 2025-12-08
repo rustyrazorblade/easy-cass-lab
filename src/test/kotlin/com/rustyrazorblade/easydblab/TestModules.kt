@@ -125,7 +125,7 @@ object TestModules {
             // AWS service with mocked IAM, S3, and STS clients
             // Using real AWS class with mocked clients ensures the service logic
             // is tested while preventing actual AWS API calls
-            single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>(), get()) }
+            single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>()) }
 
             // Mock AMIValidator to prevent AMI validation during tests
             single { mock<AMIValidator>() }

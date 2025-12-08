@@ -294,9 +294,7 @@ class DefaultK8sService(
 ) : K8sService {
     private val log = KotlinLogging.logger {}
 
-    companion object {
-        private const val TIMEOUT_POLL_INTERVAL_MS = 5000L
-    }
+    companion object
 
     /**
      * Creates a Kubernetes client connected via SOCKS proxy.

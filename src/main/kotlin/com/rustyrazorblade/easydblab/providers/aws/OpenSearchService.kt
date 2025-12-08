@@ -296,37 +296,68 @@ class OpenSearchService(
             val result = describeDomain(domainName)
             pollCount++
 
-            when (result.state) {
-                DomainState.ACTIVE -> {
-                    // Domain must have endpoint to be considered ready
-                    if (result.endpoint != null) {
-                        log.info { "OpenSearch domain $domainName is active with endpoint: ${result.endpoint}" }
-                        outputHandler.handleMessage("OpenSearch domain is ready")
-                        return result
-                    } else {
-                        // State is ACTIVE but endpoint not yet available
-                        if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
-                            val elapsedMinutes = (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
-                            outputHandler.handleMessage("Domain active, waiting for endpoint... ($elapsedMinutes minutes elapsed)")
-                        }
-                    }
-                }
-                DomainState.DELETED -> {
-                    error("OpenSearch domain $domainName was deleted")
-                }
-                DomainState.PROCESSING -> {
-                    // Log every LOG_INTERVAL_POLLS to reduce noise
-                    if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
-                        val elapsedMinutes = (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
-                        outputHandler.handleMessage("Domain still processing... ($elapsedMinutes minutes elapsed)")
-                    }
-                }
+            val readyResult = checkDomainActiveState(result, domainName, pollCount, startTime)
+            if (readyResult != null) {
+                return readyResult
             }
 
             Thread.sleep(pollIntervalMs)
         }
 
         error("Timeout waiting for OpenSearch domain $domainName to become active after ${timeoutMs}ms")
+    }
+
+    /**
+     * Checks the domain state during active waiting and returns the result if ready.
+     *
+     * @return The domain result if ready, null if still waiting
+     * @throws IllegalStateException if domain was deleted
+     */
+    private fun checkDomainActiveState(
+        result: OpenSearchDomainResult,
+        domainName: String,
+        pollCount: Int,
+        startTime: Long,
+    ): OpenSearchDomainResult? =
+        when (result.state) {
+            DomainState.ACTIVE -> handleActiveState(result, domainName, pollCount, startTime)
+            DomainState.DELETED -> error("OpenSearch domain $domainName was deleted")
+            DomainState.PROCESSING -> {
+                logPollProgress(pollCount, startTime, "Domain still processing")
+                null
+            }
+        }
+
+    /**
+     * Handles the ACTIVE state, returning the result if endpoint is available.
+     */
+    private fun handleActiveState(
+        result: OpenSearchDomainResult,
+        domainName: String,
+        pollCount: Int,
+        startTime: Long,
+    ): OpenSearchDomainResult? =
+        if (result.endpoint != null) {
+            log.info { "OpenSearch domain $domainName is active with endpoint: ${result.endpoint}" }
+            outputHandler.handleMessage("OpenSearch domain is ready")
+            result
+        } else {
+            logPollProgress(pollCount, startTime, "Domain active, waiting for endpoint")
+            null
+        }
+
+    /**
+     * Logs progress at regular intervals during polling.
+     */
+    private fun logPollProgress(
+        pollCount: Int,
+        startTime: Long,
+        message: String,
+    ) {
+        if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
+            val elapsedMinutes = (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
+            outputHandler.handleMessage("$message... ($elapsedMinutes minutes elapsed)")
+        }
     }
 
     /**
@@ -354,28 +385,7 @@ class OpenSearchService(
         while (System.currentTimeMillis() - startTime < timeoutMs) {
             pollCount++
 
-            try {
-                val result = describeDomain(domainName)
-                when (result.state) {
-                    DomainState.DELETED -> {
-                        log.info { "OpenSearch domain $domainName is deleted" }
-                        outputHandler.handleMessage("OpenSearch domain $domainName deleted")
-                        return
-                    }
-                    DomainState.ACTIVE, DomainState.PROCESSING -> {
-                        if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
-                            val elapsedMinutes =
-                                (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
-                            outputHandler.handleMessage(
-                                "Domain still deleting... ($elapsedMinutes minutes elapsed)",
-                            )
-                        }
-                    }
-                }
-            } catch (e: software.amazon.awssdk.services.opensearch.model.ResourceNotFoundException) {
-                // Domain no longer exists - deletion complete
-                log.info { "OpenSearch domain $domainName no longer exists (deleted)" }
-                outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+            if (checkDomainDeletedState(domainName, pollCount, startTime)) {
                 return
             }
 
@@ -384,6 +394,48 @@ class OpenSearchService(
 
         error("Timeout waiting for OpenSearch domain $domainName to be deleted after ${timeoutMs}ms")
     }
+
+    /**
+     * Checks if domain is deleted during deletion polling.
+     *
+     * @return true if domain is deleted, false if still waiting
+     */
+    private fun checkDomainDeletedState(
+        domainName: String,
+        pollCount: Int,
+        startTime: Long,
+    ): Boolean =
+        try {
+            val result = describeDomain(domainName)
+            handleDeletedPollResult(result, domainName, pollCount, startTime)
+        } catch (e: software.amazon.awssdk.services.opensearch.model.ResourceNotFoundException) {
+            log.info { "OpenSearch domain $domainName no longer exists (deleted)" }
+            outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+            true
+        }
+
+    /**
+     * Handles poll result during deletion waiting.
+     *
+     * @return true if domain is deleted, false if still waiting
+     */
+    private fun handleDeletedPollResult(
+        result: OpenSearchDomainResult,
+        domainName: String,
+        pollCount: Int,
+        startTime: Long,
+    ): Boolean =
+        when (result.state) {
+            DomainState.DELETED -> {
+                log.info { "OpenSearch domain $domainName is deleted" }
+                outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+                true
+            }
+            DomainState.ACTIVE, DomainState.PROCESSING -> {
+                logPollProgress(pollCount, startTime, "Domain still deleting")
+                false
+            }
+        }
 
     /**
      * Constructs the OpenSearch Dashboards URL from the domain endpoint.

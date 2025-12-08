@@ -84,7 +84,7 @@ class StressStart(
         log.info { "Cassandra contact points: $contactPoints" }
 
         // Generate job name
-        val timestamp = System.currentTimeMillis() / 1000
+        val timestamp = System.currentTimeMillis() / Constants.Time.MILLIS_PER_SECOND
         val fullJobName =
             if (jobName != null) {
                 "${Constants.Stress.JOB_PREFIX}-$jobName-$timestamp"
