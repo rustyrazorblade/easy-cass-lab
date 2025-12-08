@@ -1,8 +1,9 @@
-package com.rustyrazorblade.easydblab.commands
+package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
+import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.toHost

@@ -1,4 +1,4 @@
-package com.rustyrazorblade.easydblab.commands
+package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -7,6 +7,7 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
+import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.ServerType

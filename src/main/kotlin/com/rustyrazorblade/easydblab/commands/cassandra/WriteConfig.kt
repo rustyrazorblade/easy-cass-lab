@@ -1,7 +1,8 @@
-package com.rustyrazorblade.easydblab.commands
+package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.getHosts
