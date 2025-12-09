@@ -241,6 +241,50 @@ step_stress_test() {
     ssh app0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 }
 
+step_registry_push_pull() {
+    echo "=== Testing private registry push/pull over HTTPS ==="
+
+    # Get registry address (private IP - kubectl uses SSH tunnel from env.sh)
+    local registry=$(easy-db-lab ip control0 --private):5000
+
+    echo "=== Registry address: $registry ==="
+
+    # Pull busybox locally, tag for private registry, and push
+    echo "=== Pulling busybox and pushing to private registry ==="
+    docker pull busybox:latest
+    docker tag busybox:latest "${registry}/busybox:e2e"
+    docker push "${registry}/busybox:e2e"
+
+    # Deploy a pod that pulls from the private registry
+    echo "=== Deploying test pod from private registry ==="
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: registry-test
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: ${registry}/busybox:e2e
+    command: ["echo", "Registry HTTPS test successful!"]
+EOF
+
+    # Wait for pod to complete
+    echo "=== Waiting for test pod to complete ==="
+    kubectl wait --for=condition=Ready pod/registry-test --timeout=60s || true
+    kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/registry-test --timeout=60s
+
+    # Show logs
+    echo "=== Test pod logs ==="
+    kubectl logs registry-test
+
+    # Cleanup
+    echo "=== Cleaning up test pod ==="
+    kubectl delete pod registry-test
+}
+
 step_stress_k8s() {
     if [ "$ENABLE_CASSANDRA" != true ]; then
         echo "=== Skipping stress K8s test (use --cassandra to enable) ==="
@@ -451,6 +495,7 @@ STEPS_WORKDIR=(
     "step_setup_kubectl:Setup kubectl"
     "step_wait_k3s_ready:Wait for K3s"
     "step_verify_k3s:Verify K3s cluster"
+    "step_registry_push_pull:Test registry push/pull"
     "step_list_hosts:List hosts"
     "step_setup_cassandra:Setup Cassandra"
     "step_cassandra_start_stop:Cassandra start/stop cycle"

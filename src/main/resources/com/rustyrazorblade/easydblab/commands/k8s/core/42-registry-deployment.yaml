@@ -30,6 +30,11 @@ spec:
             - containerPort: 5000
               hostPort: 5000
               protocol: TCP
+          env:
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: /certs/registry.crt
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: /certs/registry.key
           resources:
             limits:
               memory: 256Mi
@@ -39,18 +44,27 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/registry
+            - name: certs
+              mountPath: /certs
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /v2/
               port: 5000
+              scheme: HTTPS
             initialDelaySeconds: 10
             periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /v2/
               port: 5000
+              scheme: HTTPS
             initialDelaySeconds: 5
             periodSeconds: 10
       volumes:
         - name: data
           emptyDir: {}
+        - name: certs
+          hostPath:
+            path: /opt/registry/certs
+            type: Directory

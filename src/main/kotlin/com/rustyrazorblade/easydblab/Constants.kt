@@ -253,6 +253,18 @@ object Constants {
         const val DEFAULT_SOCKS5_PORT = 1080
     }
 
+    // Container Registry configuration
+    object Registry {
+        /** Default registry port */
+        const val PORT = 5000
+
+        /** Directory on control node where TLS certificates are stored */
+        const val CERT_DIR = "/opt/registry/certs"
+
+        /** S3 path for the CA certificate */
+        const val S3_CERT_PATH = "registry/ca.crt"
+    }
+
     // VPC and tagging configuration
     object Vpc {
         /** Default VPC CIDR block */

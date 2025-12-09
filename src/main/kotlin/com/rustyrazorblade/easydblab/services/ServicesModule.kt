@@ -22,6 +22,7 @@ import org.koin.dsl.module
 val servicesModule =
     module {
         factoryOf(::DefaultCassandraService) bind CassandraService::class
+        factoryOf(::EC2RegistryService) bind RegistryService::class
         factoryOf(::DefaultK3sService) bind K3sService::class
         factoryOf(::DefaultK3sAgentService) bind K3sAgentService::class
         factoryOf(::DefaultK8sService) bind K8sService::class
