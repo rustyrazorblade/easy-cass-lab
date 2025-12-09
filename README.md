@@ -85,7 +85,6 @@ This will:
 - Validate your credentials
 - Create an EC2 key pair for SSH access
 - Create an IAM role for instance permissions
-- Create an S3 bucket (shared across all labs in this profile)
 - Set up Packer VPC infrastructure for building AMIs
 
 ## Usage
