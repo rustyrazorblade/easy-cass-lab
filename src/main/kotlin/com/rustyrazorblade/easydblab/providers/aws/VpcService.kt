@@ -137,6 +137,15 @@ interface VpcService {
     fun getVpcName(vpcId: VpcId): String?
 
     /**
+     * Gets all tags on a VPC.
+     *
+     * @param vpcId The VPC ID
+     * @return Map of tag key-value pairs on the VPC
+     * @throws IllegalStateException if the VPC does not exist
+     */
+    fun getVpcTags(vpcId: VpcId): Map<String, String>
+
+    /**
      * Finds all EC2 instances in a VPC.
      *
      * @param vpcId The VPC ID to search in

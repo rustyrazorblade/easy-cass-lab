@@ -1,0 +1,28 @@
+package com.rustyrazorblade.easydblab.commands.aws
+
+import picocli.CommandLine.Command
+import picocli.CommandLine.Model.CommandSpec
+import picocli.CommandLine.Spec
+
+/**
+ * Parent command for AWS-related operations.
+ *
+ * This command groups subcommands for AWS resource discovery and management:
+ * - vpcs: List easy-db-lab VPCs
+ *
+ * Note: Sub-commands are registered manually in CommandLineParser to inject
+ * the Context dependency that PicoCommands require.
+ */
+@Command(
+    name = "aws",
+    description = ["AWS resource discovery and management operations"],
+    mixinStandardHelpOptions = true,
+)
+class Aws : Runnable {
+    @Spec
+    lateinit var spec: CommandSpec
+
+    override fun run() {
+        spec.commandLine().usage(System.out)
+    }
+}

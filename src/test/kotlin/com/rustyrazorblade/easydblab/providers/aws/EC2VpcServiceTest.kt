@@ -33,6 +33,8 @@ import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeSecurityGroupsResponse
 import software.amazon.awssdk.services.ec2.model.DescribeSubnetsRequest
 import software.amazon.awssdk.services.ec2.model.DescribeSubnetsResponse
+import software.amazon.awssdk.services.ec2.model.DescribeVpcsRequest
+import software.amazon.awssdk.services.ec2.model.DescribeVpcsResponse
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.ec2.model.InternetGateway
 import software.amazon.awssdk.services.ec2.model.InternetGatewayAttachment
@@ -42,6 +44,7 @@ import software.amazon.awssdk.services.ec2.model.Route
 import software.amazon.awssdk.services.ec2.model.RouteTable
 import software.amazon.awssdk.services.ec2.model.SecurityGroup
 import software.amazon.awssdk.services.ec2.model.Subnet
+import software.amazon.awssdk.services.ec2.model.Tag
 import software.amazon.awssdk.services.ec2.model.Vpc
 
 internal class EC2VpcServiceTest {
@@ -532,5 +535,82 @@ internal class EC2VpcServiceTest {
         vpcService.ensureRouteTable("vpc-12345", "subnet-12345", "igw-12345")
 
         verify(mockEc2Client).createRoute(any<CreateRouteRequest>())
+    }
+
+    @Test
+    fun `getVpcTags should return all tags from VPC`() {
+        val vpc =
+            Vpc
+                .builder()
+                .vpcId("vpc-12345")
+                .tags(
+                    Tag
+                        .builder()
+                        .key("Name")
+                        .value("my-vpc")
+                        .build(),
+                    Tag
+                        .builder()
+                        .key("ClusterId")
+                        .value("abc123-full-uuid")
+                        .build(),
+                    Tag
+                        .builder()
+                        .key("Environment")
+                        .value("test")
+                        .build(),
+                ).build()
+
+        val describeResponse =
+            DescribeVpcsResponse
+                .builder()
+                .vpcs(vpc)
+                .build()
+
+        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(describeResponse)
+
+        val result = vpcService.getVpcTags("vpc-12345")
+
+        assertThat(result).hasSize(3)
+        assertThat(result["Name"]).isEqualTo("my-vpc")
+        assertThat(result["ClusterId"]).isEqualTo("abc123-full-uuid")
+        assertThat(result["Environment"]).isEqualTo("test")
+    }
+
+    @Test
+    fun `getVpcTags should return empty map when VPC has no tags`() {
+        val vpc =
+            Vpc
+                .builder()
+                .vpcId("vpc-12345")
+                .tags(emptyList())
+                .build()
+
+        val describeResponse =
+            DescribeVpcsResponse
+                .builder()
+                .vpcs(vpc)
+                .build()
+
+        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(describeResponse)
+
+        val result = vpcService.getVpcTags("vpc-12345")
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `getVpcTags should throw exception when VPC not found`() {
+        val emptyResponse =
+            DescribeVpcsResponse
+                .builder()
+                .vpcs(emptyList())
+                .build()
+
+        whenever(mockEc2Client.describeVpcs(any<DescribeVpcsRequest>())).thenReturn(emptyResponse)
+
+        assertThrows<IllegalStateException> {
+            vpcService.getVpcTags("vpc-nonexistent")
+        }
     }
 }

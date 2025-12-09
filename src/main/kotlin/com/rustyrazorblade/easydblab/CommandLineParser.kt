@@ -24,6 +24,8 @@ import com.rustyrazorblade.easydblab.commands.ShowIamPolicies
 import com.rustyrazorblade.easydblab.commands.Status
 import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.Version
+import com.rustyrazorblade.easydblab.commands.aws.Aws
+import com.rustyrazorblade.easydblab.commands.aws.Vpcs
 import com.rustyrazorblade.easydblab.commands.cassandra.Cassandra
 import com.rustyrazorblade.easydblab.commands.cassandra.Down
 import com.rustyrazorblade.easydblab.commands.cassandra.DownloadConfig
@@ -58,16 +60,19 @@ import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
 import com.rustyrazorblade.easydblab.commands.spark.SparkLogs
 import com.rustyrazorblade.easydblab.commands.spark.SparkStatus
 import com.rustyrazorblade.easydblab.commands.spark.SparkSubmit
+import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
+import com.rustyrazorblade.easydblab.services.StateReconstructionService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Model.CommandSpec
+import picocli.CommandLine.Option
 import picocli.CommandLine.Spec
 import java.io.File
 import kotlin.system.exitProcess
@@ -94,6 +99,18 @@ data class PicoCommandEntry(
 class EasyDBLabCommand : Runnable {
     @Spec
     lateinit var spec: CommandSpec
+
+    @Option(
+        names = ["--vpc-id"],
+        description = ["Reconstruct state from existing VPC. Requires ClusterId tag on VPC."],
+    )
+    var vpcId: String? = null
+
+    @Option(
+        names = ["--force"],
+        description = ["Force state reconstruction even if state.json already exists"],
+    )
+    var force: Boolean = false
 
     override fun run() {
         // Show help when no subcommand is provided
@@ -245,6 +262,12 @@ class CommandLineParser(
         openSearchCommandLine.addSubcommand("stop", OpenSearchStop(context))
         commandLine.addSubcommand("opensearch", openSearchCommandLine)
 
+        // Register AWS parent command with its sub-commands
+        // AWS is a parent command for AWS resource discovery and management
+        val awsCommandLine = CommandLine(Aws())
+        awsCommandLine.addSubcommand("vpcs", Vpcs(context))
+        commandLine.addSubcommand("aws", awsCommandLine)
+
         // Set exception handler to ensure non-zero exit code on exceptions
         commandLine.executionExceptionHandler =
             CommandLine.IExecutionExceptionHandler { ex, cmd, _ ->
@@ -256,6 +279,13 @@ class CommandLineParser(
         // Set execution strategy to check requirements before running commands
         commandLine.executionStrategy =
             CommandLine.IExecutionStrategy { parseResult ->
+                // Get the root command to check for --vpc-id option
+                val rootCmd = parseResult.commandSpec().userObject()
+                if (rootCmd is EasyDBLabCommand && rootCmd.vpcId != null) {
+                    // Reconstruct state from VPC before running any subcommand
+                    handleVpcIdStateReconstruction(rootCmd.vpcId!!, rootCmd.force)
+                }
+
                 // Find the deepest subcommand (handles nested commands like "spark submit")
                 var currentParseResult = parseResult.subcommand()
                 while (currentParseResult?.subcommand() != null) {
@@ -272,6 +302,41 @@ class CommandLineParser(
                 // Execute the command using default RunLast strategy
                 CommandLine.RunLast().execute(parseResult)
             }
+    }
+
+    /**
+     * Handles state reconstruction from a VPC ID.
+     *
+     * This is triggered when --vpc-id is provided on the command line.
+     * It reconstructs the local state.json from AWS resources associated with the VPC.
+     *
+     * @param vpcId The VPC ID to reconstruct state from
+     * @param force If true, overwrites existing state.json
+     * @throws IllegalStateException if state.json exists and --force is not provided
+     */
+    private fun handleVpcIdStateReconstruction(
+        vpcId: String,
+        force: Boolean,
+    ) {
+        val clusterStateManager: ClusterStateManager by inject()
+        val stateReconstructionService: StateReconstructionService by inject()
+
+        // Check if state.json already exists
+        if (clusterStateManager.exists() && !force) {
+            error(
+                "state.json already exists. Use --force to overwrite, or remove the file manually.\n" +
+                    "Warning: Overwriting will lose any local configuration.",
+            )
+        }
+
+        outputHandler.handleMessage("Reconstructing state from VPC: $vpcId")
+        val reconstructedState = stateReconstructionService.reconstructFromVpc(vpcId)
+        clusterStateManager.save(reconstructedState)
+        outputHandler.handleMessage("State reconstructed successfully:")
+        outputHandler.handleMessage("  Cluster name: ${reconstructedState.name}")
+        outputHandler.handleMessage("  Cluster ID: ${reconstructedState.clusterId}")
+        outputHandler.handleMessage("  Hosts: ${reconstructedState.hosts.values.sumOf { it.size }}")
+        outputHandler.handleMessage("  S3 bucket: ${reconstructedState.s3Bucket ?: "not found"}")
     }
 
     /**
