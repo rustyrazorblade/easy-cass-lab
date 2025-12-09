@@ -18,7 +18,11 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
+import software.amazon.awssdk.services.s3.model.GetBucketTaggingRequest
+import software.amazon.awssdk.services.s3.model.PutBucketTaggingRequest
 import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.services.s3.model.Tag
+import software.amazon.awssdk.services.s3.model.Tagging
 import software.amazon.awssdk.services.sts.StsClient
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityRequest
 import software.amazon.awssdk.services.sts.model.StsException
@@ -433,6 +437,98 @@ class AWS(
             log.error(e) { "Failed to apply S3 bucket policy: $bucketName - ${e.message}" }
             throw e
         }
+    }
+
+    /**
+     * Applies tags to an existing S3 bucket.
+     *
+     * This method is idempotent - calling it multiple times with the same tags will succeed.
+     * Note that this replaces ALL existing tags on the bucket.
+     *
+     * @param bucketName The name of the S3 bucket to tag
+     * @param tags Map of tag key-value pairs to apply
+     * @throws IllegalArgumentException if bucket name is invalid
+     * @throws S3Exception if S3 operations fail (e.g., bucket doesn't exist)
+     */
+    fun tagS3Bucket(
+        bucketName: String,
+        tags: Map<String, String>,
+    ) {
+        require(bucketName.matches(Regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"))) {
+            "Invalid S3 bucket name: $bucketName. Must be lowercase, 3-63 chars, alphanumeric and hyphens only."
+        }
+
+        val s3Tags =
+            tags.map { (key, value) ->
+                Tag
+                    .builder()
+                    .key(key)
+                    .value(value)
+                    .build()
+            }
+
+        val tagging =
+            Tagging
+                .builder()
+                .tagSet(s3Tags)
+                .build()
+
+        val request =
+            PutBucketTaggingRequest
+                .builder()
+                .bucket(bucketName)
+                .tagging(tagging)
+                .build()
+
+        s3Client.putBucketTagging(request)
+        log.info { "✓ Applied tags to S3 bucket: $bucketName (${tags.keys.joinToString(", ")})" }
+    }
+
+    /**
+     * Finds an S3 bucket by a specific tag key-value pair.
+     *
+     * Only searches buckets with the "easy-db-lab-" prefix to avoid checking
+     * unrelated buckets in the account.
+     *
+     * @param tagKey The tag key to search for
+     * @param tagValue The tag value to match
+     * @return The bucket name if found, null otherwise
+     */
+    fun findS3BucketByTag(
+        tagKey: String,
+        tagValue: String,
+    ): String? {
+        val buckets = s3Client.listBuckets().buckets()
+
+        // Only check easy-db-lab prefixed buckets
+        val easyDbLabBuckets = buckets.filter { it.name().startsWith(Constants.S3.BUCKET_PREFIX) }
+
+        for (bucket in easyDbLabBuckets) {
+            try {
+                val taggingRequest =
+                    GetBucketTaggingRequest
+                        .builder()
+                        .bucket(bucket.name())
+                        .build()
+
+                val taggingResponse = s3Client.getBucketTagging(taggingRequest)
+                val matchingTag =
+                    taggingResponse.tagSet().find {
+                        it.key() == tagKey && it.value() == tagValue
+                    }
+
+                if (matchingTag != null) {
+                    log.info { "Found bucket with $tagKey=$tagValue: ${bucket.name()}" }
+                    return bucket.name()
+                }
+            } catch (e: S3Exception) {
+                // Bucket may not have tags or we may not have permission - continue searching
+                log.debug { "Could not get tags for bucket ${bucket.name()}: ${e.message}" }
+            }
+        }
+
+        log.info { "No bucket found with tag $tagKey=$tagValue" }
+        return null
     }
 
     /**

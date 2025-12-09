@@ -6,6 +6,7 @@ import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
 import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
+import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -49,6 +50,15 @@ val servicesModule =
                 get<K3sService>(),
                 get<K3sAgentService>(),
                 get<OutputHandler>(),
+            )
+        }
+
+        // State reconstruction service for recovering state from AWS resources
+        single<StateReconstructionService> {
+            DefaultStateReconstructionService(
+                get<VpcService>(),
+                get<EC2InstanceService>(),
+                get<AWS>(),
             )
         }
     }

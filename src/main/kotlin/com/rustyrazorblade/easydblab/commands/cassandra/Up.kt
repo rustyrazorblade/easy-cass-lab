@@ -135,6 +135,7 @@ class Up(
     /**
      * Creates the S3 bucket for this environment if it doesn't already exist.
      * Each environment gets its own dedicated bucket for isolation.
+     * The bucket is tagged with the ClusterId to enable state reconstruction.
      */
     private fun createS3BucketIfNeeded(initConfig: InitConfig) {
         if (!workingState.s3Bucket.isNullOrBlank()) {
@@ -148,6 +149,7 @@ class Up(
         outputHandler.handleMessage("Creating S3 bucket: $bucketName")
         aws.createS3Bucket(bucketName)
         aws.putS3BucketPolicy(bucketName)
+        aws.tagS3Bucket(bucketName, mapOf("ClusterId" to workingState.clusterId))
 
         workingState.s3Bucket = bucketName
         clusterStateManager.save(workingState)

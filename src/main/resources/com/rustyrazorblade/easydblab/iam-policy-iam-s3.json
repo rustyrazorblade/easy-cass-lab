@@ -39,7 +39,9 @@
         "s3:PutBucketVersioning",
         "s3:GetBucketVersioning",
         "s3:PutBucketPolicy",
-        "s3:GetBucketPolicy"
+        "s3:GetBucketPolicy",
+        "s3:PutBucketTagging",
+        "s3:GetBucketTagging"
       ],
       "Resource": [
         "arn:aws:s3:::easy-db-lab-*",

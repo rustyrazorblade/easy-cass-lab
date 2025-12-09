@@ -154,6 +154,12 @@ object Constants {
         }
     }
 
+    // S3 configuration
+    object S3 {
+        /** Prefix for all easy-db-lab S3 buckets */
+        const val BUCKET_PREFIX = "easy-db-lab-"
+    }
+
     // Monitoring
     object Monitoring {
         const val PROMETHEUS_JOB_CASSANDRA = "cassandra"

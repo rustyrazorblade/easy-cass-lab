@@ -534,6 +534,23 @@ class EC2VpcService(
         return vpc.tags().firstOrNull { it.key() == "Name" }?.value()
     }
 
+    override fun getVpcTags(vpcId: VpcId): Map<String, String> {
+        log.debug { "Getting tags for VPC: $vpcId" }
+
+        val describeRequest =
+            DescribeVpcsRequest
+                .builder()
+                .vpcIds(vpcId)
+                .build()
+
+        val vpcs = RetryUtil.withAwsRetry("get-vpc-tags") { ec2Client.describeVpcs(describeRequest).vpcs() }
+        val vpc =
+            vpcs.firstOrNull()
+                ?: error("VPC $vpcId not found")
+
+        return vpc.tags().associate { it.key() to it.value() }
+    }
+
     override fun findInstancesInVpc(vpcId: VpcId): List<InstanceId> {
         log.info { "Finding EC2 instances in VPC: $vpcId" }
 

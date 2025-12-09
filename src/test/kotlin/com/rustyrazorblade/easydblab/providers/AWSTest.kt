@@ -21,9 +21,18 @@ import software.amazon.awssdk.services.iam.model.PutRolePolicyRequest
 import software.amazon.awssdk.services.iam.model.PutRolePolicyResponse
 import software.amazon.awssdk.services.iam.model.Role
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.Bucket
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.model.CreateBucketResponse
+import software.amazon.awssdk.services.s3.model.GetBucketTaggingRequest
+import software.amazon.awssdk.services.s3.model.GetBucketTaggingResponse
+import software.amazon.awssdk.services.s3.model.ListBucketsResponse
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException
+import software.amazon.awssdk.services.s3.model.PutBucketTaggingRequest
+import software.amazon.awssdk.services.s3.model.PutBucketTaggingResponse
+import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.services.s3.model.Tag
 import software.amazon.awssdk.services.sts.StsClient
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityRequest
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse
@@ -398,5 +407,200 @@ internal class AWSTest :
 
         // STS should only be called once (by checkPermissions)
         verify(mockStsClient, org.mockito.kotlin.times(1)).getCallerIdentity(any<GetCallerIdentityRequest>())
+    }
+
+    @Test
+    fun `tagS3Bucket should apply tags to bucket`() {
+        val bucketName = "easy-db-lab-test-bucket"
+        val tags = mapOf("ClusterId" to "abc123", "Environment" to "test")
+
+        // Setup mock response
+        val putTaggingResponse = PutBucketTaggingResponse.builder().build()
+        whenever(mockS3Client.putBucketTagging(any<PutBucketTaggingRequest>())).thenReturn(putTaggingResponse)
+
+        // Execute
+        aws.tagS3Bucket(bucketName, tags)
+
+        // Verify the correct request was made
+        verify(mockS3Client).putBucketTagging(
+            org.mockito.kotlin.argThat<PutBucketTaggingRequest> { request ->
+                request.bucket() == bucketName &&
+                    request.tagging().tagSet().size == 2 &&
+                    request.tagging().tagSet().any { it.key() == "ClusterId" && it.value() == "abc123" } &&
+                    request.tagging().tagSet().any { it.key() == "Environment" && it.value() == "test" }
+            },
+        )
+    }
+
+    @Test
+    fun `tagS3Bucket should throw exception for non-existent bucket`() {
+        val bucketName = "non-existent-bucket"
+        val tags = mapOf("ClusterId" to "abc123")
+
+        // Setup mock to throw NoSuchBucketException
+        whenever(mockS3Client.putBucketTagging(any<PutBucketTaggingRequest>()))
+            .thenThrow(
+                NoSuchBucketException
+                    .builder()
+                    .message("Bucket does not exist")
+                    .build(),
+            )
+
+        // Execute - should throw exception
+        assertThrows<NoSuchBucketException> {
+            aws.tagS3Bucket(bucketName, tags)
+        }
+    }
+
+    @Test
+    fun `tagS3Bucket should validate bucket name`() {
+        // Test with invalid bucket name
+        assertThrows<IllegalArgumentException> {
+            aws.tagS3Bucket("Invalid-Bucket-Name", mapOf("ClusterId" to "abc123"))
+        }
+    }
+
+    @Test
+    fun `findS3BucketByTag should return bucket name when tag matches`() {
+        val targetBucket = "easy-db-lab-myproject-abc12345"
+        val clusterId = "abc12345-full-uuid"
+
+        // Setup mock for listBuckets
+        val buckets =
+            listOf(
+                Bucket.builder().name("other-bucket-1").build(),
+                Bucket.builder().name(targetBucket).build(),
+                Bucket.builder().name("other-bucket-2").build(),
+            )
+        val listBucketsResponse = ListBucketsResponse.builder().buckets(buckets).build()
+        whenever(mockS3Client.listBuckets()).thenReturn(listBucketsResponse)
+
+        // Setup mock for getBucketTagging - first bucket has no ClusterId tag
+        val otherBucket1Tags =
+            GetBucketTaggingResponse
+                .builder()
+                .tagSet(
+                    Tag
+                        .builder()
+                        .key("Environment")
+                        .value("prod")
+                        .build(),
+                ).build()
+
+        // Target bucket has the matching ClusterId tag
+        val targetBucketTags =
+            GetBucketTaggingResponse
+                .builder()
+                .tagSet(
+                    Tag
+                        .builder()
+                        .key("ClusterId")
+                        .value(clusterId)
+                        .build(),
+                ).build()
+
+        whenever(mockS3Client.getBucketTagging(any<GetBucketTaggingRequest>()))
+            .thenAnswer { invocation ->
+                val request = invocation.getArgument<GetBucketTaggingRequest>(0)
+                when (request.bucket()) {
+                    "other-bucket-1" -> otherBucket1Tags
+                    targetBucket -> targetBucketTags
+                    else ->
+                        throw S3Exception
+                            .builder()
+                            .message("The TagSet does not exist")
+                            .statusCode(404)
+                            .build()
+                }
+            }
+
+        // Execute
+        val result = aws.findS3BucketByTag("ClusterId", clusterId)
+
+        // Verify
+        assertThat(result).isEqualTo(targetBucket)
+    }
+
+    @Test
+    fun `findS3BucketByTag should return null when no bucket has matching tag`() {
+        val buckets =
+            listOf(
+                Bucket.builder().name("bucket-1").build(),
+                Bucket.builder().name("bucket-2").build(),
+            )
+        val listBucketsResponse = ListBucketsResponse.builder().buckets(buckets).build()
+        whenever(mockS3Client.listBuckets()).thenReturn(listBucketsResponse)
+
+        // Setup mock - no bucket has tags
+        whenever(mockS3Client.getBucketTagging(any<GetBucketTaggingRequest>()))
+            .thenThrow(
+                S3Exception
+                    .builder()
+                    .message("The TagSet does not exist")
+                    .statusCode(404)
+                    .build(),
+            )
+
+        // Execute
+        val result = aws.findS3BucketByTag("ClusterId", "nonexistent-id")
+
+        // Verify
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `findS3BucketByTag should only check easy-db-lab prefixed buckets`() {
+        val targetBucket = "easy-db-lab-myproject-abc12345"
+        val nonPrefixedBucket = "my-other-bucket"
+        val clusterId = "abc12345-full-uuid"
+
+        // Setup mock for listBuckets - includes both prefixed and non-prefixed buckets
+        val buckets =
+            listOf(
+                Bucket.builder().name(nonPrefixedBucket).build(),
+                Bucket.builder().name(targetBucket).build(),
+            )
+        val listBucketsResponse = ListBucketsResponse.builder().buckets(buckets).build()
+        whenever(mockS3Client.listBuckets()).thenReturn(listBucketsResponse)
+
+        // Setup mock - target bucket has matching tag
+        val targetBucketTags =
+            GetBucketTaggingResponse
+                .builder()
+                .tagSet(
+                    Tag
+                        .builder()
+                        .key("ClusterId")
+                        .value(clusterId)
+                        .build(),
+                ).build()
+
+        whenever(mockS3Client.getBucketTagging(any<GetBucketTaggingRequest>()))
+            .thenReturn(targetBucketTags)
+
+        // Execute
+        val result = aws.findS3BucketByTag("ClusterId", clusterId)
+
+        // Verify - should find the target bucket
+        assertThat(result).isEqualTo(targetBucket)
+
+        // Verify that only easy-db-lab prefixed buckets were checked
+        verify(mockS3Client, org.mockito.kotlin.never()).getBucketTagging(
+            org.mockito.kotlin.argThat<GetBucketTaggingRequest> { request ->
+                request.bucket() == nonPrefixedBucket
+            },
+        )
+    }
+
+    @Test
+    fun `findS3BucketByTag should return null when no buckets exist`() {
+        val listBucketsResponse = ListBucketsResponse.builder().buckets(emptyList()).build()
+        whenever(mockS3Client.listBuckets()).thenReturn(listBucketsResponse)
+
+        // Execute
+        val result = aws.findS3BucketByTag("ClusterId", "some-id")
+
+        // Verify
+        assertThat(result).isNull()
     }
 }
