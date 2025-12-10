@@ -32,6 +32,7 @@ import com.rustyrazorblade.easydblab.services.InstanceProvisioningConfig
 import com.rustyrazorblade.easydblab.services.K3sClusterConfig
 import com.rustyrazorblade.easydblab.services.K3sClusterService
 import com.rustyrazorblade.easydblab.services.OptionalServicesConfig
+import com.rustyrazorblade.easydblab.services.RegistryService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.resilience4j.retry.Retry
 import org.koin.core.component.inject
@@ -76,6 +77,7 @@ class Up(
     private val clusterProvisioningService: ClusterProvisioningService by inject()
     private val clusterConfigurationService: ClusterConfigurationService by inject()
     private val k3sClusterService: K3sClusterService by inject()
+    private val registryService: RegistryService by inject()
 
     // Working copy loaded during execute() - modified and saved
     private lateinit var workingState: ClusterState
@@ -438,6 +440,48 @@ class Up(
             }
         }
 
+        // Configure registry TLS before starting the registry pod
+        configureRegistryTls()
+
         K8Apply(context).execute()
+    }
+
+    /**
+     * Configures TLS for the container registry.
+     *
+     * Generates a self-signed certificate on the control node and configures containerd
+     * on all nodes to trust the registry. This must happen before K8s manifests are applied
+     * so the registry pod can start with TLS enabled.
+     */
+    private fun configureRegistryTls() {
+        val controlHosts = workingState.hosts[ServerType.Control] ?: emptyList()
+        if (controlHosts.isEmpty()) {
+            log.warn { "No control nodes found, skipping registry TLS configuration" }
+            return
+        }
+
+        val s3Bucket = workingState.s3Bucket
+        if (s3Bucket.isNullOrBlank()) {
+            log.warn { "S3 bucket not configured, skipping registry TLS configuration" }
+            return
+        }
+
+        val controlHost = controlHosts.first().toHost()
+        val registryHost = controlHost.private
+
+        // Generate cert on control node and upload to S3
+        registryService.generateAndUploadCert(controlHost, s3Bucket)
+
+        // Configure containerd on ALL nodes to trust the registry
+        val allHosts =
+            (workingState.hosts[ServerType.Control] ?: emptyList()) +
+                (workingState.hosts[ServerType.Cassandra] ?: emptyList()) +
+                (workingState.hosts[ServerType.Stress] ?: emptyList())
+
+        allHosts.forEach { clusterHost ->
+            registryService.configureTlsOnNode(clusterHost.toHost(), registryHost, s3Bucket)
+        }
+
+        outputHandler.handleMessage("Registry TLS configured on all nodes")
     }
 }

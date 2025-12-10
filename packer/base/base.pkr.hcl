@@ -119,6 +119,11 @@ build {
     script = "install/install_bcc.sh"
   }
 
+  # install AWS CLI v2
+  provisioner "shell" {
+    script = "install/install_awscli.sh"
+  }
+
   # install k3s (disabled, not auto-started)
   provisioner "shell" {
     script = "install/install_k3s.sh"

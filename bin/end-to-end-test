@@ -5,6 +5,9 @@ set -e  # Exit on any error
 # Store project root directory
 PROJECT_ROOT="$(pwd)"
 
+# Work directory is the same as project root (no temp directory)
+TEST_WORKDIR="$PROJECT_ROOT"
+
 # Prepend bin directory to PATH so easy-db-lab uses this worktree's version
 export PATH="$PROJECT_ROOT/bin:$PATH"
 
@@ -241,6 +244,50 @@ step_stress_test() {
     ssh app0 "bash -l -c 'cassandra-easy-stress run KeyValue -d 10s'"
 }
 
+step_registry_push_pull() {
+    echo "=== Testing private registry push/pull over HTTPS ==="
+
+    # Get registry address (private IP - kubectl uses SSH tunnel from env.sh)
+    local registry=$(easy-db-lab ip control0 --private):5000
+
+    echo "=== Registry address: $registry ==="
+
+    # Pull busybox locally, tag for private registry, and push
+    echo "=== Pulling busybox and pushing to private registry ==="
+    docker pull busybox:latest
+    docker tag busybox:latest "${registry}/busybox:e2e"
+    docker push "${registry}/busybox:e2e"
+
+    # Deploy a pod that pulls from the private registry
+    echo "=== Deploying test pod from private registry ==="
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: registry-test
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: ${registry}/busybox:e2e
+    command: ["echo", "Registry HTTPS test successful!"]
+EOF
+
+    # Wait for pod to complete
+    echo "=== Waiting for test pod to complete ==="
+    kubectl wait --for=condition=Ready pod/registry-test --timeout=60s || true
+    kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/registry-test --timeout=60s
+
+    # Show logs
+    echo "=== Test pod logs ==="
+    kubectl logs registry-test
+
+    # Cleanup
+    echo "=== Cleaning up test pod ==="
+    kubectl delete pod registry-test
+}
+
 step_stress_k8s() {
     if [ "$ENABLE_CASSANDRA" != true ]; then
         echo "=== Skipping stress K8s test (use --cassandra to enable) ==="
@@ -451,6 +498,7 @@ STEPS_WORKDIR=(
     "step_setup_kubectl:Setup kubectl"
     "step_wait_k3s_ready:Wait for K3s"
     "step_verify_k3s:Verify K3s cluster"
+    "step_registry_push_pull:Test registry push/pull"
     "step_list_hosts:List hosts"
     "step_setup_cassandra:Setup Cassandra"
     "step_cassandra_start_stop:Cassandra start/stop cycle"
@@ -560,12 +608,10 @@ export PROJECT_ROOT TEST_WORKDIR
 cleanup() {
     local exit_code=$?
 
-    # Success case - clean up and exit
+    # Success case - exit cleanly
     if [ "$EXIT_OK" = true ]; then
         echo ""
         echo "=== All tests passed successfully ==="
-        echo "=== Cleaning up temp directory ==="
-        rm -rf "$TEST_WORKDIR"
         exit 0
     fi
 
@@ -581,10 +627,9 @@ cleanup() {
             echo "  1) Retry from failed step (resume test)"
             echo "  2) Start a shell session in the directory"
             echo "  3) Tear down environment (easy-db-lab down --yes)"
-            echo "  4) Delete temporary work directory"
-            echo "  5) Keep directory and exit"
+            echo "  4) Exit"
             echo ""
-            read -p "Choose [1-5]: " -n 1 -r choice
+            read -p "Choose [1-4]: " -n 1 -r choice
             echo
             case $choice in
                 1)
@@ -672,21 +717,14 @@ ZSHRC_EOF
                     # Loop back to menu for directory cleanup
                     ;;
                 4)
-                    echo "=== Cleaning up temp directory ==="
-                    rm -rf "$TEST_WORKDIR"
-                    break
-                    ;;
-                5)
-                    echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+                    echo "=== Exiting ==="
                     break
                     ;;
                 *)
-                    echo "Invalid choice. Please enter 1, 2, 3, 4, or 5."
+                    echo "Invalid choice. Please enter 1, 2, 3, or 4."
                     ;;
             esac
         done
-    else
-        echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
     fi
     exit $exit_code
 }
@@ -703,9 +741,9 @@ if [ "$LIST_STEPS" = true ]; then
     exit 0
 fi
 
-# Change to temp directory for workdir steps
+# Change to work directory
 cd "$TEST_WORKDIR"
-echo "=== Changed to work directory: $(pwd) ==="
+echo "=== Work directory: $(pwd) ==="
 
 # Handle --wait flag for inspection before teardown
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
