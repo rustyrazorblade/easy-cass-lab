@@ -13,8 +13,8 @@ CERT_DIR="/etc/containerd/certs.d/${REGISTRY_HOST}:${REGISTRY_PORT}"
 
 sudo mkdir -p "$CERT_DIR"
 
-# Download certificate from S3
-sudo aws s3 cp "s3://$S3_BUCKET/$S3_PATH" "$CERT_DIR/ca.crt"
+# Download certificate from S3 (use full path since sudo doesn't preserve PATH)
+sudo /usr/local/bin/aws s3 cp "s3://$S3_BUCKET/$S3_PATH" "$CERT_DIR/ca.crt"
 
 # Create hosts.toml configuration for containerd
 sudo tee "$CERT_DIR/hosts.toml" > /dev/null <<EOF

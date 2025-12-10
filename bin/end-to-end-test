@@ -5,6 +5,9 @@ set -e  # Exit on any error
 # Store project root directory
 PROJECT_ROOT="$(pwd)"
 
+# Work directory is the same as project root (no temp directory)
+TEST_WORKDIR="$PROJECT_ROOT"
+
 # Prepend bin directory to PATH so easy-db-lab uses this worktree's version
 export PATH="$PROJECT_ROOT/bin:$PATH"
 
@@ -605,12 +608,10 @@ export PROJECT_ROOT TEST_WORKDIR
 cleanup() {
     local exit_code=$?
 
-    # Success case - clean up and exit
+    # Success case - exit cleanly
     if [ "$EXIT_OK" = true ]; then
         echo ""
         echo "=== All tests passed successfully ==="
-        echo "=== Cleaning up temp directory ==="
-        rm -rf "$TEST_WORKDIR"
         exit 0
     fi
 
@@ -626,10 +627,9 @@ cleanup() {
             echo "  1) Retry from failed step (resume test)"
             echo "  2) Start a shell session in the directory"
             echo "  3) Tear down environment (easy-db-lab down --yes)"
-            echo "  4) Delete temporary work directory"
-            echo "  5) Keep directory and exit"
+            echo "  4) Exit"
             echo ""
-            read -p "Choose [1-5]: " -n 1 -r choice
+            read -p "Choose [1-4]: " -n 1 -r choice
             echo
             case $choice in
                 1)
@@ -717,21 +717,14 @@ ZSHRC_EOF
                     # Loop back to menu for directory cleanup
                     ;;
                 4)
-                    echo "=== Cleaning up temp directory ==="
-                    rm -rf "$TEST_WORKDIR"
-                    break
-                    ;;
-                5)
-                    echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
+                    echo "=== Exiting ==="
                     break
                     ;;
                 *)
-                    echo "Invalid choice. Please enter 1, 2, 3, 4, or 5."
+                    echo "Invalid choice. Please enter 1, 2, 3, or 4."
                     ;;
             esac
         done
-    else
-        echo "=== Temp directory preserved at: $TEST_WORKDIR ==="
     fi
     exit $exit_code
 }
@@ -748,9 +741,9 @@ if [ "$LIST_STEPS" = true ]; then
     exit 0
 fi
 
-# Change to temp directory for workdir steps
+# Change to work directory
 cd "$TEST_WORKDIR"
-echo "=== Changed to work directory: $(pwd) ==="
+echo "=== Work directory: $(pwd) ==="
 
 # Handle --wait flag for inspection before teardown
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
