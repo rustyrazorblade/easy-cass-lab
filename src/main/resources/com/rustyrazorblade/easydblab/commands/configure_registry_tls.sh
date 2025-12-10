@@ -24,5 +24,10 @@ server = "https://${REGISTRY_HOST}:${REGISTRY_PORT}"
   ca = "$CERT_DIR/ca.crt"
 EOF
 
-# Restart containerd to apply changes
-sudo systemctl restart containerd
+# Restart containerd to apply changes (if running)
+if systemctl is-active --quiet containerd; then
+    sudo systemctl restart containerd
+    echo "Containerd restarted"
+else
+    echo "Containerd not running yet, skipping restart"
+fi
