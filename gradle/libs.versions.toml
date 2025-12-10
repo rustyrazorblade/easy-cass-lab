@@ -43,7 +43,7 @@ awssdk = "2.39.6"
 awssdk-kotlin = "1.4.92"
 
 # Docker
-docker-java = "3.6.0"
+docker-java = "3.7.0"
 
 # Apache
 sshd = "2.16.0"
