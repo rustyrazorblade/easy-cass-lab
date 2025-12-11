@@ -68,6 +68,11 @@ object ClusterConfigWriter {
         writer.appendLine("CLUSTER_NAME=\"$clusterName\"")
         writer.appendLine("DB_NODE_COUNT=${hosts[ServerType.Cassandra]?.size ?: 0}")
         writer.appendLine("APP_NODE_COUNT=${hosts[ServerType.Stress]?.size ?: 0}")
+
+        // Container registry URL for jib
+        hosts[ServerType.Control]?.firstOrNull()?.let { controlHost ->
+            writer.appendLine("export EDL_CONTAINER_REGISTRY=\"${controlHost.privateIp}:5000\"")
+        }
         writer.appendLine()
 
         i = 0

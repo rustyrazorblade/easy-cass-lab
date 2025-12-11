@@ -472,10 +472,10 @@ class FilteringChannelOutputHandler(
 fun OutputHandler.displayObservabilityAccess(controlNodeIp: String) {
     handleMessage("")
     handleMessage("Observability:")
-    handleMessage("  Grafana:    http://$controlNodeIp:${Constants.K8s.GRAFANA_PORT}")
-    handleMessage("  Prometheus: http://$controlNodeIp:${Constants.K8s.PROMETHEUS_PORT}")
+    handleMessage("  Grafana:         http://$controlNodeIp:${Constants.K8s.GRAFANA_PORT}")
+    handleMessage("  VictoriaMetrics: http://$controlNodeIp:${Constants.K8s.VICTORIAMETRICS_PORT}")
+    handleMessage("  VictoriaLogs:    http://$controlNodeIp:${Constants.K8s.VICTORIALOGS_PORT}")
     handleMessage("")
-    handleMessage("Grafana credentials: admin/admin")
 }
 
 /**

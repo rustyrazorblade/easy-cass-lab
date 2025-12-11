@@ -1,34 +1,32 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: otel-collector-workers
+  name: otel-collector
   namespace: default
   labels:
     app.kubernetes.io/name: otel-collector
-    app.kubernetes.io/component: forwarder
 spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: otel-collector
-      app.kubernetes.io/component: forwarder
   template:
     metadata:
       labels:
         app.kubernetes.io/name: otel-collector
-        app.kubernetes.io/component: forwarder
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: node-role.kubernetes.io/master
-                    operator: DoesNotExist
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:latest
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
           args:
             - --config=/etc/otel-collector-config.yaml
           ports:
@@ -49,8 +47,11 @@ spec:
               mountPath: /etc/otel-collector-config.yaml
               subPath: otel-collector-config.yaml
               readOnly: true
-            - name: otel-logs
-              mountPath: /mnt/db1/otel/logs
+            - name: clickhouse-server-logs
+              mountPath: /mnt/db1/clickhouse/logs
+              readOnly: true
+            - name: clickhouse-keeper-logs
+              mountPath: /mnt/db1/clickhouse/keeper/logs
               readOnly: true
           livenessProbe:
             httpGet:
@@ -67,8 +68,12 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: otel-collector-config-workers
-        - name: otel-logs
+            name: otel-collector-config
+        - name: clickhouse-server-logs
           hostPath:
-            path: /mnt/db1/otel/logs
+            path: /mnt/db1/clickhouse/logs
+            type: DirectoryOrCreate
+        - name: clickhouse-keeper-logs
+          hostPath:
+            path: /mnt/db1/clickhouse/keeper/logs
             type: DirectoryOrCreate

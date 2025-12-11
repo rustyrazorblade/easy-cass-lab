@@ -136,6 +136,11 @@ kubectl() {
   HTTPS_PROXY="socks5://localhost:$SOCKS5_PROXY_PORT" command kubectl "$@"
 }
 
+# curl wrapper that routes through SOCKS5 proxy to reach internal cluster IPs
+curl() {
+  ALL_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" command curl "$@"
+}
+
 # Start SOCKS5 proxy via SSH dynamic port forwarding
 start-socks5() {
   local port=${1:-$SOCKS5_PROXY_PORT}

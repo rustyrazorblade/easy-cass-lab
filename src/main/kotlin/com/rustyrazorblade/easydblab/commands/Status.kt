@@ -129,8 +129,8 @@ class Status(
                 emptyMap()
             }
 
-        displayNodesByType(ServerType.Cassandra, "CASSANDRA NODES", instanceStates)
-        displayNodesByType(ServerType.Stress, "STRESS NODES", instanceStates)
+        displayNodesByType(ServerType.Cassandra, "DATABASE NODES", instanceStates)
+        displayNodesByType(ServerType.Stress, "APP NODES", instanceStates)
         displayNodesByType(ServerType.Control, "CONTROL NODES", instanceStates)
     }
 

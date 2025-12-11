@@ -98,7 +98,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "100 - (avg by(host_name) (rate(otel_system_cpu_time_seconds_total{state=\"idle\"}[1m])) * 100)",
+              "expr": "100 - (avg by(host_name) (rate(system_cpu_time_seconds_total{state=\"idle\"}[1m])) * 100)",
               "legendFormat": "{{host_name}}",
               "refId": "A"
             }
@@ -185,7 +185,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "otel_system_memory_usage_bytes{state=\"used\"}",
+              "expr": "system_memory_usage_bytes{state=\"used\"}",
               "legendFormat": "{{host_name}}",
               "refId": "A"
             }
@@ -272,7 +272,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(otel_system_disk_io_bytes_total{direction=\"read\"}[1m])",
+              "expr": "rate(system_disk_io_bytes_total{direction=\"read\"}[1m])",
               "legendFormat": "{{host_name}} read",
               "refId": "A"
             },
@@ -281,7 +281,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(otel_system_disk_io_bytes_total{direction=\"write\"}[1m])",
+              "expr": "rate(system_disk_io_bytes_total{direction=\"write\"}[1m])",
               "legendFormat": "{{host_name}} write",
               "refId": "B"
             }
@@ -368,7 +368,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(otel_system_network_io_bytes_total{direction=\"receive\"}[1m])",
+              "expr": "rate(system_network_io_bytes_total{direction=\"receive\"}[1m])",
               "legendFormat": "{{host_name}} rx",
               "refId": "A"
             },
@@ -377,7 +377,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "rate(otel_system_network_io_bytes_total{direction=\"transmit\"}[1m])",
+              "expr": "rate(system_network_io_bytes_total{direction=\"transmit\"}[1m])",
               "legendFormat": "{{host_name}} tx",
               "refId": "B"
             }
@@ -464,7 +464,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "otel_system_cpu_load_average_1m",
+              "expr": "system_cpu_load_average_1m",
               "legendFormat": "{{host_name}} 1m",
               "refId": "A"
             },
@@ -473,7 +473,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "otel_system_cpu_load_average_5m",
+              "expr": "system_cpu_load_average_5m",
               "legendFormat": "{{host_name}} 5m",
               "refId": "B"
             },
@@ -482,7 +482,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "otel_system_cpu_load_average_15m",
+              "expr": "system_cpu_load_average_15m",
               "legendFormat": "{{host_name}} 15m",
               "refId": "C"
             }
@@ -500,8 +500,8 @@ data:
           {
             "current": {
               "selected": true,
-              "text": "Prometheus",
-              "value": "Prometheus"
+              "text": "VictoriaMetrics",
+              "value": "VictoriaMetrics"
             },
             "hide": 0,
             "includeAll": false,

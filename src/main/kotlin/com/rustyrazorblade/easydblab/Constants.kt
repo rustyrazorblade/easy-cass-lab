@@ -203,7 +203,8 @@ object Constants {
         const val MANIFEST_DIR = "k8s"
         const val RESOURCE_PACKAGE = "com.rustyrazorblade.easydblab.commands.k8s"
         const val GRAFANA_PORT = 3000
-        const val PROMETHEUS_PORT = 9090
+        const val VICTORIAMETRICS_PORT = 8428
+        const val VICTORIALOGS_PORT = 9428
         const val S3MANAGER_PORT = 8080
         const val REGISTRY_PORT = 5000
     }

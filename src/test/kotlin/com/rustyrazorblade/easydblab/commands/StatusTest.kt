@@ -146,7 +146,7 @@ class StatusTest : BaseKoinTest() {
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== NODES ===")
-        assertThat(allMessages).contains("CASSANDRA NODES")
+        assertThat(allMessages).contains("DATABASE NODES")
         assertThat(allMessages).contains("db0")
         assertThat(allMessages).contains("i-db0")
         assertThat(allMessages).contains("RUNNING")

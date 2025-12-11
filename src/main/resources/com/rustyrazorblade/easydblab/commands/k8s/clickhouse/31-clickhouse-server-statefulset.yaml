@@ -53,6 +53,7 @@ spec:
               mkdir -p /mnt/db1/clickhouse/format_schemas
               mkdir -p /mnt/db1/clickhouse/disks/s3_disk
               mkdir -p /mnt/db1/clickhouse/disks/s3_cache
+              mkdir -p /mnt/db1/clickhouse/logs
               chown -R 101:101 /mnt/db1/clickhouse
           volumeMounts:
             - name: data
@@ -85,6 +86,12 @@ spec:
             - secretRef:
                 name: clickhouse-s3-credentials
                 optional: true
+          command:
+            - /bin/bash
+            - -c
+            - |
+              umask 0022
+              exec /entrypoint.sh
           resources:
             limits:
               memory: 4Gi

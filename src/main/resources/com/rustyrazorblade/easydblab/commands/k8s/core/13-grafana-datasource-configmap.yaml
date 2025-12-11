@@ -9,11 +9,17 @@ data:
   datasources.yaml: |
     apiVersion: 1
     datasources:
-      - name: Prometheus
+      - name: VictoriaMetrics
         type: prometheus
         access: proxy
-        url: http://localhost:9090
+        url: http://localhost:8428
         isDefault: true
+        editable: false
+      - name: VictoriaLogs
+        uid: victorialogs
+        type: victoriametrics-logs-datasource
+        access: proxy
+        url: http://localhost:9428
         editable: false
       - name: ClickHouse
         type: grafana-clickhouse-datasource
