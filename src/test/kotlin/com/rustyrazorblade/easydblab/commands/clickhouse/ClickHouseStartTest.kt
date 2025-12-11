@@ -13,13 +13,12 @@ import org.junit.jupiter.api.Test
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.mockito.kotlin.any
-import org.mockito.kotlin.argThat
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
-import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.nio.file.Path
 
 /**
  * Test suite for ClickHouseStart command following TDD principles.
@@ -129,7 +128,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlAndDb)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
+        whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(
             mockK8sService.createClickHouseS3Secret(
                 any(),
@@ -146,14 +145,8 @@ class ClickHouseStartTest : BaseKoinTest() {
         // When
         command.execute()
 
-        // Then - verify 7 manifests are applied
-        verify(mockK8sService, times(7)).applyManifestFromResources(eq(testControlHost), any())
-
-        // Verify the unified configmap is applied
-        verify(mockK8sService).applyManifestFromResources(
-            eq(testControlHost),
-            argThat { contains("12-clickhouse-server-configmap.yaml") },
-        )
+        // Then - verify manifests are applied from the clickhouse directory
+        verify(mockK8sService).applyManifests(eq(testControlHost), eq(Path.of("k8s/clickhouse")))
 
         // Verify S3 secret is created when bucket is configured
         verify(mockK8sService).createClickHouseS3Secret(
@@ -182,7 +175,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlAndDb)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
+        whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(Unit))
 
@@ -195,7 +188,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         verify(mockK8sService, never()).createClickHouseS3Secret(any(), any(), any(), any())
 
         // But manifests should still be applied
-        verify(mockK8sService, times(7)).applyManifestFromResources(eq(testControlHost), any())
+        verify(mockK8sService).applyManifests(eq(testControlHost), eq(Path.of("k8s/clickhouse")))
     }
 
     @Test
@@ -214,7 +207,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlAndDb)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
+        whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(
             mockK8sService.createClickHouseS3Secret(
                 any(),
@@ -231,12 +224,12 @@ class ClickHouseStartTest : BaseKoinTest() {
         command.execute()
 
         // Then
-        verify(mockK8sService, times(7)).applyManifestFromResources(eq(testControlHost), any())
+        verify(mockK8sService).applyManifests(eq(testControlHost), eq(Path.of("k8s/clickhouse")))
         verify(mockK8sService, never()).waitForPodsReady(any(), any(), any())
     }
 
     @Test
-    fun `execute should fail when applyManifestFromResources fails`() {
+    fun `execute should fail when applyManifests fails`() {
         // Given - cluster state with control node, db nodes, and S3 bucket
         val stateWithControlAndDb =
             ClusterState(
@@ -259,7 +252,7 @@ class ClickHouseStartTest : BaseKoinTest() {
                 eq("test-bucket"),
             ),
         ).thenReturn(Result.success(Unit))
-        whenever(mockK8sService.applyManifestFromResources(any(), any()))
+        whenever(mockK8sService.applyManifests(any(), any()))
             .thenReturn(Result.failure(RuntimeException("kubectl apply failed")))
 
         val command = ClickHouseStart(context)
@@ -286,7 +279,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlAndDb)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
+        whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(
             mockK8sService.createClickHouseS3Secret(
                 any(),
@@ -323,9 +316,6 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlOnly)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
-        whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
-            .thenReturn(Result.success(Unit))
 
         val command = ClickHouseStart(context)
 
@@ -377,7 +367,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             )
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlAndDb)
-        whenever(mockK8sService.applyManifestFromResources(any(), any())).thenReturn(Result.success(Unit))
+        whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(mockK8sService.createClickHouseS3Secret(any(), any(), any(), any()))
             .thenReturn(Result.failure(RuntimeException("Failed to create secret")))
         whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
@@ -389,7 +379,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         command.execute()
 
         // Then - manifests should still be applied despite S3 secret failure
-        verify(mockK8sService, times(7)).applyManifestFromResources(eq(testControlHost), any())
+        verify(mockK8sService).applyManifests(eq(testControlHost), eq(Path.of("k8s/clickhouse")))
         verify(mockK8sService).waitForPodsReady(eq(testControlHost), any(), eq(Constants.ClickHouse.NAMESPACE))
     }
 }

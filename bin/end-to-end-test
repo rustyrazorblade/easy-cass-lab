@@ -473,6 +473,72 @@ step_opensearch_stop() {
     easy-db-lab opensearch stop --force
 }
 
+step_test_observability() {
+    echo "=== Testing VictoriaMetrics and VictoriaLogs ==="
+
+    # Wait for VictoriaMetrics to be ready
+    echo "=== Waiting for VictoriaMetrics pod to be ready ==="
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=victoriametrics --timeout=120s
+
+    # Wait for VictoriaLogs to be ready
+    echo "=== Waiting for VictoriaLogs pod to be ready ==="
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=victorialogs --timeout=120s
+
+    # Test VictoriaMetrics health endpoint
+    echo "=== Testing VictoriaMetrics health ==="
+    local vm_health=$(ssh control0 "curl -s http://localhost:8428/health")
+    echo "VictoriaMetrics health: $vm_health"
+
+    # Test VictoriaLogs health endpoint
+    echo "=== Testing VictoriaLogs health ==="
+    local vl_health=$(ssh control0 "curl -s http://localhost:9428/health")
+    echo "VictoriaLogs health: $vl_health"
+
+    # Query VictoriaMetrics for metrics (should have some metrics from OTel)
+    echo "=== Querying VictoriaMetrics for metrics ==="
+    local metrics_count=$(ssh control0 "curl -s 'http://localhost:8428/api/v1/label/__name__/values' | jq '.data | length'")
+    echo "Number of metric names in VictoriaMetrics: $metrics_count"
+    if [ "$metrics_count" -lt 1 ]; then
+        echo "WARNING: No metrics found in VictoriaMetrics yet (may need more time for OTel to send data)"
+    fi
+
+    # Query VictoriaLogs to check it's accepting connections
+    echo "=== Testing VictoriaLogs query endpoint ==="
+    local vl_query=$(ssh control0 "curl -s -o /dev/null -w '%{http_code}' 'http://localhost:9428/select/logsql/query?query=*'")
+    echo "VictoriaLogs query endpoint response code: $vl_query"
+    if [ "$vl_query" != "200" ]; then
+        echo "WARNING: VictoriaLogs query endpoint returned unexpected status: $vl_query"
+    fi
+
+    # Test Grafana is up and datasources are configured
+    echo "=== Testing Grafana health ==="
+    local grafana_health=$(ssh control0 "curl -s http://localhost:3000/api/health | jq -r '.database'")
+    echo "Grafana database status: $grafana_health"
+
+    echo "=== Testing Grafana datasources ==="
+    local datasources=$(ssh control0 "curl -s http://localhost:3000/api/datasources | jq -r '.[].name'")
+    echo "Configured datasources:"
+    echo "$datasources"
+
+    # Verify VictoriaMetrics datasource exists
+    if echo "$datasources" | grep -q "VictoriaMetrics"; then
+        echo "VictoriaMetrics datasource: OK"
+    else
+        echo "ERROR: VictoriaMetrics datasource not found!"
+        return 1
+    fi
+
+    # Verify VictoriaLogs datasource exists
+    if echo "$datasources" | grep -q "VictoriaLogs"; then
+        echo "VictoriaLogs datasource: OK"
+    else
+        echo "ERROR: VictoriaLogs datasource not found!"
+        return 1
+    fi
+
+    echo "=== Observability stack test completed ==="
+}
+
 step_teardown() {
     echo "=== Tearing down cluster ==="
     easy-db-lab down --yes
@@ -515,6 +581,7 @@ STEPS_WORKDIR=(
     "step_opensearch_start:Start OpenSearch"
     "step_opensearch_test:Test OpenSearch"
     "step_opensearch_stop:Stop OpenSearch"
+    "step_test_observability:Test observability stack"
     "step_teardown:Teardown cluster"
 )
 
@@ -550,8 +617,9 @@ is_breakpoint() {
 run_from_step() {
     local start_step=${1:-0}
     local total_steps=${#ALL_STEPS[@]}
+    local end_step=${2:-$total_steps}  # Optional end step (exclusive), defaults to all
 
-    for ((i=start_step; i<total_steps; i++)); do
+    for ((i=start_step; i<end_step; i++)); do
         CURRENT_STEP=$i
         local step_entry="${ALL_STEPS[$i]}"
         local step_func="${step_entry%%:*}"
@@ -747,11 +815,12 @@ echo "=== Work directory: $(pwd) ==="
 
 # Handle --wait flag for inspection before teardown
 if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
-    # Run all steps except teardown
+    # Run all steps except teardown (last step)
     TOTAL_STEPS=${#ALL_STEPS[@]}
-    run_from_step 0 || exit 1
+    LAST_STEP=$((TOTAL_STEPS - 1))  # Teardown is the last step
+    run_from_step 0 $LAST_STEP || exit 1
 
-    # Remove teardown from the run and prompt instead
+    # Prompt user before teardown
     echo ""
     echo "=== Cluster is ready for inspection ==="
     echo "The cluster is now running and ready to inspect."
@@ -764,6 +833,10 @@ if [ "$WAIT_BEFORE_TEARDOWN" = true ]; then
     echo ""
     read -p "Press Enter to tear down the cluster and complete the test..."
     echo ""
+
+    # Now run teardown
+    step_teardown
+    EXIT_OK=true
 else
     # Run all steps
     run_from_step 0

@@ -67,23 +67,17 @@ class K8sServiceIntegrationTest {
      */
     private val manifestTestCases =
         listOf(
-            ManifestTestCase("20-otel-service.yaml", ResourceType.SERVICE, "otel-collector"),
             ManifestTestCase(
-                "10-otel-configmap-control.yaml",
+                "10-otel-configmap.yaml",
                 ResourceType.CONFIGMAP,
-                "otel-collector-config-control",
+                "otel-collector-config",
                 "otel-collector-config.yaml",
             ),
-            ManifestTestCase(
-                "11-otel-configmap-workers.yaml",
-                ResourceType.CONFIGMAP,
-                "otel-collector-config-workers",
-                "otel-collector-config.yaml",
-            ),
-            ManifestTestCase("30-otel-daemonset-control.yaml", ResourceType.DAEMONSET, "otel-collector-control"),
-            ManifestTestCase("31-otel-daemonset-workers.yaml", ResourceType.DAEMONSET, "otel-collector-workers"),
-            ManifestTestCase("12-prometheus-configmap.yaml", ResourceType.CONFIGMAP, "prometheus-config", "prometheus.yml"),
-            ManifestTestCase("40-prometheus-deployment.yaml", ResourceType.DEPLOYMENT, "prometheus"),
+            ManifestTestCase("21-victoriametrics-service.yaml", ResourceType.SERVICE, "victoriametrics"),
+            ManifestTestCase("22-victorialogs-service.yaml", ResourceType.SERVICE, "victorialogs"),
+            ManifestTestCase("30-otel-daemonset.yaml", ResourceType.DAEMONSET, "otel-collector"),
+            ManifestTestCase("44-victoriametrics-deployment.yaml", ResourceType.DEPLOYMENT, "victoriametrics"),
+            ManifestTestCase("45-victorialogs-deployment.yaml", ResourceType.DEPLOYMENT, "victorialogs"),
             ManifestTestCase(
                 "13-grafana-datasource-configmap.yaml",
                 ResourceType.CONFIGMAP,
@@ -143,8 +137,8 @@ class K8sServiceIntegrationTest {
                 .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(configMaps.items)
-            .withFailMessage("Expected at least 6 ConfigMaps, found ${configMaps.items.size}")
-            .hasSizeGreaterThanOrEqualTo(6)
+            .withFailMessage("Expected at least 4 ConfigMaps, found ${configMaps.items.size}")
+            .hasSizeGreaterThanOrEqualTo(4)
 
         val deployments =
             client
@@ -153,8 +147,8 @@ class K8sServiceIntegrationTest {
                 .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(deployments.items)
-            .withFailMessage("Expected at least 3 Deployments (prometheus, grafana, registry)")
-            .hasSizeGreaterThanOrEqualTo(3)
+            .withFailMessage("Expected at least 4 Deployments (victoriametrics, victorialogs, grafana, registry)")
+            .hasSizeGreaterThanOrEqualTo(4)
 
         val daemonSets =
             client
@@ -163,19 +157,18 @@ class K8sServiceIntegrationTest {
                 .inNamespace(DEFAULT_NAMESPACE)
                 .list()
         assertThat(daemonSets.items)
-            .withFailMessage("Expected at least 2 DaemonSets (otel-control, otel-workers)")
-            .hasSizeGreaterThanOrEqualTo(2)
+            .withFailMessage("Expected at least 1 DaemonSet (otel-collector)")
+            .hasSizeGreaterThanOrEqualTo(1)
 
         val services =
             client
                 .services()
                 .inNamespace(DEFAULT_NAMESPACE)
                 .list()
-        // Only otel-collector has a Service; prometheus/grafana use hostNetwork
-        // Note: default namespace also has kubernetes service
+        // VictoriaMetrics, VictoriaLogs services + kubernetes service
         assertThat(services.items)
-            .withFailMessage("Expected at least 2 Services (kubernetes, otel-collector)")
-            .hasSizeGreaterThanOrEqualTo(2)
+            .withFailMessage("Expected at least 3 Services (kubernetes, victoriametrics, victorialogs)")
+            .hasSizeGreaterThanOrEqualTo(3)
     }
 
     /**

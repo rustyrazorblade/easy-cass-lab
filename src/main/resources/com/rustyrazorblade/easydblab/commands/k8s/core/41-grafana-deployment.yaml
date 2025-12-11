@@ -10,6 +10,8 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: grafana
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -35,7 +37,7 @@ spec:
               protocol: TCP
           env:
             - name: GF_INSTALL_PLUGINS
-              value: grafana-clickhouse-datasource
+              value: grafana-clickhouse-datasource,victoriametrics-logs-datasource
             - name: GF_SECURITY_ADMIN_USER
               value: admin
             - name: GF_SECURITY_ADMIN_PASSWORD
@@ -44,8 +46,16 @@ spec:
               value: "false"
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "true"
+            - name: GF_USERS_DEFAULT_ORG_NAME
+              value: Main Org.
+            - name: GF_AUTH_ANONYMOUS_ORG_NAME
+              value: Main Org.
             - name: GF_AUTH_ANONYMOUS_ORG_ROLE
-              value: Viewer
+              value: Admin
+            - name: GF_AUTH_DISABLE_LOGIN_FORM
+              value: "true"
+            - name: GF_AUTH_BASIC_ENABLED
+              value: "false"
           resources:
             limits:
               memory: 256Mi
@@ -59,8 +69,14 @@ spec:
             - name: dashboards-config
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
-            - name: dashboards
-              mountPath: /var/lib/grafana/dashboards
+            - name: dashboard-system
+              mountPath: /var/lib/grafana/dashboards/system
+              readOnly: true
+            - name: dashboard-clickhouse
+              mountPath: /var/lib/grafana/dashboards/clickhouse
+              readOnly: true
+            - name: dashboard-clickhouse-logs
+              mountPath: /var/lib/grafana/dashboards/clickhouse-logs
               readOnly: true
             - name: data
               mountPath: /var/lib/grafana
@@ -83,8 +99,16 @@ spec:
         - name: dashboards-config
           configMap:
             name: grafana-dashboards-config
-        - name: dashboards
+        - name: dashboard-system
           configMap:
             name: grafana-dashboard-system
+        - name: dashboard-clickhouse
+          configMap:
+            name: grafana-dashboard-clickhouse
+            optional: true
+        - name: dashboard-clickhouse-logs
+          configMap:
+            name: grafana-dashboard-clickhouse-logs
+            optional: true
         - name: data
           emptyDir: {}

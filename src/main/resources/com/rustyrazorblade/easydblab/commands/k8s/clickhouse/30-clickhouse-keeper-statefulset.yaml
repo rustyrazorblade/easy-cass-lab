@@ -36,9 +36,14 @@ spec:
               mkdir -p /var/lib/clickhouse-keeper/log
               mkdir -p /var/lib/clickhouse-keeper/snapshots
               chown -R 101:101 /var/lib/clickhouse-keeper
+              mkdir -p /mnt/db1/clickhouse/keeper/logs
+              chown -R 101:101 /mnt/db1/clickhouse/keeper/logs
+              chmod 755 /mnt/db1/clickhouse/keeper/logs
           volumeMounts:
             - name: data
               mountPath: /var/lib/clickhouse-keeper
+            - name: logs
+              mountPath: /mnt/db1/clickhouse/keeper/logs
       containers:
         - name: clickhouse-keeper
           image: clickhouse/clickhouse-keeper:latest
@@ -63,6 +68,7 @@ spec:
             - /bin/bash
             - -c
             - |
+              umask 0022
               export KEEPER_SERVER_ID=$((${HOSTNAME##*-} + 1))
               exec clickhouse-keeper --config-file=/etc/clickhouse-keeper/keeper_config.xml
           resources:
@@ -77,6 +83,8 @@ spec:
               readOnly: true
             - name: data
               mountPath: /var/lib/clickhouse-keeper
+            - name: logs
+              mountPath: /mnt/db1/clickhouse/keeper/logs
           livenessProbe:
             httpGet:
               path: /ready
@@ -96,4 +104,8 @@ spec:
         - name: data
           hostPath:
             path: /mnt/db1/clickhouse/keeper
+            type: DirectoryOrCreate
+        - name: logs
+          hostPath:
+            path: /mnt/db1/clickhouse/keeper/logs
             type: DirectoryOrCreate

@@ -12,6 +12,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
+import java.nio.file.Path
 
 /**
  * Deploy ClickHouse cluster to K8s.
@@ -41,18 +42,6 @@ class ClickHouseStart(
     companion object {
         private const val K8S_MANIFEST_BASE = "k8s/clickhouse"
         private const val DEFAULT_TIMEOUT_SECONDS = 300
-
-        // Manifests to apply in order
-        private val MANIFESTS =
-            listOf(
-                "11-clickhouse-keeper-configmap.yaml",
-                "12-clickhouse-server-configmap.yaml",
-                "14-grafana-dashboard-clickhouse.yaml",
-                "20-clickhouse-keeper-service.yaml",
-                "21-clickhouse-server-service.yaml",
-                "30-clickhouse-keeper-statefulset.yaml",
-                "31-clickhouse-server-statefulset.yaml",
-            )
     }
 
     @Option(
@@ -119,17 +108,13 @@ class ClickHouseStart(
             outputHandler.handleMessage("Note: S3 bucket not configured. Only 'local' storage policy available.")
         }
 
-        // Apply all manifests
-        log.info { "Applying ClickHouse manifests" }
-        for (manifest in MANIFESTS) {
-            val resourcePath = "$K8S_MANIFEST_BASE/$manifest"
-            log.info { "Applying manifest: $resourcePath" }
-            k8sService
-                .applyManifestFromResources(controlNode, resourcePath)
-                .getOrElse { exception ->
-                    error("Failed to apply manifest $manifest: ${exception.message}")
-                }
-        }
+        // Apply all manifests from directory (auto-discovers YAML files, sorted by name)
+        log.info { "Applying ClickHouse manifests from $K8S_MANIFEST_BASE" }
+        k8sService
+            .applyManifests(controlNode, Path.of(K8S_MANIFEST_BASE))
+            .getOrElse { exception ->
+                error("Failed to apply ClickHouse manifests: ${exception.message}")
+            }
 
         // Scale the ClickHouse StatefulSet to the desired replica count
         k8sService
