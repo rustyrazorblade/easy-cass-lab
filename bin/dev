@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+WORKSPACE_FOLDER="$PROJECT_ROOT"
+
+# Build mount args for Claude config if ENABLE_CLAUDE=1
+CLAUDE_MOUNT_ARGS=()
+if [[ "${ENABLE_CLAUDE:-}" == "1" ]]; then
+    CLAUDE_MOUNT_ARGS=(--mount "type=bind,source=$HOME/.claude,target=/home/node/.claude")
+fi
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") <command> [args...]
+
+Dev container management wrapper for easy-db-lab using devcontainer CLI.
+
+Commands:
+    start, up       Start the dev container (devcontainer up)
+    stop            Stop the dev container
+    rebuild         Rebuild and start the dev container
+    build           Build the dev container image only
+    shell           Open interactive shell in container
+    exec <cmd>      Execute command in container
+    claude          Start Claude Code (with --allow-dangerously-skip-permissions)
+    test            Run Gradle tests
+    logs [-f]       View container logs (-f to follow)
+    status          Show container status
+    down            Stop and remove containers
+    restart         Restart the dev container
+    clean           Full cleanup (containers, volumes)
+    help            Show this help message
+
+Environment Variables:
+    ENABLE_CLAUDE=1     Mount ~/.claude config directory (for Claude Code users)
+
+Examples:
+    $(basename "$0") start
+    ENABLE_CLAUDE=1 $(basename "$0") start
+    $(basename "$0") claude
+    $(basename "$0") shell
+    $(basename "$0") test
+    $(basename "$0") exec ./gradlew build
+    $(basename "$0") logs -f
+EOF
+}
+
+error() {
+    echo -e "${RED}Error: $1${NC}" >&2
+    exit 1
+}
+
+info() {
+    echo -e "${GREEN}$1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}$1${NC}"
+}
+
+check_devcontainer() {
+    if ! command -v devcontainer &> /dev/null; then
+        error "devcontainer CLI not found. Install with: npm install -g @devcontainers/cli"
+    fi
+}
+
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        error "docker not found. Please install Docker."
+    fi
+}
+
+get_container_id() {
+    docker ps -q --filter "label=devcontainer.local_folder=$WORKSPACE_FOLDER" 2>/dev/null | head -1
+}
+
+get_compose_project() {
+    # Get the compose project name from running container labels
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -n "$container_id" ]]; then
+        docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$container_id" 2>/dev/null || echo ""
+    fi
+}
+
+cmd_start() {
+    check_devcontainer
+    info "Starting dev container..."
+    devcontainer up --workspace-folder "$WORKSPACE_FOLDER" ${CLAUDE_MOUNT_ARGS[@]+"${CLAUDE_MOUNT_ARGS[@]}"}
+}
+
+cmd_stop() {
+    check_docker
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -n "$container_id" ]]; then
+        info "Stopping dev container..."
+        docker stop "$container_id"
+    else
+        warn "No running dev container found."
+    fi
+}
+
+cmd_rebuild() {
+    check_devcontainer
+    info "Rebuilding dev container..."
+    devcontainer up --workspace-folder "$WORKSPACE_FOLDER" --remove-existing-container ${CLAUDE_MOUNT_ARGS[@]+"${CLAUDE_MOUNT_ARGS[@]}"}
+}
+
+cmd_build() {
+    check_devcontainer
+    info "Building dev container image..."
+    devcontainer build --workspace-folder "$WORKSPACE_FOLDER"
+}
+
+cmd_shell() {
+    check_devcontainer
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" /bin/zsh
+}
+
+cmd_exec() {
+    check_devcontainer
+    if [[ $# -eq 0 ]]; then
+        error "No command specified. Usage: $(basename "$0") exec <command>"
+    fi
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" "$@"
+}
+
+cmd_claude() {
+    check_devcontainer
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" claude --allow-dangerously-skip-permissions
+}
+
+cmd_test() {
+    check_devcontainer
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    info "Running Gradle tests..."
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" ./gradlew test
+}
+
+cmd_logs() {
+    check_docker
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running."
+    fi
+    docker logs "$@" "$container_id"
+}
+
+cmd_status() {
+    check_docker
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -n "$container_id" ]]; then
+        info "Dev container is running"
+        docker ps --filter "id=$container_id" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+        # Also show related compose services
+        local project
+        project=$(get_compose_project)
+        if [[ -n "$project" ]]; then
+            echo ""
+            info "Related services (compose project: $project):"
+            docker ps --filter "label=com.docker.compose.project=$project" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        fi
+    else
+        warn "Dev container is not running."
+    fi
+}
+
+cmd_down() {
+    check_docker
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -n "$container_id" ]]; then
+        local project
+        project=$(get_compose_project)
+        if [[ -n "$project" ]]; then
+            info "Stopping and removing containers (compose project: $project)..."
+            docker compose -p "$project" down
+        else
+            info "Stopping and removing dev container..."
+            docker rm -f "$container_id"
+        fi
+    else
+        warn "No dev container found."
+    fi
+}
+
+cmd_restart() {
+    cmd_stop
+    cmd_start
+}
+
+cmd_clean() {
+    check_docker
+    local container_id
+    container_id=$(get_container_id)
+
+    if [[ -n "$container_id" ]]; then
+        local project
+        project=$(get_compose_project)
+        if [[ -n "$project" ]]; then
+            info "Removing containers and volumes (compose project: $project)..."
+            docker compose -p "$project" down -v
+        else
+            info "Removing dev container..."
+            docker rm -f "$container_id"
+        fi
+    fi
+
+    info "Pruning dangling images..."
+    docker image prune -f
+
+    info "Cleanup complete."
+}
+
+# Main command dispatcher
+cd "$PROJECT_ROOT"
+
+case "${1:-help}" in
+    start|up)
+        cmd_start
+        ;;
+    stop)
+        cmd_stop
+        ;;
+    rebuild)
+        cmd_rebuild
+        ;;
+    build)
+        cmd_build
+        ;;
+    shell)
+        cmd_shell
+        ;;
+    exec)
+        shift
+        cmd_exec "$@"
+        ;;
+    claude)
+        cmd_claude
+        ;;
+    test)
+        cmd_test
+        ;;
+    logs)
+        shift
+        cmd_logs "$@"
+        ;;
+    status)
+        cmd_status
+        ;;
+    down)
+        cmd_down
+        ;;
+    restart)
+        cmd_restart
+        ;;
+    clean)
+        cmd_clean
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        error "Unknown command: $1\nRun '$(basename "$0") help' for usage."
+        ;;
+esac
