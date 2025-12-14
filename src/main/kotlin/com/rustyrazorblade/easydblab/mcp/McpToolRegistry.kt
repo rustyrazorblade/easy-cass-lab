@@ -74,8 +74,7 @@ class McpToolRegistry(
             .tool(tool)
             .callHandler { _, request ->
                 executeTool(entry, request.arguments())
-            }
-            .build()
+            }.build()
     }
 
     /**

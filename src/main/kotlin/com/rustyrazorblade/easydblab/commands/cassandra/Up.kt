@@ -43,7 +43,6 @@ import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import java.io.File
 import java.net.URI
-import java.net.URL
 import java.time.Duration
 
 /**
