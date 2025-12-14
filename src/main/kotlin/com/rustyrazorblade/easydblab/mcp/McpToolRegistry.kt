@@ -120,49 +120,48 @@ class McpToolRegistry(
         arguments: Map<String, Any>,
     ) {
         log.debug { "Mapping arguments to PicoCLI command ${command::class.simpleName}" }
+        applyArguments(command, arguments)
+    }
 
-        command::class.memberProperties.forEach { property ->
+    /**
+     * Recursively apply arguments to an object and its @Mixin fields.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun applyArguments(
+        target: Any,
+        arguments: Map<String, Any>,
+    ) {
+        target::class.memberProperties.forEach { property ->
             val javaField = property.javaField ?: return@forEach
 
             // Process @Option annotations
             javaField.getAnnotation(Option::class.java)?.let {
-                val value = arguments[property.name]
-                if (value != null) {
-                    setFieldValue(command, javaField, value)
+                arguments[property.name]?.let { value ->
+                    setFieldValue(target, javaField, value)
                 }
             }
 
-            // Process @Mixin annotations
+            // Process @Mixin annotations (recursively apply to nested objects)
             javaField.getAnnotation(Mixin::class.java)?.let {
-                processMixinArguments(command, javaField, arguments)
+                getMixinObject(javaField, target)?.let { mixinObj ->
+                    applyArguments(mixinObj, arguments)
+                }
             }
         }
     }
 
-    @Suppress("TooGenericExceptionCaught")
-    private fun processMixinArguments(
-        command: PicoCommand,
+    @Suppress("SwallowedException")
+    private fun getMixinObject(
         mixinField: java.lang.reflect.Field,
-        arguments: Map<String, Any>,
-    ) {
+        target: Any,
+    ): Any? =
         try {
             mixinField.isAccessible = true
-            val mixinObject = mixinField.get(command) ?: return
-
-            mixinObject::class.memberProperties.forEach { property ->
-                val javaField = property.javaField ?: return@forEach
-
-                javaField.getAnnotation(Option::class.java)?.let {
-                    val value = arguments[property.name]
-                    if (value != null) {
-                        setFieldValue(mixinObject, javaField, value)
-                    }
-                }
-            }
+            mixinField.get(target)
         } catch (e: Exception) {
-            log.warn { "Unable to process mixin arguments: ${e.message}" }
+            log.warn { "Unable to access mixin ${mixinField.name}: ${e.message}" }
+            null
         }
-    }
 
     @Suppress("TooGenericExceptionCaught")
     private fun setFieldValue(

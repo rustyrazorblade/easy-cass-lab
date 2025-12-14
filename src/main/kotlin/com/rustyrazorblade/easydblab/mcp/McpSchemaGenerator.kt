@@ -103,25 +103,25 @@ class McpSchemaGenerator {
 
         val defaultValue = getDefaultValue(field, target)
 
-        return JsonSchemaProperty(
+        return JsonSchemaProperty.of(
             type = jsonType,
             description = description,
-            enum = enumValues,
+            enumValues = enumValues,
             default = defaultValue,
         )
     }
 
-    private fun determineJsonType(type: Class<*>): String =
+    private fun determineJsonType(type: Class<*>): JsonSchemaType =
         when {
-            type.isEnum -> "string"
-            type == String::class.java -> "string"
-            type == Int::class.java || type == Integer::class.java -> "integer"
-            type == Long::class.java || type == java.lang.Long::class.java -> "integer"
-            type == Double::class.java || type == java.lang.Double::class.java -> "number"
-            type == Float::class.java || type == java.lang.Float::class.java -> "number"
-            type == Boolean::class.java || type == java.lang.Boolean::class.java -> "boolean"
-            List::class.java.isAssignableFrom(type) -> "array"
-            else -> "string"
+            type.isEnum -> JsonSchemaType.STRING
+            type == String::class.java -> JsonSchemaType.STRING
+            type == Int::class.java || type == Integer::class.java -> JsonSchemaType.INTEGER
+            type == Long::class.java || type == java.lang.Long::class.java -> JsonSchemaType.INTEGER
+            type == Double::class.java || type == java.lang.Double::class.java -> JsonSchemaType.NUMBER
+            type == Float::class.java || type == java.lang.Float::class.java -> JsonSchemaType.NUMBER
+            type == Boolean::class.java || type == java.lang.Boolean::class.java -> JsonSchemaType.BOOLEAN
+            List::class.java.isAssignableFrom(type) -> JsonSchemaType.ARRAY
+            else -> JsonSchemaType.STRING
         }
 
     @Suppress("SwallowedException")
@@ -183,4 +183,33 @@ data class JsonSchemaProperty(
     val description: String,
     val enum: List<String>? = null,
     val default: JsonElement? = null,
-)
+) {
+    companion object {
+        fun of(
+            type: JsonSchemaType,
+            description: String,
+            enumValues: List<String>? = null,
+            default: JsonElement? = null,
+        ): JsonSchemaProperty =
+            JsonSchemaProperty(
+                type = type.value,
+                description = description,
+                enum = enumValues,
+                default = default,
+            )
+    }
+}
+
+/**
+ * Type-safe representation of JSON Schema types.
+ */
+enum class JsonSchemaType(
+    val value: String,
+) {
+    STRING("string"),
+    INTEGER("integer"),
+    NUMBER("number"),
+    BOOLEAN("boolean"),
+    ARRAY("array"),
+    OBJECT("object"),
+}
