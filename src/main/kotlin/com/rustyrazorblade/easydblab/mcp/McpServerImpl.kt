@@ -96,10 +96,12 @@ class McpServerImpl(
         val server = Server()
 
         // Bind to localhost only for security
-        val connector = ServerConnector(server)
-        connector.host = "127.0.0.1"
-        connector.port = port
-        server.addConnector(connector)
+        server.addConnector(
+            ServerConnector(server).apply {
+                host = "127.0.0.1"
+                this.port = port
+            },
+        )
 
         val contextHandler = ServletContextHandler()
         contextHandler.contextPath = "/"
