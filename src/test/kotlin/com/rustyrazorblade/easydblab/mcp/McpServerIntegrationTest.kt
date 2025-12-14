@@ -1,8 +1,6 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
-import com.rustyrazorblade.easydblab.CommandLineParser
-import com.rustyrazorblade.easydblab.annotations.McpCommand
 import io.modelcontextprotocol.client.McpClient
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport
 import io.modelcontextprotocol.spec.McpSchema
@@ -77,14 +75,11 @@ class McpServerIntegrationTest : BaseKoinTest() {
 
     @Test
     fun `server should expose all McpCommand annotated commands as tools`() {
-        // Get expected tool names from CommandLineParser
-        val parser = CommandLineParser(context)
+        // Get expected tool names from McpCommandDiscovery
         val expectedToolNames =
-            parser.picoCommands
-                .filter { entry ->
-                    val command = entry.factory()
-                    command::class.java.isAnnotationPresent(McpCommand::class.java)
-                }.map { it.name }
+            McpCommandDiscovery
+                .discoverMcpCommands(context)
+                .map { it.toolName }
                 .sorted()
 
         // Connect to server and list tools using Streamable HTTP transport

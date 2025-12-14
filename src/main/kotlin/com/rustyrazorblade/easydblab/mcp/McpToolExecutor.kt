@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -51,7 +50,7 @@ class McpToolExecutor : KoinComponent {
      * Progress notifications are only sent if the client provided a progressToken.
      * This follows the MCP protocol specification where the client must opt-in.
      *
-     * @param entry The command entry to execute
+     * @param entry The MCP command entry to execute
      * @param arguments Optional arguments to pass to the command
      * @param progressToken The token provided by the client for progress tracking, or null
      * @param exchange The MCP exchange for sending progress notifications
@@ -59,13 +58,13 @@ class McpToolExecutor : KoinComponent {
      * @return The result of the tool execution
      */
     fun execute(
-        entry: PicoCommandEntry,
+        entry: McpCommandEntry,
         arguments: Map<String, Any>?,
         progressToken: Any?,
         exchange: McpSyncServerExchange,
         argumentMapper: (PicoCommand, Map<String, Any>) -> Unit,
     ): McpSchema.CallToolResult {
-        log.info { "Executing tool: ${entry.name} with arguments: $arguments, progressToken: $progressToken" }
+        log.info { "Executing tool: ${entry.toolName} with arguments: $arguments, progressToken: $progressToken" }
 
         val progressNotifier = McpProgressNotifier(exchange, progressToken)
 
@@ -82,16 +81,16 @@ class McpToolExecutor : KoinComponent {
         return try {
             future.get(Constants.MCP.TOOL_TIMEOUT_MINUTES, TimeUnit.MINUTES)
         } catch (e: TimeoutException) {
-            log.error { "Tool ${entry.name} timed out after ${Constants.MCP.TOOL_TIMEOUT_MINUTES} minutes" }
+            log.error { "Tool ${entry.toolName} timed out after ${Constants.MCP.TOOL_TIMEOUT_MINUTES} minutes" }
             future.cancel(true)
-            buildErrorResult(entry.name, "Timeout after ${Constants.MCP.TOOL_TIMEOUT_MINUTES} minutes")
+            buildErrorResult(entry.toolName, "Timeout after ${Constants.MCP.TOOL_TIMEOUT_MINUTES} minutes")
         } catch (e: ExecutionException) {
-            log.error(e.cause) { "Tool ${entry.name} failed with exception" }
-            buildErrorResult(entry.name, e.cause?.message ?: "Unknown error")
+            log.error(e.cause) { "Tool ${entry.toolName} failed with exception" }
+            buildErrorResult(entry.toolName, e.cause?.message ?: "Unknown error")
         } catch (e: InterruptedException) {
-            log.error { "Tool ${entry.name} was interrupted" }
+            log.error { "Tool ${entry.toolName} was interrupted" }
             Thread.currentThread().interrupt()
-            buildErrorResult(entry.name, "Execution interrupted")
+            buildErrorResult(entry.toolName, "Execution interrupted")
         } finally {
             // Always unsubscribe when done
             outputHandler.unsubscribe(progressNotifier)
@@ -100,7 +99,7 @@ class McpToolExecutor : KoinComponent {
 
     @Suppress("TooGenericExceptionCaught")
     private fun executeCommand(
-        entry: PicoCommandEntry,
+        entry: McpCommandEntry,
         arguments: Map<String, Any>?,
         argumentMapper: (PicoCommand, Map<String, Any>) -> Unit,
         progressNotifier: McpProgressNotifier,
@@ -109,15 +108,15 @@ class McpToolExecutor : KoinComponent {
             val command = entry.factory()
             arguments?.let { argumentMapper(command, it) }
 
-            progressNotifier.publishMessage("Starting tool: ${entry.name}")
+            progressNotifier.publishMessage("Starting tool: ${entry.toolName}")
             command.call()
-            progressNotifier.publishMessage("Completed: ${entry.name}")
+            progressNotifier.publishMessage("Completed: ${entry.toolName}")
 
-            buildSuccessResult(entry.name)
+            buildSuccessResult(entry.toolName)
         } catch (e: Exception) {
-            log.error(e) { "Error executing tool ${entry.name}" }
+            log.error(e) { "Error executing tool ${entry.toolName}" }
             progressNotifier.publishError("Tool failed: ${e.message}", e)
-            buildErrorResult(entry.name, e.message ?: "Unknown error")
+            buildErrorResult(entry.toolName, e.message ?: "Unknown error")
         }
 
     private fun buildSuccessResult(toolName: String): McpSchema.CallToolResult =

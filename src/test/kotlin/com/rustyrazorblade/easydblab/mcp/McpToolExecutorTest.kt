@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
-import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
 import io.modelcontextprotocol.server.McpSyncServerExchange
@@ -188,17 +187,27 @@ class McpToolExecutorTest : BaseKoinTest() {
     }
 
     private fun createTestEntry(
-        name: String,
+        toolName: String,
         action: () -> Unit,
-    ): PicoCommandEntry =
-        PicoCommandEntry(
-            name,
-            {
+    ): McpCommandEntry {
+        val commandClass = TestCommand::class.java
+        return McpCommandEntry(
+            toolName = toolName,
+            factory = {
                 object : PicoCommand {
                     override fun execute() {
                         action()
                     }
                 }
             },
+            commandClass = commandClass,
         )
+    }
+
+    // Helper class for tests
+    class TestCommand : PicoCommand {
+        override fun execute() {
+            // No-op for testing
+        }
+    }
 }

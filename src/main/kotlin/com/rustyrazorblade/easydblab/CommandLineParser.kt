@@ -7,6 +7,7 @@ import com.rustyrazorblade.easydblab.commands.BuildImage
 import com.rustyrazorblade.easydblab.commands.Clean
 import com.rustyrazorblade.easydblab.commands.ConfigureAWS
 import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
+import com.rustyrazorblade.easydblab.commands.Down
 import com.rustyrazorblade.easydblab.commands.Exec
 import com.rustyrazorblade.easydblab.commands.Hosts
 import com.rustyrazorblade.easydblab.commands.Init
@@ -24,7 +25,6 @@ import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.aws.Aws
 import com.rustyrazorblade.easydblab.commands.aws.Vpcs
 import com.rustyrazorblade.easydblab.commands.cassandra.Cassandra
-import com.rustyrazorblade.easydblab.commands.cassandra.Down
 import com.rustyrazorblade.easydblab.commands.cassandra.DownloadConfig
 import com.rustyrazorblade.easydblab.commands.cassandra.ListVersions
 import com.rustyrazorblade.easydblab.commands.cassandra.Restart

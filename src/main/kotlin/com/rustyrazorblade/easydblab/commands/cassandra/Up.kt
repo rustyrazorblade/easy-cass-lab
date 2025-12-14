@@ -57,7 +57,7 @@ import java.time.Duration
  * State is persisted incrementally as each resource type completes.
  *
  * @see com.rustyrazorblade.easydblab.commands.Init for cluster initialization (must be run first)
- * @see Down for tearing down infrastructure
+ * @see com.rustyrazorblade.easydblab.commands.Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup

@@ -1,10 +1,7 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.rustyrazorblade.easydblab.CommandLineParser
 import com.rustyrazorblade.easydblab.Context
-import com.rustyrazorblade.easydblab.PicoCommandEntry
-import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper
@@ -40,30 +37,29 @@ class McpToolRegistry(
 
     /**
      * Get all available tools as SyncToolSpecification for the Java MCP SDK.
+     *
+     * Uses McpCommandDiscovery to scan for all @McpCommand annotated classes
+     * and derives tool names from package paths.
      */
     fun getToolSpecifications(): List<SyncToolSpecification> {
-        val parser = CommandLineParser(context)
-
-        return parser.picoCommands
-            .filter { entry ->
-                val tempCommand = entry.factory()
-                tempCommand::class.java.isAnnotationPresent(McpCommand::class.java)
-            }.map { entry -> createToolSpecification(entry) }
+        val mcpCommands = McpCommandDiscovery.discoverMcpCommands(context)
+        log.info { "Discovered ${mcpCommands.size} MCP commands" }
+        return mcpCommands.map { entry -> createToolSpecification(entry) }
     }
 
-    private fun createToolSpecification(entry: PicoCommandEntry): SyncToolSpecification {
+    private fun createToolSpecification(entry: McpCommandEntry): SyncToolSpecification {
         val tempCommand = entry.factory()
         val description = extractDescription(tempCommand)
         val schemaJson = schemaGenerator.generateSchema(tempCommand).toJson()
 
-        log.info { "Creating tool specification for ${entry.name}: $description" }
-        log.debug { "Schema for ${entry.name}: $schemaJson" }
+        log.info { "Creating tool specification for ${entry.toolName}: $description" }
+        log.debug { "Schema for ${entry.toolName}: $schemaJson" }
 
         // Use builder pattern for Tool
         val tool =
             McpSchema.Tool
                 .builder()
-                .name(entry.name)
+                .name(entry.toolName)
                 .description(description)
                 .inputSchema(jsonMapper, schemaJson)
                 .build()
@@ -84,13 +80,13 @@ class McpToolRegistry(
      * - Streams output messages as MCP progress notifications (if progressToken provided)
      * - Handles timeouts and error recovery
      *
-     * @param entry The command entry to execute
+     * @param entry The MCP command entry to execute
      * @param arguments The tool arguments from the request
      * @param progressToken The progress token from the client, or null if not tracking progress
      * @param exchange The MCP server exchange
      */
     private fun executeTool(
-        entry: PicoCommandEntry,
+        entry: McpCommandEntry,
         arguments: Map<String, Any>?,
         progressToken: Any?,
         exchange: McpSyncServerExchange,
