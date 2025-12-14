@@ -92,27 +92,21 @@ class McpServerImpl(
     private fun createJettyServer(
         port: Int,
         transportProvider: HttpServletStreamableServerTransportProvider,
-    ): Server {
-        val server = Server()
-
-        // Bind to localhost only for security
-        server.addConnector(
-            ServerConnector(server).apply {
-                host = "127.0.0.1"
-                this.port = port
-            },
-        )
-
-        val contextHandler = ServletContextHandler()
-        contextHandler.contextPath = "/"
-
-        // Register the MCP transport as a servlet
-        val servletHolder = ServletHolder(transportProvider)
-        contextHandler.addServlet(servletHolder, "/*")
-
-        server.handler = contextHandler
-        return server
-    }
+    ): Server =
+        Server().apply {
+            // Bind to localhost only for security
+            addConnector(
+                ServerConnector(this).apply {
+                    host = "127.0.0.1"
+                    this.port = port
+                },
+            )
+            handler =
+                ServletContextHandler().apply {
+                    contextPath = "/"
+                    addServlet(ServletHolder(transportProvider), "/*")
+                }
+        }
 
     private fun registerTools(server: McpSyncServer) {
         val tools = toolRegistry.getToolSpecifications()
@@ -169,11 +163,7 @@ class McpServerImpl(
     }
 
     fun stop() {
-        jettyServer?.let { server ->
-            if (server.isRunning) {
-                server.stop()
-            }
-        }
+        jettyServer?.takeIf { it.isRunning }?.stop()
         mcpServer?.close()
     }
 }
