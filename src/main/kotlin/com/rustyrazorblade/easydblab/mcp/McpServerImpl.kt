@@ -50,7 +50,8 @@ class McpServerImpl(
 
         // Create HTTP SSE transport provider using builder
         val transportProvider =
-            HttpServletSseServerTransportProvider.builder()
+            HttpServletSseServerTransportProvider
+                .builder()
                 .jsonMapper(jsonMapper)
                 .sseEndpoint(SSE_ENDPOINT)
                 .messageEndpoint(MESSAGE_ENDPOINT)
@@ -58,13 +59,15 @@ class McpServerImpl(
 
         // Create sync MCP server with capabilities using builder
         val capabilities =
-            McpSchema.ServerCapabilities.builder()
+            McpSchema.ServerCapabilities
+                .builder()
                 .prompts(false) // listChanged = false
                 .tools(false) // listChanged = false
                 .build()
 
         val server =
-            McpServer.sync(transportProvider)
+            McpServer
+                .sync(transportProvider)
                 .serverInfo("easy-db-lab", context.version.toString())
                 .capabilities(capabilities)
                 .build()

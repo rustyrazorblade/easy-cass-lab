@@ -49,8 +49,7 @@ class McpToolRegistry(
             .filter { entry ->
                 val tempCommand = entry.factory()
                 tempCommand::class.java.isAnnotationPresent(McpCommand::class.java)
-            }
-            .map { entry -> createToolSpecification(entry) }
+            }.map { entry -> createToolSpecification(entry) }
     }
 
     private fun createToolSpecification(entry: PicoCommandEntry): SyncToolSpecification {
