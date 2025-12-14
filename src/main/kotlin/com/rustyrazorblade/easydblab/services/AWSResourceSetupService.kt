@@ -82,7 +82,7 @@ class AWSResourceSetupService(
             return
         }
 
-        outputHandler.handleMessage(MSG_SETUP_START)
+        outputHandler.publishMessage(MSG_SETUP_START)
 
         // Step 1: Validate credentials
         validateCredentials()
@@ -105,8 +105,8 @@ class AWSResourceSetupService(
         }
 
         // Resources exist in config but validation failed - will attempt to fix
-        outputHandler.handleMessage(MSG_REPAIR_WARNING)
-        outputHandler.handleMessage("  ${validation.errorMessage}")
+        outputHandler.publishMessage(MSG_REPAIR_WARNING)
+        outputHandler.publishMessage("  ${validation.errorMessage}")
         return false
     }
 
@@ -131,7 +131,7 @@ class AWSResourceSetupService(
             handlePermissionError(e)
             throw e
         } catch (e: Exception) {
-            outputHandler.handleError(ERR_CREDENTIAL_VALIDATION, e)
+            outputHandler.publishError(ERR_CREDENTIAL_VALIDATION, e)
             throw e
         }
     }
@@ -143,23 +143,23 @@ class AWSResourceSetupService(
         try {
             // EC2 role (for Cassandra, Stress, Control nodes) with wildcard S3 policy
             aws.createRoleWithS3Policy(roleName)
-            outputHandler.handleMessage("$MSG_EC2_ROLE_READY $roleName")
+            outputHandler.publishMessage("$MSG_EC2_ROLE_READY $roleName")
 
             // EMR Service role
             aws.createServiceRole()
-            outputHandler.handleMessage("$MSG_EMR_SERVICE_READY ${Constants.AWS.Roles.EMR_SERVICE_ROLE}")
+            outputHandler.publishMessage("$MSG_EMR_SERVICE_READY ${Constants.AWS.Roles.EMR_SERVICE_ROLE}")
 
             // EMR EC2 role (for Spark clusters)
             aws.createEMREC2Role()
-            outputHandler.handleMessage("$MSG_EMR_EC2_READY ${Constants.AWS.Roles.EMR_EC2_ROLE}")
+            outputHandler.publishMessage("$MSG_EMR_EC2_READY ${Constants.AWS.Roles.EMR_EC2_ROLE}")
         } catch (e: software.amazon.awssdk.services.iam.model.IamException) {
-            outputHandler.handleError(ERR_IAM_PERMISSIONS, e)
+            outputHandler.publishError(ERR_IAM_PERMISSIONS, e)
             throw e
         } catch (e: IllegalStateException) {
-            outputHandler.handleError(ERR_IAM_VALIDATION, e)
+            outputHandler.publishError(ERR_IAM_VALIDATION, e)
             throw e
         } catch (e: Exception) {
-            outputHandler.handleError(ERR_IAM_UNEXPECTED, e)
+            outputHandler.publishError(ERR_IAM_UNEXPECTED, e)
             throw e
         }
     }
@@ -183,11 +183,11 @@ class AWSResourceSetupService(
 
                 This may be due to AWS eventual consistency. Please wait a few seconds and try again.
                 """.trimIndent()
-            outputHandler.handleError(errorMsg, null)
+            outputHandler.publishError(errorMsg, null)
             throw IllegalStateException(errorMsg)
         }
 
-        outputHandler.handleMessage(MSG_SETUP_COMPLETE)
+        outputHandler.publishMessage(MSG_SETUP_COMPLETE)
     }
 
     /**
@@ -195,7 +195,7 @@ class AWSResourceSetupService(
      * Provides guidance for reconfiguring easy-db-lab profile.
      */
     private fun handleAuthenticationError(exception: software.amazon.awssdk.core.exception.SdkServiceException) {
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             |
             |========================================
@@ -229,7 +229,7 @@ class AWSResourceSetupService(
         // Show required IAM policies
         val policies = AWSPolicy.UserIAM.loadAll("ACCOUNT_ID")
         policies.forEachIndexed { index, policy ->
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 """
                 |========================================
                 |Policy ${index + 1}: ${policy.name}
@@ -241,7 +241,7 @@ class AWSResourceSetupService(
             )
         }
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             |========================================
             |
@@ -254,7 +254,7 @@ class AWSResourceSetupService(
      * Provides detailed IAM policy guidance.
      */
     private fun handlePermissionError(exception: software.amazon.awssdk.core.exception.SdkServiceException) {
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             |
             |========================================
@@ -274,7 +274,7 @@ class AWSResourceSetupService(
             try {
                 aws.getAccountId() ?: throw IllegalStateException("Account ID is null")
             } catch (e: Exception) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     """
                     |NOTE: Replace ACCOUNT_ID in the policies below with your AWS account ID.
                     |You can find your account ID in the error message above (the 12-digit number in the ARN).
@@ -286,7 +286,7 @@ class AWSResourceSetupService(
 
         val policies = AWSPolicy.UserIAM.loadAll(accountId)
         policies.forEachIndexed { index, policy ->
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 """
                 |========================================
                 |Policy ${index + 1}: ${policy.name}
@@ -298,7 +298,7 @@ class AWSResourceSetupService(
             )
         }
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             |========================================
             |

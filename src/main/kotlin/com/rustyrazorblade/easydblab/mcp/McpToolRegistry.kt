@@ -6,13 +6,12 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
-import com.rustyrazorblade.easydblab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification
+import io.modelcontextprotocol.server.McpSyncServerExchange
 import io.modelcontextprotocol.spec.McpSchema
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import kotlin.reflect.full.memberProperties
@@ -35,9 +34,9 @@ class McpToolRegistry(
         private val log = KotlinLogging.logger {}
     }
 
-    private val outputHandler: OutputHandler by inject()
     private val schemaGenerator = McpSchemaGenerator()
     private val jsonMapper = JacksonMcpJsonMapper(ObjectMapper())
+    private val toolExecutor = McpToolExecutor()
 
     /**
      * Get all available tools as SyncToolSpecification for the Java MCP SDK.
@@ -72,54 +71,37 @@ class McpToolRegistry(
         return SyncToolSpecification
             .builder()
             .tool(tool)
-            .callHandler { _, request ->
-                executeTool(entry, request.arguments())
+            .callHandler { exchange, request ->
+                executeTool(entry, request.arguments(), request.progressToken(), exchange)
             }.build()
     }
 
     /**
-     * Execute a tool synchronously.
+     * Execute a tool on a background thread with progress notifications.
      *
-     * Unlike the Kotlin SDK implementation, this blocks until the command
-     * completes and returns the result directly.
+     * Tool execution is delegated to McpToolExecutor which:
+     * - Runs commands on a single-thread executor (queue + concurrency limit of 1)
+     * - Streams output messages as MCP progress notifications (if progressToken provided)
+     * - Handles timeouts and error recovery
+     *
+     * @param entry The command entry to execute
+     * @param arguments The tool arguments from the request
+     * @param progressToken The progress token from the client, or null if not tracking progress
+     * @param exchange The MCP server exchange
      */
-    @Suppress("TooGenericExceptionCaught")
     private fun executeTool(
         entry: PicoCommandEntry,
         arguments: Map<String, Any>?,
-    ): McpSchema.CallToolResult {
-        log.info { "Executing tool: ${entry.name} with arguments: $arguments" }
-
-        return try {
-            // Create fresh command instance
-            val command = entry.factory()
-
-            // Map arguments to command options
-            arguments?.let { args ->
-                mapArgumentsToCommand(command, args)
-            }
-
-            // Execute synchronously
-            outputHandler.handleMessage("Starting execution of tool: ${entry.name}")
-            command.call()
-            outputHandler.handleMessage("Tool '${entry.name}' completed successfully")
-
-            McpSchema.CallToolResult
-                .builder()
-                .addTextContent("Tool '${entry.name}' executed successfully")
-                .isError(false)
-                .build()
-        } catch (e: Exception) {
-            log.error(e) { "Error executing tool ${entry.name}" }
-            outputHandler.handleError("Tool '${entry.name}' failed: ${e.message}", e)
-
-            McpSchema.CallToolResult
-                .builder()
-                .addTextContent("Error: ${e.message}")
-                .isError(true)
-                .build()
-        }
-    }
+        progressToken: Any?,
+        exchange: McpSyncServerExchange,
+    ): McpSchema.CallToolResult =
+        toolExecutor.execute(
+            entry = entry,
+            arguments = arguments,
+            progressToken = progressToken,
+            exchange = exchange,
+            argumentMapper = { command, args -> mapArgumentsToCommand(command, args) },
+        )
 
     private fun extractDescription(command: PicoCommand): String {
         val annotation = command::class.java.getAnnotation(PicoCommandAnnotation::class.java)
@@ -216,4 +198,14 @@ class McpToolRegistry(
                 enumConstant.toString() == enumString
             }
         }
+
+    /**
+     * Shutdown the tool executor.
+     *
+     * Should be called when the MCP server stops to clean up resources.
+     */
+    fun shutdown() {
+        log.info { "Shutting down MCP tool registry" }
+        toolExecutor.shutdown()
+    }
 }

@@ -34,7 +34,7 @@ class Restart(
     var hosts = HostsMixin()
 
     override fun execute() {
-        outputHandler.handleMessage("Restarting cassandra service on all nodes.")
+        outputHandler.publishMessage("Restarting cassandra service on all nodes.")
 
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
             cassandraService.restart(host.toHost()).getOrThrow()
@@ -47,16 +47,16 @@ class Restart(
      * Restart cassandra-sidecar service on Cassandra nodes
      */
     private fun restartSidecar() {
-        outputHandler.handleMessage("Restarting cassandra-sidecar on Cassandra nodes...")
+        outputHandler.publishMessage("Restarting cassandra-sidecar on Cassandra nodes...")
 
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList, parallel = true) { host ->
             sidecarService
                 .restart(host.toHost())
                 .onFailure { e ->
-                    outputHandler.handleMessage("Warning: Failed to restart cassandra-sidecar on ${host.alias}: ${e.message}")
+                    outputHandler.publishMessage("Warning: Failed to restart cassandra-sidecar on ${host.alias}: ${e.message}")
                 }
         }
 
-        outputHandler.handleMessage("cassandra-sidecar restart completed on Cassandra nodes")
+        outputHandler.publishMessage("cassandra-sidecar restart completed on Cassandra nodes")
     }
 }

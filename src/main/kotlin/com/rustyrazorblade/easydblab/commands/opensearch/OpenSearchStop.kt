@@ -37,14 +37,14 @@ class OpenSearchStop(
     override fun execute() {
         val domainState = clusterState.openSearchDomain
         if (domainState == null) {
-            outputHandler.handleMessage("No OpenSearch domain configured for this cluster.")
+            outputHandler.publishMessage("No OpenSearch domain configured for this cluster.")
             return
         }
 
         if (!force) {
-            outputHandler.handleMessage("This will delete the OpenSearch domain and all its data.")
-            outputHandler.handleMessage("Domain: ${domainState.domainName}")
-            outputHandler.handleMessage("Use --force to confirm deletion.")
+            outputHandler.publishMessage("This will delete the OpenSearch domain and all its data.")
+            outputHandler.publishMessage("Domain: ${domainState.domainName}")
+            outputHandler.publishMessage("Use --force to confirm deletion.")
             return
         }
 
@@ -56,7 +56,7 @@ class OpenSearchStop(
         clusterState.updateOpenSearchDomain(null)
         clusterStateManager.save(clusterState)
 
-        outputHandler.handleMessage("OpenSearch domain deletion initiated: ${domainState.domainName}")
-        outputHandler.handleMessage("Note: Domain deletion may take several minutes to complete.")
+        outputHandler.publishMessage("OpenSearch domain deletion initiated: ${domainState.domainName}")
+        outputHandler.publishMessage("Note: Domain deletion may take several minutes to complete.")
     }
 }

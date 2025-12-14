@@ -50,12 +50,12 @@ class PruneAMIs(
 
     @Suppress("NestedBlockDepth", "TooGenericExceptionCaught")
     override fun execute() {
-        outputHandler.handleMessage("Pruning AMIs matching pattern: $pattern")
+        outputHandler.publishMessage("Pruning AMIs matching pattern: $pattern")
         if (type != null) {
-            outputHandler.handleMessage("Filtering by type: $type")
+            outputHandler.publishMessage("Filtering by type: $type")
         }
-        outputHandler.handleMessage("Keeping newest $keep AMIs per architecture/type combination")
-        outputHandler.handleMessage("")
+        outputHandler.publishMessage("Keeping newest $keep AMIs per architecture/type combination")
+        outputHandler.publishMessage("")
 
         // First, identify which AMIs would be deleted (dry-run)
         val preview =
@@ -68,35 +68,35 @@ class PruneAMIs(
 
         // Show what will be kept
         if (preview.kept.isNotEmpty()) {
-            outputHandler.handleMessage("Will keep ${preview.kept.size} AMIs:")
+            outputHandler.publishMessage("Will keep ${preview.kept.size} AMIs:")
             for (ami in preview.kept) {
-                outputHandler.handleMessage("  ✓ ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
+                outputHandler.publishMessage("  ✓ ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
             }
-            outputHandler.handleMessage("")
+            outputHandler.publishMessage("")
         }
 
         // Check if there's anything to delete
         if (preview.deleted.isEmpty()) {
-            outputHandler.handleMessage("No AMIs to delete")
+            outputHandler.publishMessage("No AMIs to delete")
             return
         }
 
         // If dry-run mode, just show what would be deleted and exit
         if (dryRun) {
-            outputHandler.handleMessage("DRY RUN - Would delete ${preview.deleted.size} AMIs:")
+            outputHandler.publishMessage("DRY RUN - Would delete ${preview.deleted.size} AMIs:")
             for (ami in preview.deleted) {
                 val visibility = if (ami.isPublic) "public" else "private"
-                outputHandler.handleMessage("  × ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
-                outputHandler.handleMessage("    Owner: ${ami.ownerId}, Visibility: $visibility")
+                outputHandler.publishMessage("  × ${ami.id}: ${ami.name} (${ami.architecture}, ${ami.creationDate})")
+                outputHandler.publishMessage("    Owner: ${ami.ownerId}, Visibility: $visibility")
                 if (ami.snapshotIds.isNotEmpty()) {
-                    outputHandler.handleMessage("    Snapshots: ${ami.snapshotIds.joinToString(", ")}")
+                    outputHandler.publishMessage("    Snapshots: ${ami.snapshotIds.joinToString(", ")}")
                 }
             }
             return
         }
 
         // Delete AMIs with confirmation (already sorted oldest first by AMIService)
-        outputHandler.handleMessage("Found ${preview.deleted.size} AMIs to delete")
+        outputHandler.publishMessage("Found ${preview.deleted.size} AMIs to delete")
         val amisToDelete = preview.deleted
 
         val actuallyDeleted = mutableListOf<String>()
@@ -104,15 +104,15 @@ class PruneAMIs(
 
         for (ami in amisToDelete) {
             val visibility = if (ami.isPublic) "public" else "private"
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("AMI: ${ami.id}")
-            outputHandler.handleMessage("  Name: ${ami.name}")
-            outputHandler.handleMessage("  Architecture: ${ami.architecture}")
-            outputHandler.handleMessage("  Created: ${ami.creationDate}")
-            outputHandler.handleMessage("  Owner: ${ami.ownerId}")
-            outputHandler.handleMessage("  Visibility: $visibility")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("AMI: ${ami.id}")
+            outputHandler.publishMessage("  Name: ${ami.name}")
+            outputHandler.publishMessage("  Architecture: ${ami.architecture}")
+            outputHandler.publishMessage("  Created: ${ami.creationDate}")
+            outputHandler.publishMessage("  Owner: ${ami.ownerId}")
+            outputHandler.publishMessage("  Visibility: $visibility")
             if (ami.snapshotIds.isNotEmpty()) {
-                outputHandler.handleMessage("  Snapshots: ${ami.snapshotIds.joinToString(", ")}")
+                outputHandler.publishMessage("  Snapshots: ${ami.snapshotIds.joinToString(", ")}")
             }
 
             print("Delete this AMI? [y/N]: ")
@@ -125,22 +125,22 @@ class PruneAMIs(
                     for (snapshotId in ami.snapshotIds) {
                         ec2Service.deleteSnapshot(snapshotId)
                     }
-                    outputHandler.handleMessage("  ✓ Deleted")
+                    outputHandler.publishMessage("  ✓ Deleted")
                     actuallyDeleted.add(ami.id)
                 } catch (e: Exception) {
-                    outputHandler.handleMessage("  ✗ Error deleting: ${e.message}")
+                    outputHandler.publishMessage("  ✗ Error deleting: ${e.message}")
                 }
             } else {
-                outputHandler.handleMessage("  - Skipped")
+                outputHandler.publishMessage("  - Skipped")
                 skipped.add(ami.id)
             }
         }
 
         // Summary
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Summary:")
-        outputHandler.handleMessage("  Deleted: ${actuallyDeleted.size} AMIs")
-        outputHandler.handleMessage("  Skipped: ${skipped.size} AMIs")
-        outputHandler.handleMessage("  Kept: ${preview.kept.size} AMIs")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Summary:")
+        outputHandler.publishMessage("  Deleted: ${actuallyDeleted.size} AMIs")
+        outputHandler.publishMessage("  Skipped: ${skipped.size} AMIs")
+        outputHandler.publishMessage("  Kept: ${preview.kept.size} AMIs")
     }
 }

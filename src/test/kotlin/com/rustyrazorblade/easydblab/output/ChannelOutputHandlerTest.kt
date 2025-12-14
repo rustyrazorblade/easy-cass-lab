@@ -36,7 +36,7 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             val frame = Frame(StreamType.STDOUT, "Hello World\n".toByteArray())
 
             // When
-            channelHandler.handleFrame(frame)
+            channelHandler.publishFrame(frame)
 
             // Then
             val event = outputChannel.tryReceive().getOrNull()
@@ -52,7 +52,7 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             val message = "Test message"
 
             // When
-            channelHandler.handleMessage(message)
+            channelHandler.publishMessage(message)
 
             // Then
             val event = outputChannel.tryReceive().getOrNull()
@@ -68,7 +68,7 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             val errorMessage = "Test error"
 
             // When
-            channelHandler.handleError(errorMessage)
+            channelHandler.publishError(errorMessage)
 
             // Then
             val event = outputChannel.tryReceive().getOrNull()
@@ -86,7 +86,7 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             val throwable = IOException("Test IOException")
 
             // When
-            channelHandler.handleError(errorMessage, throwable)
+            channelHandler.publishError(errorMessage, throwable)
 
             // Then
             val event = outputChannel.tryReceive().getOrNull()
@@ -116,9 +116,9 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             val errorMessage = "Error message"
 
             // When
-            channelHandler.handleFrame(frame)
-            channelHandler.handleMessage(message)
-            channelHandler.handleError(errorMessage)
+            channelHandler.publishFrame(frame)
+            channelHandler.publishMessage(message)
+            channelHandler.publishError(errorMessage)
             channelHandler.close()
 
             // Then
@@ -151,8 +151,8 @@ class ChannelOutputHandlerTest : BaseKoinTest() {
             outputChannel.close()
 
             // When - operations should not throw exceptions
-            channelHandler.handleMessage("This should not crash")
-            channelHandler.handleError("This should not crash either")
+            channelHandler.publishMessage("This should not crash")
+            channelHandler.publishError("This should not crash either")
             channelHandler.close()
 
             // Then - no exceptions should be thrown (test passes if no exception)

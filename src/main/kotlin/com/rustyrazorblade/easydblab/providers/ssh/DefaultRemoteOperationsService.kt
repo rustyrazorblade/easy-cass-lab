@@ -81,7 +81,7 @@ class DefaultRemoteOperationsService(
         remoteDir: String,
     ) {
         log.info { "Uploading directory $localDir to ${host.alias}:$remoteDir" }
-        outputHandler.handleMessage("Uploading directory $localDir to $remoteDir")
+        outputHandler.publishMessage("Uploading directory $localDir to $remoteDir")
         Retry
             .decorateRunnable(retry) {
                 connectionProvider.getConnection(host).uploadDirectory(localDir, remoteDir)

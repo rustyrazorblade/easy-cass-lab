@@ -85,14 +85,14 @@ class K8Apply(
             k8sService
                 .waitForPodsReady(controlNode, timeoutSeconds)
                 .getOrElse { exception ->
-                    outputHandler.handleError("Warning: Pods may not be ready: ${exception.message}")
-                    outputHandler.handleMessage("You can check status with: kubectl get pods -n observability")
+                    outputHandler.publishError("Warning: Pods may not be ready: ${exception.message}")
+                    outputHandler.publishMessage("You can check status with: kubectl get pods -n observability")
                 }
         }
 
         // Display access information
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Observability stack deployed successfully!")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Observability stack deployed successfully!")
         outputHandler.displayObservabilityAccess(controlNode.privateIp)
     }
 }

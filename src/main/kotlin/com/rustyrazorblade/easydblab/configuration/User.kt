@@ -62,7 +62,7 @@ data class User(
             operation: String,
         ) {
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     """
                     |
                     |========================================
@@ -80,7 +80,7 @@ data class User(
 
                 val policies = getRequiredIAMPolicies("ACCOUNT_ID")
                 policies.forEachIndexed { index, policy ->
-                    outputHandler.handleMessage(
+                    outputHandler.publishMessage(
                         """
                         |${green("========================================")}
                         |${green("Policy ${index + 1}: ${policy.name}")}
@@ -92,7 +92,7 @@ data class User(
                     )
                 }
 
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     """
                     |========================================
                     |
@@ -135,7 +135,7 @@ data class User(
             region: Region,
             outputHandler: OutputHandler,
         ): Pair<AwsKeyName, SshKeyPath> {
-            outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
+            outputHandler.publishMessage("Generating AWS key pair and SSH credentials...")
 
             try {
                 val ec2 = EC2(awsAccessKey, awsSecret, region)

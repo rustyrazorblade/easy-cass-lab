@@ -76,7 +76,7 @@ class SparkSubmit(
         // Determine JAR location (S3 or local)
         val s3JarPath =
             if (jarPath.startsWith("s3://")) {
-                outputHandler.handleMessage("Using S3 JAR: $jarPath")
+                outputHandler.publishMessage("Using S3 JAR: $jarPath")
                 jarPath
             } else {
                 uploadJarToS3(jarPath)
@@ -95,7 +95,7 @@ class SparkSubmit(
                     error(exception.message ?: "Failed to submit Spark job")
                 }
 
-        outputHandler.handleMessage("Submitted Spark job: $stepId to cluster ${clusterInfo.clusterId}")
+        outputHandler.publishMessage("Submitted Spark job: $stepId to cluster ${clusterInfo.clusterId}")
 
         // Optionally wait for completion
         if (wait) {
@@ -105,7 +105,7 @@ class SparkSubmit(
                     error(exception.message ?: "Job failed")
                 }
         } else {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Job submitted. Use 'easy-db-lab spark status --step-id $stepId' to check status.",
             )
         }

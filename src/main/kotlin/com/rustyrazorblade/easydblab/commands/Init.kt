@@ -180,7 +180,7 @@ class Init(
 
         val clusterState = prepareEnvironment()
 
-        outputHandler.handleMessage("Initializing directory")
+        outputHandler.publishMessage("Initializing directory")
 
         // Create or use existing VPC
         val vpcId = createOrUseVpc(clusterState)
@@ -192,12 +192,12 @@ class Init(
         displayCompletionMessage(clusterState)
 
         if (start) {
-            outputHandler.handleMessage("Provisioning instances")
+            outputHandler.publishMessage("Provisioning instances")
             // Schedule Up to run after Init's full lifecycle completes
             commandExecutor.schedule { Up(context) }
         } else {
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Next you'll want to run " + green("easy-db-lab up") + " to start your instances.",
                 )
             }
@@ -209,14 +209,14 @@ class Init(
      */
     private fun createOrUseVpc(clusterState: ClusterState): String {
         if (existingVpcId != null) {
-            outputHandler.handleMessage("Using existing VPC: $existingVpcId")
+            outputHandler.publishMessage("Using existing VPC: $existingVpcId")
             return existingVpcId!!
         }
 
-        outputHandler.handleMessage("Creating VPC for cluster: ${clusterState.name}")
+        outputHandler.publishMessage("Creating VPC for cluster: ${clusterState.name}")
         val vpcTags = mapOf(Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE, "ClusterId" to clusterState.clusterId)
         val vpcId = vpcService.createVpc(name, Constants.Vpc.DEFAULT_CIDR, vpcTags)
-        outputHandler.handleMessage("VPC created: $vpcId")
+        outputHandler.publishMessage("VPC created: $vpcId")
         return vpcId
     }
 
@@ -254,14 +254,14 @@ class Init(
                             "or run 'easy-db-lab clean' first.",
                     )
                 }
-            outputHandler.handleMessage(message)
+            outputHandler.publishMessage(message)
             exitProcess(1)
         }
     }
 
     private fun prepareEnvironment(): ClusterState {
         if (clean) {
-            outputHandler.handleMessage("Cleaning existing configuration...")
+            outputHandler.publishMessage("Cleaning existing configuration...")
             // Execute Clean immediately with full lifecycle
             commandExecutor.execute { Clean(context) }
         }
@@ -277,14 +277,14 @@ class Init(
     }
 
     private fun extractResourceFiles() {
-        outputHandler.handleMessage("Writing setup_instance.sh")
+        outputHandler.publishMessage("Writing setup_instance.sh")
         extractResourceFile("setup_instance.sh", "setup_instance.sh")
 
-        outputHandler.handleMessage("Creating cassandra directory and writing sidecar config")
+        outputHandler.publishMessage("Creating cassandra directory and writing sidecar config")
         File("cassandra").mkdirs()
         extractResourceFile("cassandra-sidecar.yaml", "cassandra/cassandra-sidecar.yaml")
 
-        outputHandler.handleMessage("Creating k8s directory and writing Kubernetes manifests")
+        outputHandler.publishMessage("Creating k8s directory and writing Kubernetes manifests")
         extractK8sManifests()
     }
 
@@ -336,7 +336,7 @@ class Init(
 
     private fun displayCompletionMessage(clusterState: ClusterState) {
         val initConfig = clusterState.initConfig ?: return
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             "Your workspace has been initialized with ${initConfig.cassandraInstances} Cassandra instances " +
                 "(${initConfig.instanceType}) and ${initConfig.stressInstances} stress instances " +
                 "in ${initConfig.region}",

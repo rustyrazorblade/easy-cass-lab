@@ -20,6 +20,6 @@ class Version(
     private val outputHandler: OutputHandler by inject()
 
     override fun execute() {
-        outputHandler.handleMessage(context.version.toString())
+        outputHandler.publishMessage(context.version.toString())
     }
 }

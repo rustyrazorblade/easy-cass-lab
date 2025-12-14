@@ -108,7 +108,7 @@ class EMRSparkService(
         stepId: String,
     ): Result<SparkService.JobStatus> =
         runCatching {
-            outputHandler.handleMessage("Waiting for job completion...")
+            outputHandler.publishMessage("Waiting for job completion...")
 
             val startTime = System.currentTimeMillis()
             var currentStatus: SparkService.JobStatus
@@ -130,13 +130,13 @@ class EMRSparkService(
 
                 // Log less frequently to reduce noise (every 60 seconds at default 5s interval)
                 if (pollCount % Constants.EMR.LOG_INTERVAL_POLLS == 0) {
-                    outputHandler.handleMessage("Job state: ${currentStatus.state}")
+                    outputHandler.publishMessage("Job state: ${currentStatus.state}")
                 }
             } while (currentStatus.state !in TERMINAL_JOB_STATES)
 
             when (currentStatus.state) {
                 StepState.COMPLETED -> {
-                    outputHandler.handleMessage("Job completed successfully")
+                    outputHandler.publishMessage("Job completed successfully")
                     currentStatus
                 }
                 StepState.FAILED -> {
@@ -257,8 +257,8 @@ class EMRSparkService(
             val localGzFile = localLogsDir.resolve(logType.filename)
             val localLogFile = localLogsDir.resolve(logType.filename.removeSuffix(".gz"))
 
-            outputHandler.handleMessage("Downloading logs from: ${logPath.toUri()}")
-            outputHandler.handleMessage("Saving to: $localLogFile")
+            outputHandler.publishMessage("Downloading logs from: ${logPath.toUri()}")
+            outputHandler.publishMessage("Saving to: $localLogFile")
 
             // Download with retry (logs may not be immediately available)
             executeS3LogRetrievalWithRetry("s3-download-logs") {
@@ -282,8 +282,8 @@ class EMRSparkService(
             val localLogsDir = Paths.get("logs", "emr", stepId)
             Files.createDirectories(localLogsDir)
 
-            outputHandler.handleMessage("Downloading all EMR logs from: ${emrLogsPath.toUri()}")
-            outputHandler.handleMessage("Saving to: $localLogsDir")
+            outputHandler.publishMessage("Downloading all EMR logs from: ${emrLogsPath.toUri()}")
+            outputHandler.publishMessage("Saving to: $localLogsDir")
 
             objectStore.downloadDirectory(emrLogsPath, localLogsDir, showProgress = true)
 
@@ -302,7 +302,7 @@ class EMRSparkService(
             val localLogsDir = Paths.get("logs", clusterId, stepId)
             Files.createDirectories(localLogsDir)
 
-            outputHandler.handleMessage("Downloading step logs to: $localLogsDir")
+            outputHandler.publishMessage("Downloading step logs to: $localLogsDir")
 
             // Download both stdout and stderr
             for (logType in listOf(SparkService.LogType.STDOUT, SparkService.LogType.STDERR)) {
@@ -324,7 +324,7 @@ class EMRSparkService(
                     decompressGzipFile(localGzFile, localLogFile)
                     // Remove the .gz file after decompression
                     Files.deleteIfExists(localGzFile)
-                    outputHandler.handleMessage("Downloaded: ${logType.name.lowercase()}")
+                    outputHandler.publishMessage("Downloaded: ${logType.name.lowercase()}")
                 } catch (e: Exception) {
                     log.warn { "Could not download ${logType.filename}: ${e.message}" }
                     // Continue with other logs - some may not exist yet
@@ -336,7 +336,7 @@ class EMRSparkService(
             if (Files.exists(stderrFile)) {
                 val stderrContent = Files.readString(stderrFile)
                 if (stderrContent.isNotBlank()) {
-                    outputHandler.handleMessage("\n=== stderr (last ${Constants.EMR.STDERR_TAIL_LINES} lines) ===")
+                    outputHandler.publishMessage("\n=== stderr (last ${Constants.EMR.STDERR_TAIL_LINES} lines) ===")
                     val lines = stderrContent.lines()
                     val lastLines =
                         if (lines.size > Constants.EMR.STDERR_TAIL_LINES) {
@@ -344,8 +344,8 @@ class EMRSparkService(
                         } else {
                             lines
                         }
-                    lastLines.forEach { outputHandler.handleMessage(it) }
-                    outputHandler.handleMessage("=== end stderr ===\n")
+                    lastLines.forEach { outputHandler.publishMessage(it) }
+                    outputHandler.publishMessage("=== end stderr ===\n")
                 }
             }
 

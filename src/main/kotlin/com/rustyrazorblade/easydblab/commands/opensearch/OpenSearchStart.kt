@@ -88,7 +88,7 @@ class OpenSearchStart(
         log.info { "Creating OpenSearch domain: $domainName" }
 
         // Ensure the OpenSearch service-linked role exists (required for VPC access)
-        outputHandler.handleMessage("Ensuring OpenSearch service-linked role exists...")
+        outputHandler.publishMessage("Ensuring OpenSearch service-linked role exists...")
         aws.ensureOpenSearchServiceLinkedRole()
 
         val config =
@@ -124,7 +124,7 @@ class OpenSearchStart(
         clusterStateManager.save(clusterState)
 
         if (wait) {
-            outputHandler.handleMessage("Waiting for OpenSearch domain to become active...")
+            outputHandler.publishMessage("Waiting for OpenSearch domain to become active...")
             val activeResult = openSearchService.waitForDomainActive(domainName)
 
             // Update state with endpoint info
@@ -141,11 +141,11 @@ class OpenSearchStart(
 
             displayAccessInfo(activeResult.endpoint, activeResult.dashboardsEndpoint)
         } else {
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("OpenSearch domain creation started.")
-            outputHandler.handleMessage("This typically takes 10-30 minutes to complete.")
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("Use 'opensearch status' to check when the endpoint is available.")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("OpenSearch domain creation started.")
+            outputHandler.publishMessage("This typically takes 10-30 minutes to complete.")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("Use 'opensearch status' to check when the endpoint is available.")
         }
     }
 
@@ -167,14 +167,14 @@ class OpenSearchStart(
         endpoint: String?,
         dashboardsEndpoint: String?,
     ) {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("OpenSearch domain created successfully!")
-        outputHandler.handleMessage("")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("OpenSearch domain created successfully!")
+        outputHandler.publishMessage("")
         if (endpoint != null) {
-            outputHandler.handleMessage("REST API: https://$endpoint")
-            outputHandler.handleMessage("Dashboards: $dashboardsEndpoint")
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("Note: Access requires VPC connectivity (SSH tunnel or VPN)")
+            outputHandler.publishMessage("REST API: https://$endpoint")
+            outputHandler.publishMessage("Dashboards: $dashboardsEndpoint")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("Note: Access requires VPC connectivity (SSH tunnel or VPN)")
         }
     }
 }

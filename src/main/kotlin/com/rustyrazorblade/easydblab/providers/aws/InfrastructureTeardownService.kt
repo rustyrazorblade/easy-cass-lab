@@ -40,7 +40,7 @@ class InfrastructureTeardownService(
      */
     fun discoverResources(vpcId: VpcId): DiscoveredResources {
         log.info { "Discovering resources in VPC: $vpcId" }
-        outputHandler.handleMessage("Discovering resources in VPC: $vpcId")
+        outputHandler.publishMessage("Discovering resources in VPC: $vpcId")
 
         val vpcName = vpcService.getVpcName(vpcId)
         val instanceIds = vpcService.findInstancesInVpc(vpcId)
@@ -100,16 +100,16 @@ class InfrastructureTeardownService(
         includePackerVpc: Boolean = false,
     ): TeardownResult {
         log.info { "Starting teardown of all tagged VPCs (dryRun=$dryRun, includePackerVpc=$includePackerVpc)" }
-        outputHandler.handleMessage("Finding all VPCs tagged with ${Constants.Vpc.TAG_KEY}=${Constants.Vpc.TAG_VALUE}...")
+        outputHandler.publishMessage("Finding all VPCs tagged with ${Constants.Vpc.TAG_KEY}=${Constants.Vpc.TAG_VALUE}...")
 
         val vpcIds = vpcService.findVpcsByTag(Constants.Vpc.TAG_KEY, Constants.Vpc.TAG_VALUE)
 
         if (vpcIds.isEmpty()) {
-            outputHandler.handleMessage("No VPCs found with tag ${Constants.Vpc.TAG_KEY}=${Constants.Vpc.TAG_VALUE}")
+            outputHandler.publishMessage("No VPCs found with tag ${Constants.Vpc.TAG_KEY}=${Constants.Vpc.TAG_VALUE}")
             return TeardownResult.success(emptyList())
         }
 
-        outputHandler.handleMessage("Found ${vpcIds.size} VPCs to tear down")
+        outputHandler.publishMessage("Found ${vpcIds.size} VPCs to tear down")
 
         val allResources = mutableListOf<DiscoveredResources>()
         val errors = mutableListOf<String>()
@@ -119,7 +119,7 @@ class InfrastructureTeardownService(
 
             // Skip packer VPC unless explicitly included
             if (resources.isPackerVpc() && !includePackerVpc) {
-                outputHandler.handleMessage("Skipping packer VPC: $vpcId (use --packer to include)")
+                outputHandler.publishMessage("Skipping packer VPC: $vpcId (use --packer to include)")
                 continue
             }
 
@@ -153,12 +153,12 @@ class InfrastructureTeardownService(
      */
     fun teardownPackerInfrastructure(dryRun: Boolean = false): TeardownResult {
         log.info { "Starting teardown of packer infrastructure (dryRun=$dryRun)" }
-        outputHandler.handleMessage("Finding packer infrastructure VPC...")
+        outputHandler.publishMessage("Finding packer infrastructure VPC...")
 
         val packerVpcId = vpcService.findVpcByName(InfrastructureConfig.PACKER_VPC_NAME)
 
         if (packerVpcId == null) {
-            outputHandler.handleMessage("No packer VPC found (${InfrastructureConfig.PACKER_VPC_NAME})")
+            outputHandler.publishMessage("No packer VPC found (${InfrastructureConfig.PACKER_VPC_NAME})")
             return TeardownResult.success(emptyList())
         }
 
@@ -176,7 +176,7 @@ class InfrastructureTeardownService(
         val errors = mutableListOf<String>()
 
         try {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "\nTearing down VPC: ${resources.vpcId}" +
                     (resources.vpcName?.let { " ($it)" } ?: ""),
             )
@@ -226,7 +226,7 @@ class InfrastructureTeardownService(
     ): Boolean {
         if (resources.openSearchDomainNames.isEmpty()) return true
 
-        outputHandler.handleMessage("Deleting ${resources.openSearchDomainNames.size} OpenSearch domains...")
+        outputHandler.publishMessage("Deleting ${resources.openSearchDomainNames.size} OpenSearch domains...")
 
         val domainsToWait = mutableListOf<String>()
 
@@ -249,7 +249,7 @@ class InfrastructureTeardownService(
                 // Log error but continue - the domain deletion was initiated and will complete async
                 // Subsequent VPC resource cleanup may fail with "dependent object" errors
                 errors.add(logError("Timeout waiting for OpenSearch domain $domainName to delete", e))
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Warning: OpenSearch domain $domainName is still deleting. " +
                         "VPC cleanup may fail - run teardown again later.",
                 )
@@ -297,7 +297,7 @@ class InfrastructureTeardownService(
     ) {
         if (resources.securityGroupIds.isEmpty()) return
 
-        outputHandler.handleMessage("Revoking rules from ${resources.securityGroupIds.size} security groups...")
+        outputHandler.publishMessage("Revoking rules from ${resources.securityGroupIds.size} security groups...")
 
         resources.securityGroupIds.forEach { sgId ->
             try {
@@ -372,7 +372,7 @@ class InfrastructureTeardownService(
     ) {
         try {
             vpcService.deleteVpc(resources.vpcId)
-            outputHandler.handleMessage("VPC ${resources.vpcId} deleted successfully")
+            outputHandler.publishMessage("VPC ${resources.vpcId} deleted successfully")
         } catch (e: Exception) {
             errors.add(logError("Failed to delete VPC ${resources.vpcId}", e))
         }

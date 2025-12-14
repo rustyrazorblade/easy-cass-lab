@@ -56,7 +56,7 @@ class StressFields(
         val args = mutableListOf("fields")
         args.addAll(stressArgs)
 
-        outputHandler.handleMessage("Running cassandra-easy-stress fields...")
+        outputHandler.publishMessage("Running cassandra-easy-stress fields...")
 
         val output =
             stressJobService
@@ -66,7 +66,7 @@ class StressFields(
                 }
 
         if (output.isNotEmpty()) {
-            outputHandler.handleMessage(output)
+            outputHandler.publishMessage(output)
         }
     }
 }

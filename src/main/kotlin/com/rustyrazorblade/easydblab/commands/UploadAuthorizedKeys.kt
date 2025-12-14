@@ -45,14 +45,14 @@ class UploadAuthorizedKeys(
     override fun execute() {
         val path = Paths.get(localDir)
         if (!path.exists()) {
-            outputHandler.handleMessage("$localDir does not exist")
+            outputHandler.publishMessage("$localDir does not exist")
             exitProcess(1)
         }
 
         val files =
             File(localDir).listFiles(FileFilter { it.name.endsWith(".pub") })
                 ?: error("Failed to list files in $localDir")
-        outputHandler.handleMessage("Files: ${files.map { it.name }}")
+        outputHandler.publishMessage("Files: ${files.map { it.name }}")
 
         // collect all the keys into a single file then upload
         val keys = files.joinToString("\n") { it.readText().trim() }
@@ -63,8 +63,8 @@ class UploadAuthorizedKeys(
             it.write("\n")
         }
 
-        outputHandler.handleMessage("Uploading the following keys:")
-        outputHandler.handleMessage(keys)
+        outputHandler.publishMessage("Uploading the following keys:")
+        outputHandler.publishMessage(keys)
 
         val upload = doUpload(authorizedKeysExtraFile)
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { upload(it.toHost()) }

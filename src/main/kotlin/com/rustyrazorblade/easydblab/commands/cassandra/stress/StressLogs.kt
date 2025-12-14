@@ -65,24 +65,24 @@ class StressLogs(
         // Get logs from each pod
         for (pod in pods) {
             if (pods.size > 1) {
-                outputHandler.handleMessage("=== Pod: ${pod.name} (${pod.status}) ===")
+                outputHandler.publishMessage("=== Pod: ${pod.name} (${pod.status}) ===")
             }
 
             val logsResult = stressJobService.getPodLogs(controlNode, pod.name, tailLines)
             if (logsResult.isFailure) {
-                outputHandler.handleMessage("Failed to get logs for pod ${pod.name}: ${logsResult.exceptionOrNull()?.message}")
+                outputHandler.publishMessage("Failed to get logs for pod ${pod.name}: ${logsResult.exceptionOrNull()?.message}")
                 continue
             }
 
             val logs = logsResult.getOrThrow()
             if (logs.isEmpty()) {
-                outputHandler.handleMessage("(no logs available yet)")
+                outputHandler.publishMessage("(no logs available yet)")
             } else {
-                outputHandler.handleMessage(logs)
+                outputHandler.publishMessage(logs)
             }
 
             if (pods.size > 1) {
-                outputHandler.handleMessage("")
+                outputHandler.publishMessage("")
             }
         }
     }

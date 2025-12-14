@@ -19,7 +19,7 @@ class OutputHandlerTest {
         val handler = BufferedOutputHandler()
         val frame = Frame(StreamType.STDOUT, "Hello World\n".toByteArray())
 
-        handler.handleFrame(frame)
+        handler.publishFrame(frame)
 
         assertEquals("Hello World\n", handler.stdout)
         assertEquals("", handler.stderr)
@@ -30,7 +30,7 @@ class OutputHandlerTest {
         val handler = BufferedOutputHandler()
         val frame = Frame(StreamType.STDERR, "Error occurred\n".toByteArray())
 
-        handler.handleFrame(frame)
+        handler.publishFrame(frame)
 
         assertEquals("", handler.stdout)
         assertEquals("Error occurred\n", handler.stderr)
@@ -40,8 +40,8 @@ class OutputHandlerTest {
     fun `BufferedOutputHandler captures messages correctly`() {
         val handler = BufferedOutputHandler()
 
-        handler.handleMessage("Status update 1")
-        handler.handleMessage("Status update 2")
+        handler.publishMessage("Status update 1")
+        handler.publishMessage("Status update 2")
 
         assertEquals(listOf("Status update 1", "Status update 2"), handler.messages)
     }
@@ -51,8 +51,8 @@ class OutputHandlerTest {
         val handler = BufferedOutputHandler()
         val exception = RuntimeException("Test error")
 
-        handler.handleError("Error occurred", exception)
-        handler.handleError("Another error", null)
+        handler.publishError("Error occurred", exception)
+        handler.publishError("Another error", null)
 
         assertEquals(2, handler.errors.size)
         assertEquals("Error occurred" to exception, handler.errors[0])
@@ -62,9 +62,9 @@ class OutputHandlerTest {
     @Test
     fun `BufferedOutputHandler clear works correctly`() {
         val handler = BufferedOutputHandler()
-        handler.handleFrame(Frame(StreamType.STDOUT, "data".toByteArray()))
-        handler.handleMessage("message")
-        handler.handleError("error", null)
+        handler.publishFrame(Frame(StreamType.STDOUT, "data".toByteArray()))
+        handler.publishMessage("message")
+        handler.publishError("error", null)
 
         handler.clear()
 
@@ -88,10 +88,10 @@ class OutputHandlerTest {
             System.setOut(PrintStream(capturedOut))
             System.setErr(PrintStream(capturedErr))
 
-            handler.handleFrame(Frame(StreamType.STDOUT, "stdout text".toByteArray()))
-            handler.handleFrame(Frame(StreamType.STDERR, "stderr text".toByteArray()))
-            handler.handleMessage("message text")
-            handler.handleError("error text", null)
+            handler.publishFrame(Frame(StreamType.STDOUT, "stdout text".toByteArray()))
+            handler.publishFrame(Frame(StreamType.STDERR, "stderr text".toByteArray()))
+            handler.publishMessage("message text")
+            handler.publishError("error text", null)
 
             // Flush the streams to ensure all data is written
             System.out.flush()
@@ -115,9 +115,9 @@ class OutputHandlerTest {
         val composite = CompositeOutputHandler(handler1, handler2)
 
         val frame = Frame(StreamType.STDOUT, "test data".toByteArray())
-        composite.handleFrame(frame)
-        composite.handleMessage("test message")
-        composite.handleError("test error", null)
+        composite.publishFrame(frame)
+        composite.publishMessage("test message")
+        composite.publishError("test error", null)
 
         // Both handlers should receive the same data
         assertEquals("test data", handler1.stdout)
@@ -145,7 +145,7 @@ class OutputHandlerTest {
         assertTrue(composite.hasHandler(handler2))
 
         // Test output goes to both handlers
-        composite.handleMessage("dynamic test")
+        composite.publishMessage("dynamic test")
         assertEquals(listOf("dynamic test"), handler1.messages)
         assertEquals(listOf("dynamic test"), handler2.messages)
     }
@@ -165,7 +165,7 @@ class OutputHandlerTest {
         assertTrue(composite.hasHandler(handler2))
 
         // Output should only go to handler2 now
-        composite.handleMessage("after removal")
+        composite.publishMessage("after removal")
         assertEquals(emptyList<String>(), handler1.messages)
         assertEquals(listOf("after removal"), handler2.messages)
 
@@ -187,7 +187,7 @@ class OutputHandlerTest {
         assertFalse(composite.hasHandler(handler2))
 
         // No output should be processed
-        composite.handleMessage("after clear")
+        composite.publishMessage("after clear")
         assertEquals(emptyList<String>(), handler1.messages)
         assertEquals(emptyList<String>(), handler2.messages)
     }
@@ -234,9 +234,9 @@ class OutputHandlerTest {
         assertEquals(0, composite.getHandlerCount())
 
         // These operations should not throw exceptions
-        composite.handleFrame(Frame(StreamType.STDOUT, "test".toByteArray()))
-        composite.handleMessage("test message")
-        composite.handleError("test error", null)
+        composite.publishFrame(Frame(StreamType.STDOUT, "test".toByteArray()))
+        composite.publishMessage("test message")
+        composite.publishError("test error", null)
         composite.close()
     }
 
@@ -245,10 +245,10 @@ class OutputHandlerTest {
         val handler = LoggerOutputHandler("TestLogger")
 
         // Just ensure it doesn't throw exceptions
-        handler.handleFrame(Frame(StreamType.STDOUT, "log line\n".toByteArray()))
-        handler.handleFrame(Frame(StreamType.STDERR, "error line\n".toByteArray()))
-        handler.handleMessage("status message")
-        handler.handleError("error message", RuntimeException("test"))
+        handler.publishFrame(Frame(StreamType.STDOUT, "log line\n".toByteArray()))
+        handler.publishFrame(Frame(StreamType.STDERR, "error line\n".toByteArray()))
+        handler.publishMessage("status message")
+        handler.publishError("error message", RuntimeException("test"))
         handler.close()
     }
 }

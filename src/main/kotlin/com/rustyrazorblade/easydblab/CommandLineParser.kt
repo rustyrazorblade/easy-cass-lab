@@ -355,7 +355,7 @@ class CommandLineParser(
             val userConfigProvider: UserConfigProvider by inject()
             if (!userConfigProvider.isSetup()) {
                 with(TermColors()) {
-                    outputHandler.handleMessage(
+                    outputHandler.publishMessage(
                         yellow(
                             """
 

@@ -161,7 +161,7 @@ class AMIValidationService(
         val selectedAMI = matchingArchAMIs.maxByOrNull { it.creationDate }!!
 
         if (matchingArchAMIs.size > 1) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Warning: Found ${matchingArchAMIs.size} AMIs matching pattern. " +
                     "Using newest: ${selectedAMI.id} (${selectedAMI.creationDate})",
             )
@@ -179,7 +179,7 @@ class AMIValidationService(
         pattern: String,
         architecture: Arch,
     ) {
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             |
             |========================================

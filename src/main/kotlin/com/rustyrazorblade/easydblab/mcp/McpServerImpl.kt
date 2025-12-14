@@ -1,6 +1,7 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -74,7 +75,7 @@ class McpServerImpl(
         registerTools(mcpServer)
         registerPrompts(mcpServer)
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             Starting Streamable MCP server on port $port:
 
@@ -99,6 +100,9 @@ class McpServerImpl(
                 ServerConnector(this).apply {
                     host = "127.0.0.1"
                     this.port = port
+                    // Set idle timeout to match tool execution timeout (plus buffer)
+                    // Default Jetty timeout is 30 seconds which is too short for long-running tools
+                    idleTimeout = Constants.MCP.IDLE_TIMEOUT_MS
                 },
             )
             handler =

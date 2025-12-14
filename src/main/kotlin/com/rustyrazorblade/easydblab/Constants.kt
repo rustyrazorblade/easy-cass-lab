@@ -269,6 +269,22 @@ object Constants {
         const val S3_CERT_PATH = "registry/ca.crt"
     }
 
+    // MCP server configuration
+    object MCP {
+        /** Default timeout for MCP tool execution (30 minutes) */
+        const val TOOL_TIMEOUT_MINUTES = 30L
+
+        /**
+         * Jetty idle timeout for MCP connections.
+         * Must be longer than TOOL_TIMEOUT_MINUTES to prevent connection drops during long-running tools.
+         * Set to 35 minutes (5 min buffer over tool timeout).
+         */
+        const val IDLE_TIMEOUT_MS = 35L * 60L * 1000L // 35 minutes in milliseconds
+
+        /** Prefix used in progress token identifiers */
+        const val PROGRESS_TOKEN_PREFIX = "tool-"
+    }
+
     // VPC and tagging configuration
     object Vpc {
         /** Default VPC CIDR block */

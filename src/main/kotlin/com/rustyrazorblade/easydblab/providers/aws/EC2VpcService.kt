@@ -60,7 +60,7 @@ class EC2VpcService(
         tags: Map<String, String>,
     ): VpcId {
         log.info { "Creating VPC: $name with CIDR: $cidr" }
-        outputHandler.handleMessage("Creating VPC: $name")
+        outputHandler.publishMessage("Creating VPC: $name")
 
         val allTags = tags + ("Name" to name)
         val tagSpecification = buildTagSpecification("vpc", allTags)
@@ -90,7 +90,7 @@ class EC2VpcService(
         val existingSubnetId = findSubnetByNameAndVpc(name, vpcId)
         if (existingSubnetId != null) {
             log.info { "Found existing subnet: $name ($existingSubnetId)" }
-            outputHandler.handleMessage("Using existing subnet: $name")
+            outputHandler.publishMessage("Using existing subnet: $name")
             // Ensure auto-assign public IP is enabled (idempotent operation)
             enableAutoAssignPublicIp(existingSubnetId)
             return existingSubnetId
@@ -99,7 +99,7 @@ class EC2VpcService(
         // Create new subnet
         val azInfo = availabilityZone?.let { " in AZ: $it" } ?: ""
         log.info { "Creating subnet: $name in VPC: $vpcId with CIDR: $cidr$azInfo" }
-        outputHandler.handleMessage("Creating subnet: $name")
+        outputHandler.publishMessage("Creating subnet: $name")
 
         val allTags = tags + ("Name" to name)
         log.debug { "Subnet tags being applied: $allTags" }
@@ -139,13 +139,13 @@ class EC2VpcService(
         val existingIgwId = findInternetGatewayByNameAndVpc(name, vpcId)
         if (existingIgwId != null) {
             log.info { "Found existing internet gateway: $name ($existingIgwId)" }
-            outputHandler.handleMessage("Using existing internet gateway: $name")
+            outputHandler.publishMessage("Using existing internet gateway: $name")
             return existingIgwId
         }
 
         // Create new internet gateway
         log.info { "Creating internet gateway: $name" }
-        outputHandler.handleMessage("Creating internet gateway: $name")
+        outputHandler.publishMessage("Creating internet gateway: $name")
 
         val allTags = tags + ("Name" to name)
         val tagSpecification = buildTagSpecification("internet-gateway", allTags)
@@ -183,13 +183,13 @@ class EC2VpcService(
         val existingSgId = findSecurityGroupByNameAndVpc(name, vpcId)
         if (existingSgId != null) {
             log.info { "Found existing security group: $name ($existingSgId)" }
-            outputHandler.handleMessage("Using existing security group: $name")
+            outputHandler.publishMessage("Using existing security group: $name")
             return existingSgId
         }
 
         // Create new security group
         log.info { "Creating security group: $name in VPC: $vpcId" }
-        outputHandler.handleMessage("Creating security group: $name")
+        outputHandler.publishMessage("Creating security group: $name")
 
         val allTags = tags + ("Name" to name)
         val tagSpecification = buildTagSpecification("security-group", allTags)
@@ -263,7 +263,7 @@ class EC2VpcService(
 
             ec2Client.createRoute(createRouteRequest)
             log.info { "Created default route to internet gateway in route table: $routeTableId" }
-            outputHandler.handleMessage("Configured routing to internet gateway")
+            outputHandler.publishMessage("Configured routing to internet gateway")
         } catch (e: Ec2Exception) {
             if (e.awsErrorDetails()?.errorCode() == "RouteAlreadyExists") {
                 log.info { "Route already exists, continuing" }
@@ -332,7 +332,7 @@ class EC2VpcService(
             ec2Client.authorizeSecurityGroupIngress(authorizeRequest)
             val portDesc = if (fromPort == toPort) "port $fromPort" else "ports $fromPort-$toPort"
             log.info { "Added ingress rule for $portDesc from $cidr ($protocol)" }
-            outputHandler.handleMessage("Configured security group ingress rule for $portDesc")
+            outputHandler.publishMessage("Configured security group ingress rule for $portDesc")
         } catch (e: Ec2Exception) {
             if (e.awsErrorDetails()?.errorCode() == "InvalidPermission.Duplicate") {
                 log.info { "Ingress rule already exists, continuing" }
@@ -717,7 +717,7 @@ class EC2VpcService(
         }
 
         log.info { "Terminating ${instanceIds.size} instances: $instanceIds" }
-        outputHandler.handleMessage("Terminating ${instanceIds.size} EC2 instances...")
+        outputHandler.publishMessage("Terminating ${instanceIds.size} EC2 instances...")
 
         val terminateRequest =
             TerminateInstancesRequest
@@ -738,7 +738,7 @@ class EC2VpcService(
         }
 
         log.info { "Waiting for ${instanceIds.size} instances to terminate..." }
-        outputHandler.handleMessage("Waiting for instances to terminate...")
+        outputHandler.publishMessage("Waiting for instances to terminate...")
 
         val startTime = System.currentTimeMillis()
 
@@ -759,7 +759,7 @@ class EC2VpcService(
 
             if (allTerminated) {
                 log.info { "All instances terminated successfully" }
-                outputHandler.handleMessage("All instances terminated")
+                outputHandler.publishMessage("All instances terminated")
                 return
             }
 
@@ -830,7 +830,7 @@ class EC2VpcService(
 
     override fun deleteSecurityGroup(securityGroupId: SecurityGroupId) {
         log.info { "Deleting security group: $securityGroupId" }
-        outputHandler.handleMessage("Deleting security group: $securityGroupId")
+        outputHandler.publishMessage("Deleting security group: $securityGroupId")
 
         val deleteRequest =
             DeleteSecurityGroupRequest
@@ -847,7 +847,7 @@ class EC2VpcService(
         vpcId: VpcId,
     ) {
         log.info { "Detaching internet gateway $igwId from VPC $vpcId" }
-        outputHandler.handleMessage("Detaching internet gateway...")
+        outputHandler.publishMessage("Detaching internet gateway...")
 
         val detachRequest =
             DetachInternetGatewayRequest
@@ -862,7 +862,7 @@ class EC2VpcService(
 
     override fun deleteInternetGateway(igwId: InternetGatewayId) {
         log.info { "Deleting internet gateway: $igwId" }
-        outputHandler.handleMessage("Deleting internet gateway: $igwId")
+        outputHandler.publishMessage("Deleting internet gateway: $igwId")
 
         val deleteRequest =
             DeleteInternetGatewayRequest
@@ -876,7 +876,7 @@ class EC2VpcService(
 
     override fun deleteSubnet(subnetId: SubnetId) {
         log.info { "Deleting subnet: $subnetId" }
-        outputHandler.handleMessage("Deleting subnet: $subnetId")
+        outputHandler.publishMessage("Deleting subnet: $subnetId")
 
         val deleteRequest =
             DeleteSubnetRequest
@@ -890,7 +890,7 @@ class EC2VpcService(
 
     override fun deleteNatGateway(natGatewayId: NatGatewayId) {
         log.info { "Deleting NAT gateway: $natGatewayId" }
-        outputHandler.handleMessage("Deleting NAT gateway: $natGatewayId")
+        outputHandler.publishMessage("Deleting NAT gateway: $natGatewayId")
 
         val deleteRequest =
             DeleteNatGatewayRequest
@@ -911,7 +911,7 @@ class EC2VpcService(
         }
 
         log.info { "Waiting for ${natGatewayIds.size} NAT gateways to be deleted..." }
-        outputHandler.handleMessage("Waiting for NAT gateways to be deleted...")
+        outputHandler.publishMessage("Waiting for NAT gateways to be deleted...")
 
         val startTime = System.currentTimeMillis()
 
@@ -931,7 +931,7 @@ class EC2VpcService(
 
             if (allDeleted) {
                 log.info { "All NAT gateways deleted successfully" }
-                outputHandler.handleMessage("All NAT gateways deleted")
+                outputHandler.publishMessage("All NAT gateways deleted")
                 return
             }
 
@@ -951,7 +951,7 @@ class EC2VpcService(
         disassociateRouteTableAssociations(routeTableId)
 
         // Then delete the route table
-        outputHandler.handleMessage("Deleting route table: $routeTableId")
+        outputHandler.publishMessage("Deleting route table: $routeTableId")
         val deleteRequest =
             DeleteRouteTableRequest
                 .builder()
@@ -997,7 +997,7 @@ class EC2VpcService(
 
     override fun deleteVpc(vpcId: VpcId) {
         log.info { "Deleting VPC: $vpcId" }
-        outputHandler.handleMessage("Deleting VPC: $vpcId")
+        outputHandler.publishMessage("Deleting VPC: $vpcId")
 
         val deleteRequest =
             DeleteVpcRequest

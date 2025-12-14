@@ -112,30 +112,30 @@ class DefaultBackupRestoreService(
 
             // Step 1: Reconstruct state from AWS resources
             log.info { "Reconstructing cluster state from VPC: $vpcId" }
-            outputHandler.handleMessage("Reconstructing state from VPC: $vpcId")
+            outputHandler.publishMessage("Reconstructing state from VPC: $vpcId")
 
             val reconstructedState = stateReconstructionService.reconstructFromVpc(vpcId)
             clusterStateManager.save(reconstructedState)
 
-            outputHandler.handleMessage("State reconstructed successfully:")
-            outputHandler.handleMessage("  Cluster name: ${reconstructedState.name}")
-            outputHandler.handleMessage("  Cluster ID: ${reconstructedState.clusterId}")
-            outputHandler.handleMessage("  Hosts: ${reconstructedState.hosts.values.sumOf { it.size }}")
-            outputHandler.handleMessage("  S3 bucket: ${reconstructedState.s3Bucket ?: "not found"}")
+            outputHandler.publishMessage("State reconstructed successfully:")
+            outputHandler.publishMessage("  Cluster name: ${reconstructedState.name}")
+            outputHandler.publishMessage("  Cluster ID: ${reconstructedState.clusterId}")
+            outputHandler.publishMessage("  Hosts: ${reconstructedState.hosts.values.sumOf { it.size }}")
+            outputHandler.publishMessage("  S3 bucket: ${reconstructedState.s3Bucket ?: "not found"}")
 
             // Step 2: Restore configuration files from S3
             val restoreResult =
                 if (reconstructedState.s3Bucket != null) {
-                    outputHandler.handleMessage("Restoring cluster configuration from S3...")
+                    outputHandler.publishMessage("Restoring cluster configuration from S3...")
                     val result = clusterBackupService.restoreAll(workingDirectory, reconstructedState).getOrThrow()
 
                     if (result.hasRestores()) {
-                        outputHandler.handleMessage("Configuration restored from S3:")
+                        outputHandler.publishMessage("Configuration restored from S3:")
                         for (target in result.successfulTargets) {
-                            outputHandler.handleMessage("  - ${target.displayName}")
+                            outputHandler.publishMessage("  - ${target.displayName}")
                         }
                     } else {
-                        outputHandler.handleMessage("No configuration files found in S3 to restore")
+                        outputHandler.publishMessage("No configuration files found in S3 to restore")
                     }
                     result
                 } else {

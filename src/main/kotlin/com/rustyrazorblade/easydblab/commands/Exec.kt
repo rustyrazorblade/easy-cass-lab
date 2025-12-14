@@ -64,13 +64,13 @@ class Exec(
         val commandString = command.joinToString(" ")
 
         if (commandString.isBlank()) {
-            outputHandler.handleError("Command cannot be empty", null)
+            outputHandler.publishError("Command cannot be empty", null)
             return
         }
 
         val hostList = clusterState.getHosts(serverType)
         if (hostList.isEmpty()) {
-            outputHandler.handleMessage("No hosts found for server type: $serverType")
+            outputHandler.publishMessage("No hosts found for server type: $serverType")
             return
         }
 
@@ -100,23 +100,23 @@ class Exec(
             // Display output with color-coded header
             with(TermColors()) {
                 val headerColor = if (hasError) red("=== ${host.alias} ===") else green("=== ${host.alias} ===")
-                outputHandler.handleMessage(bold(headerColor))
+                outputHandler.publishMessage(bold(headerColor))
 
                 // Display stdout if present
                 if (response.text.isNotEmpty()) {
-                    outputHandler.handleMessage(response.text)
+                    outputHandler.publishMessage(response.text)
                 }
 
                 // Display stderr if present
                 if (hasError) {
-                    outputHandler.handleMessage(red(response.stderr))
+                    outputHandler.publishMessage(red(response.stderr))
                 }
             }
         } catch (e: Exception) {
             // Handle execution failures
             with(TermColors()) {
-                outputHandler.handleMessage(bold(red("=== ${host.alias} ===")))
-                outputHandler.handleMessage(red("Error executing command: ${e.message}"))
+                outputHandler.publishMessage(bold(red("=== ${host.alias} ===")))
+                outputHandler.publishMessage(red("Error executing command: ${e.message}"))
             }
         }
     }

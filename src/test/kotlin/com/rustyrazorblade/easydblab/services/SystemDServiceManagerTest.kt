@@ -315,7 +315,7 @@ class SystemDServiceManagerTest : BaseKoinTest() {
 
                 override fun restart(host: Host): Result<Unit> =
                     runCatching {
-                        outputHandler.handleMessage("Custom restart logic for ${host.alias}...")
+                        outputHandler.publishMessage("Custom restart logic for ${host.alias}...")
                         remoteOps.executeRemotely(host, "/custom/restart-script")
                     }
             }

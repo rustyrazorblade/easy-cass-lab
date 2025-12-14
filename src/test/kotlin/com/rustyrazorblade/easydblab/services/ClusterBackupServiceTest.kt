@@ -59,7 +59,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).uploadFile(eq(localKubeconfig), eq(expectedS3Path), eq(true))
-            verify(mockOutputHandler).handleMessage("Kubeconfig backed up to S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("Kubeconfig backed up to S3: ${expectedS3Path.toUri()}")
         }
 
         @Test
@@ -121,7 +121,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).downloadFile(eq(expectedS3Path), eq(localPath), eq(true))
-            verify(mockOutputHandler).handleMessage("Kubeconfig restored from S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("Kubeconfig restored from S3: ${expectedS3Path.toUri()}")
         }
 
         @Test
@@ -186,7 +186,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).uploadDirectory(eq(k8sDir.toPath()), eq(expectedS3Path), eq(true))
-            verify(mockOutputHandler).handleMessage("K8s manifests backed up to S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("K8s manifests backed up to S3: ${expectedS3Path.toUri()}")
         }
 
         @Test
@@ -224,7 +224,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).downloadDirectory(eq(expectedS3Path), eq(localPath), eq(true))
-            verify(mockOutputHandler).handleMessage("K8s manifests restored from S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("K8s manifests restored from S3: ${expectedS3Path.toUri()}")
         }
 
         @Test
@@ -267,7 +267,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).uploadFile(eq(localPatch), eq(expectedS3Path), eq(true))
-            verify(mockOutputHandler).handleMessage("Cassandra patch backed up to S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("Cassandra patch backed up to S3: ${expectedS3Path.toUri()}")
         }
 
         @Test
@@ -329,7 +329,7 @@ internal class ClusterBackupServiceTest {
             // Then
             assertThat(result.isSuccess).isTrue()
             verify(mockObjectStore).downloadFile(eq(expectedS3Path), eq(localPath), eq(true))
-            verify(mockOutputHandler).handleMessage("Cassandra patch restored from S3: ${expectedS3Path.toUri()}")
+            verify(mockOutputHandler).publishMessage("Cassandra patch restored from S3: ${expectedS3Path.toUri()}")
         }
 
         @Test

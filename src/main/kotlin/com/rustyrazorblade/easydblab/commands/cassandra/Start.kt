@@ -51,7 +51,7 @@ class Start(
         with(TermColors()) {
             hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
                 val h = host.toHost()
-                outputHandler.handleMessage(green("Starting $h"))
+                outputHandler.publishMessage(green("Starting $h"))
                 // start() defaults to wait=true, which includes waiting for UP/NORMAL
                 cassandraService.start(h).getOrThrow()
             }
@@ -61,14 +61,14 @@ class Start(
                 sidecarService
                     .start(host.toHost())
                     .onFailure { e ->
-                        outputHandler.handleMessage("Warning: Failed to start cassandra-sidecar on ${host.alias}: ${e.message}")
+                        outputHandler.publishMessage("Warning: Failed to start cassandra-sidecar on ${host.alias}: ${e.message}")
                     }
             }
         }
 
         // Start axon-agent on Cassandra nodes if configured
         if (userConfig.axonOpsOrg.isNotBlank() && userConfig.axonOpsKey.isNotBlank()) {
-            outputHandler.handleMessage("Starting axon-agent on Cassandra nodes...")
+            outputHandler.publishMessage("Starting axon-agent on Cassandra nodes...")
             hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, "", parallel = true) { host ->
                 remoteOps.executeRemotely(host.toHost(), "sudo systemctl start axon-agent")
             }
@@ -77,13 +77,13 @@ class Start(
         // Inform user about AxonOps Workbench configuration if it exists
         val axonOpsWorkbenchFile = File("axonops-workbench.json")
         if (axonOpsWorkbenchFile.exists()) {
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("AxonOps Workbench configuration available:")
-            outputHandler.handleMessage("To import into AxonOps Workbench, run:")
-            outputHandler.handleMessage(
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("AxonOps Workbench configuration available:")
+            outputHandler.publishMessage("To import into AxonOps Workbench, run:")
+            outputHandler.publishMessage(
                 "  /path/to/axonops-workbench -v --import-workspace=axonops-workbench.json",
             )
-            outputHandler.handleMessage("")
+            outputHandler.publishMessage("")
         }
     }
 }

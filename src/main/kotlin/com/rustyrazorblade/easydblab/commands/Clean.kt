@@ -59,7 +59,7 @@ class Clean(
             if (artifacts.listFiles().isEmpty()) {
                 artifacts.delete()
             } else {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Not deleting artifacts directory, it contains artifacts.",
                 )
             }

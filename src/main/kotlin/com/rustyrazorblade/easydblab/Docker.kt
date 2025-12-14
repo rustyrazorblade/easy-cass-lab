@@ -299,7 +299,7 @@ class Docker(
                         val current = detail.current
                         val total = detail.total
                         if (current != null && total != null) {
-                            outputHandler.handleMessage("Pulling: $current / $total")
+                            outputHandler.publishMessage("Pulling: $current / $total")
                         }
                     }
                     return super.onNext(item)
@@ -383,13 +383,13 @@ class Docker(
         }
 
         if (workingDirectory.isNotEmpty()) {
-            compositeHandler.handleMessage("Setting working directory inside container to $workingDirectory")
+            compositeHandler.publishMessage("Setting working directory inside container to $workingDirectory")
             dockerCommandBuilder.withWorkingDir(workingDirectory)
         }
 
         val dockerContainer = dockerCommandBuilder.exec()
         val containerId = dockerContainer.id.substring(0, CONTAINER_ID_DISPLAY_LENGTH)
-        compositeHandler.handleMessage("Starting $imageTag container ($containerId)")
+        compositeHandler.publishMessage("Starting $imageTag container ($containerId)")
 
         // Use the new modular components
         val ioManager = ContainerIOManager(dockerClient)

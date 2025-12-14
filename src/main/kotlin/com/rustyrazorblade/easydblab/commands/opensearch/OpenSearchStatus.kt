@@ -36,8 +36,8 @@ class OpenSearchStatus(
         val domainState = clusterState.openSearchDomain
         if (domainState == null) {
             if (!endpointOnly) {
-                outputHandler.handleMessage("No OpenSearch domain configured for this cluster.")
-                outputHandler.handleMessage("Use 'opensearch start' to create one.")
+                outputHandler.publishMessage("No OpenSearch domain configured for this cluster.")
+                outputHandler.publishMessage("Use 'opensearch start' to create one.")
             }
             return
         }
@@ -50,16 +50,16 @@ class OpenSearchStatus(
             // Handle --endpoint flag: output only the endpoint URL
             if (endpointOnly) {
                 if (result.endpoint != null) {
-                    outputHandler.handleMessage(result.endpoint)
+                    outputHandler.publishMessage(result.endpoint)
                 }
                 return
             }
 
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("OpenSearch Domain Status")
-            outputHandler.handleMessage("========================")
-            outputHandler.handleMessage("Domain Name: ${result.domainName}")
-            outputHandler.handleMessage("Domain ID:   ${result.domainId}")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("OpenSearch Domain Status")
+            outputHandler.publishMessage("========================")
+            outputHandler.publishMessage("Domain Name: ${result.domainName}")
+            outputHandler.publishMessage("Domain ID:   ${result.domainId}")
 
             // Show user-friendly status based on actual readiness
             val isReady = result.endpoint != null
@@ -70,18 +70,18 @@ class OpenSearchStatus(
                     result.state == DomainState.DELETED -> "Deleted"
                     else -> "Creating..." // ACTIVE but no endpoint yet
                 }
-            outputHandler.handleMessage("Status:      $statusDisplay")
-            outputHandler.handleMessage("")
+            outputHandler.publishMessage("Status:      $statusDisplay")
+            outputHandler.publishMessage("")
 
             if (isReady) {
-                outputHandler.handleMessage("Endpoints:")
-                outputHandler.handleMessage("  REST API:   https://${result.endpoint}")
-                outputHandler.handleMessage("  Dashboards: ${result.dashboardsEndpoint}")
+                outputHandler.publishMessage("Endpoints:")
+                outputHandler.publishMessage("  REST API:   https://${result.endpoint}")
+                outputHandler.publishMessage("  Dashboards: ${result.dashboardsEndpoint}")
             } else {
-                outputHandler.handleMessage("Endpoint not yet available.")
-                outputHandler.handleMessage("Domain creation typically takes 10-30 minutes.")
+                outputHandler.publishMessage("Endpoint not yet available.")
+                outputHandler.publishMessage("Domain creation typically takes 10-30 minutes.")
             }
-            outputHandler.handleMessage("")
+            outputHandler.publishMessage("")
 
             // Update local state if it differs
             if (result.endpoint != domainState.endpoint || result.state.name != domainState.state) {
@@ -98,8 +98,8 @@ class OpenSearchStatus(
             // Domain was deleted - clear local state
             log.info { "OpenSearch domain ${domainState.domainName} no longer exists" }
             if (!endpointOnly) {
-                outputHandler.handleMessage("OpenSearch domain '${domainState.domainName}' no longer exists.")
-                outputHandler.handleMessage("Clearing local state.")
+                outputHandler.publishMessage("OpenSearch domain '${domainState.domainName}' no longer exists.")
+                outputHandler.publishMessage("Clearing local state.")
             }
             clusterState.updateOpenSearchDomain(null)
             clusterStateManager.save(clusterState)
@@ -107,13 +107,13 @@ class OpenSearchStatus(
             // Transient error - show cached state with warning
             log.warn { "Failed to get domain status: ${e.message}" }
             if (!endpointOnly) {
-                outputHandler.handleMessage("Warning: Could not fetch current domain status (${e.message})")
-                outputHandler.handleMessage("")
-                outputHandler.handleMessage("Cached state (may be stale):")
-                outputHandler.handleMessage("  Domain:   ${domainState.domainName}")
-                outputHandler.handleMessage("  State:    ${domainState.state}")
+                outputHandler.publishMessage("Warning: Could not fetch current domain status (${e.message})")
+                outputHandler.publishMessage("")
+                outputHandler.publishMessage("Cached state (may be stale):")
+                outputHandler.publishMessage("  Domain:   ${domainState.domainName}")
+                outputHandler.publishMessage("  State:    ${domainState.state}")
                 if (domainState.endpoint != null) {
-                    outputHandler.handleMessage("  Endpoint: ${domainState.endpoint}")
+                    outputHandler.publishMessage("  Endpoint: ${domainState.endpoint}")
                 }
             }
         }

@@ -42,13 +42,13 @@ class ConfigureAxonOps(
         val axonOrg = if (org.isNotBlank()) org else userConfig.axonOpsOrg
         val axonKey = if (key.isNotBlank()) key else userConfig.axonOpsKey
         if ((axonOrg.isBlank() || axonKey.isBlank())) {
-            outputHandler.handleMessage("--org and --key are required")
+            outputHandler.publishMessage("--org and --key are required")
             exitProcess(1)
         }
 
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
             val it = host.toHost()
-            outputHandler.handleMessage("Configure axonops on $it")
+            outputHandler.publishMessage("Configure axonops on $it")
 
             remoteOps
                 .executeRemotely(

@@ -330,7 +330,7 @@ class DefaultK8sService(
             log.info { "Applying K8s manifests from $manifestPath via SOCKS proxy" }
 
             createClient(controlHost).use { client ->
-                outputHandler.handleMessage("Applying K8s manifests...")
+                outputHandler.publishMessage("Applying K8s manifests...")
 
                 val pathFile = manifestPath.toFile()
                 val manifestFiles =
@@ -359,7 +359,7 @@ class DefaultK8sService(
                 }
 
                 log.info { "All ${manifestFiles.size} manifests applied successfully" }
-                outputHandler.handleMessage("K8s manifests applied successfully")
+                outputHandler.publishMessage("K8s manifests applied successfully")
             }
         }
 
@@ -398,7 +398,7 @@ class DefaultK8sService(
         runCatching {
             log.debug { "Deleting observability namespace via SOCKS proxy" }
 
-            outputHandler.handleMessage("Deleting observability namespace...")
+            outputHandler.publishMessage("Deleting observability namespace...")
 
             createClient(controlHost).use { client ->
                 val namespace = client.namespaces().withName(Constants.K8s.NAMESPACE).get()
@@ -410,7 +410,7 @@ class DefaultK8sService(
                 }
             }
 
-            outputHandler.handleMessage("Observability namespace deleted")
+            outputHandler.publishMessage("Observability namespace deleted")
         }
 
     override fun waitForPodsReady(
@@ -420,7 +420,7 @@ class DefaultK8sService(
         runCatching {
             log.debug { "Waiting for pods to be ready in ${Constants.K8s.NAMESPACE} namespace" }
 
-            outputHandler.handleMessage("Waiting for observability pods to be ready...")
+            outputHandler.publishMessage("Waiting for observability pods to be ready...")
 
             createClient(controlHost).use { client ->
                 val pods =
@@ -455,7 +455,7 @@ class DefaultK8sService(
                 }
             }
 
-            outputHandler.handleMessage("All observability pods are ready")
+            outputHandler.publishMessage("All observability pods are ready")
         }
 
     override fun waitForPodsReady(
@@ -466,7 +466,7 @@ class DefaultK8sService(
         runCatching {
             log.debug { "Waiting for pods to be ready in $namespace namespace" }
 
-            outputHandler.handleMessage("Waiting for pods in $namespace to be ready...")
+            outputHandler.publishMessage("Waiting for pods in $namespace to be ready...")
 
             createClient(controlHost).use { client ->
                 val pods =
@@ -501,7 +501,7 @@ class DefaultK8sService(
                 }
             }
 
-            outputHandler.handleMessage("All pods in $namespace are ready")
+            outputHandler.publishMessage("All pods in $namespace are ready")
         }
 
     override fun getNamespaceStatus(
@@ -545,7 +545,7 @@ class DefaultK8sService(
         runCatching {
             log.debug { "Deleting namespace $namespace via SOCKS proxy" }
 
-            outputHandler.handleMessage("Deleting $namespace namespace...")
+            outputHandler.publishMessage("Deleting $namespace namespace...")
 
             createClient(controlHost).use { client ->
                 val ns = client.namespaces().withName(namespace).get()
@@ -557,7 +557,7 @@ class DefaultK8sService(
                 }
             }
 
-            outputHandler.handleMessage("Namespace $namespace deleted")
+            outputHandler.publishMessage("Namespace $namespace deleted")
         }
 
     override fun deleteResourcesByLabel(
@@ -569,7 +569,7 @@ class DefaultK8sService(
         runCatching {
             log.info { "Deleting resources with $labelKey in $labelValues from namespace $namespace" }
 
-            outputHandler.handleMessage("Deleting resources with label $labelKey...")
+            outputHandler.publishMessage("Deleting resources with label $labelKey...")
 
             createClient(controlHost).use { client ->
                 // Build label selector for "key in (value1, value2, ...)"
@@ -685,7 +685,7 @@ class DefaultK8sService(
                 log.info { "All resources with label $labelKey deleted" }
             }
 
-            outputHandler.handleMessage("Resources deleted successfully")
+            outputHandler.publishMessage("Resources deleted successfully")
         }
 
     override fun createClickHouseS3Secret(
@@ -740,7 +740,7 @@ class DefaultK8sService(
                 log.info { "Created secret ${Constants.ClickHouse.S3_SECRET_NAME}" }
             }
 
-            outputHandler.handleMessage("Created ClickHouse S3 secret")
+            outputHandler.publishMessage("Created ClickHouse S3 secret")
         }
 
     override fun applyManifestFromResources(
@@ -776,7 +776,7 @@ class DefaultK8sService(
                 }
             }
 
-            outputHandler.handleMessage("Manifest applied: $resourcePath")
+            outputHandler.publishMessage("Manifest applied: $resourcePath")
         }
 
     override fun scaleStatefulSet(
@@ -799,7 +799,7 @@ class DefaultK8sService(
                 log.info { "StatefulSet $statefulSetName scaled to $replicas replicas" }
             }
 
-            outputHandler.handleMessage("Scaled $statefulSetName to $replicas replicas")
+            outputHandler.publishMessage("Scaled $statefulSetName to $replicas replicas")
         }
 
     override fun createJob(
@@ -847,7 +847,7 @@ class DefaultK8sService(
                 log.info { "Deleted job: $jobName" }
             }
 
-            outputHandler.handleMessage("Deleted job: $jobName")
+            outputHandler.publishMessage("Deleted job: $jobName")
         }
 
     override fun getJobsByLabel(
@@ -1029,7 +1029,7 @@ class DefaultK8sService(
                 log.info { "Created ConfigMap: $name" }
             }
 
-            outputHandler.handleMessage("Created ConfigMap: $name")
+            outputHandler.publishMessage("Created ConfigMap: $name")
         }
 
     override fun deleteConfigMap(
@@ -1050,6 +1050,6 @@ class DefaultK8sService(
                 log.info { "Deleted ConfigMap: $name" }
             }
 
-            outputHandler.handleMessage("Deleted ConfigMap: $name")
+            outputHandler.publishMessage("Deleted ConfigMap: $name")
         }
 }

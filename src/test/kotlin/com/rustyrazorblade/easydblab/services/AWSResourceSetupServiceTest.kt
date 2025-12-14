@@ -158,7 +158,7 @@ internal class AWSResourceSetupServiceTest :
         service.ensureAWSResources(userConfig)
 
         // Then: Should output repair warning
-        verify(mockOutputHandler).handleMessage("Warning: IAM role configuration incomplete or invalid. Will attempt to repair.")
+        verify(mockOutputHandler).publishMessage("Warning: IAM role configuration incomplete or invalid. Will attempt to repair.")
     }
 
     @Test
@@ -190,7 +190,7 @@ internal class AWSResourceSetupServiceTest :
         verify(mockAws).checkPermissions()
         verify(mockAws, never()).createRoleWithS3Policy(any())
         // Verify user-facing error message was displayed
-        verify(mockOutputHandler).handleMessage(org.mockito.kotlin.argThat { contains("AWS PERMISSION ERROR") })
+        verify(mockOutputHandler).publishMessage(org.mockito.kotlin.argThat { contains("AWS PERMISSION ERROR") })
     }
 
     @Test
@@ -307,7 +307,7 @@ internal class AWSResourceSetupServiceTest :
         }
 
         // Should handle error with appropriate message
-        verify(mockOutputHandler).handleError(any<String>(), any())
+        verify(mockOutputHandler).publishError(any<String>(), any())
     }
 
     // Helper method to create test user config (no more s3Bucket field)

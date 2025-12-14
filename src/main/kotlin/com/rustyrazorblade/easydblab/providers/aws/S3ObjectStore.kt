@@ -47,7 +47,7 @@ class S3ObjectStore(
         }
 
         if (showProgress) {
-            outputHandler.handleMessage("Uploading ${localFile.name} to ${remotePath.toUri()}...")
+            outputHandler.publishMessage("Uploading ${localFile.name} to ${remotePath.toUri()}...")
         }
 
         val putRequest =
@@ -67,7 +67,7 @@ class S3ObjectStore(
             }.run()
 
         if (showProgress) {
-            outputHandler.handleMessage("Upload complete: ${remotePath.toUri()}")
+            outputHandler.publishMessage("Upload complete: ${remotePath.toUri()}")
         }
 
         return ObjectStore.UploadResult(
@@ -82,7 +82,7 @@ class S3ObjectStore(
         showProgress: Boolean,
     ): ObjectStore.DownloadResult {
         if (showProgress) {
-            outputHandler.handleMessage("Downloading ${remotePath.toUri()} to $localPath...")
+            outputHandler.publishMessage("Downloading ${remotePath.toUri()} to $localPath...")
         }
 
         val getRequest =
@@ -102,7 +102,7 @@ class S3ObjectStore(
             }.run()
 
         if (showProgress) {
-            outputHandler.handleMessage("Download complete: $localPath")
+            outputHandler.publishMessage("Download complete: $localPath")
         }
 
         return ObjectStore.DownloadResult(
@@ -149,7 +149,7 @@ class S3ObjectStore(
         showProgress: Boolean,
     ) {
         if (showProgress) {
-            outputHandler.handleMessage("Deleting ${remotePath.toUri()}...")
+            outputHandler.publishMessage("Deleting ${remotePath.toUri()}...")
         }
 
         val deleteRequest =
@@ -169,7 +169,7 @@ class S3ObjectStore(
             }.run()
 
         if (showProgress) {
-            outputHandler.handleMessage("Deleted: ${remotePath.toUri()}")
+            outputHandler.publishMessage("Deleted: ${remotePath.toUri()}")
         }
     }
 
@@ -208,7 +208,7 @@ class S3ObjectStore(
         val files = listFiles(remotePath, recursive = true)
 
         if (showProgress) {
-            outputHandler.handleMessage("Found ${files.size} files to download")
+            outputHandler.publishMessage("Found ${files.size} files to download")
         }
 
         // Ensure base directory exists and use absolute path for reliable directory creation
@@ -245,7 +245,7 @@ class S3ObjectStore(
         }
 
         if (showProgress) {
-            outputHandler.handleMessage("Downloaded $filesDownloaded files to $localDir")
+            outputHandler.publishMessage("Downloaded $filesDownloaded files to $localDir")
         }
 
         return ObjectStore.DownloadDirectoryResult(localDir, filesDownloaded, totalBytes)
@@ -268,7 +268,7 @@ class S3ObjectStore(
                 .toList()
 
         if (showProgress) {
-            outputHandler.handleMessage("Found ${files.size} files to upload to ${remotePath.toUri()}")
+            outputHandler.publishMessage("Found ${files.size} files to upload to ${remotePath.toUri()}")
         }
 
         var totalBytes = 0L
@@ -286,7 +286,7 @@ class S3ObjectStore(
         }
 
         if (showProgress) {
-            outputHandler.handleMessage("Uploaded $filesUploaded files to ${remotePath.toUri()}")
+            outputHandler.publishMessage("Uploaded $filesUploaded files to ${remotePath.toUri()}")
         }
 
         return ObjectStore.UploadDirectoryResult(remotePath, filesUploaded, totalBytes)

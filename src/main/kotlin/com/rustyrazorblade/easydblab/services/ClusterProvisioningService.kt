@@ -145,7 +145,7 @@ class DefaultClusterProvisioningService(
         config.specs
             .filter { it.neededCount <= 0 && it.configuredCount > 0 && it.existingCount > 0 }
             .forEach { spec ->
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Found ${spec.existingCount} existing ${spec.serverType.name} instances, no new instances needed",
                 )
             }
@@ -207,7 +207,7 @@ class DefaultClusterProvisioningService(
         instanceConfig.specs
             .filter { it.neededCount <= 0 && it.configuredCount > 0 && it.existingCount > 0 }
             .forEach { spec ->
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Found ${spec.existingCount} existing ${spec.serverType.name} instances, no new instances needed",
                 )
             }
@@ -356,7 +356,7 @@ class DefaultClusterProvisioningService(
         clusterState: ClusterState,
         keyName: String,
     ): EMRClusterState {
-        outputHandler.handleMessage("Creating EMR Spark cluster...")
+        outputHandler.publishMessage("Creating EMR Spark cluster...")
 
         val emrConfig =
             EMRClusterConfig(
@@ -387,7 +387,7 @@ class DefaultClusterProvisioningService(
         securityGroupId: String,
         tags: Map<String, String>,
     ): OpenSearchClusterState {
-        outputHandler.handleMessage("Creating OpenSearch domain...")
+        outputHandler.publishMessage("Creating OpenSearch domain...")
 
         val domainName = "${initConfig.name}-os".take(Constants.OpenSearch.DOMAIN_NAME_MAX_LENGTH)
 

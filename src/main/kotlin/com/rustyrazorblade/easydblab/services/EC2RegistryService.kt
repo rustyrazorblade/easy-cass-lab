@@ -45,7 +45,7 @@ class EC2RegistryService(
         controlHost: Host,
         s3Bucket: String,
     ) {
-        outputHandler.handleMessage("Generating TLS certificate for registry on ${controlHost.alias}...")
+        outputHandler.publishMessage("Generating TLS certificate for registry on ${controlHost.alias}...")
 
         val registryIp = controlHost.private
         val certDir = Constants.Registry.CERT_DIR
@@ -59,7 +59,7 @@ class EC2RegistryService(
         )
 
         log.info { "Generated TLS certificate on ${controlHost.alias}" }
-        outputHandler.handleMessage("Uploaded registry certificate to S3")
+        outputHandler.publishMessage("Uploaded registry certificate to S3")
         log.info { "Uploaded certificate to s3://$s3Bucket/$s3Path" }
     }
 
@@ -78,7 +78,7 @@ class EC2RegistryService(
         registryHost: String,
         s3Bucket: String,
     ) {
-        outputHandler.handleMessage("Configuring registry TLS on ${host.alias}...")
+        outputHandler.publishMessage("Configuring registry TLS on ${host.alias}...")
 
         val registryPort = Constants.Registry.PORT
         val s3Path = Constants.Registry.S3_CERT_PATH

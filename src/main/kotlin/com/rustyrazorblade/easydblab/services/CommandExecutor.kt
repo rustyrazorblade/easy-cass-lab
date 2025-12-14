@@ -12,7 +12,9 @@ import com.rustyrazorblade.easydblab.commands.SetupProfile
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
+import com.rustyrazorblade.easydblab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
 import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.File
@@ -73,6 +75,7 @@ class DefaultCommandExecutor(
     private val backupRestoreService: BackupRestoreService,
     private val clusterStateManager: ClusterStateManager,
     private val outputHandler: OutputHandler,
+    private val subscribableOutputHandler: SubscribableOutputHandler,
     private val userConfigProvider: UserConfigProvider,
     private val dockerClientProvider: DockerClientProvider,
     private val userConfig: User,
@@ -93,26 +96,39 @@ class DefaultCommandExecutor(
      * Execute a command with full lifecycle, then process any scheduled commands.
      * This is the entry point for top-level command execution (called by CommandLineParser).
      *
+     * Subscribes a ConsoleOutputHandler for the duration of CLI execution so that
+     * output messages are printed to the console. This follows the pub/sub pattern
+     * where CLI mode subscribes console output, MCP mode subscribes progress notifications.
+     *
      * @param command The command to execute
      * @return Exit code (0 for success, non-zero for failure)
      */
     fun executeTopLevel(command: PicoCommand): Int {
-        val exitCode = executeWithLifecycle(command)
+        // Subscribe console output for CLI execution
+        val consoleHandler = ConsoleOutputHandler()
+        subscribableOutputHandler.subscribe(consoleHandler)
 
-        // Process scheduled commands (each with full lifecycle)
-        // Stop on first failure
-        while (scheduledQueue.get().isNotEmpty()) {
-            val commandFactory = scheduledQueue.get().removeFirst()
-            val scheduledCommand = commandFactory()
-            val scheduledExitCode = executeWithLifecycle(scheduledCommand)
-            if (scheduledExitCode != 0) {
-                // Clear remaining scheduled commands on failure
-                scheduledQueue.get().clear()
-                return scheduledExitCode
+        return try {
+            val exitCode = executeWithLifecycle(command)
+
+            // Process scheduled commands (each with full lifecycle)
+            // Stop on first failure
+            while (scheduledQueue.get().isNotEmpty()) {
+                val commandFactory = scheduledQueue.get().removeFirst()
+                val scheduledCommand = commandFactory()
+                val scheduledExitCode = executeWithLifecycle(scheduledCommand)
+                if (scheduledExitCode != 0) {
+                    // Clear remaining scheduled commands on failure
+                    scheduledQueue.get().clear()
+                    return scheduledExitCode
+                }
             }
-        }
 
-        return exitCode
+            exitCode
+        } finally {
+            // Always unsubscribe console when done
+            subscribableOutputHandler.unsubscribe(consoleHandler)
+        }
     }
 
     /**
@@ -131,7 +147,7 @@ class DefaultCommandExecutor(
                 command.call()
             } catch (e: Exception) {
                 log.error(e) { "Command execution failed" }
-                outputHandler.handleError(e.message ?: "Command execution failed")
+                outputHandler.publishError(e.message ?: "Command execution failed")
                 Constants.ExitCodes.ERROR
             }
 
@@ -158,7 +174,7 @@ class DefaultCommandExecutor(
 
                 // Show message and exit
                 with(TermColors()) {
-                    outputHandler.handleMessage(green("\nYou can now run the command again."))
+                    outputHandler.publishMessage(green("\nYou can now run the command again."))
                 }
                 exitProcess(0)
             }
@@ -167,8 +183,8 @@ class DefaultCommandExecutor(
         // Check if the command requires Docker
         if (annotations.any { it is RequireDocker }) {
             if (!checkDockerAvailability()) {
-                outputHandler.handleError("Error: Docker is not available or not running.")
-                outputHandler.handleError(
+                outputHandler.publishError("Error: Docker is not available or not running.")
+                outputHandler.publishError(
                     "Please ensure Docker is installed and running before executing this command.",
                 )
                 exitProcess(1)
@@ -178,7 +194,7 @@ class DefaultCommandExecutor(
         // Check if the command requires an SSH key
         if (annotations.any { it is RequireSSHKey }) {
             if (!checkSSHKeyAvailability()) {
-                outputHandler.handleError("SSH key not found at ${userConfig.sshKeyPath}")
+                outputHandler.publishError("SSH key not found at ${userConfig.sshKeyPath}")
                 exitProcess(1)
             }
         }
@@ -221,11 +237,11 @@ class DefaultCommandExecutor(
                     // Update state with new hashes
                     state.backupHashes = state.backupHashes + result.updatedHashes
                     clusterStateManager.save(state)
-                    outputHandler.handleMessage("Backed up ${result.filesUploaded} changed configuration files to S3")
+                    outputHandler.publishMessage("Backed up ${result.filesUploaded} changed configuration files to S3")
                 }
             }.onFailure { e ->
                 log.warn(e) { "Incremental backup failed" }
-                outputHandler.handleMessage("Warning: Incremental backup failed: ${e.message}")
+                outputHandler.publishMessage("Warning: Incremental backup failed: ${e.message}")
             }
     }
 

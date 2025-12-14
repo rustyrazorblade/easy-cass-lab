@@ -19,7 +19,7 @@ class FilteringChannelOutputHandlerTest {
 
             // Send some frame events
             repeat(50) {
-                handler.handleFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
+                handler.publishFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
             }
 
             // Channel should be empty since frames are dropped
@@ -34,7 +34,7 @@ class FilteringChannelOutputHandlerTest {
 
             // Send 150 frame events
             repeat(150) {
-                handler.handleFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
+                handler.publishFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
             }
 
             // Should have 1 docker activity message (after 100 frames)
@@ -64,7 +64,7 @@ class FilteringChannelOutputHandlerTest {
 
             // Send 250 frame events (should trigger 2 activity messages)
             repeat(250) {
-                handler.handleFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
+                handler.publishFrame(Frame(StreamType.STDOUT, "output $it".toByteArray()))
             }
 
             val events = mutableListOf<OutputEvent>()
@@ -98,7 +98,7 @@ class FilteringChannelOutputHandlerTest {
             val handler = FilteringChannelOutputHandler(channel)
 
             val testMessage = "test message"
-            handler.handleMessage(testMessage)
+            handler.publishMessage(testMessage)
 
             val event = channel.tryReceive().getOrNull()
             assertNotNull(event, "Should have received an event")
@@ -118,7 +118,7 @@ class FilteringChannelOutputHandlerTest {
 
             val testError = "test error"
             val testException = RuntimeException("test exception")
-            handler.handleError(testError, testException)
+            handler.publishError(testError, testException)
 
             val event = channel.tryReceive().getOrNull()
             assertNotNull(event, "Should have received an event")
@@ -136,7 +136,7 @@ class FilteringChannelOutputHandlerTest {
             val handler = FilteringChannelOutputHandler(channel)
 
             val testError = "test error"
-            handler.handleError(testError, null)
+            handler.publishError(testError, null)
 
             val event = channel.tryReceive().getOrNull()
             assertNotNull(event, "Should have received an event")
@@ -167,13 +167,13 @@ class FilteringChannelOutputHandlerTest {
             val handler = FilteringChannelOutputHandler(channel)
 
             // Send mixed events
-            handler.handleMessage("start message")
+            handler.publishMessage("start message")
             repeat(150) {
                 // This should trigger 1 docker activity message
-                handler.handleFrame(Frame(StreamType.STDOUT, "frame $it".toByteArray()))
+                handler.publishFrame(Frame(StreamType.STDOUT, "frame $it".toByteArray()))
             }
-            handler.handleError("error message", null)
-            handler.handleMessage("end message")
+            handler.publishError("error message", null)
+            handler.publishMessage("end message")
             handler.close()
 
             val events = mutableListOf<OutputEvent>()

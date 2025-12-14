@@ -23,6 +23,6 @@ class ConfigureAWS(
 
     override fun execute() {
         awsResourceSetupService.ensureAWSResources(userConfig)
-        outputHandler.handleMessage("✓ AWS infrastructure configured successfully")
+        outputHandler.publishMessage("✓ AWS infrastructure configured successfully")
     }
 }

@@ -105,7 +105,7 @@ class AMIValidationServiceTest : BaseKoinTest() {
             )
 
         assertThat(result.id).isEqualTo("ami-new")
-        verify(mockOutputHandler).handleMessage(any())
+        verify(mockOutputHandler).publishMessage(any())
     }
 
     // Error Cases
@@ -143,7 +143,7 @@ class AMIValidationServiceTest : BaseKoinTest() {
             )
         }.isInstanceOf(AMIValidationException.NoAMIFound::class.java)
 
-        verify(mockOutputHandler).handleMessage(any())
+        verify(mockOutputHandler).publishMessage(any())
     }
 
     @Test

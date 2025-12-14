@@ -45,12 +45,12 @@ class ClickHouseStop(
         log.debug { "Using control node: ${controlNode.alias} (${controlNode.publicIp})" }
 
         if (!force) {
-            outputHandler.handleMessage("This will delete the ClickHouse cluster and all its data.")
-            outputHandler.handleMessage("Use --force to confirm deletion.")
+            outputHandler.publishMessage("This will delete the ClickHouse cluster and all its data.")
+            outputHandler.publishMessage("Use --force to confirm deletion.")
             return
         }
 
-        outputHandler.handleMessage("Stopping ClickHouse cluster...")
+        outputHandler.publishMessage("Stopping ClickHouse cluster...")
 
         // Delete ClickHouse resources by label selector
         val labelKey = "app.kubernetes.io/name"
@@ -62,6 +62,6 @@ class ClickHouseStop(
                 error("Failed to delete ClickHouse cluster: ${exception.message}")
             }
 
-        outputHandler.handleMessage("ClickHouse cluster stopped and removed successfully.")
+        outputHandler.publishMessage("ClickHouse cluster stopped and removed successfully.")
     }
 }

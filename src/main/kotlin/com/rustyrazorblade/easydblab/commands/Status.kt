@@ -72,7 +72,7 @@ class Status(
 
     override fun execute() {
         if (!clusterStateManager.exists()) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Cluster state does not exist yet. Run 'easy-db-lab init' first.",
             )
             return
@@ -97,20 +97,20 @@ class Status(
      * Display cluster overview section
      */
     private fun displayClusterSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== CLUSTER STATUS ===")
-        outputHandler.handleMessage("Cluster ID: ${clusterState.clusterId}")
-        outputHandler.handleMessage("Name: ${clusterState.name}")
-        outputHandler.handleMessage("Created: ${clusterState.createdAt.atZone(java.time.ZoneId.systemDefault()).format(DATE_FORMATTER)}")
-        outputHandler.handleMessage("Infrastructure: ${clusterState.infrastructureStatus}")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== CLUSTER STATUS ===")
+        outputHandler.publishMessage("Cluster ID: ${clusterState.clusterId}")
+        outputHandler.publishMessage("Name: ${clusterState.name}")
+        outputHandler.publishMessage("Created: ${clusterState.createdAt.atZone(java.time.ZoneId.systemDefault()).format(DATE_FORMATTER)}")
+        outputHandler.publishMessage("Infrastructure: ${clusterState.infrastructureStatus}")
     }
 
     /**
      * Display nodes section with live instance state from EC2
      */
     private fun displayNodesSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== NODES ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== NODES ===")
 
         val allInstanceIds = clusterState.getAllInstanceIds()
 
@@ -142,12 +142,12 @@ class Status(
         val hosts = clusterState.hosts[serverType] ?: emptyList()
         if (hosts.isEmpty()) return
 
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("$header:")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("$header:")
 
         hosts.forEach { host ->
             val state = instanceStates[host.instanceId]?.state ?: "UNKNOWN"
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "  %-12s %-20s %-16s %-16s %-12s %s".format(
                     host.alias,
                     host.instanceId.ifEmpty { "(no id)" },
@@ -164,31 +164,31 @@ class Status(
      * Display networking section
      */
     private fun displayNetworkingSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== NETWORKING ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== NETWORKING ===")
 
         val infrastructure = clusterState.infrastructure
         if (infrastructure == null) {
-            outputHandler.handleMessage("(no infrastructure data)")
+            outputHandler.publishMessage("(no infrastructure data)")
             return
         }
 
-        outputHandler.handleMessage("VPC:              ${infrastructure.vpcId}")
-        outputHandler.handleMessage("Internet Gateway: ${infrastructure.internetGatewayId ?: "(none)"}")
-        outputHandler.handleMessage("Subnets:          ${infrastructure.subnetIds.joinToString(", ")}")
-        outputHandler.handleMessage("Route Tables:     ${infrastructure.routeTableId ?: "(default)"}")
+        outputHandler.publishMessage("VPC:              ${infrastructure.vpcId}")
+        outputHandler.publishMessage("Internet Gateway: ${infrastructure.internetGatewayId ?: "(none)"}")
+        outputHandler.publishMessage("Subnets:          ${infrastructure.subnetIds.joinToString(", ")}")
+        outputHandler.publishMessage("Route Tables:     ${infrastructure.routeTableId ?: "(default)"}")
     }
 
     /**
      * Display security group rules section
      */
     private fun displaySecurityGroupSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== SECURITY GROUP ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== SECURITY GROUP ===")
 
         val sgId = clusterState.infrastructure?.securityGroupId
         if (sgId == null) {
-            outputHandler.handleMessage("(no security group configured)")
+            outputHandler.publishMessage("(no security group configured)")
             return
         }
 
@@ -198,24 +198,24 @@ class Status(
             }.getOrNull()
 
         if (sgDetails == null) {
-            outputHandler.handleMessage("Security Group: $sgId (unable to fetch details)")
+            outputHandler.publishMessage("Security Group: $sgId (unable to fetch details)")
             return
         }
 
-        outputHandler.handleMessage("Security Group: ${sgDetails.securityGroupId} (${sgDetails.name})")
+        outputHandler.publishMessage("Security Group: ${sgDetails.securityGroupId} (${sgDetails.name})")
 
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Inbound Rules:")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Inbound Rules:")
         displaySecurityRules(sgDetails.inboundRules)
 
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Outbound Rules:")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Outbound Rules:")
         displaySecurityRules(sgDetails.outboundRules)
     }
 
     private fun displaySecurityRules(rules: List<SecurityGroupRuleInfo>) {
         if (rules.isEmpty()) {
-            outputHandler.handleMessage("  (none)")
+            outputHandler.publishMessage("  (none)")
             return
         }
 
@@ -230,7 +230,7 @@ class Status(
             val cidrs = rule.cidrBlocks.joinToString(", ").ifEmpty { "(none)" }
             val description = rule.description ?: ""
 
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "  %-6s %-8s %-20s %s".format(
                     rule.protocol,
                     portRange,
@@ -245,12 +245,12 @@ class Status(
      * Display Spark/EMR cluster section
      */
     private fun displaySparkClusterSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== SPARK CLUSTER ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== SPARK CLUSTER ===")
 
         val emrCluster = clusterState.emrCluster
         if (emrCluster == null) {
-            outputHandler.handleMessage("(no Spark cluster configured)")
+            outputHandler.publishMessage("(no Spark cluster configured)")
             return
         }
 
@@ -260,11 +260,11 @@ class Status(
                 emrService.getClusterStatus(emrCluster.clusterId).state
             }.getOrElse { emrCluster.state }
 
-        outputHandler.handleMessage("Cluster ID:   ${emrCluster.clusterId}")
-        outputHandler.handleMessage("Name:         ${emrCluster.clusterName}")
-        outputHandler.handleMessage("State:        $liveState")
+        outputHandler.publishMessage("Cluster ID:   ${emrCluster.clusterId}")
+        outputHandler.publishMessage("Name:         ${emrCluster.clusterName}")
+        outputHandler.publishMessage("State:        $liveState")
         emrCluster.masterPublicDns?.let {
-            outputHandler.handleMessage("Master DNS:   $it")
+            outputHandler.publishMessage("Master DNS:   $it")
         }
     }
 
@@ -272,12 +272,12 @@ class Status(
      * Display OpenSearch domain section
      */
     private fun displayOpenSearchSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== OPENSEARCH DOMAIN ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== OPENSEARCH DOMAIN ===")
 
         val openSearchDomain = clusterState.openSearchDomain
         if (openSearchDomain == null) {
-            outputHandler.handleMessage("(no OpenSearch domain configured)")
+            outputHandler.publishMessage("(no OpenSearch domain configured)")
             return
         }
 
@@ -287,14 +287,14 @@ class Status(
                 openSearchService.describeDomain(openSearchDomain.domainName).state
             }.getOrElse { openSearchDomain.state }
 
-        outputHandler.handleMessage("Domain Name:  ${openSearchDomain.domainName}")
-        outputHandler.handleMessage("Domain ID:    ${openSearchDomain.domainId}")
-        outputHandler.handleMessage("State:        $liveState")
+        outputHandler.publishMessage("Domain Name:  ${openSearchDomain.domainName}")
+        outputHandler.publishMessage("Domain ID:    ${openSearchDomain.domainId}")
+        outputHandler.publishMessage("State:        $liveState")
         openSearchDomain.endpoint?.let {
-            outputHandler.handleMessage("Endpoint:     https://$it")
+            outputHandler.publishMessage("Endpoint:     https://$it")
         }
         openSearchDomain.dashboardsEndpoint?.let {
-            outputHandler.handleMessage("Dashboards:   $it")
+            outputHandler.publishMessage("Dashboards:   $it")
         }
     }
 
@@ -302,39 +302,39 @@ class Status(
      * Display S3 bucket section
      */
     private fun displayS3BucketSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== S3 BUCKET ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== S3 BUCKET ===")
 
         if (clusterState.s3Bucket.isNullOrBlank()) {
-            outputHandler.handleMessage("(no S3 bucket configured)")
+            outputHandler.publishMessage("(no S3 bucket configured)")
             return
         }
 
         val s3Path = clusterState.s3Path()
-        outputHandler.handleMessage("Bucket:       ${clusterState.s3Bucket}")
-        outputHandler.handleMessage("Cassandra:    ${s3Path.cassandra()}")
-        outputHandler.handleMessage("ClickHouse:   ${s3Path.clickhouse()}")
-        outputHandler.handleMessage("Spark:        ${s3Path.spark()}")
-        outputHandler.handleMessage("EMR Logs:     ${s3Path.emrLogs()}")
+        outputHandler.publishMessage("Bucket:       ${clusterState.s3Bucket}")
+        outputHandler.publishMessage("Cassandra:    ${s3Path.cassandra()}")
+        outputHandler.publishMessage("ClickHouse:   ${s3Path.clickhouse()}")
+        outputHandler.publishMessage("Spark:        ${s3Path.spark()}")
+        outputHandler.publishMessage("EMR Logs:     ${s3Path.emrLogs()}")
     }
 
     /**
      * Display Kubernetes pods section
      */
     private fun displayKubernetesSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== KUBERNETES PODS ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== KUBERNETES PODS ===")
 
         val controlHost = clusterState.getControlHost()
         if (controlHost == null) {
-            outputHandler.handleMessage("(no control node configured)")
+            outputHandler.publishMessage("(no control node configured)")
             return
         }
 
         // Check if kubeconfig exists locally
         val kubeconfigPath = getLocalKubeconfigPath(context.workingDirectory.absolutePath)
         if (!File(kubeconfigPath).exists()) {
-            outputHandler.handleMessage("(kubeconfig not found - K3s may not be initialized)")
+            outputHandler.publishMessage("(kubeconfig not found - K3s may not be initialized)")
             return
         }
 
@@ -344,9 +344,9 @@ class Status(
         result.fold(
             onSuccess = { pods ->
                 if (pods.isEmpty()) {
-                    outputHandler.handleMessage("(no pods running)")
+                    outputHandler.publishMessage("(no pods running)")
                 } else {
-                    outputHandler.handleMessage(
+                    outputHandler.publishMessage(
                         "%-14s %-40s %-8s %-10s %-10s %s".format(
                             "NAMESPACE",
                             "NAME",
@@ -357,7 +357,7 @@ class Status(
                         ),
                     )
                     pods.forEach { pod ->
-                        outputHandler.handleMessage(
+                        outputHandler.publishMessage(
                             "%-14s %-40s %-8s %-10s %-10s %s".format(
                                 pod.namespace,
                                 pod.name.take(POD_NAME_MAX_LENGTH),
@@ -372,7 +372,7 @@ class Status(
             },
             onFailure = { e ->
                 log.debug(e) { "Failed to get Kubernetes pods" }
-                outputHandler.handleMessage("(unable to connect to K3s: ${e.message})")
+                outputHandler.publishMessage("(unable to connect to K3s: ${e.message})")
             },
         )
     }
@@ -455,12 +455,12 @@ class Status(
      * Display Cassandra version section
      */
     private fun displayCassandraVersionSection() {
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("=== CASSANDRA VERSION ===")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("=== CASSANDRA VERSION ===")
 
         val cassandraHosts = clusterState.hosts[ServerType.Cassandra] ?: emptyList()
         if (cassandraHosts.isEmpty()) {
-            outputHandler.handleMessage("(no Cassandra nodes configured)")
+            outputHandler.publishMessage("(no Cassandra nodes configured)")
             return
         }
 
@@ -468,11 +468,11 @@ class Status(
         val liveVersion = tryGetLiveVersion(cassandraHosts)
 
         if (liveVersion != null) {
-            outputHandler.handleMessage("Version: $liveVersion (all nodes)")
+            outputHandler.publishMessage("Version: $liveVersion (all nodes)")
         } else {
             // Fall back to cached version
             val cachedVersion = clusterState.default.version.ifEmpty { "unknown" }
-            outputHandler.handleMessage("Version: $cachedVersion (cached - nodes unavailable)")
+            outputHandler.publishMessage("Version: $cachedVersion (cached - nodes unavailable)")
         }
     }
 

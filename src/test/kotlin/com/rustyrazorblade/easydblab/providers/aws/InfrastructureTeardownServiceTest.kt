@@ -556,7 +556,7 @@ class InfrastructureTeardownServiceTest {
             whenever(openSearchService.findDomainsInVpc(any())).thenReturn(emptyList())
             // Throw an exception on the "Tearing down" message to trigger the outer catch block
             // Use argThat to match only the teardown message, not the discovery message
-            whenever(outputHandler.handleMessage(argThat { startsWith("\nTearing down") }))
+            whenever(outputHandler.publishMessage(argThat { startsWith("\nTearing down") }))
                 .thenThrow(RuntimeException("Unexpected output failure"))
 
             val result = service.teardownVpc(vpcId, dryRun = false)

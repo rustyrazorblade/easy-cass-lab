@@ -6,31 +6,32 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.channels.Channel
 
 /**
- * Interface for handling output from the application.
+ * Interface for publishing output from the application.
+ * Subscribers can receive messages, errors, and Docker container frames.
  * Allows different implementations for console, logger, buffer, etc.
  */
 interface OutputHandler {
     /**
-     * Handle a frame of output from a Docker container.
+     * Publish a frame of output from a Docker container.
      *
      * @param frame The frame containing output data
      */
-    fun handleFrame(frame: Frame)
+    fun publishFrame(frame: Frame)
 
     /**
-     * Handle a generic message (e.g., status updates).
+     * Publish a generic message (e.g., status updates).
      *
-     * @param message The message to handle
+     * @param message The message to publish
      */
-    fun handleMessage(message: String)
+    fun publishMessage(message: String)
 
     /**
-     * Handle an error message.
+     * Publish an error message.
      *
      * @param message The error message
      * @param throwable Optional throwable associated with the error
      */
-    fun handleError(
+    fun publishError(
         message: String,
         throwable: Throwable? = null,
     )
@@ -79,7 +80,7 @@ sealed interface OutputEvent {
  * This is the default handler that mimics current behavior.
  */
 class ConsoleOutputHandler : OutputHandler {
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         val payloadStr = String(frame.payload)
 
         when (frame.streamType.name) {
@@ -90,11 +91,11 @@ class ConsoleOutputHandler : OutputHandler {
         }
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         println(message)
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -116,7 +117,7 @@ class LoggerOutputHandler(
 ) : OutputHandler {
     private val log = KotlinLogging.logger(loggerName)
 
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         val payloadStr = String(frame.payload).trimEnd()
 
         when (frame.streamType.name) {
@@ -126,11 +127,11 @@ class LoggerOutputHandler(
         }
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         log.info { message }
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -161,7 +162,7 @@ class BufferedOutputHandler : OutputHandler {
     val messages: List<String> get() = messagesBuffer.toList()
     val errors: List<Pair<String, Throwable?>> get() = errorsBuffer.toList()
 
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         val payloadStr = String(frame.payload)
 
         synchronized(lock) {
@@ -173,13 +174,13 @@ class BufferedOutputHandler : OutputHandler {
         }
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         synchronized(lock) {
             messagesBuffer.add(message)
         }
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -296,23 +297,23 @@ class CompositeOutputHandler(
             handlers.toList()
         }
 
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         val currentHandlers =
             synchronized(handlers) {
                 handlers.toList() // Copy for safe iteration
             }
-        currentHandlers.forEach { it.handleFrame(frame) }
+        currentHandlers.forEach { it.publishFrame(frame) }
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         val currentHandlers =
             synchronized(handlers) {
                 handlers.toList() // Copy for safe iteration
             }
-        currentHandlers.forEach { it.handleMessage(message) }
+        currentHandlers.forEach { it.publishMessage(message) }
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -320,7 +321,7 @@ class CompositeOutputHandler(
             synchronized(handlers) {
                 handlers.toList() // Copy for safe iteration
             }
-        currentHandlers.forEach { it.handleError(message, throwable) }
+        currentHandlers.forEach { it.publishError(message, throwable) }
     }
 
     override fun close() {
@@ -369,17 +370,17 @@ class ChannelOutputHandler(
         private val log = KotlinLogging.logger {}
     }
 
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         val event = OutputEvent.FrameEvent(frame)
         sendEvent(event)
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         val event = OutputEvent.MessageEvent(message)
         sendEvent(event)
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -428,7 +429,7 @@ class FilteringChannelOutputHandler(
         frameCount = 0
     }
 
-    override fun handleFrame(frame: Frame) {
+    override fun publishFrame(frame: Frame) {
         frameCount++
         if (frameCount % Constants.Docker.FRAME_REPORTING_INTERVAL == 0) {
             val activityMessage = "Docker container activity: $frameCount frames processed"
@@ -438,12 +439,12 @@ class FilteringChannelOutputHandler(
         // Drop individual frame events - don't send to channel
     }
 
-    override fun handleMessage(message: String) {
+    override fun publishMessage(message: String) {
         val event = OutputEvent.MessageEvent(message)
         sendEvent(event)
     }
 
-    override fun handleError(
+    override fun publishError(
         message: String,
         throwable: Throwable?,
     ) {
@@ -470,12 +471,12 @@ class FilteringChannelOutputHandler(
  * Used by both K8Apply (after deployment) and Status (for reference).
  */
 fun OutputHandler.displayObservabilityAccess(controlNodeIp: String) {
-    handleMessage("")
-    handleMessage("Observability:")
-    handleMessage("  Grafana:         http://$controlNodeIp:${Constants.K8s.GRAFANA_PORT}")
-    handleMessage("  VictoriaMetrics: http://$controlNodeIp:${Constants.K8s.VICTORIAMETRICS_PORT}")
-    handleMessage("  VictoriaLogs:    http://$controlNodeIp:${Constants.K8s.VICTORIALOGS_PORT}")
-    handleMessage("")
+    publishMessage("")
+    publishMessage("Observability:")
+    publishMessage("  Grafana:         http://$controlNodeIp:${Constants.K8s.GRAFANA_PORT}")
+    publishMessage("  VictoriaMetrics: http://$controlNodeIp:${Constants.K8s.VICTORIAMETRICS_PORT}")
+    publishMessage("  VictoriaLogs:    http://$controlNodeIp:${Constants.K8s.VICTORIALOGS_PORT}")
+    publishMessage("")
 }
 
 /**
@@ -484,11 +485,11 @@ fun OutputHandler.displayObservabilityAccess(controlNodeIp: String) {
  * @param dbNodeIp IP address of a db node where ClickHouse pods are scheduled
  */
 fun OutputHandler.displayClickHouseAccess(dbNodeIp: String) {
-    handleMessage("")
-    handleMessage("ClickHouse:")
-    handleMessage("  Play UI:         http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}/play")
-    handleMessage("  HTTP Interface:  http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}")
-    handleMessage("  Native Protocol: $dbNodeIp:${Constants.ClickHouse.NATIVE_PORT}")
+    publishMessage("")
+    publishMessage("ClickHouse:")
+    publishMessage("  Play UI:         http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}/play")
+    publishMessage("  HTTP Interface:  http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}")
+    publishMessage("  Native Protocol: $dbNodeIp:${Constants.ClickHouse.NATIVE_PORT}")
 }
 
 /**
@@ -500,9 +501,9 @@ fun OutputHandler.displayS3ManagerAccess(
     controlNodeIp: String,
     bucketName: String,
 ) {
-    handleMessage("")
-    handleMessage("S3 Manager:")
-    handleMessage("  Web UI: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName")
+    publishMessage("")
+    publishMessage("S3 Manager:")
+    publishMessage("  Web UI: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName")
 }
 
 /**
@@ -514,9 +515,9 @@ fun OutputHandler.displayS3ManagerClickHouseAccess(
     controlNodeIp: String,
     bucketName: String,
 ) {
-    handleMessage("")
-    handleMessage("S3 Manager:")
-    handleMessage("  ClickHouse Data: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName/clickhouse/")
+    publishMessage("")
+    publishMessage("S3 Manager:")
+    publishMessage("  ClickHouse Data: http://$controlNodeIp:${Constants.K8s.S3MANAGER_PORT}/buckets/$bucketName/clickhouse/")
 }
 
 /**
@@ -529,7 +530,7 @@ fun OutputHandler.displayRegistryAccess(
     socksPort: Int = Constants.Proxy.DEFAULT_SOCKS5_PORT,
 ) {
     val registryUrl = "$controlNodeIp:${Constants.K8s.REGISTRY_PORT}"
-    handleMessage(
+    publishMessage(
         """
         |
         |=== CONTAINER REGISTRY ===

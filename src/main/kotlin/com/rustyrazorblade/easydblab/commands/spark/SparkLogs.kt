@@ -59,7 +59,7 @@ class SparkLogs(
 
         val logsDir =
             if (downloadAll) {
-                outputHandler.handleMessage("Downloading all EMR logs (this may take a while)...")
+                outputHandler.publishMessage("Downloading all EMR logs (this may take a while)...")
                 sparkService
                     .downloadAllLogs(targetStepId)
                     .getOrElse { error ->
@@ -73,7 +73,7 @@ class SparkLogs(
                     }
             }
 
-        outputHandler.handleMessage("Logs saved to: $logsDir")
+        outputHandler.publishMessage("Logs saved to: $logsDir")
     }
 
     /**

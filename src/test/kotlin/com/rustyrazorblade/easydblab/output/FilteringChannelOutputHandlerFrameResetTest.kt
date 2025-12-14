@@ -39,7 +39,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
         runBlocking {
             // Send 50 frames (no message should be sent yet)
             repeat(50) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Verify no activity message was sent yet (need 100 frames)
@@ -47,7 +47,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
 
             // Send 50 more frames (should trigger activity message at frame 100)
             repeat(50) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Verify activity message was sent for 100 frames
@@ -62,7 +62,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
 
             // Send 100 more frames after reset
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Verify activity message shows 100 frames (not 200), indicating reset worked
@@ -82,7 +82,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
         runBlocking {
             // Send 100 frames to trigger first activity message
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Verify first activity message
@@ -93,7 +93,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
 
             // Send 100 more frames without reset (should show 200)
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Verify second activity message shows accumulated count (200)
@@ -112,7 +112,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
         runBlocking {
             // First batch: 100 frames
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
             val event1 = outputChannel.tryReceive().getOrNull()
             assertEquals(
@@ -123,7 +123,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
             // Reset and second batch: 100 frames
             handler.resetFrameCount()
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
             val event2 = outputChannel.tryReceive().getOrNull()
             assertEquals(
@@ -134,7 +134,7 @@ class FilteringChannelOutputHandlerFrameResetTest {
             // Reset and third batch: 100 frames
             handler.resetFrameCount()
             repeat(100) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
             val event3 = outputChannel.tryReceive().getOrNull()
             assertEquals(
@@ -150,17 +150,17 @@ class FilteringChannelOutputHandlerFrameResetTest {
         runBlocking {
             // Send some frames
             repeat(50) {
-                handler.handleFrame(mockFrame)
+                handler.publishFrame(mockFrame)
             }
 
             // Send a regular message
-            handler.handleMessage("Test message")
+            handler.publishMessage("Test message")
 
             // Reset frame count
             handler.resetFrameCount()
 
             // Send error
-            handler.handleError("Test error", RuntimeException("test"))
+            handler.publishError("Test error", RuntimeException("test"))
 
             // Verify message and error were sent unchanged
             val messageEvent = outputChannel.tryReceive().getOrNull()

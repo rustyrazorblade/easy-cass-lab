@@ -56,7 +56,7 @@ class StressInfo(
         val args = mutableListOf("info")
         args.addAll(stressArgs)
 
-        outputHandler.handleMessage("Running cassandra-easy-stress info...")
+        outputHandler.publishMessage("Running cassandra-easy-stress info...")
 
         val output =
             stressJobService
@@ -66,7 +66,7 @@ class StressInfo(
                 }
 
         if (output.isNotEmpty()) {
-            outputHandler.handleMessage(output)
+            outputHandler.publishMessage(output)
         }
     }
 }

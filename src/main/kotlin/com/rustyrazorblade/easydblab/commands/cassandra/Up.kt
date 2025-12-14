@@ -128,7 +128,7 @@ class Up(
      * Uses a wildcard policy that grants access to all easy-db-lab-* buckets.
      */
     private fun reapplyS3Policy() {
-        outputHandler.handleMessage("Ensuring IAM policies are up to date...")
+        outputHandler.publishMessage("Ensuring IAM policies are up to date...")
         runCatching {
             aws.attachS3Policy(Constants.AWS.Roles.EC2_INSTANCE_ROLE)
         }.onFailure { e ->
@@ -152,7 +152,7 @@ class Up(
         val shortUuid = workingState.clusterId.take(BUCKET_UUID_LENGTH)
         val bucketName = "easy-db-lab-${initConfig.name}-$shortUuid"
 
-        outputHandler.handleMessage("Creating S3 bucket: $bucketName")
+        outputHandler.publishMessage("Creating S3 bucket: $bucketName")
         aws.createS3Bucket(bucketName)
         aws.putS3BucketPolicy(bucketName)
         aws.tagS3Bucket(bucketName, mapOf("ClusterId" to workingState.clusterId))
@@ -160,7 +160,7 @@ class Up(
         workingState.s3Bucket = bucketName
         clusterStateManager.save(workingState)
 
-        outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
+        outputHandler.publishMessage("S3 bucket created and configured: $bucketName")
     }
 
     /**
@@ -170,7 +170,7 @@ class Up(
      * Each resource type updates cluster state atomically when complete.
      */
     private fun provisionInfrastructure(initConfig: InitConfig) {
-        outputHandler.handleMessage("Provisioning infrastructure...")
+        outputHandler.publishMessage("Provisioning infrastructure...")
 
         val vpcId = workingState.vpcId ?: error("VPC ID not found. Please run 'easy-db-lab init' first.")
 
@@ -275,23 +275,23 @@ class Up(
                         workingState.updateEmrCluster(emrState)
                         clusterStateManager.save(workingState)
                     }
-                    outputHandler.handleMessage("EMR cluster ready: ${emrState.masterPublicDns}")
+                    outputHandler.publishMessage("EMR cluster ready: ${emrState.masterPublicDns}")
                 },
                 onOpenSearchCreated = { osState ->
                     synchronized(stateLock) {
                         workingState.updateOpenSearchDomain(osState)
                         clusterStateManager.save(workingState)
                     }
-                    outputHandler.handleMessage("OpenSearch domain ready: https://${osState.endpoint}")
-                    osState.dashboardsEndpoint?.let { outputHandler.handleMessage("Dashboards: $it") }
+                    outputHandler.publishMessage("OpenSearch domain ready: https://${osState.endpoint}")
+                    osState.dashboardsEndpoint?.let { outputHandler.publishMessage("Dashboards: $it") }
                 },
             )
 
         // Report any failures
         if (result.errors.isNotEmpty()) {
-            outputHandler.handleMessage("\nInfrastructure creation had failures:")
+            outputHandler.publishMessage("\nInfrastructure creation had failures:")
             result.errors.forEach { (resource, error) ->
-                outputHandler.handleMessage("  - $resource: ${error.message}")
+                outputHandler.publishMessage("  - $resource: ${error.message}")
             }
             error(
                 "Failed to create ${result.errors.size} infrastructure resource(s): " +
@@ -314,7 +314,7 @@ class Up(
         }
 
         printProvisioningSuccessMessage()
-        outputHandler.handleMessage("Cluster state updated: ${result.hosts.values.flatten().size} hosts tracked")
+        outputHandler.publishMessage("Cluster state updated: ${result.hosts.values.flatten().size} hosts tracked")
     }
 
     private fun logExistingInstances(existingInstances: Map<ServerType, List<DiscoveredInstance>>) {
@@ -322,7 +322,7 @@ class Up(
             val cassandra = existingInstances[ServerType.Cassandra]?.size ?: 0
             val stress = existingInstances[ServerType.Stress]?.size ?: 0
             val control = existingInstances[ServerType.Control]?.size ?: 0
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Discovered existing instances: Cassandra=$cassandra, Stress=$stress, Control=$control",
             )
         }
@@ -330,18 +330,18 @@ class Up(
 
     private fun printProvisioningSuccessMessage() {
         with(TermColors()) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Instances have been provisioned.\n\n" +
                     "Use " + green("easy-db-lab list") + " to see all available versions\n\n" +
                     "Then use " + green("easy-db-lab use <version>") +
                     " to use a specific version of Cassandra.\n",
             )
-            outputHandler.handleMessage("Writing ssh config file to sshConfig.")
-            outputHandler.handleMessage(
+            outputHandler.publishMessage("Writing ssh config file to sshConfig.")
+            outputHandler.publishMessage(
                 "The following alias will allow you to easily work with the cluster:\n\n" +
                     green("source env.sh") + "\n",
             )
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "You can edit " + green("cassandra.patch.yaml") +
                     " with any changes you'd like to see merge in into the remote cassandra.yaml file.",
             )
@@ -362,14 +362,14 @@ class Up(
 
     /** Waits for SSH to become available on instances and downloads Cassandra version info. */
     private fun waitForSshAndDownloadVersions() {
-        outputHandler.handleMessage("Waiting for SSH to come up..")
+        outputHandler.publishMessage("Waiting for SSH to come up..")
         Thread.sleep(SSH_STARTUP_DELAY.toMillis())
 
         val retryConfig = RetryUtil.createSshConnectionRetryConfig()
         val retry =
             Retry.of("ssh-connection", retryConfig).also {
                 it.eventPublisher.onRetry { event ->
-                    outputHandler.handleMessage(
+                    outputHandler.publishMessage(
                         "SSH still not up yet, waiting... (attempt ${event.numberOfRetryAttempts})",
                     )
                 }
@@ -400,7 +400,7 @@ class Up(
     private fun setupInstancesIfNeeded() {
         if (noSetup) {
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     "Skipping node setup.  You will need to run " +
                         green("easy-db-lab setup-instance") + " to complete setup",
                 )
@@ -410,7 +410,7 @@ class Up(
             startK3sOnAllNodes()
 
             if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
-                outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
+                outputHandler.publishMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
                 commandExecutor.execute { ConfigureAxonOps(context) }
             }
         }
@@ -420,7 +420,7 @@ class Up(
     private fun startK3sOnAllNodes() {
         val controlHosts = workingState.hosts[ServerType.Control] ?: emptyList()
         if (controlHosts.isEmpty()) {
-            outputHandler.handleError("No control nodes found, skipping K3s setup")
+            outputHandler.publishError("No control nodes found, skipping K3s setup")
             return
         }
 
@@ -487,6 +487,6 @@ class Up(
             registryService.configureTlsOnNode(clusterHost.toHost(), registryHost, s3Bucket)
         }
 
-        outputHandler.handleMessage("Registry TLS configured on all nodes")
+        outputHandler.publishMessage("Registry TLS configured on all nodes")
     }
 }

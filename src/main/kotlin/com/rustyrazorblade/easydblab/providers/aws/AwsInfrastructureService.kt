@@ -39,7 +39,7 @@ class AwsInfrastructureService(
      */
     fun ensureInfrastructure(config: InfrastructureConfig): VpcInfrastructure {
         log.info { "Ensuring infrastructure exists for: ${config.vpcName}" }
-        outputHandler.handleMessage("Ensuring infrastructure exists for: ${config.vpcName}")
+        outputHandler.publishMessage("Ensuring infrastructure exists for: ${config.vpcName}")
 
         // Create VPC
         val vpcId = vpcService.createVpc(config.vpcName, config.vpcCidr, config.tags)
@@ -88,7 +88,7 @@ class AwsInfrastructureService(
         log.info {
             "Infrastructure ready: VPC=$vpcId, Subnets=${subnetIds.size}, SG=$sgId, IGW=$igwId"
         }
-        outputHandler.handleMessage("Infrastructure ready for: ${config.vpcName}")
+        outputHandler.publishMessage("Infrastructure ready for: ${config.vpcName}")
 
         return infrastructure
     }
@@ -110,7 +110,7 @@ class AwsInfrastructureService(
         val existingVpcId = vpcService.findVpcByName(config.vpcName)
         if (existingVpcId != null) {
             log.info { "Reusing existing packer VPC: ${config.vpcName} ($existingVpcId)" }
-            outputHandler.handleMessage("Using existing VPC: ${config.vpcName}")
+            outputHandler.publishMessage("Using existing VPC: ${config.vpcName}")
 
             // Find or create remaining resources in existing VPC
             val igwId = vpcService.findOrCreateInternetGateway(existingVpcId, config.internetGatewayName, config.tags)
@@ -134,7 +134,7 @@ class AwsInfrastructureService(
                 vpcService.authorizeSecurityGroupIngress(sgId, rule.fromPort, rule.toPort, rule.cidr, rule.protocol)
             }
 
-            outputHandler.handleMessage("Infrastructure ready for: ${config.vpcName}")
+            outputHandler.publishMessage("Infrastructure ready for: ${config.vpcName}")
             return VpcInfrastructure(existingVpcId, listOf(subnetId), sgId, igwId)
         }
 
@@ -182,7 +182,7 @@ class AwsInfrastructureService(
         externalIpProvider: () -> String,
     ): VpcInfrastructure {
         log.info { "Setting up VPC networking for cluster: ${config.clusterName}" }
-        outputHandler.handleMessage("Setting up VPC networking for: ${config.clusterName}")
+        outputHandler.publishMessage("Setting up VPC networking for: ${config.clusterName}")
 
         val baseTags = config.tags + mapOf("easy_cass_lab" to "1", "ClusterId" to config.clusterId)
 
@@ -248,7 +248,7 @@ class AwsInfrastructureService(
         log.info {
             "VPC networking ready: Subnets=${subnetIds.size}, SG=$securityGroupId, IGW=$igwId"
         }
-        outputHandler.handleMessage("VPC networking ready for: ${config.clusterName}")
+        outputHandler.publishMessage("VPC networking ready for: ${config.clusterName}")
 
         return infrastructure
     }

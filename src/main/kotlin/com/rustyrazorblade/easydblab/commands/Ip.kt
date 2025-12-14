@@ -66,6 +66,6 @@ class Ip(
                 else -> foundHost.public
             }
 
-        outputHandler.handleMessage(ip)
+        outputHandler.publishMessage(ip)
     }
 }

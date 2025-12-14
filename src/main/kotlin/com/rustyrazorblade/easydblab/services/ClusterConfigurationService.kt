@@ -181,6 +181,6 @@ class DefaultClusterConfigurationService(
                 )
             val configFile = File(workingDirectory.toFile(), AXONOPS_CONFIG_FILE)
             AxonOpsWorkbenchConfig.writeToFile(config, configFile)
-            outputHandler.handleMessage("AxonOps Workbench configuration written to $AXONOPS_CONFIG_FILE")
+            outputHandler.publishMessage("AxonOps Workbench configuration written to $AXONOPS_CONFIG_FILE")
         }
 }

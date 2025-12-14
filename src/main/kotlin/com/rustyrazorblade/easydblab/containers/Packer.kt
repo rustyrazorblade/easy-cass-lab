@@ -105,7 +105,7 @@ class Packer(
         require(directory.isNotBlank()) { "Directory cannot be blank" }
 
         if (!File(localPackerPath).exists()) {
-            outputHandler.handleError("packer directory not found: $localPackerPath")
+            outputHandler.publishError("packer directory not found: $localPackerPath")
             exitProcess(1)
         }
 

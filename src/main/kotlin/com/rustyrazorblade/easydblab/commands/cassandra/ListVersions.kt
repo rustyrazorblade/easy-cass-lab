@@ -25,7 +25,7 @@ class ListVersions(
         clusterState.getHosts(ServerType.Cassandra).first().let {
             val response = remoteOps.executeRemotely(it, "ls /usr/local/cassandra", output = false)
             response.text.split("\n").filter { line -> line != "current" }.forEach { line ->
-                outputHandler.handleMessage(line)
+                outputHandler.publishMessage(line)
             }
         }
     }

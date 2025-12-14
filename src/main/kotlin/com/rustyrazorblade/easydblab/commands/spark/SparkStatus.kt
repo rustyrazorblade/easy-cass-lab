@@ -56,7 +56,7 @@ class SparkStatus(
         val targetStepId =
             stepId ?: getMostRecentStepId(clusterInfo.clusterId)
 
-        outputHandler.handleMessage("Checking status for step: $targetStepId")
+        outputHandler.publishMessage("Checking status for step: $targetStepId")
 
         // Get job status
         val jobStatus =
@@ -67,13 +67,13 @@ class SparkStatus(
                 }
 
         // Display status information
-        outputHandler.handleMessage("Step ID: $targetStepId")
-        outputHandler.handleMessage("State: ${jobStatus.state}")
+        outputHandler.publishMessage("Step ID: $targetStepId")
+        outputHandler.publishMessage("State: ${jobStatus.state}")
         jobStatus.stateChangeReason?.let {
-            outputHandler.handleMessage("Reason: $it")
+            outputHandler.publishMessage("Reason: $it")
         }
         jobStatus.failureDetails?.let {
-            outputHandler.handleMessage("Failure Details: $it")
+            outputHandler.publishMessage("Failure Details: $it")
         }
 
         // Download step logs if requested
@@ -82,10 +82,10 @@ class SparkStatus(
                 sparkService
                     .downloadStepLogs(clusterInfo.clusterId, targetStepId)
                     .getOrElse { error ->
-                        outputHandler.handleError("Failed to download logs: ${error.message}")
+                        outputHandler.publishError("Failed to download logs: ${error.message}")
                         return
                     }
-            outputHandler.handleMessage("Step logs saved to: $logsDir")
+            outputHandler.publishMessage("Step logs saved to: $logsDir")
         }
     }
 

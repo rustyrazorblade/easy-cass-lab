@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
@@ -92,6 +93,7 @@ val servicesModule =
                 get<BackupRestoreService>(),
                 get<ClusterStateManager>(),
                 get<OutputHandler>(),
+                get<SubscribableOutputHandler>(),
                 get<UserConfigProvider>(),
                 get<DockerClientProvider>(),
                 get<User>(),

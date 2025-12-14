@@ -53,9 +53,9 @@ class ClickHouseStatus(
                     error("Failed to get ClickHouse status: ${exception.message}")
                 }
 
-        outputHandler.handleMessage("ClickHouse Cluster Status:")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage(status)
+        outputHandler.publishMessage("ClickHouse Cluster Status:")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage(status)
         outputHandler.displayClickHouseAccess(dbNodeIp)
 
         val s3Bucket = clusterState.s3Bucket

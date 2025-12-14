@@ -1,20 +1,28 @@
 package com.rustyrazorblade.easydblab.di
 
-import com.rustyrazorblade.easydblab.output.CompositeOutputHandler
 import com.rustyrazorblade.easydblab.output.ConsoleOutputHandler
 import com.rustyrazorblade.easydblab.output.LoggerOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.core.qualifier.named
 import org.koin.test.KoinTest
 import org.koin.test.inject
 
+/**
+ * Tests for OutputModule pub/sub architecture.
+ *
+ * The architecture is:
+ * - SubscribableOutputHandler is the primary OutputHandler binding
+ * - It wraps LoggerOutputHandler as the default (always logs)
+ * - Console output is dynamically subscribed during CLI execution
+ * - MCP progress notifier is dynamically subscribed during tool execution
+ */
 class OutputModuleTest : KoinTest {
     @BeforeEach
     fun setup() {
@@ -29,46 +37,50 @@ class OutputModuleTest : KoinTest {
     }
 
     @Test
-    fun `default OutputHandler should be CompositeOutputHandler with Logger and Console handlers`() {
+    fun `primary OutputHandler should be SubscribableOutputHandler`() {
         val handler: OutputHandler by inject()
 
-        assertTrue(handler is CompositeOutputHandler, "Default OutputHandler should be CompositeOutputHandler")
+        assertThat(handler)
+            .isInstanceOf(SubscribableOutputHandler::class.java)
+    }
 
-        val composite = handler as CompositeOutputHandler
-        assertEquals(2, composite.getHandlerCount(), "CompositeOutputHandler should contain exactly 2 handlers")
+    @Test
+    fun `default named handler should be LoggerOutputHandler`() {
+        val handler: OutputHandler by inject(qualifier = named("default"))
 
-        val handlers = composite.getHandlers()
-        assertTrue(handlers.any { it is LoggerOutputHandler }, "Should contain LoggerOutputHandler")
-        assertTrue(handlers.any { it is ConsoleOutputHandler }, "Should contain ConsoleOutputHandler")
+        assertThat(handler)
+            .isInstanceOf(LoggerOutputHandler::class.java)
     }
 
     @Test
     fun `named console handler should be ConsoleOutputHandler instance`() {
-        val consoleHandler: OutputHandler by inject(
-            qualifier =
-                org.koin.core.qualifier
-                    .named("console"),
-        )
+        val consoleHandler: OutputHandler by inject(qualifier = named("console"))
 
-        assertTrue(consoleHandler is ConsoleOutputHandler, "Named 'console' handler should be ConsoleOutputHandler")
+        assertThat(consoleHandler)
+            .isInstanceOf(ConsoleOutputHandler::class.java)
     }
 
     @Test
     fun `named logger handler should be LoggerOutputHandler instance`() {
-        val loggerHandler: OutputHandler by inject(
-            qualifier =
-                org.koin.core.qualifier
-                    .named("logger"),
-        )
+        val loggerHandler: OutputHandler by inject(qualifier = named("logger"))
 
-        assertTrue(loggerHandler is LoggerOutputHandler, "Named 'logger' handler should be LoggerOutputHandler")
+        assertThat(loggerHandler)
+            .isInstanceOf(LoggerOutputHandler::class.java)
     }
 
     @Test
-    fun `default OutputHandler should be singleton`() {
+    fun `SubscribableOutputHandler should be singleton`() {
         val handler1: OutputHandler by inject()
         val handler2: OutputHandler by inject()
 
-        assertSame(handler1, handler2, "Default OutputHandler should be singleton")
+        assertThat(handler1).isSameAs(handler2)
+    }
+
+    @Test
+    fun `SubscribableOutputHandler can be injected directly`() {
+        val subscribable: SubscribableOutputHandler by inject()
+        val handler: OutputHandler by inject()
+
+        assertThat(subscribable).isSameAs(handler)
     }
 }

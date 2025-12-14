@@ -87,7 +87,7 @@ class Down(
     override fun execute() {
         val mode = determineTeardownMode()
 
-        outputHandler.handleMessage("Crushing dreams, terminating instances.")
+        outputHandler.publishMessage("Crushing dreams, terminating instances.")
 
         // Cleanup local resources first
         cleanupSocks5Proxy()
@@ -132,7 +132,7 @@ class Down(
     private fun teardownCurrentCluster(): TeardownResult {
         // Get the VPC ID from cluster state
         if (!clusterStateManager.exists()) {
-            outputHandler.handleMessage("No cluster state found. Use --all to find tagged VPCs or specify a VPC ID.")
+            outputHandler.publishMessage("No cluster state found. Use --all to find tagged VPCs or specify a VPC ID.")
             return TeardownResult.Companion.failure("No cluster state found")
         }
 
@@ -140,7 +140,7 @@ class Down(
         val currentVpcId = clusterState.vpcId
 
         if (currentVpcId == null) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "No VPC ID stored in cluster state for '${clusterState.name}'. " +
                     "Use --all to find tagged VPCs or specify a VPC ID.",
             )
@@ -154,13 +154,13 @@ class Down(
      * Tears down a specific VPC by ID.
      */
     private fun teardownSpecificVpc(targetVpcId: String): TeardownResult {
-        outputHandler.handleMessage("Preparing to tear down VPC: $targetVpcId")
+        outputHandler.publishMessage("Preparing to tear down VPC: $targetVpcId")
 
         // Preview to discover resources
         val previewResult = teardownService.teardownVpc(targetVpcId, dryRun = true)
 
         if (previewResult.resourcesDeleted.isEmpty()) {
-            outputHandler.handleMessage("No resources found in VPC")
+            outputHandler.publishMessage("No resources found in VPC")
             return previewResult
         }
 
@@ -173,7 +173,7 @@ class Down(
 
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
-            outputHandler.handleMessage("Teardown cancelled by user")
+            outputHandler.publishMessage("Teardown cancelled by user")
             return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
@@ -184,13 +184,13 @@ class Down(
      * Tears down all VPCs tagged with easy_cass_lab.
      */
     private fun teardownAllTagged(): TeardownResult {
-        outputHandler.handleMessage("Finding all VPCs tagged with easy_cass_lab...")
+        outputHandler.publishMessage("Finding all VPCs tagged with easy_cass_lab...")
 
         // Preview first
         val previewResult = teardownService.teardownAllTagged(dryRun = true, includePackerVpc = teardownPacker)
 
         if (previewResult.resourcesDeleted.isEmpty()) {
-            outputHandler.handleMessage("No tagged VPCs found to tear down")
+            outputHandler.publishMessage("No tagged VPCs found to tear down")
             return previewResult
         }
 
@@ -204,7 +204,7 @@ class Down(
 
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
-            outputHandler.handleMessage("Teardown cancelled by user")
+            outputHandler.publishMessage("Teardown cancelled by user")
             return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
@@ -215,13 +215,13 @@ class Down(
      * Tears down the packer infrastructure VPC.
      */
     private fun teardownPackerInfrastructure(): TeardownResult {
-        outputHandler.handleMessage("Finding packer infrastructure VPC...")
+        outputHandler.publishMessage("Finding packer infrastructure VPC...")
 
         // Preview first
         val previewResult = teardownService.teardownPackerInfrastructure(dryRun = true)
 
         if (previewResult.resourcesDeleted.isEmpty()) {
-            outputHandler.handleMessage("No packer VPC found")
+            outputHandler.publishMessage("No packer VPC found")
             return previewResult
         }
 
@@ -234,7 +234,7 @@ class Down(
 
         // Confirm if not auto-approved
         if (!autoApprove && !confirmTeardown(summary)) {
-            outputHandler.handleMessage("Teardown cancelled by user")
+            outputHandler.publishMessage("Teardown cancelled by user")
             return TeardownResult.Companion.failure("Teardown cancelled by user")
         }
 
@@ -247,9 +247,9 @@ class Down(
      * @param summary Summary of resources that would be deleted
      */
     private fun printDryRunOutput(summary: String) {
-        outputHandler.handleMessage("\n=== DRY RUN - Resources that would be deleted ===")
-        outputHandler.handleMessage(summary)
-        outputHandler.handleMessage("=== End DRY RUN ===\n")
+        outputHandler.publishMessage("\n=== DRY RUN - Resources that would be deleted ===")
+        outputHandler.publishMessage(summary)
+        outputHandler.publishMessage("=== End DRY RUN ===\n")
     }
 
     /**
@@ -275,10 +275,10 @@ class Down(
      * @return True if user confirms, false otherwise
      */
     private fun confirmTeardown(summary: String): Boolean {
-        outputHandler.handleMessage("\n=== Resources to be deleted ===")
-        outputHandler.handleMessage(summary)
-        outputHandler.handleMessage("================================\n")
-        outputHandler.handleMessage("Are you sure you want to delete these resources? (yes/no)")
+        outputHandler.publishMessage("\n=== Resources to be deleted ===")
+        outputHandler.publishMessage(summary)
+        outputHandler.publishMessage("================================\n")
+        outputHandler.publishMessage("Are you sure you want to delete these resources? (yes/no)")
 
         return Scanner(System.`in`).use { scanner ->
             val response = scanner.nextLine().trim().lowercase()
@@ -291,11 +291,11 @@ class Down(
      */
     private fun reportResult(result: TeardownResult) {
         if (result.success) {
-            outputHandler.handleMessage("\nTeardown completed successfully")
+            outputHandler.publishMessage("\nTeardown completed successfully")
         } else {
-            outputHandler.handleMessage("\nTeardown completed with errors:")
+            outputHandler.publishMessage("\nTeardown completed with errors:")
             result.errors.forEach { error ->
-                outputHandler.handleMessage("  - $error")
+                outputHandler.publishMessage("  - $error")
             }
         }
     }
@@ -319,7 +319,7 @@ class Down(
                 val process = ProcessBuilder("kill", proxyState.pid.toString()).start()
                 process.waitFor()
                 if (process.exitValue() == 0) {
-                    outputHandler.handleMessage("Stopped SOCKS5 proxy (PID: ${proxyState.pid})")
+                    outputHandler.publishMessage("Stopped SOCKS5 proxy (PID: ${proxyState.pid})")
                 } else {
                     log.warn { "Failed to kill SOCKS5 proxy process ${proxyState.pid}, it may already be stopped" }
                 }
@@ -350,7 +350,7 @@ class Down(
                 clusterState.updateOpenSearchDomain(null)
                 clusterState.updateInfrastructure(null)
                 clusterStateManager.save(clusterState)
-                outputHandler.handleMessage("Cluster state updated: infrastructure marked as DOWN")
+                outputHandler.publishMessage("Cluster state updated: infrastructure marked as DOWN")
             }
         } catch (e: Exception) {
             log.warn(e) { "Failed to update cluster state, continuing anyway" }

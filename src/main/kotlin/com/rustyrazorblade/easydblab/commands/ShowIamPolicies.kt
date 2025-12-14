@@ -36,7 +36,7 @@ class ShowIamPolicies(
             try {
                 aws.getAccountId()
             } catch (e: Exception) {
-                outputHandler.handleError("Failed to get AWS account ID. Please run 'easy-db-lab init' to set up credentials.")
+                outputHandler.publishError("Failed to get AWS account ID. Please run 'easy-db-lab init' to set up credentials.")
                 throw e
             }
 
@@ -51,16 +51,16 @@ class ShowIamPolicies(
             }
 
         if (filtered.isEmpty()) {
-            outputHandler.handleMessage("No policies found matching: $policyName")
+            outputHandler.publishMessage("No policies found matching: $policyName")
             return
         }
 
         filtered.forEach { policy ->
             if (policyName.isBlank()) {
                 // Show all policies with headers for readability
-                outputHandler.handleMessage("\n=== ${policy.name} ===\n")
+                outputHandler.publishMessage("\n=== ${policy.name} ===\n")
             }
-            outputHandler.handleMessage(policy.body)
+            outputHandler.publishMessage(policy.body)
         }
     }
 }

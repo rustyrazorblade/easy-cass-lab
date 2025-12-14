@@ -70,16 +70,16 @@ class SSHClient(
 
             // Create connection for this host
             if (!secret) {
-                outputHandler.handleMessage("Executing remote command: $command")
+                outputHandler.publishMessage("Executing remote command: $command")
             } else {
-                outputHandler.handleMessage("Executing remote command: [hidden]")
+                outputHandler.publishMessage("Executing remote command: [hidden]")
             }
 
             val stderrStream = ByteArrayOutputStream()
             val result = session.executeRemoteCommand(command, stderrStream, Charset.defaultCharset())
 
             if (output) {
-                outputHandler.handleMessage(result)
+                outputHandler.publishMessage(result)
             }
 
             return@synchronized Response(result, stderrStream.toString())
@@ -97,7 +97,7 @@ class SSHClient(
             require(local.toFile().exists()) { "Local file does not exist: ${local.toAbsolutePath()}" }
             require(local.toFile().isFile) { "Local path is not a file: ${local.toAbsolutePath()}" }
 
-            outputHandler.handleMessage("Uploading file ${local.toAbsolutePath()} to $remoteAddress:$remote")
+            outputHandler.publishMessage("Uploading file ${local.toAbsolutePath()} to $remoteAddress:$remote")
             getScpClient().upload(local, remote)
         }
 

@@ -80,7 +80,7 @@ internal class OpenSearchServiceTest {
         assertThat(result.domainId).isEqualTo("123456789012/test-domain")
         assertThat(result.state).isEqualTo(DomainState.PROCESSING)
         verify(mockOpenSearchClient).createDomain(any<CreateDomainRequest>())
-        verify(mockOutputHandler).handleMessage("Creating OpenSearch domain: test-domain...")
+        verify(mockOutputHandler).publishMessage("Creating OpenSearch domain: test-domain...")
     }
 
     @Test
@@ -130,7 +130,7 @@ internal class OpenSearchServiceTest {
         openSearchService.deleteDomain("test-domain")
 
         verify(mockOpenSearchClient).deleteDomain(any<DeleteDomainRequest>())
-        verify(mockOutputHandler).handleMessage("Deleting OpenSearch domain: test-domain...")
+        verify(mockOutputHandler).publishMessage("Deleting OpenSearch domain: test-domain...")
     }
 
     @Test
@@ -281,8 +281,8 @@ internal class OpenSearchServiceTest {
         // Should complete without throwing
         openSearchService.waitForDomainDeleted("test-domain", pollIntervalMs = 10)
 
-        verify(mockOutputHandler).handleMessage("Waiting for OpenSearch domain test-domain to be deleted (this may take 10-20 minutes)...")
-        verify(mockOutputHandler).handleMessage("OpenSearch domain test-domain deleted")
+        verify(mockOutputHandler).publishMessage("Waiting for OpenSearch domain test-domain to be deleted (this may take 10-20 minutes)...")
+        verify(mockOutputHandler).publishMessage("OpenSearch domain test-domain deleted")
     }
 
     @Test
@@ -298,7 +298,7 @@ internal class OpenSearchServiceTest {
         // Should complete without throwing
         openSearchService.waitForDomainDeleted("test-domain", pollIntervalMs = 10)
 
-        verify(mockOutputHandler).handleMessage("OpenSearch domain test-domain deleted")
+        verify(mockOutputHandler).publishMessage("OpenSearch domain test-domain deleted")
     }
 
     @Test
@@ -317,7 +317,7 @@ internal class OpenSearchServiceTest {
 
         openSearchService.waitForDomainDeleted("test-domain", pollIntervalMs = 10)
 
-        verify(mockOutputHandler).handleMessage("OpenSearch domain test-domain deleted")
+        verify(mockOutputHandler).publishMessage("OpenSearch domain test-domain deleted")
     }
 
     @Test

@@ -56,7 +56,7 @@ class EC2InstanceService(
         log.info {
             "Creating ${config.count} ${config.serverType} instances of type ${config.instanceType}"
         }
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             "Creating ${config.count} ${config.serverType.serverType} instance(s)...",
         )
 
@@ -74,7 +74,7 @@ class EC2InstanceService(
             log.info { "Created instance ${instance.instanceId} ($alias) in subnet $subnetId" }
         }
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             "Created ${instances.size} ${config.serverType.serverType} instance(s)",
         )
 
@@ -210,7 +210,7 @@ class EC2InstanceService(
         }
 
         log.info { "Waiting for ${instanceIds.size} instances to reach running state..." }
-        outputHandler.handleMessage("Waiting for instances to start...")
+        outputHandler.publishMessage("Waiting for instances to start...")
 
         val startTime = System.currentTimeMillis()
 
@@ -225,7 +225,7 @@ class EC2InstanceService(
 
             if (allRunningWithPublicIp) {
                 log.info { "All instances running with public IPs" }
-                outputHandler.handleMessage("All instances running")
+                outputHandler.publishMessage("All instances running")
                 return details
             }
 
@@ -262,7 +262,7 @@ class EC2InstanceService(
         }
 
         log.info { "Waiting for instance status checks on ${instanceIds.size} instances..." }
-        outputHandler.handleMessage("Waiting for instance status checks to pass...")
+        outputHandler.publishMessage("Waiting for instance status checks to pass...")
 
         val waiter =
             Ec2Waiter
@@ -283,7 +283,7 @@ class EC2InstanceService(
         }
 
         log.info { "Instance status checks passed for all ${instanceIds.size} instances" }
-        outputHandler.handleMessage("Instance status checks passed")
+        outputHandler.publishMessage("Instance status checks passed")
     }
 
     /**

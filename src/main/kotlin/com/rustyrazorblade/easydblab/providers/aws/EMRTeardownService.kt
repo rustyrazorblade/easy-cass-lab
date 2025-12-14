@@ -146,7 +146,7 @@ class EMRTeardownService(
         }
 
         log.info { "Terminating ${clusterIds.size} EMR clusters: $clusterIds" }
-        outputHandler.handleMessage("Terminating ${clusterIds.size} EMR clusters...")
+        outputHandler.publishMessage("Terminating ${clusterIds.size} EMR clusters...")
 
         val terminateRequest =
             TerminateJobFlowsRequest
@@ -176,7 +176,7 @@ class EMRTeardownService(
         }
 
         log.info { "Waiting for ${clusterIds.size} EMR clusters to terminate..." }
-        outputHandler.handleMessage("Waiting for EMR clusters to terminate...")
+        outputHandler.publishMessage("Waiting for EMR clusters to terminate...")
 
         val startTime = System.currentTimeMillis()
 
@@ -189,7 +189,7 @@ class EMRTeardownService(
 
             if (allTerminated) {
                 log.info { "All EMR clusters terminated successfully" }
-                outputHandler.handleMessage("All EMR clusters terminated")
+                outputHandler.publishMessage("All EMR clusters terminated")
                 return
             }
 

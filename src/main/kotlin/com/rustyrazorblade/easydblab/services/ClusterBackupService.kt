@@ -273,7 +273,7 @@ class DefaultClusterBackupService(
                     objectStore.uploadFile(localFile, s3Path, showProgress = true)
                     filesBackedUp++
                 }
-                outputHandler.handleMessage("${target.displayName} backed up to S3: ${s3Path.toUri()}")
+                outputHandler.publishMessage("${target.displayName} backed up to S3: ${s3Path.toUri()}")
                 successfulTargets.add(target)
             }
 
@@ -314,7 +314,7 @@ class DefaultClusterBackupService(
                     objectStore.downloadFile(s3Path, localPath, showProgress = true)
                     filesRestored++
                 }
-                outputHandler.handleMessage("${target.displayName} restored from S3: ${s3Path.toUri()}")
+                outputHandler.publishMessage("${target.displayName} restored from S3: ${s3Path.toUri()}")
                 successfulTargets.add(target)
             }
 
@@ -338,7 +338,7 @@ class DefaultClusterBackupService(
             log.info { "Backing up kubeconfig to S3: ${s3Path.toUri()}" }
             objectStore.uploadFile(localFile, s3Path, showProgress = true)
 
-            outputHandler.handleMessage("Kubeconfig backed up to S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("Kubeconfig backed up to S3: ${s3Path.toUri()}")
         }
 
     override fun restoreKubeconfig(
@@ -357,7 +357,7 @@ class DefaultClusterBackupService(
             log.info { "Restoring kubeconfig from S3: ${s3Path.toUri()}" }
             objectStore.downloadFile(s3Path, localPath, showProgress = true)
 
-            outputHandler.handleMessage("Kubeconfig restored from S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("Kubeconfig restored from S3: ${s3Path.toUri()}")
         }
 
     override fun backupK8sManifests(
@@ -377,7 +377,7 @@ class DefaultClusterBackupService(
             log.info { "Backing up k8s manifests to S3: ${s3Path.toUri()}" }
             objectStore.uploadDirectory(localDir, s3Path, showProgress = true)
 
-            outputHandler.handleMessage("K8s manifests backed up to S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("K8s manifests backed up to S3: ${s3Path.toUri()}")
         }
 
     override fun restoreK8sManifests(
@@ -396,7 +396,7 @@ class DefaultClusterBackupService(
             log.info { "Restoring k8s manifests from S3: ${s3Path.toUri()}" }
             objectStore.downloadDirectory(s3Path, localDir, showProgress = true)
 
-            outputHandler.handleMessage("K8s manifests restored from S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("K8s manifests restored from S3: ${s3Path.toUri()}")
         }
 
     override fun kubeconfigExistsInS3(clusterState: ClusterState): Boolean {
@@ -436,7 +436,7 @@ class DefaultClusterBackupService(
             log.info { "Backing up cassandra.patch.yaml to S3: ${s3Path.toUri()}" }
             objectStore.uploadFile(localFile, s3Path, showProgress = true)
 
-            outputHandler.handleMessage("Cassandra patch backed up to S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("Cassandra patch backed up to S3: ${s3Path.toUri()}")
         }
 
     override fun restoreCassandraPatch(
@@ -455,7 +455,7 @@ class DefaultClusterBackupService(
             log.info { "Restoring cassandra.patch.yaml from S3: ${s3Path.toUri()}" }
             objectStore.downloadFile(s3Path, localPath, showProgress = true)
 
-            outputHandler.handleMessage("Cassandra patch restored from S3: ${s3Path.toUri()}")
+            outputHandler.publishMessage("Cassandra patch restored from S3: ${s3Path.toUri()}")
         }
 
     override fun cassandraPatchExistsInS3(clusterState: ClusterState): Boolean {

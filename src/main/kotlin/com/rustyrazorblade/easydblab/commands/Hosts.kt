@@ -41,7 +41,7 @@ class Hosts(
 
     override fun execute() {
         if (!clusterStateManager.exists()) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Cluster state does not exist yet, most likely easy-db-lab up has not been run.",
             )
             return
@@ -59,7 +59,7 @@ class Hosts(
         if (cassandra) {
             val hosts = clusterState.getHosts(ServerType.Cassandra)
             val csv = hosts.map { it.public }.joinToString(",")
-            outputHandler.handleMessage(csv)
+            outputHandler.publishMessage(csv)
         } else {
             context.yaml.writeValue(System.out, output)
         }

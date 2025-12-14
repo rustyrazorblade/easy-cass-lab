@@ -10,6 +10,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.output.SubscribableOutputHandler
 import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -37,6 +38,7 @@ class CommandExecutorTest : BaseKoinTest() {
     private lateinit var mockClusterStateManager: ClusterStateManager
     private lateinit var mockBackupRestoreService: BackupRestoreService
     private lateinit var mockOutputHandler: OutputHandler
+    private lateinit var mockSubscribableOutputHandler: SubscribableOutputHandler
     private lateinit var mockUserConfigProvider: UserConfigProvider
     private lateinit var mockDockerClientProvider: DockerClientProvider
     private lateinit var mockUserConfig: User
@@ -51,6 +53,7 @@ class CommandExecutorTest : BaseKoinTest() {
                 single<ClusterStateManager> { mockClusterStateManager }
                 single<BackupRestoreService> { mockBackupRestoreService }
                 single<OutputHandler> { mockOutputHandler }
+                single<SubscribableOutputHandler> { mockSubscribableOutputHandler }
                 single<UserConfigProvider> { mockUserConfigProvider }
                 single<DockerClientProvider> { mockDockerClientProvider }
                 single<User> { mockUserConfig }
@@ -63,6 +66,7 @@ class CommandExecutorTest : BaseKoinTest() {
         mockClusterStateManager = mock()
         mockBackupRestoreService = mock()
         mockOutputHandler = mock()
+        mockSubscribableOutputHandler = mock()
         mockUserConfigProvider = mock()
         mockDockerClientProvider = mock()
         mockUserConfig = mock()
@@ -76,6 +80,7 @@ class CommandExecutorTest : BaseKoinTest() {
                 backupRestoreService = mockBackupRestoreService,
                 clusterStateManager = mockClusterStateManager,
                 outputHandler = mockOutputHandler,
+                subscribableOutputHandler = mockSubscribableOutputHandler,
                 userConfigProvider = mockUserConfigProvider,
                 dockerClientProvider = mockDockerClientProvider,
                 userConfig = mockUserConfig,

@@ -53,7 +53,7 @@ class SetupProfile(
 
         // If all required fields exist, just load and return
         if (!needsPrompting) {
-            outputHandler.handleMessage("Profile is already set up!")
+            outputHandler.publishMessage("Profile is already set up!")
             return
         }
 
@@ -61,7 +61,7 @@ class SetupProfile(
         showWelcomeMessage()
 
         // PHASE 1: Collect email (with resource tag note)
-        outputHandler.handleMessage("Your email will be added to AWS resource tags to identify the owner.")
+        outputHandler.publishMessage("Your email will be added to AWS resource tags to identify the owner.")
         val email = promptIfMissing(existingConfig, "email", "What's your email?", "")
 
         // PHASE 2: Collect AWS credentials
@@ -77,7 +77,7 @@ class SetupProfile(
             )
 
         // Validate AWS credentials before asking remaining questions
-        outputHandler.handleMessage("Validating AWS credentials...")
+        outputHandler.publishMessage("Validating AWS credentials...")
 
         val regionObj = Region.of(region)
         try {
@@ -85,7 +85,7 @@ class SetupProfile(
             tempAWS.checkPermissions()
 
             with(TermColors()) {
-                outputHandler.handleMessage(green("AWS credentials validated successfully"))
+                outputHandler.publishMessage(green("AWS credentials validated successfully"))
             }
 
             // Ask if user wants to see IAM policies with actual account ID (after validation)
@@ -100,7 +100,7 @@ class SetupProfile(
             }
         } catch (e: Exception) {
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     red(
                         """
 
@@ -128,7 +128,7 @@ class SetupProfile(
             )
 
         userConfigProvider.saveUserConfig(userConfig)
-        outputHandler.handleMessage("Credentials saved")
+        outputHandler.publishMessage("Credentials saved")
 
         // PHASE 3: Collect AxonOps info (after validation, before resource creation)
         val axonOpsOrg = promptIfMissing(existingConfig, "axonOpsOrg", "AxonOps Org", "", skippable = true)
@@ -151,13 +151,13 @@ class SetupProfile(
         userConfig.awsProfile = awsProfile
 
         userConfigProvider.saveUserConfig(userConfig)
-        outputHandler.handleMessage("Configuration saved")
+        outputHandler.publishMessage("Configuration saved")
 
         // PHASE 4: AWS Operations (after all questions answered)
 
         // Generate AWS keys only when both keyName and sshKeyPath are missing
         if (userConfig.keyName.isBlank() || userConfig.sshKeyPath.isBlank()) {
-            outputHandler.handleMessage("Generating AWS key pair...")
+            outputHandler.publishMessage("Generating AWS key pair...")
 
             val (keyName, sshKeyPath) = User.generateAwsKeyPair(context, awsAccessKey, awsSecret, regionObj, outputHandler)
 
@@ -166,23 +166,23 @@ class SetupProfile(
 
             // Save config with key pair
             userConfigProvider.saveUserConfig(userConfig)
-            outputHandler.handleMessage("Key pair saved")
+            outputHandler.publishMessage("Key pair saved")
         }
 
         // Create IAM roles if not already present
-        outputHandler.handleMessage("Ensuring IAM roles are configured...")
+        outputHandler.publishMessage("Ensuring IAM roles are configured...")
         awsResourceSetup.ensureAWSResources(userConfig)
-        outputHandler.handleMessage("IAM resources validated")
+        outputHandler.publishMessage("IAM resources validated")
 
         // Create Packer VPC infrastructure
-        outputHandler.handleMessage("Creating Packer VPC infrastructure...")
+        outputHandler.publishMessage("Creating Packer VPC infrastructure...")
 
         awsInfra.ensurePackerInfrastructure(Constants.Network.SSH_PORT)
 
-        outputHandler.handleMessage("Packer VPC infrastructure ready")
+        outputHandler.publishMessage("Packer VPC infrastructure ready")
 
         // Validate AMI and build if not found
-        outputHandler.handleMessage("Checking for required AMI...")
+        outputHandler.publishMessage("Checking for required AMI...")
 
         val archType = Arch.AMD64
 
@@ -191,10 +191,10 @@ class SetupProfile(
                 overrideAMI = "",
                 requiredArchitecture = archType,
             )
-            outputHandler.handleMessage("AMI found for ${archType.type} architecture")
+            outputHandler.publishMessage("AMI found for ${archType.type} architecture")
         } catch (e: AMIValidationException.NoAMIFound) {
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     yellow(
                         """
 
@@ -212,13 +212,13 @@ class SetupProfile(
             val proceed = Utils.prompt("Press Enter to start building the AMI, or type 'skip' to exit setup", "")
 
             if (proceed.equals("skip", ignoreCase = true)) {
-                outputHandler.handleMessage("Setup cancelled. Run 'easy-db-lab build-image' to build the AMI later.")
+                outputHandler.publishMessage("Setup cancelled. Run 'easy-db-lab build-image' to build the AMI later.")
                 return
             }
 
             // Build the AMI
             try {
-                outputHandler.handleMessage("Building AMI for ${archType.type} architecture...")
+                outputHandler.publishMessage("Building AMI for ${archType.type} architecture...")
 
                 commandExecutor.execute {
                     BuildImage(context).apply {
@@ -228,11 +228,11 @@ class SetupProfile(
                 }
 
                 with(TermColors()) {
-                    outputHandler.handleMessage(green("AMI build completed successfully"))
+                    outputHandler.publishMessage(green("AMI build completed successfully"))
                 }
             } catch (buildError: Exception) {
                 with(TermColors()) {
-                    outputHandler.handleMessage(
+                    outputHandler.publishMessage(
                         red(
                             """
 
@@ -250,12 +250,12 @@ class SetupProfile(
 
         // Show success message
         with(TermColors()) {
-            outputHandler.handleMessage(green("\nAccount setup complete!"))
+            outputHandler.publishMessage(green("\nAccount setup complete!"))
         }
     }
 
     private fun showWelcomeMessage() {
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             Welcome to the easy-db-lab interactive setup for profile '${context.profile}'.
             (To use a different profile, set the EASY_CASS_LAB_PROFILE environment variable)
@@ -300,7 +300,7 @@ class SetupProfile(
     private fun displayIAMPolicies(accountId: String) {
         val policies = User.getRequiredIAMPolicies(accountId)
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
 
             ========================================
@@ -320,7 +320,7 @@ class SetupProfile(
 
         policies.forEachIndexed { index, policy ->
             with(TermColors()) {
-                outputHandler.handleMessage(
+                outputHandler.publishMessage(
                     """
                     ${green("========================================")}
                     ${green("Policy ${index + 1}: ${policy.name}")}
@@ -333,7 +333,7 @@ class SetupProfile(
             }
         }
 
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             ========================================
 

@@ -73,7 +73,7 @@ class Server(
 
         // Generate the .mcp.json file
         val configFile = generateMcpConfig()
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             """
             MCP configuration saved to: ${configFile.absolutePath}
 

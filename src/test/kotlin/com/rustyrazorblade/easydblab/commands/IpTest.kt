@@ -84,7 +84,7 @@ class IpTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).isEqualTo("54.1.2.3")
     }
 
@@ -97,7 +97,7 @@ class IpTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).isEqualTo("54.1.2.3")
     }
 
@@ -110,7 +110,7 @@ class IpTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).isEqualTo("10.0.1.100")
     }
 
@@ -123,7 +123,7 @@ class IpTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).isEqualTo("10.0.2.100")
     }
 
@@ -136,7 +136,7 @@ class IpTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).isEqualTo("10.0.1.101")
     }
 

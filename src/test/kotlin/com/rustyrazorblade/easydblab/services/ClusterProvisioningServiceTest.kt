@@ -130,7 +130,7 @@ class ClusterProvisioningServiceTest {
 
             service.provisionInstances(config, emptyMap()) { _, _ -> }
 
-            verify(outputHandler).handleMessage(
+            verify(outputHandler).publishMessage(
                 "Found 3 existing Cassandra instances, no new instances needed",
             )
         }

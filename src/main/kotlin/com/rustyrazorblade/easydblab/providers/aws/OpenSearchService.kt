@@ -114,7 +114,7 @@ class OpenSearchService(
      */
     fun createDomain(config: OpenSearchDomainConfig): OpenSearchDomainResult {
         log.info { "Creating OpenSearch domain: ${config.domainName}" }
-        outputHandler.handleMessage("Creating OpenSearch domain: ${config.domainName}...")
+        outputHandler.publishMessage("Creating OpenSearch domain: ${config.domainName}...")
 
         val tags =
             config.tags.map { (key, value) ->
@@ -193,7 +193,7 @@ class OpenSearchService(
         val domainStatus = response.domainStatus()
 
         log.info { "OpenSearch domain creation initiated: ${domainStatus.domainId()}" }
-        outputHandler.handleMessage("OpenSearch domain initiated: ${domainStatus.domainName()}")
+        outputHandler.publishMessage("OpenSearch domain initiated: ${domainStatus.domainName()}")
 
         return OpenSearchDomainResult(
             domainName = domainStatus.domainName(),
@@ -243,7 +243,7 @@ class OpenSearchService(
      */
     fun deleteDomain(domainName: String) {
         log.info { "Deleting OpenSearch domain: $domainName" }
-        outputHandler.handleMessage("Deleting OpenSearch domain: $domainName...")
+        outputHandler.publishMessage("Deleting OpenSearch domain: $domainName...")
 
         val request =
             DeleteDomainRequest
@@ -287,7 +287,7 @@ class OpenSearchService(
         pollIntervalMs: Long = Constants.OpenSearch.POLL_INTERVAL_MS,
     ): OpenSearchDomainResult {
         log.info { "Waiting for OpenSearch domain $domainName to become active..." }
-        outputHandler.handleMessage("Waiting for OpenSearch domain to become active (this may take 10-30 minutes)...")
+        outputHandler.publishMessage("Waiting for OpenSearch domain to become active (this may take 10-30 minutes)...")
 
         val startTime = System.currentTimeMillis()
         var pollCount = 0
@@ -339,7 +339,7 @@ class OpenSearchService(
     ): OpenSearchDomainResult? =
         if (result.endpoint != null) {
             log.info { "OpenSearch domain $domainName is active with endpoint: ${result.endpoint}" }
-            outputHandler.handleMessage("OpenSearch domain is ready")
+            outputHandler.publishMessage("OpenSearch domain is ready")
             result
         } else {
             logPollProgress(pollCount, startTime, "Domain active, waiting for endpoint")
@@ -356,7 +356,7 @@ class OpenSearchService(
     ) {
         if (pollCount % Constants.OpenSearch.LOG_INTERVAL_POLLS == 0) {
             val elapsedMinutes = (System.currentTimeMillis() - startTime) / Constants.Time.MILLIS_PER_MINUTE
-            outputHandler.handleMessage("$message... ($elapsedMinutes minutes elapsed)")
+            outputHandler.publishMessage("$message... ($elapsedMinutes minutes elapsed)")
         }
     }
 
@@ -377,7 +377,7 @@ class OpenSearchService(
         pollIntervalMs: Long = Constants.OpenSearch.POLL_INTERVAL_MS,
     ) {
         log.info { "Waiting for OpenSearch domain $domainName to be deleted..." }
-        outputHandler.handleMessage("Waiting for OpenSearch domain $domainName to be deleted (this may take 10-20 minutes)...")
+        outputHandler.publishMessage("Waiting for OpenSearch domain $domainName to be deleted (this may take 10-20 minutes)...")
 
         val startTime = System.currentTimeMillis()
         var pollCount = 0
@@ -410,7 +410,7 @@ class OpenSearchService(
             handleDeletedPollResult(result, domainName, pollCount, startTime)
         } catch (e: software.amazon.awssdk.services.opensearch.model.ResourceNotFoundException) {
             log.info { "OpenSearch domain $domainName no longer exists (deleted)" }
-            outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+            outputHandler.publishMessage("OpenSearch domain $domainName deleted")
             true
         }
 
@@ -428,7 +428,7 @@ class OpenSearchService(
         when (result.state) {
             DomainState.DELETED -> {
                 log.info { "OpenSearch domain $domainName is deleted" }
-                outputHandler.handleMessage("OpenSearch domain $domainName deleted")
+                outputHandler.publishMessage("OpenSearch domain $domainName deleted")
                 true
             }
             DomainState.ACTIVE, DomainState.PROCESSING -> {

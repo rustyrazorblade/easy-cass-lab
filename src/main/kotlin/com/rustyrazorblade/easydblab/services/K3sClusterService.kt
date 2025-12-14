@@ -125,18 +125,18 @@ class DefaultK3sClusterService(
     }
 
     override fun setupCluster(config: K3sClusterConfig): K3sSetupResult {
-        outputHandler.handleMessage("Starting K3s cluster...")
+        outputHandler.publishMessage("Starting K3s cluster...")
 
         val errors = mutableMapOf<String, Exception>()
         val controlHost = config.controlHost
 
         // Step 1: Start K3s server
-        outputHandler.handleMessage("Starting K3s server on control node ${controlHost.alias}...")
+        outputHandler.publishMessage("Starting K3s server on control node ${controlHost.alias}...")
         val serverStartResult = k3sService.start(controlHost.toHost())
         if (serverStartResult.isFailure) {
             val error = serverStartResult.exceptionOrNull()!!
             log.error(error) { "Failed to start K3s server on ${controlHost.alias}" }
-            outputHandler.handleError("Failed to start K3s server: ${error.message}")
+            outputHandler.publishError("Failed to start K3s server: ${error.message}")
             errors["K3s server start"] = Exception(error.message, error)
             return K3sSetupResult(
                 serverStarted = false,
@@ -150,7 +150,7 @@ class DefaultK3sClusterService(
         if (tokenResult.isFailure) {
             val error = tokenResult.exceptionOrNull()!!
             log.error(error) { "Failed to retrieve K3s node token from ${controlHost.alias}" }
-            outputHandler.handleError("Failed to retrieve K3s node token: ${error.message}")
+            outputHandler.publishError("Failed to retrieve K3s node token: ${error.message}")
             errors["K3s node token retrieval"] = Exception(error.message, error)
             return K3sSetupResult(
                 serverStarted = true,
@@ -171,12 +171,12 @@ class DefaultK3sClusterService(
         kubeconfigResult
             .onFailure { error ->
                 log.error(error) { "Failed to download kubeconfig from ${controlHost.alias}" }
-                outputHandler.handleError("Failed to download kubeconfig: ${error.message}")
+                outputHandler.publishError("Failed to download kubeconfig: ${error.message}")
                 errors["Kubeconfig download"] = Exception(error.message, error)
             }.onSuccess {
                 kubeconfigWritten = true
-                outputHandler.handleMessage("Kubeconfig written to ${config.kubeconfigPath.fileName}")
-                outputHandler.handleMessage("Use 'source env.sh' to configure kubectl for cluster access")
+                outputHandler.publishMessage("Kubeconfig written to ${config.kubeconfigPath.fileName}")
+                outputHandler.publishMessage("Use 'source env.sh' to configure kubectl for cluster access")
 
                 // Step 3b: Backup kubeconfig to S3 if ClusterState is available
                 kubeconfigBackedUp = backupKubeconfigToS3(config, errors)
@@ -195,7 +195,7 @@ class DefaultK3sClusterService(
                 }
             }
 
-        outputHandler.handleMessage("K3s cluster started successfully")
+        outputHandler.publishMessage("K3s cluster started successfully")
 
         return K3sSetupResult(
             serverStarted = true,
@@ -289,14 +289,14 @@ class DefaultK3sClusterService(
         nodeLabels: Map<String, String>,
     ): AgentSetupResult {
         val host = clusterHost.toHost()
-        outputHandler.handleMessage("Configuring K3s agent on ${host.alias} with labels: $nodeLabels...")
+        outputHandler.publishMessage("Configuring K3s agent on ${host.alias} with labels: $nodeLabels...")
 
         // Configure agent
         val configResult = k3sAgentService.configure(host, serverUrl, nodeToken, nodeLabels)
         if (configResult.isFailure) {
             val error = configResult.exceptionOrNull()!!
             log.error(error) { "Failed to configure K3s agent on ${host.alias}" }
-            outputHandler.handleError("Failed to configure K3s agent on ${host.alias}: ${error.message}")
+            outputHandler.publishError("Failed to configure K3s agent on ${host.alias}: ${error.message}")
             return AgentSetupResult(
                 alias = host.alias,
                 success = false,
@@ -309,7 +309,7 @@ class DefaultK3sClusterService(
         if (startResult.isFailure) {
             val error = startResult.exceptionOrNull()!!
             log.error(error) { "Failed to start K3s agent on ${host.alias}" }
-            outputHandler.handleError("Failed to start K3s agent on ${host.alias}: ${error.message}")
+            outputHandler.publishError("Failed to start K3s agent on ${host.alias}: ${error.message}")
             return AgentSetupResult(
                 alias = host.alias,
                 success = false,

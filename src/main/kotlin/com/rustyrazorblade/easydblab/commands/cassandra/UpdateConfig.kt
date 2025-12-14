@@ -57,12 +57,12 @@ class UpdateConfig(
         // upload the patch file
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
             val it = host.toHost()
-            outputHandler.handleMessage("Uploading $file to $it")
+            outputHandler.publishMessage("Uploading $file to $it")
 
             val yaml = context.yaml.readTree(Path.of(file).inputStream())
             (yaml as ObjectNode).put("listen_address", it.private).put("rpc_address", it.private)
 
-            outputHandler.handleMessage("Patching $it")
+            outputHandler.publishMessage("Patching $it")
             val tmp = Files.createTempFile("easydblab", "yaml")
             context.yaml.writeValue(tmp.toFile(), yaml)
 
@@ -74,18 +74,18 @@ class UpdateConfig(
             // Execute patch-config and handle errors
             val patchResult = remoteOps.executeRemotely(it, "/usr/local/bin/patch-config $file")
             if (patchResult.stderr.isNotEmpty()) {
-                outputHandler.handleError("patch-config stderr: ${patchResult.stderr}")
+                outputHandler.publishError("patch-config stderr: ${patchResult.stderr}")
                 error("Failed to patch configuration on ${it.alias}: ${patchResult.stderr}")
             }
-            outputHandler.handleMessage(patchResult.text)
+            outputHandler.publishMessage(patchResult.text)
 
             // Create a temporary directory on the remote filesystem using mktemp
             val tempDir =
                 remoteOps.executeRemotely(it, "mktemp -d -t easydblab.XXXXXX").text.trim()
-            outputHandler.handleMessage("Created temporary directory $tempDir on $it")
+            outputHandler.publishMessage("Created temporary directory $tempDir on $it")
 
             // Upload files to the temporary directory first
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Uploading configuration files to temporary directory $tempDir",
             )
             remoteOps.uploadDirectory(it, resolvedVersion.file, tempDir)
@@ -94,7 +94,7 @@ class UpdateConfig(
             remoteOps.executeRemotely(it, "sudo mkdir -p ${resolvedVersion.conf}").text
 
             // Copy files from temp directory to the final location
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Copying files from temporary directory to ${resolvedVersion.conf}",
             )
             remoteOps.executeRemotely(it, "sudo cp -R $tempDir/* ${resolvedVersion.conf}/").text
@@ -109,7 +109,7 @@ class UpdateConfig(
             // Clean up the temporary directory
             remoteOps.executeRemotely(it, "rm -rf $tempDir").text
 
-            outputHandler.handleMessage("Configuration updated for $it")
+            outputHandler.publishMessage("Configuration updated for $it")
 
             uploadSidecarConfig(it)
         }
@@ -149,6 +149,6 @@ class UpdateConfig(
             host,
             "sudo mv cassandra-sidecar.yaml ${Constants.ConfigPaths.CASSANDRA_REMOTE_SIDECAR_CONFIG}",
         )
-        outputHandler.handleMessage("Sidecar configuration updated for $host")
+        outputHandler.publishMessage("Sidecar configuration updated for $host")
     }
 }

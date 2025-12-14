@@ -49,8 +49,8 @@ class SparkJobs(
                     error(error.message ?: "Failed to validate EMR cluster")
                 }
 
-        outputHandler.handleMessage("Listing jobs for cluster: ${clusterInfo.clusterId}")
-        outputHandler.handleMessage("")
+        outputHandler.publishMessage("Listing jobs for cluster: ${clusterInfo.clusterId}")
+        outputHandler.publishMessage("")
 
         // Get job list
         val jobs =
@@ -61,12 +61,12 @@ class SparkJobs(
                 }
 
         if (jobs.isEmpty()) {
-            outputHandler.handleMessage("No jobs found on cluster.")
+            outputHandler.publishMessage("No jobs found on cluster.")
             return
         }
 
         // Display jobs in a formatted table
-        outputHandler.handleMessage(formatJobsTable(jobs))
+        outputHandler.publishMessage(formatJobsTable(jobs))
     }
 
     /**

@@ -112,7 +112,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler).handleMessage(captor.capture())
+        verify(mockOutputHandler).publishMessage(captor.capture())
         assertThat(captor.firstValue).contains("Cluster state does not exist")
     }
 
@@ -124,7 +124,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== CLUSTER STATUS ===")
@@ -142,7 +142,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(10)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(10)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== NODES ===")
@@ -160,7 +160,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== NETWORKING ===")
@@ -178,7 +178,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(10)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(10)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== SECURITY GROUP ===")
@@ -208,7 +208,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("(no infrastructure data)")
@@ -234,7 +234,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         // Should not contain node headers if no nodes exist
@@ -264,7 +264,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== CASSANDRA VERSION ===")
@@ -295,7 +295,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== KUBERNETES PODS ===")
@@ -312,7 +312,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(10)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(10)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== SPARK CLUSTER ===")
@@ -331,7 +331,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(10)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(10)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== SPARK CLUSTER ===")
@@ -347,7 +347,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== SPARK CLUSTER ===")
@@ -362,7 +362,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(10)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(10)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== S3 BUCKET ===")
@@ -379,7 +379,7 @@ class StatusTest : BaseKoinTest() {
         command.execute()
 
         val captor = argumentCaptor<String>()
-        verify(mockOutputHandler, atLeast(5)).handleMessage(captor.capture())
+        verify(mockOutputHandler, atLeast(5)).publishMessage(captor.capture())
 
         val allMessages = captor.allValues.joinToString("\n")
         assertThat(allMessages).contains("=== S3 BUCKET ===")

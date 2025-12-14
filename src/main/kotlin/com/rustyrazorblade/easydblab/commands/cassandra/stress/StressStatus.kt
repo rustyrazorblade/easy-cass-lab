@@ -62,19 +62,19 @@ class StressStatus(
             }
 
         if (filteredJobs.isEmpty()) {
-            outputHandler.handleMessage("No stress jobs found.")
+            outputHandler.publishMessage("No stress jobs found.")
             return
         }
 
         // Print header
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             "%-40s %-12s %-12s %s".format("NAME", "STATUS", "COMPLETIONS", "AGE"),
         )
 
         // Print jobs
         for (job in filteredJobs.sortedByDescending { it.age }) {
             val ageStr = formatDuration(job.age)
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "%-40s %-12s %-12s %s".format(job.name, job.status, job.completions, ageStr),
             )
         }

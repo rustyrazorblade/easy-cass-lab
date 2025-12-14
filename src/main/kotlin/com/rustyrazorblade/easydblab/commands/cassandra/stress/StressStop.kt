@@ -72,18 +72,18 @@ class StressStop(
                     }
 
             if (jobs.isEmpty()) {
-                outputHandler.handleMessage("No stress jobs found.")
+                outputHandler.publishMessage("No stress jobs found.")
                 return
             }
 
-            outputHandler.handleMessage("Found ${jobs.size} stress job(s) to delete:")
+            outputHandler.publishMessage("Found ${jobs.size} stress job(s) to delete:")
             jobs.forEach { job ->
-                outputHandler.handleMessage("  - ${job.name} (${job.status})")
+                outputHandler.publishMessage("  - ${job.name} (${job.status})")
             }
 
             if (!force) {
-                outputHandler.handleMessage("")
-                outputHandler.handleMessage("Use --force to confirm deletion.")
+                outputHandler.publishMessage("")
+                outputHandler.publishMessage("Use --force to confirm deletion.")
                 return
             }
 
@@ -94,13 +94,13 @@ class StressStop(
                 deleted++
             }
 
-            outputHandler.handleMessage("")
-            outputHandler.handleMessage("Deleted $deleted stress job(s).")
+            outputHandler.publishMessage("")
+            outputHandler.publishMessage("Deleted $deleted stress job(s).")
         } else {
             // Delete specific job
             val name = jobName!!
             deleteJobAndConfigMap(controlNode, name)
-            outputHandler.handleMessage("Deleted stress job: $name")
+            outputHandler.publishMessage("Deleted stress job: $name")
         }
     }
 

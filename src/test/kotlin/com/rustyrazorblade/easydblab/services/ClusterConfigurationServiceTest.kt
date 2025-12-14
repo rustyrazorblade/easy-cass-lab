@@ -221,7 +221,7 @@ class ClusterConfigurationServiceTest {
 
             service.writeAxonOpsWorkbenchConfig(tempDir, clusterState, userConfig)
 
-            verify(outputHandler).handleMessage("AxonOps Workbench configuration written to axonops-workbench.json")
+            verify(outputHandler).publishMessage("AxonOps Workbench configuration written to axonops-workbench.json")
         }
 
         @Test

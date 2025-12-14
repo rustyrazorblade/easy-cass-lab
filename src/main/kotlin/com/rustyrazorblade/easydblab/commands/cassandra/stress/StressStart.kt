@@ -122,17 +122,17 @@ class StressStart(
                 error("Failed to create job: ${e.message}")
             }
 
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Stress job started successfully!")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Job name: $fullJobName")
-        outputHandler.handleMessage("Image: $image")
-        outputHandler.handleMessage("Contact points: $contactPoints")
-        outputHandler.handleMessage("Stress args: ${args.joinToString(" ")}")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Check status: easy-db-lab cassandra stress status")
-        outputHandler.handleMessage("View logs: easy-db-lab cassandra stress logs $fullJobName")
-        outputHandler.handleMessage("Stop job: easy-db-lab cassandra stress stop $fullJobName")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Stress job started successfully!")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Job name: $fullJobName")
+        outputHandler.publishMessage("Image: $image")
+        outputHandler.publishMessage("Contact points: $contactPoints")
+        outputHandler.publishMessage("Stress args: ${args.joinToString(" ")}")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Check status: easy-db-lab cassandra stress status")
+        outputHandler.publishMessage("View logs: easy-db-lab cassandra stress logs $fullJobName")
+        outputHandler.publishMessage("Stop job: easy-db-lab cassandra stress stop $fullJobName")
     }
 
     /**

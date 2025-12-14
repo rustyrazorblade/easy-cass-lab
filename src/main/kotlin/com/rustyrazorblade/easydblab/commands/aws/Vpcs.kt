@@ -26,7 +26,7 @@ class Vpcs(
         val vpcIds = vpcService.findVpcsByTag(Constants.Vpc.TAG_KEY, Constants.Vpc.TAG_VALUE)
 
         if (vpcIds.isEmpty()) {
-            outputHandler.handleMessage("No easy-db-lab VPCs found")
+            outputHandler.publishMessage("No easy-db-lab VPCs found")
             return
         }
 
@@ -34,7 +34,7 @@ class Vpcs(
             val tags = vpcService.getVpcTags(vpcId)
             val name = tags["Name"] ?: "(unnamed)"
             val clusterId = tags["ClusterId"] ?: "(no cluster id)"
-            outputHandler.handleMessage("$name $vpcId $clusterId")
+            outputHandler.publishMessage("$name $vpcId $clusterId")
         }
     }
 }

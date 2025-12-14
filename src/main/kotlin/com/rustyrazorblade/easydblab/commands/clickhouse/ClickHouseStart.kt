@@ -88,7 +88,7 @@ class ClickHouseStart(
         // Determine replica count: use provided value or default to number of db nodes
         val actualReplicas = replicas ?: dbHosts.size
 
-        outputHandler.handleMessage("Deploying ClickHouse cluster with $actualReplicas replicas...")
+        outputHandler.publishMessage("Deploying ClickHouse cluster with $actualReplicas replicas...")
 
         // Create S3 secret with endpoint URL (always created for s3_main policy)
         val bucket = clusterState.s3Bucket
@@ -102,10 +102,10 @@ class ClickHouseStart(
                     bucket,
                 ).getOrElse { exception ->
                     log.warn { "Failed to create S3 secret: ${exception.message}" }
-                    outputHandler.handleMessage("Warning: S3 storage policy may not work (no S3 bucket configured)")
+                    outputHandler.publishMessage("Warning: S3 storage policy may not work (no S3 bucket configured)")
                 }
         } else {
-            outputHandler.handleMessage("Note: S3 bucket not configured. Only 'local' storage policy available.")
+            outputHandler.publishMessage("Note: S3 bucket not configured. Only 'local' storage policy available.")
         }
 
         // Apply all manifests from directory (auto-discovers YAML files, sorted by name)
@@ -125,32 +125,32 @@ class ClickHouseStart(
 
         // Wait for pods to be ready
         if (!skipWait) {
-            outputHandler.handleMessage("Waiting for ClickHouse pods to be ready (this may take a few minutes)...")
+            outputHandler.publishMessage("Waiting for ClickHouse pods to be ready (this may take a few minutes)...")
             k8sService
                 .waitForPodsReady(controlNode, timeoutSeconds, Constants.ClickHouse.NAMESPACE)
                 .getOrElse { exception ->
-                    outputHandler.handleError("Warning: Pods may not be ready: ${exception.message}")
-                    outputHandler.handleMessage("You can check status with: easy-db-lab clickhouse status")
+                    outputHandler.publishError("Warning: Pods may not be ready: ${exception.message}")
+                    outputHandler.publishMessage("You can check status with: easy-db-lab clickhouse status")
                 }
         }
 
         val dbNodeIp = dbHosts.first().privateIp
 
         // Display access information
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("ClickHouse cluster deployed successfully!")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Storage policies available:")
-        outputHandler.handleMessage("  - local: Local disk storage")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("ClickHouse cluster deployed successfully!")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Storage policies available:")
+        outputHandler.publishMessage("  - local: Local disk storage")
         if (!bucket.isNullOrBlank()) {
-            outputHandler.handleMessage("  - s3_main: S3 with local cache (bucket: $bucket)")
+            outputHandler.publishMessage("  - s3_main: S3 with local cache (bucket: $bucket)")
         }
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Example: CREATE TABLE t (...) SETTINGS storage_policy = 's3_main';")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("HTTP Interface: http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}")
-        outputHandler.handleMessage("Native Protocol: $dbNodeIp:${Constants.ClickHouse.NATIVE_PORT}")
-        outputHandler.handleMessage("")
-        outputHandler.handleMessage("Connect with: clickhouse-client --host $dbNodeIp")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Example: CREATE TABLE t (...) SETTINGS storage_policy = 's3_main';")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("HTTP Interface: http://$dbNodeIp:${Constants.ClickHouse.HTTP_PORT}")
+        outputHandler.publishMessage("Native Protocol: $dbNodeIp:${Constants.ClickHouse.NATIVE_PORT}")
+        outputHandler.publishMessage("")
+        outputHandler.publishMessage("Connect with: clickhouse-client --host $dbNodeIp")
     }
 }

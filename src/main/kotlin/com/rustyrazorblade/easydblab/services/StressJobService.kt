@@ -131,7 +131,7 @@ class DefaultStressJobService(
                 profileFileName = profileConfig.first
                 profileConfigMapName = "$jobName-profile"
 
-                outputHandler.handleMessage("Creating ConfigMap for profile: $profileFileName")
+                outputHandler.publishMessage("Creating ConfigMap for profile: $profileFileName")
 
                 k8sService
                     .createConfigMap(
@@ -158,7 +158,7 @@ class DefaultStressJobService(
             log.debug { "Job YAML:\n$jobYaml" }
 
             // Create the job
-            outputHandler.handleMessage("Starting stress job: $jobName")
+            outputHandler.publishMessage("Starting stress job: $jobName")
             k8sService
                 .createJob(controlHost, Constants.Stress.NAMESPACE, jobYaml)
                 .getOrThrow()

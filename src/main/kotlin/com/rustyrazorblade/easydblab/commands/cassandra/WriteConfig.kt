@@ -47,8 +47,8 @@ class WriteConfig(
 
     override fun execute() {
         // create the cassandra.yaml patch file
-        outputHandler.handleMessage("Writing new configuration file to $file.")
-        outputHandler.handleMessage(
+        outputHandler.publishMessage("Writing new configuration file to $file.")
+        outputHandler.publishMessage(
             "It can be applied to the lab via easy-db-lab update-config " +
                 "(or automatically when calling use-cassandra)",
         )

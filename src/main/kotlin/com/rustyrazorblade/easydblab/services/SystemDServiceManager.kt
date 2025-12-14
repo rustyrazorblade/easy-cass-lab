@@ -106,7 +106,7 @@ abstract class AbstractSystemDServiceManager(
 
     override fun start(host: Host): Result<Unit> =
         runCatching {
-            outputHandler.handleMessage("Starting $serviceName on ${host.alias}...")
+            outputHandler.publishMessage("Starting $serviceName on ${host.alias}...")
 
             remoteOps.executeRemotely(
                 host,
@@ -118,7 +118,7 @@ abstract class AbstractSystemDServiceManager(
 
     override fun stop(host: Host): Result<Unit> =
         runCatching {
-            outputHandler.handleMessage("Stopping $serviceName on ${host.alias}...")
+            outputHandler.publishMessage("Stopping $serviceName on ${host.alias}...")
 
             remoteOps.executeRemotely(
                 host,
@@ -130,7 +130,7 @@ abstract class AbstractSystemDServiceManager(
 
     open override fun restart(host: Host): Result<Unit> =
         runCatching {
-            outputHandler.handleMessage("Restarting $serviceName on ${host.alias}...")
+            outputHandler.publishMessage("Restarting $serviceName on ${host.alias}...")
 
             remoteOps.executeRemotely(
                 host,

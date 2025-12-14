@@ -36,7 +36,7 @@ class Stop(
     var hosts = HostsMixin()
 
     override fun execute() {
-        outputHandler.handleMessage("Stopping cassandra service on all nodes.")
+        outputHandler.publishMessage("Stopping cassandra service on all nodes.")
 
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList) { host ->
             cassandraService.stop(host.toHost()).getOrThrow()
@@ -49,16 +49,16 @@ class Stop(
      * Stop cassandra-sidecar service on Cassandra nodes
      */
     private fun stopSidecar() {
-        outputHandler.handleMessage("Stopping cassandra-sidecar on Cassandra nodes...")
+        outputHandler.publishMessage("Stopping cassandra-sidecar on Cassandra nodes...")
 
         hostOperationsService.withHosts(clusterState.hosts, ServerType.Cassandra, hosts.hostList, parallel = true) { host ->
             sidecarService
                 .stop(host.toHost())
                 .onFailure { e ->
-                    outputHandler.handleMessage("Warning: Failed to stop cassandra-sidecar on ${host.alias}: ${e.message}")
+                    outputHandler.publishMessage("Warning: Failed to stop cassandra-sidecar on ${host.alias}: ${e.message}")
                 }
         }
 
-        outputHandler.handleMessage("cassandra-sidecar shutdown completed on Cassandra nodes")
+        outputHandler.publishMessage("cassandra-sidecar shutdown completed on Cassandra nodes")
     }
 }

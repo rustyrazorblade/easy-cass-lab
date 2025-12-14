@@ -52,16 +52,16 @@ class ContainerExecutor(
                 .decorateRunnable(retry) {
                     dockerClient.startContainer(containerId)
                 }.run()
-            outputHandler.handleMessage("Starting container $containerId")
+            outputHandler.publishMessage("Starting container $containerId")
         } catch (e: com.github.dockerjava.api.exception.DockerException) {
             val errorMsg = "Docker error starting container: $containerId"
             log.error(e) { errorMsg }
-            outputHandler.handleError("Error starting container: ${e.message}", e)
+            outputHandler.publishError("Error starting container: ${e.message}", e)
             throw DockerException("Failed to start container $containerId", e)
         } catch (e: IOException) {
             val errorMsg = "IO error starting container: $containerId"
             log.error(e) { errorMsg }
-            outputHandler.handleError("Error starting container: ${e.message}", e)
+            outputHandler.publishError("Error starting container: ${e.message}", e)
             throw DockerException("IO error starting container $containerId", e)
         }
 
@@ -115,10 +115,10 @@ class ContainerExecutor(
                 }.run()
         } catch (e: DockerException) {
             log.error(e) { "Docker error while removing container $containerId" }
-            outputHandler.handleError("Failed to remove container: ${e.message}", e)
+            outputHandler.publishError("Failed to remove container: ${e.message}", e)
         } catch (e: RuntimeException) {
             log.error(e) { "Runtime error while removing container $containerId" }
-            outputHandler.handleError("Failed to remove container: ${e.message}", e)
+            outputHandler.publishError("Failed to remove container: ${e.message}", e)
         }
     }
 }
@@ -156,7 +156,7 @@ class ContainerIOManager(
             setupStdinRedirection()
         }
 
-        outputHandler.handleMessage("Attaching to running container")
+        outputHandler.publishMessage("Attaching to running container")
 
         val frameCallback =
             object : ResultCallback.Adapter<Frame>() {
@@ -164,12 +164,12 @@ class ContainerIOManager(
                     if (item == null) return
 
                     framesRead++
-                    outputHandler.handleFrame(item)
+                    outputHandler.publishFrame(item)
                 }
 
                 override fun onError(throwable: Throwable) {
                     log.error(throwable) { "Container attachment error" }
-                    outputHandler.handleError("Container attachment error", throwable)
+                    outputHandler.publishError("Container attachment error", throwable)
                     super.onError(throwable)
                 }
             }
@@ -257,7 +257,7 @@ class ContainerStateMonitor : KoinComponent {
         framesRead: Int,
     ) {
         val message = buildReturnMessage(containerState, framesRead)
-        outputHandler.handleMessage(message)
+        outputHandler.publishMessage(message)
         log.info { message }
     }
 }

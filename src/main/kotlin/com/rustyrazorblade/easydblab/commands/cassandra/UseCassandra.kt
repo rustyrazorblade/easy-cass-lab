@@ -57,7 +57,7 @@ class UseCassandra(
         val state = clusterState
 
         if (!clusterStateManager.exists()) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "Error: cluster state not found. Please run easy-db-lab up first to " +
                     "establish IP addresses for seed listing.",
             )
@@ -65,7 +65,7 @@ class UseCassandra(
         }
 
         val cassandraHosts = state.getHosts(ServerType.Cassandra)
-        outputHandler.handleMessage(
+        outputHandler.publishMessage(
             "Using version $version on ${cassandraHosts.size} hosts, filter: $hosts",
         )
 
@@ -88,7 +88,7 @@ class UseCassandra(
         }
 
         with(TermColors()) {
-            outputHandler.handleMessage(
+            outputHandler.publishMessage(
                 "You can update ${green("cassandra.patch.yaml")} and the JVM config files under ${green(version)}, " +
                     "then run ${green("easy-db-lab update-config")} to apply the changes.",
             )

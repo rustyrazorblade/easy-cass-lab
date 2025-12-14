@@ -25,7 +25,7 @@ class Dashboards(
                     resource.open().use { input ->
                         val outputFile = resource.path.replace("com/rustyrazorblade/dashboards/", "")
                         val output = File(dashboardLocation, outputFile)
-                        outputHandler.handleMessage("Writing ${output.absolutePath}")
+                        outputHandler.publishMessage("Writing ${output.absolutePath}")
                         FileUtils.copyInputStreamToFile(input, output)
                     }
                 }
