@@ -42,6 +42,7 @@ import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.time.Duration
 
@@ -95,7 +96,7 @@ class Up(
          * Gets the external IP address of the machine running easy-db-lab.
          * Used to restrict SSH access to the security group.
          */
-        private fun getExternalIpAddress(): String = URL("https://api.ipify.org/").readText()
+        private fun getExternalIpAddress(): String = URI("https://api.ipify.org/").toURL().readText()
     }
 
     // Lock for synchronizing access to workingState from parallel threads

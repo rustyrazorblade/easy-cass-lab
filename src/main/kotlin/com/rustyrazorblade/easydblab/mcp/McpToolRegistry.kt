@@ -69,9 +69,13 @@ class McpToolRegistry(
                 .inputSchema(jsonMapper, schemaJson)
                 .build()
 
-        return SyncToolSpecification(tool) { _, arguments ->
-            executeTool(entry, arguments)
-        }
+        return SyncToolSpecification
+            .builder()
+            .tool(tool)
+            .callHandler { _, request ->
+                executeTool(entry, request.arguments())
+            }
+            .build()
     }
 
     /**
@@ -101,12 +105,20 @@ class McpToolRegistry(
             command.call()
             outputHandler.handleMessage("Tool '${entry.name}' completed successfully")
 
-            McpSchema.CallToolResult("Tool '${entry.name}' executed successfully", false)
+            McpSchema.CallToolResult
+                .builder()
+                .addTextContent("Tool '${entry.name}' executed successfully")
+                .isError(false)
+                .build()
         } catch (e: Exception) {
             log.error(e) { "Error executing tool ${entry.name}" }
             outputHandler.handleError("Tool '${entry.name}' failed: ${e.message}", e)
 
-            McpSchema.CallToolResult("Error: ${e.message}", true)
+            McpSchema.CallToolResult
+                .builder()
+                .addTextContent("Error: ${e.message}")
+                .isError(true)
+                .build()
         }
     }
 
