@@ -13,6 +13,7 @@ import io.modelcontextprotocol.spec.McpSchema
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler
 import org.eclipse.jetty.ee10.servlet.ServletHolder
 import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.ServerConnector
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -92,7 +93,13 @@ class McpServerImpl(
         port: Int,
         transportProvider: HttpServletStreamableServerTransportProvider,
     ): Server {
-        val server = Server(port)
+        val server = Server()
+
+        // Bind to localhost only for security
+        val connector = ServerConnector(server)
+        connector.host = "127.0.0.1"
+        connector.port = port
+        server.addConnector(connector)
 
         val contextHandler = ServletContextHandler()
         contextHandler.contextPath = "/"
@@ -152,7 +159,7 @@ class McpServerImpl(
     private fun displayStartupMessage(port: Int) {
         outputHandler.handleMessage(
             """
-            Starting Streamable MCP server on port ${port}:
+            Starting Streamable MCP server on port $port:
 
             http://127.0.0.1:$port$MCP_ENDPOINT
             """.trimIndent(),

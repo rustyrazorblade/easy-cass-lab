@@ -57,7 +57,7 @@ class Server(
                             McpServerConfig(
                                 type = "http",
                                 url = "http://localhost:$port/mcp",
-                            )
+                            ),
                     ),
             )
 
