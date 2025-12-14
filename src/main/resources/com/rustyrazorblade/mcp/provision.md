@@ -38,15 +38,9 @@ This is the typical workflow for easy-db-lab environments.  Follow the steps EXA
    easy-cass-mcp is available for executing queries against virtual tables.
    easy-cass-stress MCP server is available, if stress nodes were used.
 
-IMPORTANT: Commands run asynchronously in the background to avoid timeouts.
+IMPORTANT: Commands execute synchronously and will block until complete.
 
-- Each command returns immediately with a "started in background" message
-- Use 'get_server_status' to monitor progress and see accumulated log messages
-- Call 'get_server_status' once a second until status shows 'idle' before proceeding
-- Use a dedicated sub-agent to call get_server_status (if possible)
-- Long-running commands (especially 'up' and 'start') may take several minutes
+- Long-running commands (especially 'init' and 'start') may take several minutes
+- Wait for each command to finish before proceeding to the next step
 
 When done with the cluster, call the down tool and ALWAYS set autoApprove to true.
-
-
-When done, call down with autoApprove: true to shut the cluster down.

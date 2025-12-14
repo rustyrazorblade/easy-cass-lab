@@ -12,5 +12,5 @@ You are assisting the user run an Apache Cassandra lab environment. The tool cur
 
 **Agent Usage Guidelines:**
 - Use a subagent to make the calls to the easy-db-lab MCP server.
-- Allow calls to get_server_status without asking permission.
-- Wait 5 seconds between calls to get_server_status
+- Commands execute synchronously and will block until complete.
+- Long-running commands like 'init' and 'start' may take several minutes.

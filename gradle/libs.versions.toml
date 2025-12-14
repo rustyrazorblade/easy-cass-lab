@@ -2,9 +2,9 @@
 # Kotlin
 kotlin = "2.2.21"
 
-# MCP SDK
-mcp-sdk = "0.7.2"
-kotlinx-io = "0.8.2"
+# MCP Java SDK
+mcp-java-sdk = "0.17.0"
+jetty = "12.0.17"
 
 
 # Logging
@@ -31,9 +31,6 @@ testcontainers = "1.21.3"
 picocli = "4.7.7"
 jline = "3.30.6"
 mordant = "1.2.1"
-
-# Ktor
-ktor = "3.3.3"
 
 # Koin DI
 koin = "4.1.1"
@@ -89,12 +86,6 @@ picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 jline = { module = "org.jline:jline", version.ref = "jline" }
 mordant = { module = "com.github.ajalt:mordant", version.ref = "mordant" }
 
-# Ktor
-ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
-ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
-ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
-ktor-serialization-jackson = { module = "io.ktor:ktor-serialization-jackson", version.ref = "ktor" }
-
 # Koin DI
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core" }
@@ -128,9 +119,13 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
-# MCP SDK
-mcp-sdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp-sdk" }
-kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
+# MCP Java SDK
+mcp-java-bom = { module = "io.modelcontextprotocol.sdk:mcp-bom", version.ref = "mcp-java-sdk" }
+mcp-java = { module = "io.modelcontextprotocol.sdk:mcp" }
+
+# Jetty (Jakarta EE 10 Servlet API)
+jetty-server = { module = "org.eclipse.jetty:jetty-server", version.ref = "jetty" }
+jetty-servlet = { module = "org.eclipse.jetty.ee10:jetty-ee10-servlet", version.ref = "jetty" }
 
 # Resilience4j
 resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
@@ -152,9 +147,6 @@ testing = ["junit-jupiter", "assertj-core", "mockito-kotlin"]
 # TestContainers bundle
 testcontainers = ["testcontainers-core", "testcontainers-junit", "testcontainers-k3s", "testcontainers-localstack"]
 
-# Ktor bundle
-ktor = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-serialization-jackson"]
-
 # Koin bundle
 koin = ["koin-core"]
 koin-test = ["koin-test", "koin-test-junit5"]
@@ -170,6 +162,9 @@ sshd = ["sshd-core", "sshd-scp"]
 
 # Resilience4j bundle
 resilience4j = ["resilience4j-retry", "resilience4j-kotlin"]
+
+# Jetty bundle
+jetty = ["jetty-server", "jetty-servlet"]
 
 
 [plugins]

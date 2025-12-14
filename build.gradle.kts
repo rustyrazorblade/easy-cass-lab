@@ -95,20 +95,18 @@ dependencies {
     // Resilience4j
     implementation(libs.bundles.resilience4j)
 
-    // Ktor
-    implementation(libs.bundles.ktor)
-
     // Koin Dependency Injection
     implementation(platform(libs.koin.bom))
     implementation(libs.bundles.koin)
 
-    // Kotlinx Serialization for MCP
+    // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
 
-    // MCP SDK and dependencies
-    implementation(libs.mcp.sdk)
-    implementation(libs.kotlinx.io)
+    // MCP Java SDK with Jetty
+    implementation(platform(libs.mcp.java.bom))
+    implementation(libs.mcp.java)
+    implementation(libs.bundles.jetty)
 
     // Kubernetes
     implementation(libs.fabric8.kubernetes.client)

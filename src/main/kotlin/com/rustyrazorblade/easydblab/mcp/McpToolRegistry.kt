@@ -1,435 +1,199 @@
 package com.rustyrazorblade.easydblab.mcp
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.rustyrazorblade.easydblab.CommandLineParser
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.output.OutputHandler
-import com.rustyrazorblade.easydblab.services.CommandExecutor
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.serialization.json.JsonArrayBuilder
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
+import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper
+import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification
+import io.modelcontextprotocol.spec.McpSchema
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
-import kotlin.getValue
-import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 import picocli.CommandLine.Command as PicoCommandAnnotation
 
-/** Registry that manages easy-db-lab commands as MCP tools. */
-open class McpToolRegistry(
+/**
+ * Registry that discovers and registers PicoCLI commands as MCP tools.
+ *
+ * This class:
+ * 1. Scans for commands annotated with @McpCommand
+ * 2. Generates JSON schemas from @Option annotations
+ * 3. Creates SyncToolSpecifications for the Java MCP SDK
+ * 4. Executes tools synchronously (blocking until completion)
+ */
+class McpToolRegistry(
     private val context: Context,
 ) : KoinComponent {
-    val outputHandler: OutputHandler by inject()
-    private val commandExecutor: CommandExecutor by inject()
-
     companion object {
         private val log = KotlinLogging.logger {}
     }
 
-    data class ToolInfo(
-        val name: String,
-        val description: String,
-        val inputSchema: JsonObject,
-        val entry: PicoCommandEntry,
-    )
-
-    data class ToolResult(
-        val content: List<String>,
-        val isError: Boolean = false,
-    )
+    private val outputHandler: OutputHandler by inject()
+    private val schemaGenerator = McpSchemaGenerator()
+    private val jsonMapper = JacksonMcpJsonMapper(ObjectMapper())
 
     /**
-     * Get all available tools from the command registry. Only includes commands annotated with
-     * @McpCommand.
+     * Get all available tools as SyncToolSpecification for the Java MCP SDK.
      */
-    open fun getTools(): List<ToolInfo> {
+    fun getToolSpecifications(): List<SyncToolSpecification> {
         val parser = CommandLineParser(context)
 
-        // PicoCLI commands with @McpCommand annotation
         return parser.picoCommands
             .filter { entry ->
-                // Create a temporary instance to check for annotation
                 val tempCommand = entry.factory()
                 tempCommand::class.java.isAnnotationPresent(McpCommand::class.java)
-            }.map { entry -> createToolInfoFromPico(entry) }
-    }
-
-    /** Execute a tool by name with the given arguments. */
-    fun executeTool(
-        name: String,
-        arguments: JsonObject?,
-    ): ToolResult {
-        log.debug { "executeTool called with name='$name', arguments=$arguments" }
-        val tool =
-            getTools().find { it.name == name }
-                ?: return ToolResult(
-                    content = listOf("Tool not found: $name"),
-                    isError = true,
-                )
-
-        return executeAndCaptureResult(name) {
-            // Use CommandExecutor for full lifecycle (requirements, execution, backup)
-            commandExecutor.execute {
-                // Create a fresh command instance using the factory
-                val freshCommand = tool.entry.factory()
-
-                // Map JSON arguments to command parameters
-                arguments?.let {
-                    log.debug { "Mapping arguments to PicoCLI command: $it" }
-                    mapArgumentsToPicoCommand(freshCommand, it)
-                } ?: log.debug { "No arguments to map (arguments is null)" }
-
-                freshCommand
             }
-        }
+            .map { entry -> createToolSpecification(entry) }
     }
 
-    /** Common execution wrapper that handles output and errors. */
-    private fun executeAndCaptureResult(
-        name: String,
-        action: () -> Unit,
-    ): ToolResult =
-        try {
-            outputHandler.handleMessage("Starting execution of tool: $name")
-            action()
-            outputHandler.handleMessage("Tool '$name' completed successfully")
-            ToolResult(content = listOf("Tool executed successfully"))
-        } catch (e: Exception) {
-            log.error(e) { "Error executing command $name" }
-            outputHandler.handleError("Tool '$name' failed: ${e.message}", e)
-            ToolResult(content = listOf("Error executing command: ${e.message}"), isError = true)
-        }
-
-    /** Create ToolInfo from a PicoCLI command entry. */
-    private fun createToolInfoFromPico(entry: PicoCommandEntry): ToolInfo {
-        // Create a temporary instance to extract metadata
+    private fun createToolSpecification(entry: PicoCommandEntry): SyncToolSpecification {
         val tempCommand = entry.factory()
-        val description = extractPicoDescription(tempCommand)
-        val schema = generatePicoSchema(tempCommand)
-        log.info { "Creating PicoCLI tool info for $description : $schema" }
+        val description = extractDescription(tempCommand)
+        val schemaJson = schemaGenerator.generateSchema(tempCommand)
 
-        return ToolInfo(
-            name = entry.name,
-            description = description,
-            inputSchema = schema,
-            entry = entry,
-        )
-    }
+        log.info { "Creating tool specification for ${entry.name}: $description" }
+        log.debug { "Schema for ${entry.name}: $schemaJson" }
 
-    /** Extract description from PicoCLI @Command annotation. */
-    private fun extractPicoDescription(command: PicoCommand): String {
-        val commandAnnotation = command::class.java.getAnnotation(PicoCommandAnnotation::class.java)
-        return commandAnnotation?.description?.firstOrNull() ?: "No description available"
-    }
+        // Use builder pattern for Tool
+        val tool =
+            McpSchema.Tool
+                .builder()
+                .name(entry.name)
+                .description(description)
+                .inputSchema(jsonMapper, schemaJson)
+                .build()
 
-    /** Generate JSON schema from PicoCLI @Option and @Mixin annotations. */
-    fun generatePicoSchema(command: PicoCommand): JsonObject {
-        val properties = mutableMapOf<String, JsonElement>()
-        val requiredFields = mutableListOf<String>()
-
-        command::class.memberProperties.forEach { property ->
-            processPicoProperty(property, command, properties, requiredFields)
+        return SyncToolSpecification(tool) { _, arguments ->
+            executeTool(entry, arguments)
         }
-
-        return buildJsonObject { properties.forEach { (key, value) -> put(key, value) } }
     }
 
-    private fun processPicoProperty(
-        property: KProperty1<out PicoCommand, *>,
-        command: PicoCommand,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        val javaField = property.javaField ?: return
+    /**
+     * Execute a tool synchronously.
+     *
+     * Unlike the Kotlin SDK implementation, this blocks until the command
+     * completes and returns the result directly.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun executeTool(
+        entry: PicoCommandEntry,
+        arguments: Map<String, Any>?,
+    ): McpSchema.CallToolResult {
+        log.info { "Executing tool: ${entry.name} with arguments: $arguments" }
 
-        processOptionAnnotation(javaField, property.name, command, properties, requiredFields)
-        processMixinAnnotation(javaField, command, properties, requiredFields)
-    }
+        return try {
+            // Create fresh command instance
+            val command = entry.factory()
 
-    // ==================== PicoCLI @Option Processing ====================
-
-    private fun processOptionAnnotation(
-        javaField: java.lang.reflect.Field,
-        fieldName: String,
-        command: PicoCommand,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        val optionAnnotation = javaField.getAnnotation(Option::class.java) ?: return
-
-        if (optionAnnotation.required) {
-            requiredFields.add(fieldName)
-        }
-
-        properties[fieldName] = buildPicoOptionSchema(javaField, fieldName, optionAnnotation, command)
-    }
-
-    private fun buildPicoOptionSchema(
-        javaField: java.lang.reflect.Field,
-        fieldName: String,
-        optionAnnotation: Option,
-        command: PicoCommand,
-    ): JsonObject =
-        buildJsonObject {
-            put("type", determineJsonType(javaField.type))
-            put("description", getPicoOptionDescription(optionAnnotation, fieldName))
-
-            if (javaField.type.isEnum) {
-                putJsonArray("enum") { addEnumValues(javaField.type) }
+            // Map arguments to command options
+            arguments?.let { args ->
+                mapArgumentsToCommand(command, args)
             }
 
-            addDefaultValueFromAny(javaField, command)
-        }
+            // Execute synchronously
+            outputHandler.handleMessage("Starting execution of tool: ${entry.name}")
+            command.call()
+            outputHandler.handleMessage("Tool '${entry.name}' completed successfully")
 
-    private fun getPicoOptionDescription(
-        optionAnnotation: Option,
-        fieldName: String,
-    ): String {
-        val descriptions = optionAnnotation.description
-        return if (descriptions.isNotEmpty() && descriptions.first().isNotEmpty()) {
-            descriptions.first()
-        } else {
-            "Parameter: $fieldName"
-        }
-    }
-
-    // ==================== PicoCLI @Mixin Processing ====================
-
-    private fun processMixinAnnotation(
-        javaField: java.lang.reflect.Field,
-        command: PicoCommand,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        javaField.getAnnotation(Mixin::class.java) ?: return
-
-        try {
-            javaField.isAccessible = true
-            val mixinObject = javaField.get(command) ?: return
-            scanMixinForOptions(mixinObject, properties, requiredFields)
+            McpSchema.CallToolResult("Tool '${entry.name}' executed successfully", false)
         } catch (e: Exception) {
-            log.warn { "Unable to process mixin: ${e.message}" }
+            log.error(e) { "Error executing tool ${entry.name}" }
+            outputHandler.handleError("Tool '${entry.name}' failed: ${e.message}", e)
+
+            McpSchema.CallToolResult("Error: ${e.message}", true)
         }
     }
 
-    private fun scanMixinForOptions(
-        mixin: Any,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        mixin::class.memberProperties.forEach { property ->
-            processMixinProperty(property, mixin, properties, requiredFields)
-        }
+    private fun extractDescription(command: PicoCommand): String {
+        val annotation = command::class.java.getAnnotation(PicoCommandAnnotation::class.java)
+        return annotation?.description?.firstOrNull() ?: "No description available"
     }
 
-    private fun processMixinProperty(
-        property: KProperty1<out Any, *>,
-        mixin: Any,
-        properties: MutableMap<String, JsonElement>,
-        requiredFields: MutableList<String>,
-    ) {
-        val javaField = property.javaField ?: return
-        val optionAnnotation = javaField.getAnnotation(Option::class.java) ?: return
-
-        val fieldName = property.name
-
-        if (optionAnnotation.required) {
-            requiredFields.add(fieldName)
-        }
-
-        properties[fieldName] = buildMixinPropertySchema(javaField, fieldName, optionAnnotation, mixin)
-    }
-
-    private fun buildMixinPropertySchema(
-        javaField: java.lang.reflect.Field,
-        fieldName: String,
-        optionAnnotation: Option,
-        mixin: Any,
-    ): JsonObject =
-        buildJsonObject {
-            put("type", determineJsonType(javaField.type))
-            put("description", getPicoOptionDescription(optionAnnotation, fieldName))
-
-            if (javaField.type.isEnum) {
-                putJsonArray("enum") { addEnumValues(javaField.type) }
-            }
-
-            addDefaultValueFromAny(javaField, mixin)
-        }
-
-    /** Add default value to JSON schema from any object (not just ICommand). */
-    private fun JsonObjectBuilder.addDefaultValueFromAny(
-        javaField: java.lang.reflect.Field,
-        target: Any,
-    ) {
-        javaField.isAccessible = true
-        val defaultValue = javaField.get(target)
-
-        when (defaultValue) {
-            is Boolean -> put("default", defaultValue)
-            is Number -> put("default", defaultValue)
-            is String -> if (defaultValue.isNotEmpty()) put("default", defaultValue)
-            is Enum<*> -> put("default", getEnumStringValue(defaultValue))
-            null -> {} // No default
-            else -> {} // Complex type, skip default
-        }
-    }
-
-    private fun JsonArrayBuilder.addEnumValues(enumType: Class<*>) {
-        enumType.enumConstants.forEach { enumValue ->
-            add(getEnumStringValue(enumValue))
-        }
-    }
-
-    private fun getEnumStringValue(enumValue: Any): String =
-        if (enumValue is Enum<*>) {
-            try {
-                val typeMethod = enumValue.javaClass.getMethod("getType")
-                typeMethod.invoke(enumValue) as String
-            } catch (e: Exception) {
-                enumValue.name.lowercase()
-            }
-        } else {
-            enumValue.toString()
-        }
-
-    private fun determineJsonType(type: Class<*>): String =
-        when {
-            type.isEnum -> "string" // Enums are strings with constraints
-            type == String::class.java -> "string"
-            type == Int::class.java ||
-                type == Integer::class.java ||
-                type == Long::class.java ||
-                type == java.lang.Long::class.java ||
-                type == Double::class.java ||
-                type == java.lang.Double::class.java ||
-                type == Float::class.java ||
-                type == java.lang.Float::class.java -> "number"
-            type == Boolean::class.java || type == java.lang.Boolean::class.java -> "boolean"
-            else -> "string" // Default to string for unknown types
-        }
-
-    // ==================== PicoCLI Argument Mapping ====================
-
-    private fun mapArgumentsToPicoCommand(
+    private fun mapArgumentsToCommand(
         command: PicoCommand,
-        arguments: JsonObject,
+        arguments: Map<String, Any>,
     ) {
         log.debug { "Mapping arguments to PicoCLI command ${command::class.simpleName}" }
+
         command::class.memberProperties.forEach { property ->
-            mapPicoOptionArgument(property, command, arguments)
-            mapPicoMixinArguments(property, command, arguments)
+            val javaField = property.javaField ?: return@forEach
+
+            // Process @Option annotations
+            javaField.getAnnotation(Option::class.java)?.let {
+                val value = arguments[property.name]
+                if (value != null) {
+                    setFieldValue(command, javaField, value)
+                }
+            }
+
+            // Process @Mixin annotations
+            javaField.getAnnotation(Mixin::class.java)?.let {
+                processMixinArguments(command, javaField, arguments)
+            }
         }
     }
 
-    private fun mapPicoOptionArgument(
-        property: KProperty1<out PicoCommand, *>,
+    @Suppress("TooGenericExceptionCaught")
+    private fun processMixinArguments(
         command: PicoCommand,
-        arguments: JsonObject,
+        mixinField: java.lang.reflect.Field,
+        arguments: Map<String, Any>,
     ) {
-        val javaField = property.javaField ?: return
-        javaField.getAnnotation(Option::class.java) ?: return
-
-        val fieldName = property.name
-        val value = arguments[fieldName]
-
-        value?.takeIf { it !is JsonNull }?.let {
-            log.debug { "Setting PicoCLI option '$fieldName'" }
-            setFieldValue(command, javaField, it)
-        } ?: log.debug { "Skipping option '$fieldName' (null)" }
-    }
-
-    private fun mapPicoMixinArguments(
-        property: KProperty1<out PicoCommand, *>,
-        command: PicoCommand,
-        arguments: JsonObject,
-    ) {
-        val javaField = property.javaField ?: return
-        javaField.getAnnotation(Mixin::class.java) ?: return
-
         try {
-            javaField.isAccessible = true
-            val mixinObject = javaField.get(command)
+            mixinField.isAccessible = true
+            val mixinObject = mixinField.get(command) ?: return
 
-            mixinObject?.let {
-                log.debug { "Mapping arguments to PicoCLI mixin ${it::class.simpleName}" }
-                mapArgumentsToPicoMixin(it, arguments)
-            } ?: log.debug { "Mixin object is null, skipping" }
+            mixinObject::class.memberProperties.forEach { property ->
+                val javaField = property.javaField ?: return@forEach
+
+                javaField.getAnnotation(Option::class.java)?.let {
+                    val value = arguments[property.name]
+                    if (value != null) {
+                        setFieldValue(mixinObject, javaField, value)
+                    }
+                }
+            }
         } catch (e: Exception) {
-            log.warn { "Unable to process mixin: ${e.message}" }
+            log.warn { "Unable to process mixin arguments: ${e.message}" }
         }
     }
 
-    private fun mapArgumentsToPicoMixin(
-        mixin: Any,
-        arguments: JsonObject,
-    ) {
-        log.debug { "Mapping arguments to PicoCLI mixin ${mixin::class.simpleName}" }
-        mixin::class.memberProperties.forEach { property ->
-            mapPicoMixinPropertyArgument(property, mixin, arguments)
-        }
-    }
-
-    private fun mapPicoMixinPropertyArgument(
-        property: KProperty1<out Any, *>,
-        mixin: Any,
-        arguments: JsonObject,
-    ) {
-        val javaField = property.javaField ?: return
-        javaField.getAnnotation(Option::class.java) ?: return
-
-        val fieldName = property.name
-        val value = arguments[fieldName]
-
-        value?.takeIf { it !is JsonNull }?.let {
-            log.debug { "Setting PicoCLI mixin field '$fieldName'" }
-            setFieldValue(mixin, javaField, it)
-        } ?: log.debug { "Skipping mixin field '$fieldName' (null)" }
-    }
-
+    @Suppress("TooGenericExceptionCaught")
     private fun setFieldValue(
         target: Any,
         field: java.lang.reflect.Field,
-        value: JsonElement,
+        value: Any,
     ) {
         try {
             field.isAccessible = true
             when {
                 field.type.isEnum -> setEnumFieldValue(field, target, value)
-                field.type == String::class.java -> field.set(target, value.jsonPrimitive.content)
-                isIntType(field.type) -> field.set(target, value.jsonPrimitive.content.toInt())
-                isLongType(field.type) -> field.set(target, value.jsonPrimitive.content.toLong())
-                isDoubleType(field.type) -> field.set(target, value.jsonPrimitive.content.toDouble())
-                isFloatType(field.type) -> field.set(target, value.jsonPrimitive.content.toFloat())
-                isBooleanType(field.type) -> field.set(target, value.jsonPrimitive.content.toBoolean())
+                field.type == String::class.java -> field.set(target, value.toString())
+                isIntType(field.type) -> field.set(target, convertToInt(value))
+                isLongType(field.type) -> field.set(target, convertToLong(value))
+                isDoubleType(field.type) -> field.set(target, convertToDouble(value))
+                isFloatType(field.type) -> field.set(target, convertToFloat(value))
+                isBooleanType(field.type) -> field.set(target, convertToBoolean(value))
             }
-            log.debug { "Set field '${field.name}' on ${target::class.simpleName}" }
+            log.debug { "Set field '${field.name}' on ${target::class.simpleName} to $value" }
         } catch (e: Exception) {
-            log.warn {
-                "Unable to set field '${field.name}' on ${target::class.simpleName}: ${e.message}"
-            }
+            log.warn { "Unable to set field '${field.name}' on ${target::class.simpleName}: ${e.message}" }
         }
     }
 
     private fun setEnumFieldValue(
         field: java.lang.reflect.Field,
         target: Any,
-        value: JsonElement,
+        value: Any,
     ) {
-        val enumString = value.jsonPrimitive.content
+        val enumString = value.toString()
         val enumValue = findMatchingEnumValue(field.type, enumString)
 
         enumValue?.let {
@@ -437,34 +201,54 @@ open class McpToolRegistry(
         } ?: log.warn { "Unable to find enum value '$enumString' for field '${field.name}'" }
     }
 
+    @Suppress("SwallowedException")
     private fun findMatchingEnumValue(
         enumType: Class<*>,
         enumString: String,
     ): Any? =
         enumType.enumConstants.firstOrNull { enumConstant ->
-            matchesEnumValue(enumConstant, enumString)
+            if (enumConstant is Enum<*>) {
+                // Try getType() method first
+                try {
+                    val typeMethod = enumConstant.javaClass.getMethod("getType")
+                    val typeValue = typeMethod.invoke(enumConstant) as String
+                    typeValue == enumString
+                } catch (e: Exception) {
+                    enumConstant.name.equals(enumString, ignoreCase = true)
+                }
+            } else {
+                enumConstant.toString() == enumString
+            }
         }
 
-    private fun matchesEnumValue(
-        enumConstant: Any,
-        enumString: String,
-    ): Boolean =
-        if (enumConstant is Enum<*>) {
-            matchesEnumByTypeOrName(enumConstant, enumString)
-        } else {
-            enumConstant.toString() == enumString
+    private fun convertToInt(value: Any): Int =
+        when (value) {
+            is Number -> value.toInt()
+            else -> value.toString().toInt()
         }
 
-    private fun matchesEnumByTypeOrName(
-        enumConstant: Enum<*>,
-        enumString: String,
-    ): Boolean =
-        try {
-            val typeMethod = enumConstant.javaClass.getMethod("getType")
-            val typeValue = typeMethod.invoke(enumConstant) as String
-            typeValue == enumString
-        } catch (e: Exception) {
-            enumConstant.name.equals(enumString, ignoreCase = true)
+    private fun convertToLong(value: Any): Long =
+        when (value) {
+            is Number -> value.toLong()
+            else -> value.toString().toLong()
+        }
+
+    private fun convertToDouble(value: Any): Double =
+        when (value) {
+            is Number -> value.toDouble()
+            else -> value.toString().toDouble()
+        }
+
+    private fun convertToFloat(value: Any): Float =
+        when (value) {
+            is Number -> value.toFloat()
+            else -> value.toString().toFloat()
+        }
+
+    private fun convertToBoolean(value: Any): Boolean =
+        when (value) {
+            is Boolean -> value
+            else -> value.toString().toBoolean()
         }
 
     private fun isIntType(type: Class<*>): Boolean = type == Int::class.java || type == Integer::class.java

@@ -4,7 +4,7 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easydblab.mcp.McpServer
+import com.rustyrazorblade.easydblab.mcp.McpServerImpl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -91,8 +91,8 @@ class Server(
         )
 
         try {
-            // Create and start the MCP server with SDK
-            val server = McpServer(context)
+            // Create and start the MCP server with Java SDK
+            val server = McpServerImpl(context)
             server.start(port)
 
             // The server will run until interrupted
