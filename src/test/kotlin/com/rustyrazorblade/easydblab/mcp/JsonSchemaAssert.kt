@@ -1,6 +1,6 @@
 package com.rustyrazorblade.easydblab.mcp
 
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import org.assertj.core.api.AbstractAssert
 
 /**
@@ -138,7 +138,17 @@ class JsonSchemaPropertyAssert(
         return this
     }
 
-    fun withDefault(expectedDefault: JsonElement): JsonSchemaPropertyAssert {
+    fun withDefault(expected: Int): JsonSchemaPropertyAssert = withDefaultPrimitive(JsonPrimitive(expected))
+
+    fun withDefault(expected: Long): JsonSchemaPropertyAssert = withDefaultPrimitive(JsonPrimitive(expected))
+
+    fun withDefault(expected: Double): JsonSchemaPropertyAssert = withDefaultPrimitive(JsonPrimitive(expected))
+
+    fun withDefault(expected: Boolean): JsonSchemaPropertyAssert = withDefaultPrimitive(JsonPrimitive(expected))
+
+    fun withDefault(expected: String): JsonSchemaPropertyAssert = withDefaultPrimitive(JsonPrimitive(expected))
+
+    private fun withDefaultPrimitive(expectedDefault: JsonPrimitive): JsonSchemaPropertyAssert {
         isNotNull
         if (actual.default != expectedDefault) {
             failWithMessage(

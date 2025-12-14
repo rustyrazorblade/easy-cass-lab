@@ -2,7 +2,6 @@ package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
 import com.rustyrazorblade.easydblab.commands.PicoCommand
-import kotlinx.serialization.json.JsonPrimitive
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -297,9 +296,9 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should include default values in schema`() {
             val schema = generator.generateSchema(DefaultValueCommand())
 
-            assertThatSchema(schema).hasProperty("timeout").withDefault(JsonPrimitive(30))
-            assertThatSchema(schema).hasProperty("host").withDefault(JsonPrimitive("localhost"))
-            assertThatSchema(schema).hasProperty("debug").withDefault(JsonPrimitive(true))
+            assertThatSchema(schema).hasProperty("timeout").withDefault(30)
+            assertThatSchema(schema).hasProperty("host").withDefault("localhost")
+            assertThatSchema(schema).hasProperty("debug").withDefault(true)
         }
 
         @Test
