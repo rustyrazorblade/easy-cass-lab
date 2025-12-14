@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.mcp
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -35,23 +34,7 @@ class McpSchemaGenerator {
         val properties = mutableMapOf<String, JsonSchemaProperty>()
         val required = mutableListOf<String>()
 
-        command::class.memberProperties.forEach { property ->
-            val javaField = property.javaField ?: return@forEach
-
-            // Process @Option annotations
-            javaField.getAnnotation(Option::class.java)?.let { option ->
-                val schema = buildPropertySchema(javaField.type, option, javaField, command)
-                properties[property.name] = schema
-                if (option.required) {
-                    required.add(property.name)
-                }
-            }
-
-            // Process @Mixin annotations (extract nested options)
-            javaField.getAnnotation(Mixin::class.java)?.let {
-                processMixin(javaField, command, properties, required)
-            }
-        }
+        collectOptions(command, properties, required)
 
         return JsonSchema(
             type = "object",
@@ -59,6 +42,48 @@ class McpSchemaGenerator {
             required = required.ifEmpty { null },
         )
     }
+
+    /**
+     * Recursively collect @Option fields from an object and its @Mixin fields.
+     */
+    private fun collectOptions(
+        target: Any,
+        properties: MutableMap<String, JsonSchemaProperty>,
+        required: MutableList<String>,
+    ) {
+        target::class.memberProperties.forEach { property ->
+            val javaField = property.javaField ?: return@forEach
+
+            // Process @Option annotations
+            javaField.getAnnotation(Option::class.java)?.let { option ->
+                val schema = buildPropertySchema(javaField.type, option, javaField, target)
+                properties[property.name] = schema
+                if (option.required) {
+                    required.add(property.name)
+                }
+            }
+
+            // Process @Mixin annotations (recursively collect nested options)
+            javaField.getAnnotation(Mixin::class.java)?.let {
+                getMixinObject(javaField, target)?.let { mixinObj ->
+                    collectOptions(mixinObj, properties, required)
+                }
+            }
+        }
+    }
+
+    @Suppress("SwallowedException")
+    private fun getMixinObject(
+        mixinField: java.lang.reflect.Field,
+        target: Any,
+    ): Any? =
+        try {
+            mixinField.isAccessible = true
+            mixinField.get(target)
+        } catch (e: Exception) {
+            log.warn { "Unable to access mixin ${mixinField.name}: ${e.message}" }
+            null
+        }
 
     private fun buildPropertySchema(
         type: Class<*>,
@@ -84,32 +109,6 @@ class McpSchemaGenerator {
             enum = enumValues,
             default = defaultValue,
         )
-    }
-
-    private fun processMixin(
-        mixinField: java.lang.reflect.Field,
-        command: PicoCommand,
-        properties: MutableMap<String, JsonSchemaProperty>,
-        required: MutableList<String>,
-    ) {
-        try {
-            mixinField.isAccessible = true
-            val mixinObject = mixinField.get(command) ?: return
-
-            mixinObject::class.memberProperties.forEach { property ->
-                val javaField = property.javaField ?: return@forEach
-
-                javaField.getAnnotation(Option::class.java)?.let { option ->
-                    val schema = buildPropertySchema(javaField.type, option, javaField, mixinObject)
-                    properties[property.name] = schema
-                    if (option.required) {
-                        required.add(property.name)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            log.warn { "Unable to process mixin ${mixinField.name}: ${e.message}" }
-        }
     }
 
     private fun determineJsonType(type: Class<*>): String =
@@ -144,7 +143,7 @@ class McpSchemaGenerator {
                 is Enum<*> -> JsonPrimitive(getEnumStringValue(value))
                 else -> null
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
 
