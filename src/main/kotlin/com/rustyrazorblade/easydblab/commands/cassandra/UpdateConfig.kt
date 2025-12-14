@@ -12,6 +12,7 @@ import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.toHost
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.services.HostOperationsService
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
@@ -38,6 +39,7 @@ class UpdateConfig(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val hostOperationsService: HostOperationsService by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     @Mixin
     var hosts = HostsMixin()
@@ -113,9 +115,9 @@ class UpdateConfig(
         }
 
         if (restart) {
-            val restartCmd = Restart(context)
-            restartCmd.hosts = hosts
-            restartCmd.execute()
+            commandExecutor.execute {
+                Restart(context).apply { this.hosts = this@UpdateConfig.hosts }
+            }
         }
     }
 

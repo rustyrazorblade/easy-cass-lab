@@ -148,3 +148,4 @@ easy-cass-mcp.json
 /.socks5-proxy-state
 CLAUDE.local.md
 /k8s
+/restore

@@ -82,6 +82,7 @@ mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "
 testcontainers-core = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-k3s = { module = "org.testcontainers:k3s", version.ref = "testcontainers" }
+testcontainers-localstack = { module = "org.testcontainers:localstack", version.ref = "testcontainers" }
 
 # CLI and UI
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
@@ -149,7 +150,7 @@ jackson = ["jackson-dataformat-yaml", "jackson-module-kotlin", "jackson-datatype
 testing = ["junit-jupiter", "assertj-core", "mockito-kotlin"]
 
 # TestContainers bundle
-testcontainers = ["testcontainers-core", "testcontainers-junit", "testcontainers-k3s"]
+testcontainers = ["testcontainers-core", "testcontainers-junit", "testcontainers-k3s", "testcontainers-localstack"]
 
 # Ktor bundle
 ktor = ["ktor-server-core", "ktor-server-netty", "ktor-server-content-negotiation", "ktor-serialization-jackson"]

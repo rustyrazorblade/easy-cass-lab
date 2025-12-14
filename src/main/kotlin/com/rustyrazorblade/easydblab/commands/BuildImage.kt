@@ -4,6 +4,8 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.BuildArgsMixin
+import com.rustyrazorblade.easydblab.services.CommandExecutor
+import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Mixin
 
@@ -22,8 +24,14 @@ class BuildImage(
     @Mixin
     var buildArgs = BuildArgsMixin()
 
+    private val commandExecutor: CommandExecutor by inject()
+
     override fun execute() {
-        BuildBaseImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }.execute()
-        BuildCassandraImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }.execute()
+        commandExecutor.execute {
+            BuildBaseImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }
+        }
+        commandExecutor.execute {
+            BuildCassandraImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }
+        }
     }
 }

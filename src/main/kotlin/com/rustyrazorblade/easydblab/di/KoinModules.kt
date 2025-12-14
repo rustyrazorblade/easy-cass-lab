@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.di
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.kubernetes.kubernetesModule
 import com.rustyrazorblade.easydblab.providers.aws.awsModule
 import com.rustyrazorblade.easydblab.providers.docker.dockerModule
@@ -16,11 +15,10 @@ import org.koin.core.module.Module
 object KoinModules {
     /**
      * Get all application modules for Koin initialization.
-     *
-     * @param context The Context instance to use for modules that require it
      */
-    fun getAllModules(context: Context): List<Module> =
+    fun getAllModules(): List<Module> =
         listOf(
+            contextModule,
             outputModule,
             dockerModule,
             sshModule,

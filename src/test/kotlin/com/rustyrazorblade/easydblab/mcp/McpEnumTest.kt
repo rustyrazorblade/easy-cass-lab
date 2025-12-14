@@ -28,7 +28,7 @@ class McpEnumTest {
         context = mock()
 
         // Initialize Koin for dependency injection
-        startKoin { modules(KoinModules.getAllModules(context)) }
+        startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { context } }) }
 
         registry = McpToolRegistry(context)
     }

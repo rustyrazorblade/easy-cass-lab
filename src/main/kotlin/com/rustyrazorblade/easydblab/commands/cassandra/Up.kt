@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.annotations.TriggerBackup
 import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.SetupInstance
@@ -27,6 +28,7 @@ import com.rustyrazorblade.easydblab.providers.aws.VpcNetworkingConfig
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import com.rustyrazorblade.easydblab.services.ClusterConfigurationService
 import com.rustyrazorblade.easydblab.services.ClusterProvisioningService
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.services.HostOperationsService
 import com.rustyrazorblade.easydblab.services.InstanceProvisioningConfig
 import com.rustyrazorblade.easydblab.services.K3sClusterConfig
@@ -59,6 +61,7 @@ import java.time.Duration
  */
 @McpCommand
 @RequireProfileSetup
+@TriggerBackup
 @Command(
     name = "up",
     description = ["Starts instances"],
@@ -78,6 +81,7 @@ class Up(
     private val clusterConfigurationService: ClusterConfigurationService by inject()
     private val k3sClusterService: K3sClusterService by inject()
     private val registryService: RegistryService by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     // Working copy loaded during execute() - modified and saved
     private lateinit var workingState: ClusterState
@@ -113,7 +117,7 @@ class Up(
         reapplyS3Policy()
         provisionInfrastructure(initConfig)
         writeConfigurationFiles()
-        WriteConfig(context).execute()
+        commandExecutor.execute { WriteConfig(context) }
         waitForSshAndDownloadVersions()
         setupInstancesIfNeeded()
     }
@@ -402,12 +406,12 @@ class Up(
                 )
             }
         } else {
-            SetupInstance(context).execute()
+            commandExecutor.execute { SetupInstance(context) }
             startK3sOnAllNodes()
 
             if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
-                ConfigureAxonOps(context).execute()
+                commandExecutor.execute { ConfigureAxonOps(context) }
             }
         }
     }
@@ -430,6 +434,7 @@ class Up(
                     ),
                 kubeconfigPath = File(context.workingDirectory, "kubeconfig").toPath(),
                 hostFilter = hosts.hostList,
+                clusterState = workingState,
             )
 
         val result = k3sClusterService.setupCluster(config)
@@ -443,7 +448,7 @@ class Up(
         // Configure registry TLS before starting the registry pod
         configureRegistryTls()
 
-        K8Apply(context).execute()
+        commandExecutor.execute { K8Apply(context) }
     }
 
     /**

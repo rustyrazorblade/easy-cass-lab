@@ -9,6 +9,9 @@
       "ZSH_IN_DOCKER_VERSION": "1.2.0"
     }
   },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "customizations": {},
   "remoteUser": "node",

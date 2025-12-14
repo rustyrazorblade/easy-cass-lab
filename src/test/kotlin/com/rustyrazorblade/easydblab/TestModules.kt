@@ -1,8 +1,9 @@
 package com.rustyrazorblade.easydblab
 
+import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.User
-import com.rustyrazorblade.easydblab.di.contextModule
+import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.BufferedOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AMIValidator
@@ -11,6 +12,7 @@ import com.rustyrazorblade.easydblab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easydblab.providers.ssh.SSHConfiguration
 import com.rustyrazorblade.easydblab.providers.ssh.SSHConnectionProvider
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.ssh.ISSHClient
 import com.rustyrazorblade.easydblab.ssh.MockSSHClient
 import com.rustyrazorblade.easydblab.ssh.Response
@@ -47,6 +49,7 @@ object TestModules {
             testAWSModule(),
             testOutputModule(),
             testSSHModule(),
+            testCommandExecutorModule(),
         )
 
     /**
@@ -65,11 +68,17 @@ object TestModules {
                 workingDirectory = testContext.workingDirectory,
             )
         return module {
-            // Include all context module definitions
-            includes(contextModule(contextFactory))
+            // Provide ContextFactory for tests that need it
+            single { contextFactory }
 
-            // Also provide Context directly for tests that need it
-            single { contextFactory.getDefault() }
+            // Provide Context instance
+            single<Context> { contextFactory.getDefault() }
+
+            // Provide UserConfigProvider
+            single {
+                val context = get<Context>()
+                UserConfigProvider(context.profileDir)
+            }
         }
     }
 
@@ -129,6 +138,28 @@ object TestModules {
 
             // Mock AMIValidator to prevent AMI validation during tests
             single { mock<AMIValidator>() }
+        }
+
+    /**
+     * Creates a test CommandExecutor module with a simple pass-through implementation.
+     * This directly calls command.call() without the full lifecycle to keep tests simple.
+     */
+    fun testCommandExecutorModule() =
+        module {
+            single<CommandExecutor> {
+                object : CommandExecutor {
+                    override fun <T : PicoCommand> execute(commandFactory: () -> T): Int {
+                        val command = commandFactory()
+                        return command.call()
+                    }
+
+                    override fun <T : PicoCommand> schedule(commandFactory: () -> T) {
+                        // For tests, just execute immediately
+                        val command = commandFactory()
+                        command.call()
+                    }
+                }
+            }
         }
 
     /** Creates a test SSH module with mock implementations. */
