@@ -2,6 +2,11 @@ package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
 import kotlin.reflect.full.memberProperties
@@ -18,6 +23,8 @@ class McpSchemaGenerator {
         private val log = KotlinLogging.logger {}
     }
 
+    private val json = Json { encodeDefaults = false }
+
     /**
      * Generate a JSON Schema string for a PicoCLI command.
      *
@@ -25,7 +32,7 @@ class McpSchemaGenerator {
      * @return JSON Schema as a string
      */
     fun generateSchema(command: PicoCommand): String {
-        val properties = mutableMapOf<String, PropertySchema>()
+        val properties = mutableMapOf<String, JsonSchemaProperty>()
         val required = mutableListOf<String>()
 
         command::class.memberProperties.forEach { property ->
@@ -46,7 +53,14 @@ class McpSchemaGenerator {
             }
         }
 
-        return buildSchemaJson(properties, required)
+        val schema =
+            JsonSchema(
+                type = "object",
+                properties = properties,
+                required = required.ifEmpty { null },
+            )
+
+        return json.encodeToString(schema)
     }
 
     private fun buildPropertySchema(
@@ -54,9 +68,9 @@ class McpSchemaGenerator {
         option: Option,
         field: java.lang.reflect.Field,
         target: Any,
-    ): PropertySchema {
+    ): JsonSchemaProperty {
         val jsonType = determineJsonType(type)
-        val description = option.description.firstOrNull()?.escapeJson() ?: "Parameter: ${field.name}"
+        val description = option.description.firstOrNull() ?: "Parameter: ${field.name}"
 
         val enumValues =
             if (type.isEnum) {
@@ -67,13 +81,18 @@ class McpSchemaGenerator {
 
         val defaultValue = getDefaultValue(field, target)
 
-        return PropertySchema(jsonType, description, enumValues, defaultValue)
+        return JsonSchemaProperty(
+            type = jsonType,
+            description = description,
+            enum = enumValues,
+            default = defaultValue,
+        )
     }
 
     private fun processMixin(
         mixinField: java.lang.reflect.Field,
         command: PicoCommand,
-        properties: MutableMap<String, PropertySchema>,
+        properties: MutableMap<String, JsonSchemaProperty>,
         required: MutableList<String>,
     ) {
         try {
@@ -96,60 +115,6 @@ class McpSchemaGenerator {
         }
     }
 
-    private fun buildSchemaJson(
-        properties: Map<String, PropertySchema>,
-        required: List<String>,
-    ): String {
-        if (properties.isEmpty()) {
-            return """{"type": "object", "properties": {}}"""
-        }
-
-        val propsJson =
-            properties.entries.joinToString(",\n        ") { (name, schema) ->
-                buildPropertyJson(name, schema)
-            }
-
-        val requiredJson =
-            if (required.isNotEmpty()) {
-                """, "required": [${required.joinToString(", ") { "\"$it\"" }}]"""
-            } else {
-                ""
-            }
-
-        return """{
-    "type": "object",
-    "properties": {
-        $propsJson
-    }$requiredJson
-}"""
-    }
-
-    private fun buildPropertyJson(
-        name: String,
-        schema: PropertySchema,
-    ): String {
-        val parts = mutableListOf<String>()
-        parts.add(""""type": "${schema.type}"""")
-        parts.add(""""description": "${schema.description}"""")
-
-        schema.enumValues?.let { values ->
-            parts.add(""""enum": [${values.joinToString(", ") { "\"$it\"" }}]""")
-        }
-
-        schema.defaultValue?.let { default ->
-            val defaultJson =
-                when (default) {
-                    is String -> "\"${default.escapeJson()}\""
-                    is Number -> default.toString()
-                    is Boolean -> default.toString()
-                    else -> "\"$default\""
-                }
-            parts.add(""""default": $defaultJson""")
-        }
-
-        return """"$name": {${parts.joinToString(", ")}}"""
-    }
-
     private fun determineJsonType(type: Class<*>): String =
         when {
             type.isEnum -> "string"
@@ -167,15 +132,19 @@ class McpSchemaGenerator {
     private fun getDefaultValue(
         field: java.lang.reflect.Field,
         target: Any,
-    ): Any? =
+    ): JsonElement? =
         try {
             field.isAccessible = true
             when (val value = field.get(target)) {
                 null -> null
-                is String -> if (value.isNotEmpty()) value else null
-                is Boolean -> value
-                is Number -> value
-                is Enum<*> -> getEnumStringValue(value)
+                is String -> if (value.isNotEmpty()) JsonPrimitive(value) else null
+                is Boolean -> JsonPrimitive(value)
+                is Int -> JsonPrimitive(value)
+                is Long -> JsonPrimitive(value)
+                is Double -> JsonPrimitive(value)
+                is Float -> JsonPrimitive(value)
+                is Number -> JsonPrimitive(value.toDouble())
+                is Enum<*> -> JsonPrimitive(getEnumStringValue(value))
                 else -> null
             }
         } catch (e: Exception) {
@@ -195,19 +164,25 @@ class McpSchemaGenerator {
         } else {
             enumValue.toString()
         }
-
-    private fun String.escapeJson(): String =
-        this
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-
-    private data class PropertySchema(
-        val type: String,
-        val description: String,
-        val enumValues: List<String>?,
-        val defaultValue: Any?,
-    )
 }
+
+/**
+ * Data class representing a JSON Schema object.
+ */
+@Serializable
+data class JsonSchema(
+    val type: String,
+    val properties: Map<String, JsonSchemaProperty>,
+    val required: List<String>? = null,
+)
+
+/**
+ * Data class representing a JSON Schema property definition.
+ */
+@Serializable
+data class JsonSchemaProperty(
+    val type: String,
+    val description: String,
+    val enum: List<String>? = null,
+    val default: JsonElement? = null,
+)

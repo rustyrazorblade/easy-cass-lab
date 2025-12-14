@@ -72,7 +72,7 @@ class McpServerIntegrationTest : BaseKoinTest() {
                 Thread.sleep(100)
             }
         }
-        throw IllegalStateException("Server did not start within ${timeoutMs}ms")
+        error("Server did not start within ${timeoutMs}ms")
     }
 
     @Test

@@ -177,8 +177,8 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should generate empty schema for command with no options`() {
             val schema = generator.generateSchema(EmptyCommand())
 
-            assertThat(schema).contains(""""type": "object"""")
-            assertThat(schema).contains(""""properties": {}""")
+            assertThat(schema).contains(""""type":"object"""")
+            assertThat(schema).contains(""""properties":{}""")
         }
     }
 
@@ -189,8 +189,8 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(StringOptionCommand())
 
             assertThat(schema).contains(""""name":""")
-            assertThat(schema).contains(""""type": "string"""")
-            assertThat(schema).contains(""""description": "The name to use"""")
+            assertThat(schema).contains(""""type":"string"""")
+            assertThat(schema).contains(""""description":"The name to use"""")
         }
 
         @Test
@@ -198,7 +198,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(IntOptionCommand())
 
             assertThat(schema).contains(""""count":""")
-            assertThat(schema).contains(""""type": "integer"""")
+            assertThat(schema).contains(""""type":"integer"""")
         }
 
         @Test
@@ -206,7 +206,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(LongOptionCommand())
 
             assertThat(schema).contains(""""size":""")
-            assertThat(schema).contains(""""type": "integer"""")
+            assertThat(schema).contains(""""type":"integer"""")
         }
 
         @Test
@@ -214,7 +214,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(BooleanOptionCommand())
 
             assertThat(schema).contains(""""enabled":""")
-            assertThat(schema).contains(""""type": "boolean"""")
+            assertThat(schema).contains(""""type":"boolean"""")
         }
 
         @Test
@@ -222,7 +222,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(DoubleOptionCommand())
 
             assertThat(schema).contains(""""ratio":""")
-            assertThat(schema).contains(""""type": "number"""")
+            assertThat(schema).contains(""""type":"number"""")
         }
     }
 
@@ -232,7 +232,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should mark required option in required array`() {
             val schema = generator.generateSchema(RequiredOptionCommand())
 
-            assertThat(schema).contains(""""required": ["id"]""")
+            assertThat(schema).contains(""""required":["id"]""")
         }
 
         @Test
@@ -259,7 +259,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(EnumOptionCommand())
 
             assertThat(schema).contains(""""mode":""")
-            assertThat(schema).contains(""""type": "string"""")
+            assertThat(schema).contains(""""type":"string"""")
             assertThat(schema).contains(""""enum":""")
             assertThat(schema).contains("alpha")
             assertThat(schema).contains("beta")
@@ -294,8 +294,8 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
             val schema = generator.generateSchema(MixinCommand())
 
             assertThat(schema).contains(""""verbose":""")
-            assertThat(schema).contains(""""type": "boolean"""")
-            assertThat(schema).contains(""""type": "string"""")
+            assertThat(schema).contains(""""type":"boolean"""")
+            assertThat(schema).contains(""""type":"string"""")
         }
     }
 
@@ -305,16 +305,16 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should include default values in schema`() {
             val schema = generator.generateSchema(DefaultValueCommand())
 
-            assertThat(schema).contains(""""default": 30""")
-            assertThat(schema).contains(""""default": "localhost"""")
-            assertThat(schema).contains(""""default": true""")
+            assertThat(schema).contains(""""default":30""")
+            assertThat(schema).contains(""""default":"localhost"""")
+            assertThat(schema).contains(""""default":true""")
         }
 
         @Test
         fun `should not include default for empty strings`() {
             val schema = generator.generateSchema(StringOptionCommand())
 
-            assertThat(schema).doesNotContain(""""default": """"")
+            assertThat(schema).doesNotContain(""""default":""""")
         }
     }
 
@@ -352,7 +352,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
 
             assertThat(schema).startsWith("{")
             assertThat(schema).endsWith("}")
-            assertThat(schema).contains(""""type": "object"""")
+            assertThat(schema).contains(""""type":"object"""")
             assertThat(schema).contains(""""properties":""")
         }
     }

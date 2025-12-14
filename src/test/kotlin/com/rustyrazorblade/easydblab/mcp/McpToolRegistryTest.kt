@@ -155,7 +155,7 @@ class McpToolRegistryTest : BaseKoinTest() {
             val schema = generator.generateSchema(StringMappingCommand())
 
             assertThat(schema).contains(""""name":""")
-            assertThat(schema).contains(""""type": "string"""")
+            assertThat(schema).contains(""""type":"string"""")
         }
 
         @Test
@@ -164,7 +164,7 @@ class McpToolRegistryTest : BaseKoinTest() {
             val schema = generator.generateSchema(IntMappingCommand())
 
             assertThat(schema).contains(""""count":""")
-            assertThat(schema).contains(""""type": "integer"""")
+            assertThat(schema).contains(""""type":"integer"""")
         }
 
         @Test
@@ -173,7 +173,7 @@ class McpToolRegistryTest : BaseKoinTest() {
             val schema = generator.generateSchema(BooleanMappingCommand())
 
             assertThat(schema).contains(""""enabled":""")
-            assertThat(schema).contains(""""type": "boolean"""")
+            assertThat(schema).contains(""""type":"boolean"""")
         }
 
         @Test
@@ -182,7 +182,7 @@ class McpToolRegistryTest : BaseKoinTest() {
             val schema = generator.generateSchema(EnumMappingCommand())
 
             assertThat(schema).contains(""""mode":""")
-            assertThat(schema).contains(""""type": "string"""")
+            assertThat(schema).contains(""""type":"string"""")
             assertThat(schema).contains(""""enum":""")
         }
 
