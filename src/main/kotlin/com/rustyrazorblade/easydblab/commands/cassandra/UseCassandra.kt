@@ -5,11 +5,13 @@ import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
+import com.rustyrazorblade.easydblab.annotations.TriggerBackup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.getHosts
 import com.rustyrazorblade.easydblab.configuration.toHost
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.services.HostOperationsService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
@@ -24,6 +26,7 @@ import kotlin.system.exitProcess
  */
 @McpCommand
 @RequireProfileSetup
+@TriggerBackup
 @Command(
     name = "use",
     description = ["Use a Cassandra version (3.0, 3.11, 4.0, 4.1)"],
@@ -32,6 +35,7 @@ class UseCassandra(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val hostOperationsService: HostOperationsService by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     @Parameters(description = ["Cassandra version"], index = "0")
     lateinit var version: String
@@ -76,12 +80,12 @@ class UseCassandra(
 
         clusterStateManager.save(state)
 
-        DownloadConfig(context).execute()
+        commandExecutor.execute { DownloadConfig(context) }
 
         // make sure we only apply to the filtered hosts
-        val uc = UpdateConfig(context)
-        uc.hosts = hosts
-        uc.execute()
+        commandExecutor.execute {
+            UpdateConfig(context).apply { this.hosts = this@UseCassandra.hosts }
+        }
 
         with(TermColors()) {
             outputHandler.handleMessage(

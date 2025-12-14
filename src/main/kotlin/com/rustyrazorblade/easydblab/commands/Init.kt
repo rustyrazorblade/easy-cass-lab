@@ -15,6 +15,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.inject
@@ -40,6 +41,7 @@ class Init(
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
     private val vpcService: VpcService by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     companion object {
         private const val DEFAULT_CASSANDRA_INSTANCE_COUNT = 3
@@ -191,7 +193,8 @@ class Init(
 
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
-            Up(context).execute()
+            // Schedule Up to run after Init's full lifecycle completes
+            commandExecutor.schedule { Up(context) }
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -259,7 +262,8 @@ class Init(
     private fun prepareEnvironment(): ClusterState {
         if (clean) {
             outputHandler.handleMessage("Cleaning existing configuration...")
-            Clean(context).execute()
+            // Execute Clean immediately with full lifecycle
+            commandExecutor.execute { Clean(context) }
         }
 
         val state =

@@ -221,4 +221,76 @@ class ClusterS3PathTest {
         assertThat(original.toString()).isEqualTo("s3://my-bucket")
         assertThat(resolved.toString()).isEqualTo("s3://my-bucket/subdir")
     }
+
+    @Test
+    fun `kubeconfig returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val kubeconfigPath = path.kubeconfig()
+
+        assertThat(kubeconfigPath.toString())
+            .isEqualTo("s3://my-bucket/config/kubeconfig")
+    }
+
+    @Test
+    fun `k8s returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val k8sPath = path.k8s()
+
+        assertThat(k8sPath.toString())
+            .isEqualTo("s3://my-bucket/config/k8s")
+    }
+
+    @Test
+    fun `config returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val configPath = path.config()
+
+        assertThat(configPath.toString())
+            .isEqualTo("s3://my-bucket/config")
+    }
+
+    @Test
+    fun `cassandraPatch returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val cassandraPatchPath = path.cassandraPatch()
+
+        assertThat(cassandraPatchPath.toString())
+            .isEqualTo("s3://my-bucket/config/cassandra.patch.yaml")
+    }
+
+    @Test
+    fun `cassandraConfig returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val cassandraConfigPath = path.cassandraConfig()
+
+        assertThat(cassandraConfigPath.toString())
+            .isEqualTo("s3://my-bucket/config/cassandra-config")
+    }
+
+    @Test
+    fun `cassandraVersions returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val cassandraVersionsPath = path.cassandraVersions()
+
+        assertThat(cassandraVersionsPath.toString())
+            .isEqualTo("s3://my-bucket/config/cassandra_versions.yaml")
+    }
+
+    @Test
+    fun `environmentScript returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val environmentScriptPath = path.environmentScript()
+
+        assertThat(environmentScriptPath.toString())
+            .isEqualTo("s3://my-bucket/config/environment.sh")
+    }
+
+    @Test
+    fun `setupInstanceScript returns correct path`() {
+        val path = ClusterS3Path.root("my-bucket")
+        val setupInstanceScriptPath = path.setupInstanceScript()
+
+        assertThat(setupInstanceScriptPath.toString())
+            .isEqualTo("s3://my-bucket/config/setup_instance.sh")
+    }
 }

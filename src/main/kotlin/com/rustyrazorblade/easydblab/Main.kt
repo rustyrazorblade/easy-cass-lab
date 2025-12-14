@@ -3,33 +3,26 @@ package com.rustyrazorblade.easydblab
 import com.github.ajalt.mordant.TermColors
 import com.github.dockerjava.api.exception.DockerException
 import com.rustyrazorblade.easydblab.di.KoinModules
-import com.rustyrazorblade.easydblab.di.contextModule
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.context.startKoin
+import org.koin.java.KoinJavaComponent.get
 import software.amazon.awssdk.core.exception.SdkServiceException
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.s3.model.S3Exception
 import software.amazon.awssdk.services.sts.model.StsException
-import java.io.File
 import kotlin.system.exitProcess
 
 private val log = KotlinLogging.logger {}
 
 @Suppress("TooGenericExceptionCaught")
 fun main(arguments: Array<String>) {
-    val easyDbLabUserDirectory = File(System.getProperty("user.home"), "/.easy-db-lab/")
-
-    // Create factory and get default context
-    val contextFactory = ContextFactory(easyDbLabUserDirectory)
-    val defaultContext = contextFactory.getDefault()
-
-    // Initialize Koin dependency injection with context-specific configuration
+    // Initialize Koin dependency injection
     startKoin {
-        modules(
-            KoinModules.getAllModules(defaultContext) + contextModule(contextFactory),
-        )
+        modules(KoinModules.getAllModules())
     }
-    val parser = CommandLineParser(defaultContext)
+
+    val context = get<Context>(Context::class.java)
+    val parser = CommandLineParser(context)
     try {
         parser.eval(arguments)
     } catch (e: DockerException) {

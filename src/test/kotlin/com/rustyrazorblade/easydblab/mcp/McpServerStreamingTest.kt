@@ -27,7 +27,7 @@ class McpServerStreamingTest : KoinTest {
     fun setup() {
         mockContext = mock()
 
-        startKoin { modules(KoinModules.getAllModules(mockContext)) }
+        startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { mockContext } }) }
     }
 
     @AfterEach

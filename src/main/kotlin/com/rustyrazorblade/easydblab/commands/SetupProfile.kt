@@ -12,6 +12,7 @@ import com.rustyrazorblade.easydblab.providers.aws.AMIValidator
 import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.AwsInfrastructureService
 import com.rustyrazorblade.easydblab.services.AWSResourceSetupService
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -37,6 +38,7 @@ class SetupProfile(
     private val awsResourceSetup: AWSResourceSetupService by inject()
     private val awsInfra: AwsInfrastructureService by inject()
     private val amiValidator: AMIValidator by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     override fun execute() {
         // Load existing config values if file exists
@@ -218,10 +220,12 @@ class SetupProfile(
             try {
                 outputHandler.handleMessage("Building AMI for ${archType.type} architecture...")
 
-                val buildImage = BuildImage(context)
-                buildImage.buildArgs.arch = archType
-                buildImage.buildArgs.region = userConfig.region
-                buildImage.execute()
+                commandExecutor.execute {
+                    BuildImage(context).apply {
+                        buildArgs.arch = archType
+                        buildArgs.region = userConfig.region
+                    }
+                }
 
                 with(TermColors()) {
                     outputHandler.handleMessage(green("AMI build completed successfully"))

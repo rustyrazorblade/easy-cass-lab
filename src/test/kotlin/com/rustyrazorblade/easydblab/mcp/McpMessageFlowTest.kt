@@ -56,7 +56,7 @@ class McpMessageFlowTest : KoinComponent {
         context = Context(tempDir)
 
         // Initialize Koin for dependency injection
-        startKoin { modules(KoinModules.getAllModules(context)) }
+        startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { context } }) }
 
         mcpServer = McpServer(context)
         registry = McpToolRegistry(context)

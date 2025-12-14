@@ -1,9 +1,6 @@
 package com.rustyrazorblade.easydblab
 
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easydblab.annotations.RequireDocker
-import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
 import com.rustyrazorblade.easydblab.commands.BuildBaseImage
 import com.rustyrazorblade.easydblab.commands.BuildCassandraImage
 import com.rustyrazorblade.easydblab.commands.BuildImage
@@ -60,12 +57,11 @@ import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
 import com.rustyrazorblade.easydblab.commands.spark.SparkLogs
 import com.rustyrazorblade.easydblab.commands.spark.SparkStatus
 import com.rustyrazorblade.easydblab.commands.spark.SparkSubmit
-import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
-import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
-import com.rustyrazorblade.easydblab.services.StateReconstructionService
+import com.rustyrazorblade.easydblab.services.BackupRestoreService
+import com.rustyrazorblade.easydblab.services.CommandExecutor
+import com.rustyrazorblade.easydblab.services.DefaultCommandExecutor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -74,7 +70,6 @@ import picocli.CommandLine.Command
 import picocli.CommandLine.Model.CommandSpec
 import picocli.CommandLine.Option
 import picocli.CommandLine.Spec
-import java.io.File
 import kotlin.system.exitProcess
 
 /**
@@ -121,8 +116,6 @@ class EasyDBLabCommand : Runnable {
 class CommandLineParser(
     val context: Context,
 ) : KoinComponent {
-    private val userConfig: User by inject()
-
     /** Registry for PicoCLI commands. */
     val picoCommands: List<PicoCommandEntry>
 
@@ -134,8 +127,8 @@ class CommandLineParser(
 
     private val logger = KotlinLogging.logger {}
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
-    private val dockerClientProvider: DockerClientProvider by inject()
     private val outputHandler: OutputHandler by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     init {
         // PicoCLI commands - all commands are now fully migrated
@@ -276,7 +269,7 @@ class CommandLineParser(
                 Constants.ExitCodes.ERROR
             }
 
-        // Set execution strategy to check requirements before running commands
+        // Set execution strategy to delegate to CommandExecutor for full lifecycle
         commandLine.executionStrategy =
             CommandLine.IExecutionStrategy { parseResult ->
                 // Get the root command to check for --vpc-id option
@@ -292,14 +285,17 @@ class CommandLineParser(
                     currentParseResult = currentParseResult.subcommand()
                 }
 
-                // Check requirements for the command if present
+                // Execute PicoCommands through CommandExecutor for full lifecycle
+                // (requirements, execution, scheduled commands, backup)
                 if (currentParseResult != null) {
                     val cmd = currentParseResult.commandSpec().userObject()
                     if (cmd is PicoCommand) {
-                        checkCommandRequirements(cmd)
+                        return@IExecutionStrategy (commandExecutor as DefaultCommandExecutor)
+                            .executeTopLevel(cmd)
                     }
                 }
-                // Execute the command using default RunLast strategy
+
+                // Fallback for non-PicoCommand (like root command help)
                 CommandLine.RunLast().execute(parseResult)
             }
     }
@@ -308,7 +304,8 @@ class CommandLineParser(
      * Handles state reconstruction from a VPC ID.
      *
      * This is triggered when --vpc-id is provided on the command line.
-     * It reconstructs the local state.json from AWS resources associated with the VPC.
+     * It reconstructs the local state.json from AWS resources associated with the VPC,
+     * and restores cluster configuration files (kubeconfig, k8s manifests, cassandra.patch.yaml) from S3.
      *
      * @param vpcId The VPC ID to reconstruct state from
      * @param force If true, overwrites existing state.json
@@ -318,25 +315,17 @@ class CommandLineParser(
         vpcId: String,
         force: Boolean,
     ) {
-        val clusterStateManager: ClusterStateManager by inject()
-        val stateReconstructionService: StateReconstructionService by inject()
+        val backupRestoreService: BackupRestoreService by inject()
 
-        // Check if state.json already exists
-        if (clusterStateManager.exists() && !force) {
-            error(
-                "state.json already exists. Use --force to overwrite, or remove the file manually.\n" +
-                    "Warning: Overwriting will lose any local configuration.",
-            )
-        }
-
-        outputHandler.handleMessage("Reconstructing state from VPC: $vpcId")
-        val reconstructedState = stateReconstructionService.reconstructFromVpc(vpcId)
-        clusterStateManager.save(reconstructedState)
-        outputHandler.handleMessage("State reconstructed successfully:")
-        outputHandler.handleMessage("  Cluster name: ${reconstructedState.name}")
-        outputHandler.handleMessage("  Cluster ID: ${reconstructedState.clusterId}")
-        outputHandler.handleMessage("  Hosts: ${reconstructedState.hosts.values.sumOf { it.size }}")
-        outputHandler.handleMessage("  S3 bucket: ${reconstructedState.s3Bucket ?: "not found"}")
+        backupRestoreService
+            .restoreFromVpc(
+                vpcId = vpcId,
+                workingDirectory = context.workingDirectory.absolutePath,
+                force = force,
+            ).onFailure { error ->
+                logger.error(error) { "Failed to restore from VPC: $vpcId" }
+                throw error
+            }
     }
 
     /**
@@ -383,56 +372,4 @@ class CommandLineParser(
             exitProcess(exitCode)
         }
     }
-
-    /**
-     * Checks and enforces command requirements based on annotations.
-     */
-    private fun checkCommandRequirements(command: Any) {
-        // Check if the command requires profile setup
-        if (command::class.annotations.any { it is RequireProfileSetup }) {
-            val userConfigProvider: UserConfigProvider by inject()
-            if (!userConfigProvider.isSetup()) {
-                // Run setup command
-                val setupCommand = SetupProfile(context)
-                setupCommand.execute()
-
-                // Show message and exit
-                with(TermColors()) {
-                    outputHandler.handleMessage(green("\nYou can now run the command again."))
-                }
-                exitProcess(0)
-            }
-        }
-        // Check if the command requires Docker
-        if (command::class.annotations.any { it is RequireDocker }) {
-            if (!checkDockerAvailability()) {
-                outputHandler.handleError("Error: Docker is not available or not running.")
-                outputHandler.handleError(
-                    "Please ensure Docker is installed and running before executing this command.",
-                )
-                exitProcess(1)
-            }
-        }
-        // Check if the command requires an SSH key
-        if (command::class.annotations.any { it is RequireSSHKey }) {
-            if (!checkSSHKeyAvailability()) {
-                outputHandler.handleError("SSH key not found at ${userConfig.sshKeyPath}")
-                exitProcess(1)
-            }
-        }
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    private fun checkDockerAvailability(): Boolean =
-        try {
-            val dockerClient = dockerClientProvider.getDockerClient()
-            // Try to list images as a simple health check
-            dockerClient.listImages("", "")
-            true
-        } catch (e: Exception) {
-            logger.error(e) { "Docker availability check failed" }
-            false
-        }
-
-    private fun checkSSHKeyAvailability(): Boolean = File(userConfig.sshKeyPath).exists()
 }

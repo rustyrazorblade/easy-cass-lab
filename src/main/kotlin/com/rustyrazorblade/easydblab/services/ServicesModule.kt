@@ -1,12 +1,16 @@
 package com.rustyrazorblade.easydblab.services
 
+import com.rustyrazorblade.easydblab.Context
+import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
 import com.rustyrazorblade.easydblab.configuration.User
+import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AWS
 import com.rustyrazorblade.easydblab.providers.aws.EC2InstanceService
 import com.rustyrazorblade.easydblab.providers.aws.EMRService
 import com.rustyrazorblade.easydblab.providers.aws.OpenSearchService
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
+import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -60,6 +64,37 @@ val servicesModule =
                 get<VpcService>(),
                 get<EC2InstanceService>(),
                 get<AWS>(),
+            )
+        }
+
+        // Cluster backup service for S3 backup/restore of cluster configuration files
+        single<ClusterBackupService> {
+            DefaultClusterBackupService(
+                get<ObjectStore>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Unified backup/restore service coordinating state reconstruction and file operations
+        single<BackupRestoreService> {
+            DefaultBackupRestoreService(
+                get<StateReconstructionService>(),
+                get<ClusterBackupService>(),
+                get<ClusterStateManager>(),
+                get<OutputHandler>(),
+            )
+        }
+
+        // Command executor for scheduling and executing commands with full lifecycle
+        single<CommandExecutor> {
+            DefaultCommandExecutor(
+                get<Context>(),
+                get<BackupRestoreService>(),
+                get<ClusterStateManager>(),
+                get<OutputHandler>(),
+                get<UserConfigProvider>(),
+                get<DockerClientProvider>(),
+                get<User>(),
             )
         }
     }

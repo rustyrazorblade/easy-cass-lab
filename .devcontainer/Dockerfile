@@ -72,6 +72,9 @@ ENV KOTLIN_HOME=$SDKMAN_DIR/candidates/kotlin/current
 ENV GRADLE_HOME=$SDKMAN_DIR/candidates/gradle/current
 ENV PATH=$JAVA_HOME/bin:$KOTLIN_HOME/bin:$GRADLE_HOME/bin:$PATH
 
+# Allow node user to run sudo without password (required for docker-in-docker)
+RUN echo "node ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/node
+
 # Set up non-root user
 USER node
 

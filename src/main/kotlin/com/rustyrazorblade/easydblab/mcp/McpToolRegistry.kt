@@ -6,6 +6,7 @@ import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.output.OutputHandler
+import com.rustyrazorblade.easydblab.services.CommandExecutor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonElement
@@ -32,6 +33,7 @@ open class McpToolRegistry(
     private val context: Context,
 ) : KoinComponent {
     val outputHandler: OutputHandler by inject()
+    private val commandExecutor: CommandExecutor by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
@@ -78,17 +80,20 @@ open class McpToolRegistry(
                     isError = true,
                 )
 
-        // Create a fresh command instance using the factory
-        val freshCommand = tool.entry.factory()
-
-        // Map JSON arguments to command parameters
-        arguments?.let {
-            log.debug { "Mapping arguments to PicoCLI command: $it" }
-            mapArgumentsToPicoCommand(freshCommand, it)
-        } ?: log.debug { "No arguments to map (arguments is null)" }
-
         return executeAndCaptureResult(name) {
-            freshCommand.call()
+            // Use CommandExecutor for full lifecycle (requirements, execution, backup)
+            commandExecutor.execute {
+                // Create a fresh command instance using the factory
+                val freshCommand = tool.entry.factory()
+
+                // Map JSON arguments to command parameters
+                arguments?.let {
+                    log.debug { "Mapping arguments to PicoCLI command: $it" }
+                    mapArgumentsToPicoCommand(freshCommand, it)
+                } ?: log.debug { "No arguments to map (arguments is null)" }
+
+                freshCommand
+            }
         }
     }
 
