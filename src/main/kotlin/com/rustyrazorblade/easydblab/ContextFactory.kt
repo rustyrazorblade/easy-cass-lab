@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap
  * caching to avoid recreating instances.
  */
 class ContextFactory(
-    private val baseDirectory: File = File(System.getProperty("user.home"), "/.easy-db-lab/"),
+    private val baseDirectory: File = resolveEasyDbLabUserDir(),
     private val workingDirectory: File = File(System.getProperty("user.dir")),
 ) {
     private val contextCache = ConcurrentHashMap<String, Context>()

@@ -5,8 +5,8 @@ import com.rustyrazorblade.easydblab.ContextFactory
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easydblab.providers.ssh.SSHConfiguration
+import com.rustyrazorblade.easydblab.resolveEasyDbLabUserDir
 import org.koin.dsl.module
-import java.io.File
 
 /**
  * Koin module for Context-related dependencies. Creates the ContextFactory and Context
@@ -16,7 +16,7 @@ val contextModule =
     module {
         // Create and provide the ContextFactory
         single {
-            val easyDbLabUserDirectory = File(System.getProperty("user.home"), "/.easy-db-lab/")
+            val easyDbLabUserDirectory = resolveEasyDbLabUserDir()
             ContextFactory(easyDbLabUserDirectory)
         }
 

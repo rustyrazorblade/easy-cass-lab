@@ -61,4 +61,30 @@ class UtilsTest {
 
         assertThat(result).isEqualTo(File(relativePath).absolutePath)
     }
+
+    @Test
+    fun `resolveEasyDbLabUserDir returns default when env var not set`() {
+        // When EASY_DB_LAB_USER_DIR is not set, should return ~/.easy-db-lab
+        val homeDir = System.getProperty("user.home")
+        val expectedDir = File(homeDir, ".easy-db-lab")
+
+        val result = resolveEasyDbLabUserDir()
+
+        // When env var is not set, should return the default location
+        // Note: If EASY_DB_LAB_USER_DIR is set in the test environment,
+        // this test will reflect that value instead
+        if (System.getenv(Constants.Environment.USER_DIR) == null) {
+            assertThat(result).isEqualTo(expectedDir)
+        } else {
+            // If env var is set, verify it returns that path
+            assertThat(result).isEqualTo(File(System.getenv(Constants.Environment.USER_DIR)))
+        }
+    }
+
+    @Test
+    fun `resolveEasyDbLabUserDir returns File type`() {
+        val result = resolveEasyDbLabUserDir()
+
+        assertThat(result).isInstanceOf(File::class.java)
+    }
 }

@@ -41,6 +41,8 @@ We currently have a dependency on shell scripts meaning you'll need a Mac or Lin
 If you've never used to the tool before, the first time you run a command you'll be asked to supply some information,
 which will generate a configuration file which will be placed in your `$HOME/.easy-db-lab/profiles/default/settings.yaml`.
 
+TIP: You can override the default `~/.easy-db-lab` directory by setting the `EASY_DB_LAB_USER_DIR` environment variable to a custom path.
+
 IMPORTANT: We currently only support the Ubuntu 21 ami.
 
 Running the command without any arguments will print out the usage:

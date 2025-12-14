@@ -5,6 +5,19 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
+/**
+ * Resolves the easy-db-lab user directory.
+ * Checks EASY_DB_LAB_USER_DIR environment variable first, falls back to ~/.easy-db-lab
+ */
+fun resolveEasyDbLabUserDir(): File {
+    val envPath = System.getenv(Constants.Environment.USER_DIR)
+    return if (envPath != null) {
+        File(envPath)
+    } else {
+        File(System.getProperty("user.home"), ".easy-db-lab")
+    }
+}
+
 object Utils {
     fun inputstreamToTempFile(
         inputStream: InputStream,

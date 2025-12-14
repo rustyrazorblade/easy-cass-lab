@@ -132,6 +132,11 @@ object Constants {
         const val AWS_CREDENTIALS_ENV = "AWS_SHARED_CREDENTIALS_FILE"
     }
 
+    // Environment variables
+    object Environment {
+        const val USER_DIR = "EASY_DB_LAB_USER_DIR"
+    }
+
     // AWS configuration
     object AWS {
         const val DEFAULT_CREDENTIALS_NAME = "awscredentials"
