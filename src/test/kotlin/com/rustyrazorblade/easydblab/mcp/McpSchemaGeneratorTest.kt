@@ -2,6 +2,7 @@ package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
 import com.rustyrazorblade.easydblab.commands.PicoCommand
+import kotlinx.serialization.json.JsonPrimitive
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -135,14 +136,6 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         override fun execute() {}
     }
 
-    @Command(name = "special-chars-command")
-    class SpecialCharsCommand : PicoCommand {
-        @Option(names = ["--message"], description = ["Message with \"quotes\" and newlines\nfor testing"])
-        var message: String = ""
-
-        override fun execute() {}
-    }
-
     @Command(name = "multiple-options-command")
     class MultipleOptionsCommand : PicoCommand {
         @Option(names = ["--name"], description = ["Name value"])
@@ -177,8 +170,10 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should generate empty schema for command with no options`() {
             val schema = generator.generateSchema(EmptyCommand())
 
-            assertThat(schema).contains(""""type":"object"""")
-            assertThat(schema).contains(""""properties":{}""")
+            assertThatSchema(schema)
+                .isObjectType()
+                .hasNoProperties()
+                .hasNoRequiredFields()
         }
     }
 
@@ -188,41 +183,46 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should map String option to string type`() {
             val schema = generator.generateSchema(StringOptionCommand())
 
-            assertThat(schema).contains(""""name":""")
-            assertThat(schema).contains(""""type":"string"""")
-            assertThat(schema).contains(""""description":"The name to use"""")
+            assertThatSchema(schema)
+                .hasProperty("name")
+                .withType("string")
+                .withDescription("The name to use")
         }
 
         @Test
         fun `should map Int option to integer type`() {
             val schema = generator.generateSchema(IntOptionCommand())
 
-            assertThat(schema).contains(""""count":""")
-            assertThat(schema).contains(""""type":"integer"""")
+            assertThatSchema(schema)
+                .hasProperty("count")
+                .withType("integer")
         }
 
         @Test
         fun `should map Long option to integer type`() {
             val schema = generator.generateSchema(LongOptionCommand())
 
-            assertThat(schema).contains(""""size":""")
-            assertThat(schema).contains(""""type":"integer"""")
+            assertThatSchema(schema)
+                .hasProperty("size")
+                .withType("integer")
         }
 
         @Test
         fun `should map Boolean option to boolean type`() {
             val schema = generator.generateSchema(BooleanOptionCommand())
 
-            assertThat(schema).contains(""""enabled":""")
-            assertThat(schema).contains(""""type":"boolean"""")
+            assertThatSchema(schema)
+                .hasProperty("enabled")
+                .withType("boolean")
         }
 
         @Test
         fun `should map Double option to number type`() {
             val schema = generator.generateSchema(DoubleOptionCommand())
 
-            assertThat(schema).contains(""""ratio":""")
-            assertThat(schema).contains(""""type":"number"""")
+            assertThatSchema(schema)
+                .hasProperty("ratio")
+                .withType("number")
         }
     }
 
@@ -232,23 +232,21 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should mark required option in required array`() {
             val schema = generator.generateSchema(RequiredOptionCommand())
 
-            assertThat(schema).contains(""""required":["id"]""")
+            assertThatSchema(schema).hasRequiredField("id")
         }
 
         @Test
         fun `should include multiple required options in required array`() {
             val schema = generator.generateSchema(MultipleRequiredCommand())
 
-            assertThat(schema).contains(""""required":""")
-            assertThat(schema).contains("first")
-            assertThat(schema).contains("second")
+            assertThatSchema(schema).hasRequiredFields("first", "second")
         }
 
         @Test
         fun `should not include required array for optional-only commands`() {
             val schema = generator.generateSchema(StringOptionCommand())
 
-            assertThat(schema).doesNotContain(""""required":""")
+            assertThatSchema(schema).hasNoRequiredFields()
         }
     }
 
@@ -258,23 +256,19 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should include enum values in schema`() {
             val schema = generator.generateSchema(EnumOptionCommand())
 
-            assertThat(schema).contains(""""mode":""")
-            assertThat(schema).contains(""""type":"string"""")
-            assertThat(schema).contains(""""enum":""")
-            assertThat(schema).contains("alpha")
-            assertThat(schema).contains("beta")
-            assertThat(schema).contains("gamma")
+            assertThatSchema(schema)
+                .hasProperty("mode")
+                .withType("string")
+                .withEnumValues("alpha", "beta", "gamma")
         }
 
         @Test
         fun `should use getType method for typed enums`() {
             val schema = generator.generateSchema(TypedEnumCommand())
 
-            assertThat(schema).contains(""""size":""")
-            assertThat(schema).contains(""""enum":""")
-            assertThat(schema).contains("small")
-            assertThat(schema).contains("medium")
-            assertThat(schema).contains("large")
+            assertThatSchema(schema)
+                .hasProperty("size")
+                .withEnumValues("small", "medium", "large")
         }
     }
 
@@ -284,18 +278,16 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should include options from mixin`() {
             val schema = generator.generateSchema(MixinCommand())
 
-            assertThat(schema).contains(""""input":""")
-            assertThat(schema).contains(""""verbose":""")
-            assertThat(schema).contains(""""output":""")
+            assertThatSchema(schema).hasProperties("input", "verbose", "output")
         }
 
         @Test
         fun `should have correct types for mixin options`() {
             val schema = generator.generateSchema(MixinCommand())
 
-            assertThat(schema).contains(""""verbose":""")
-            assertThat(schema).contains(""""type":"boolean"""")
-            assertThat(schema).contains(""""type":"string"""")
+            assertThatSchema(schema).hasProperty("verbose").withType("boolean")
+            assertThatSchema(schema).hasProperty("output").withType("string")
+            assertThatSchema(schema).hasProperty("input").withType("string")
         }
     }
 
@@ -305,33 +297,16 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should include default values in schema`() {
             val schema = generator.generateSchema(DefaultValueCommand())
 
-            assertThat(schema).contains(""""default":30""")
-            assertThat(schema).contains(""""default":"localhost"""")
-            assertThat(schema).contains(""""default":true""")
+            assertThatSchema(schema).hasProperty("timeout").withDefault(JsonPrimitive(30))
+            assertThatSchema(schema).hasProperty("host").withDefault(JsonPrimitive("localhost"))
+            assertThatSchema(schema).hasProperty("debug").withDefault(JsonPrimitive(true))
         }
 
         @Test
         fun `should not include default for empty strings`() {
             val schema = generator.generateSchema(StringOptionCommand())
 
-            assertThat(schema).doesNotContain(""""default":""""")
-        }
-    }
-
-    @Nested
-    inner class SpecialCharacterEscaping {
-        @Test
-        fun `should escape quotes in description`() {
-            val schema = generator.generateSchema(SpecialCharsCommand())
-
-            assertThat(schema).contains("\\\"quotes\\\"")
-        }
-
-        @Test
-        fun `should escape newlines in description`() {
-            val schema = generator.generateSchema(SpecialCharsCommand())
-
-            assertThat(schema).contains("\\n")
+            assertThatSchema(schema).hasProperty("name").withNoDefault()
         }
     }
 
@@ -341,19 +316,29 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         fun `should generate schema with multiple options`() {
             val schema = generator.generateSchema(MultipleOptionsCommand())
 
-            assertThat(schema).contains(""""name":""")
-            assertThat(schema).contains(""""count":""")
-            assertThat(schema).contains(""""enabled":""")
+            assertThatSchema(schema).hasProperties("name", "count", "enabled")
         }
 
         @Test
-        fun `should be valid JSON structure`() {
+        fun `should have correct structure`() {
             val schema = generator.generateSchema(MultipleOptionsCommand())
 
-            assertThat(schema).startsWith("{")
-            assertThat(schema).endsWith("}")
-            assertThat(schema).contains(""""type":"object"""")
-            assertThat(schema).contains(""""properties":""")
+            assertThatSchema(schema)
+                .isObjectType()
+                .hasPropertyCount(3)
+        }
+    }
+
+    @Nested
+    inner class JsonSerialization {
+        @Test
+        fun `toJson should produce valid JSON`() {
+            val schema = generator.generateSchema(StringOptionCommand())
+            val json = schema.toJson()
+
+            assertThat(json).startsWith("{")
+            assertThat(json).endsWith("}")
+            assertThat(json).contains("\"type\":\"object\"")
         }
     }
 }

@@ -13,25 +13,25 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 
 /**
- * Generates JSON Schema strings from PicoCLI command options.
+ * Generates JSON Schema from PicoCLI command options.
  *
- * The Java MCP SDK expects schema as a JSON string, which it parses internally.
  * This class generates compliant JSON Schema format from @Option and @Mixin annotations.
  */
 class McpSchemaGenerator {
     companion object {
         private val log = KotlinLogging.logger {}
+        private val json = Json { encodeDefaults = false }
+
+        fun toJson(schema: JsonSchema): String = json.encodeToString(schema)
     }
 
-    private val json = Json { encodeDefaults = false }
-
     /**
-     * Generate a JSON Schema string for a PicoCLI command.
+     * Generate a JSON Schema for a PicoCLI command.
      *
      * @param command The command to generate schema for
-     * @return JSON Schema as a string
+     * @return JsonSchema object
      */
-    fun generateSchema(command: PicoCommand): String {
+    fun generateSchema(command: PicoCommand): JsonSchema {
         val properties = mutableMapOf<String, JsonSchemaProperty>()
         val required = mutableListOf<String>()
 
@@ -53,14 +53,11 @@ class McpSchemaGenerator {
             }
         }
 
-        val schema =
-            JsonSchema(
-                type = "object",
-                properties = properties,
-                required = required.ifEmpty { null },
-            )
-
-        return json.encodeToString(schema)
+        return JsonSchema(
+            type = "object",
+            properties = properties,
+            required = required.ifEmpty { null },
+        )
     }
 
     private fun buildPropertySchema(
@@ -174,7 +171,9 @@ data class JsonSchema(
     val type: String,
     val properties: Map<String, JsonSchemaProperty>,
     val required: List<String>? = null,
-)
+) {
+    fun toJson(): String = McpSchemaGenerator.toJson(this)
+}
 
 /**
  * Data class representing a JSON Schema property definition.

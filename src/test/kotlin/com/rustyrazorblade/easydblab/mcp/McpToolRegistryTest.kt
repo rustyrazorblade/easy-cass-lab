@@ -154,8 +154,9 @@ class McpToolRegistryTest : BaseKoinTest() {
             val generator = McpSchemaGenerator()
             val schema = generator.generateSchema(StringMappingCommand())
 
-            assertThat(schema).contains(""""name":""")
-            assertThat(schema).contains(""""type":"string"""")
+            assertThatSchema(schema)
+                .hasProperty("name")
+                .withType("string")
         }
 
         @Test
@@ -163,8 +164,9 @@ class McpToolRegistryTest : BaseKoinTest() {
             val generator = McpSchemaGenerator()
             val schema = generator.generateSchema(IntMappingCommand())
 
-            assertThat(schema).contains(""""count":""")
-            assertThat(schema).contains(""""type":"integer"""")
+            assertThatSchema(schema)
+                .hasProperty("count")
+                .withType("integer")
         }
 
         @Test
@@ -172,8 +174,9 @@ class McpToolRegistryTest : BaseKoinTest() {
             val generator = McpSchemaGenerator()
             val schema = generator.generateSchema(BooleanMappingCommand())
 
-            assertThat(schema).contains(""""enabled":""")
-            assertThat(schema).contains(""""type":"boolean"""")
+            assertThatSchema(schema)
+                .hasProperty("enabled")
+                .withType("boolean")
         }
 
         @Test
@@ -181,9 +184,10 @@ class McpToolRegistryTest : BaseKoinTest() {
             val generator = McpSchemaGenerator()
             val schema = generator.generateSchema(EnumMappingCommand())
 
-            assertThat(schema).contains(""""mode":""")
-            assertThat(schema).contains(""""type":"string"""")
-            assertThat(schema).contains(""""enum":""")
+            assertThatSchema(schema)
+                .hasProperty("mode")
+                .withType("string")
+            assertThat(schema.properties["mode"]?.enum).isNotNull
         }
 
         @Test
@@ -191,8 +195,7 @@ class McpToolRegistryTest : BaseKoinTest() {
             val generator = McpSchemaGenerator()
             val schema = generator.generateSchema(MixinMappingCommand())
 
-            assertThat(schema).contains(""""directOpt":""")
-            assertThat(schema).contains(""""sharedOpt":""")
+            assertThatSchema(schema).hasProperties("directOpt", "sharedOpt")
         }
     }
 

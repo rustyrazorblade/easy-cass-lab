@@ -55,7 +55,7 @@ class McpToolRegistry(
     private fun createToolSpecification(entry: PicoCommandEntry): SyncToolSpecification {
         val tempCommand = entry.factory()
         val description = extractDescription(tempCommand)
-        val schemaJson = schemaGenerator.generateSchema(tempCommand)
+        val schemaJson = schemaGenerator.generateSchema(tempCommand).toJson()
 
         log.info { "Creating tool specification for ${entry.name}: $description" }
         log.debug { "Schema for ${entry.name}: $schemaJson" }
