@@ -18,7 +18,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
     // Test commands used across multiple tests
     @Command(name = "empty-command")
     class EmptyCommand : PicoCommand {
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "string-option-command")
@@ -26,7 +26,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--name"], description = ["The name to use"])
         var name: String = ""
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "int-option-command")
@@ -34,7 +34,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--count"], description = ["Number of items"])
         var count: Int = 0
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "long-option-command")
@@ -42,7 +42,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--size"], description = ["Size in bytes"])
         var size: Long = 0L
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "boolean-option-command")
@@ -50,7 +50,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--enabled"], description = ["Enable the feature"])
         var enabled: Boolean = false
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "double-option-command")
@@ -58,7 +58,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--ratio"], description = ["The ratio value"])
         var ratio: Double = 0.0
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "required-option-command")
@@ -66,7 +66,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--id"], required = true, description = ["Required ID"])
         var id: String = ""
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     enum class TestEnum {
@@ -80,7 +80,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--mode"], description = ["Operating mode"])
         var mode: TestEnum = TestEnum.ALPHA
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     enum class TypedEnum(
@@ -99,7 +99,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--size"], description = ["Size selection"])
         var size: TypedEnum = TypedEnum.SMALL
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     class SharedOptions {
@@ -118,7 +118,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--input"], description = ["Input file path"])
         var input: String = ""
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "default-value-command")
@@ -132,7 +132,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--debug"], description = ["Debug mode"])
         var debug: Boolean = true
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "multiple-options-command")
@@ -146,7 +146,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--enabled"], description = ["Enabled flag"])
         var enabled: Boolean = false
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Command(name = "multiple-required-command")
@@ -160,7 +160,7 @@ class McpSchemaGeneratorTest : BaseKoinTest() {
         @Option(names = ["--optional"], description = ["Optional field"])
         var optional: String = ""
 
-        override fun execute() {}
+        override fun execute() = Unit
     }
 
     @Nested

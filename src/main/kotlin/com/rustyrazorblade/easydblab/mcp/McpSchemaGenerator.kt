@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.commands.PicoCommand
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -18,7 +17,6 @@ import kotlin.reflect.jvm.javaField
  */
 class McpSchemaGenerator {
     companion object {
-        private val log = KotlinLogging.logger {}
         private val json = Json { encodeDefaults = false }
 
         fun toJson(schema: JsonSchema): String = json.encodeToString(schema)
@@ -65,25 +63,12 @@ class McpSchemaGenerator {
 
             // Process @Mixin annotations (recursively collect nested options)
             javaField.getAnnotation(Mixin::class.java)?.let {
-                getMixinObject(javaField, target)?.let { mixinObj ->
+                ReflectionUtils.getMixinObject(javaField, target)?.let { mixinObj ->
                     collectOptions(mixinObj, properties, required)
                 }
             }
         }
     }
-
-    @Suppress("SwallowedException")
-    private fun getMixinObject(
-        mixinField: java.lang.reflect.Field,
-        target: Any,
-    ): Any? =
-        try {
-            mixinField.isAccessible = true
-            mixinField.get(target)
-        } catch (e: Exception) {
-            log.warn { "Unable to access mixin ${mixinField.name}: ${e.message}" }
-            null
-        }
 
     private fun buildPropertySchema(
         type: Class<*>,
@@ -91,7 +76,7 @@ class McpSchemaGenerator {
         field: java.lang.reflect.Field,
         target: Any,
     ): JsonSchemaProperty {
-        val jsonType = determineJsonType(type)
+        val jsonType = JsonSchemaTypeMapper.getJsonSchemaType(type)
         val description = option.description.firstOrNull() ?: "Parameter: ${field.name}"
 
         val enumValues =
@@ -111,41 +96,24 @@ class McpSchemaGenerator {
         )
     }
 
-    private fun determineJsonType(type: Class<*>): JsonSchemaType =
-        when {
-            type.isEnum -> JsonSchemaType.STRING
-            type == String::class.java -> JsonSchemaType.STRING
-            type == Int::class.java || type == Integer::class.java -> JsonSchemaType.INTEGER
-            type == Long::class.java || type == java.lang.Long::class.java -> JsonSchemaType.INTEGER
-            type == Double::class.java || type == java.lang.Double::class.java -> JsonSchemaType.NUMBER
-            type == Float::class.java || type == java.lang.Float::class.java -> JsonSchemaType.NUMBER
-            type == Boolean::class.java || type == java.lang.Boolean::class.java -> JsonSchemaType.BOOLEAN
-            List::class.java.isAssignableFrom(type) -> JsonSchemaType.ARRAY
-            else -> JsonSchemaType.STRING
-        }
-
-    @Suppress("SwallowedException")
     private fun getDefaultValue(
         field: java.lang.reflect.Field,
         target: Any,
-    ): JsonElement? =
-        try {
-            field.isAccessible = true
-            when (val value = field.get(target)) {
-                null -> null
-                is String -> if (value.isNotEmpty()) JsonPrimitive(value) else null
-                is Boolean -> JsonPrimitive(value)
-                is Int -> JsonPrimitive(value)
-                is Long -> JsonPrimitive(value)
-                is Double -> JsonPrimitive(value)
-                is Float -> JsonPrimitive(value)
-                is Number -> JsonPrimitive(value.toDouble())
-                is Enum<*> -> JsonPrimitive(getEnumStringValue(value))
-                else -> null
-            }
-        } catch (_: Exception) {
-            null
+    ): JsonElement? {
+        field.isAccessible = true
+        return when (val value = field.get(target)) {
+            null -> null
+            is String -> if (value.isNotEmpty()) JsonPrimitive(value) else null
+            is Boolean -> JsonPrimitive(value)
+            is Int -> JsonPrimitive(value)
+            is Long -> JsonPrimitive(value)
+            is Double -> JsonPrimitive(value)
+            is Float -> JsonPrimitive(value)
+            is Number -> JsonPrimitive(value.toDouble())
+            is Enum<*> -> JsonPrimitive(getEnumStringValue(value))
+            else -> null
         }
+    }
 
     @Suppress("SwallowedException")
     private fun getEnumStringValue(enumValue: Any): String =

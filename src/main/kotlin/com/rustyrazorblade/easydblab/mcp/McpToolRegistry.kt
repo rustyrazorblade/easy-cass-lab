@@ -143,25 +143,12 @@ class McpToolRegistry(
 
             // Process @Mixin annotations (recursively apply to nested objects)
             javaField.getAnnotation(Mixin::class.java)?.let {
-                getMixinObject(javaField, target)?.let { mixinObj ->
+                ReflectionUtils.getMixinObject(javaField, target)?.let { mixinObj ->
                     applyArguments(mixinObj, arguments)
                 }
             }
         }
     }
-
-    @Suppress("SwallowedException")
-    private fun getMixinObject(
-        mixinField: java.lang.reflect.Field,
-        target: Any,
-    ): Any? =
-        try {
-            mixinField.isAccessible = true
-            mixinField.get(target)
-        } catch (e: Exception) {
-            log.warn { "Unable to access mixin ${mixinField.name}: ${e.message}" }
-            null
-        }
 
     @Suppress("TooGenericExceptionCaught")
     private fun setFieldValue(
@@ -174,11 +161,11 @@ class McpToolRegistry(
             when {
                 field.type.isEnum -> setEnumFieldValue(field, target, value)
                 field.type == String::class.java -> field.set(target, value.toString())
-                isIntType(field.type) -> field.set(target, convertToInt(value))
-                isLongType(field.type) -> field.set(target, convertToLong(value))
-                isDoubleType(field.type) -> field.set(target, convertToDouble(value))
-                isFloatType(field.type) -> field.set(target, convertToFloat(value))
-                isBooleanType(field.type) -> field.set(target, convertToBoolean(value))
+                TypeChecker.isInt(field.type) -> field.set(target, TypeConverter.toInt(value))
+                TypeChecker.isLong(field.type) -> field.set(target, TypeConverter.toLong(value))
+                TypeChecker.isDouble(field.type) -> field.set(target, TypeConverter.toDouble(value))
+                TypeChecker.isFloat(field.type) -> field.set(target, TypeConverter.toFloat(value))
+                TypeChecker.isBoolean(field.type) -> field.set(target, TypeConverter.toBoolean(value))
             }
             log.debug { "Set field '${field.name}' on ${target::class.simpleName} to $value" }
         } catch (e: Exception) {
@@ -218,44 +205,4 @@ class McpToolRegistry(
                 enumConstant.toString() == enumString
             }
         }
-
-    private fun convertToInt(value: Any): Int =
-        when (value) {
-            is Number -> value.toInt()
-            else -> value.toString().toInt()
-        }
-
-    private fun convertToLong(value: Any): Long =
-        when (value) {
-            is Number -> value.toLong()
-            else -> value.toString().toLong()
-        }
-
-    private fun convertToDouble(value: Any): Double =
-        when (value) {
-            is Number -> value.toDouble()
-            else -> value.toString().toDouble()
-        }
-
-    private fun convertToFloat(value: Any): Float =
-        when (value) {
-            is Number -> value.toFloat()
-            else -> value.toString().toFloat()
-        }
-
-    private fun convertToBoolean(value: Any): Boolean =
-        when (value) {
-            is Boolean -> value
-            else -> value.toString().toBoolean()
-        }
-
-    private fun isIntType(type: Class<*>): Boolean = type == Int::class.java || type == Integer::class.java
-
-    private fun isLongType(type: Class<*>): Boolean = type == Long::class.java || type == java.lang.Long::class.java
-
-    private fun isDoubleType(type: Class<*>): Boolean = type == Double::class.java || type == java.lang.Double::class.java
-
-    private fun isFloatType(type: Class<*>): Boolean = type == Float::class.java || type == java.lang.Float::class.java
-
-    private fun isBooleanType(type: Class<*>): Boolean = type == Boolean::class.java || type == java.lang.Boolean::class.java
 }

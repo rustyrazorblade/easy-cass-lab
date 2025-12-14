@@ -37,8 +37,8 @@ class McpServerImpl(
     private val outputHandler: OutputHandler by inject()
     private val toolRegistry = McpToolRegistry(context)
 
-    private var jettyServer: Server? = null
-    private var mcpServer: McpSyncServer? = null
+    private lateinit var jettyServer: Server
+    private lateinit var mcpServer: McpSyncServer
 
     /**
      * Start the MCP server on the specified port.
@@ -63,29 +63,29 @@ class McpServerImpl(
                 .tools(false) // listChanged = false
                 .build()
 
-        val server =
+        mcpServer =
             McpServer
                 .sync(transportProvider)
                 .serverInfo("easy-db-lab", context.version.toString())
                 .capabilities(capabilities)
                 .build()
 
-        mcpServer = server
-
         // Register tools and prompts
-        registerTools(server)
-        registerPrompts(server)
+        registerTools(mcpServer)
+        registerPrompts(mcpServer)
 
-        // Setup and start Jetty
-        jettyServer = createJettyServer(port, transportProvider)
+        outputHandler.handleMessage(
+            """
+            Starting Streamable MCP server on port $port:
 
-        displayStartupMessage(port)
+            http://127.0.0.1:$port${MCP_ENDPOINT}
+            """.trimIndent(),
+        )
 
-        try {
-            jettyServer?.start()
-            jettyServer?.join()
-        } finally {
-            server.close()
+        jettyServer = checkNotNull(createJettyServer(port, transportProvider))
+        with(jettyServer) {
+            start()
+            join()
         }
     }
 
@@ -152,18 +152,8 @@ class McpServerImpl(
         }
     }
 
-    private fun displayStartupMessage(port: Int) {
-        outputHandler.handleMessage(
-            """
-            Starting Streamable MCP server on port $port:
-
-            http://127.0.0.1:$port$MCP_ENDPOINT
-            """.trimIndent(),
-        )
-    }
-
     fun stop() {
-        jettyServer?.takeIf { it.isRunning }?.stop()
-        mcpServer?.close()
+        jettyServer.takeIf { it.isRunning }?.stop()
+        mcpServer.close()
     }
 }
