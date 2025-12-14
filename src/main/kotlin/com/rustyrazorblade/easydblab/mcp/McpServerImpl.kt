@@ -8,7 +8,7 @@ import io.modelcontextprotocol.json.jackson.JacksonMcpJsonMapper
 import io.modelcontextprotocol.server.McpServer
 import io.modelcontextprotocol.server.McpServerFeatures.SyncPromptSpecification
 import io.modelcontextprotocol.server.McpSyncServer
-import io.modelcontextprotocol.server.transport.HttpServletSseServerTransportProvider
+import io.modelcontextprotocol.server.transport.HttpServletStreamableServerTransportProvider
 import io.modelcontextprotocol.spec.McpSchema
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler
 import org.eclipse.jetty.ee10.servlet.ServletHolder
@@ -23,20 +23,18 @@ import org.koin.core.component.inject
  * - Synchronous tool execution (no background polling needed)
  * - Commands block until completion and return results directly
  * - Uses Jetty 12 with Jakarta EE 10 Servlet API
- * - SSE transport for MCP communication
+ * - Streamable HTTP transport for MCP communication
  */
 class McpServerImpl(
     private val context: Context,
 ) : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
-        private const val SSE_ENDPOINT = "/sse"
-        private const val MESSAGE_ENDPOINT = "/message"
+        private const val MCP_ENDPOINT = "/mcp"
     }
 
     private val outputHandler: OutputHandler by inject()
     private val toolRegistry = McpToolRegistry(context)
-    private val jsonMapper = JacksonMcpJsonMapper(ObjectMapper())
 
     private var jettyServer: Server? = null
     private var mcpServer: McpSyncServer? = null
@@ -48,13 +46,12 @@ class McpServerImpl(
     fun start(port: Int) {
         log.info { "Starting MCP server with Java SDK (version ${context.version})" }
 
-        // Create HTTP SSE transport provider using builder
+        // Create Streamable HTTP transport provider using builder
         val transportProvider =
-            HttpServletSseServerTransportProvider
+            HttpServletStreamableServerTransportProvider
                 .builder()
-                .jsonMapper(jsonMapper)
-                .sseEndpoint(SSE_ENDPOINT)
-                .messageEndpoint(MESSAGE_ENDPOINT)
+                .jsonMapper(JacksonMcpJsonMapper(ObjectMapper()))
+                .mcpEndpoint(MCP_ENDPOINT)
                 .build()
 
         // Create sync MCP server with capabilities using builder
@@ -93,7 +90,7 @@ class McpServerImpl(
 
     private fun createJettyServer(
         port: Int,
-        transportProvider: HttpServletSseServerTransportProvider,
+        transportProvider: HttpServletStreamableServerTransportProvider,
     ): Server {
         val server = Server(port)
 
@@ -155,11 +152,9 @@ class McpServerImpl(
     private fun displayStartupMessage(port: Int) {
         outputHandler.handleMessage(
             """
-            Starting MCP server on port $port...
+            Starting Streamable MCP server on port ${port}:
 
-            Server is now available at: http://127.0.0.1:$port$SSE_ENDPOINT
-
-            Commands execute synchronously - no polling required!
+            http://127.0.0.1:$port$MCP_ENDPOINT
             """.trimIndent(),
         )
     }

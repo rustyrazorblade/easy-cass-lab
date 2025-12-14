@@ -20,8 +20,8 @@ import java.io.File
 @Command(
     name = "server",
     description = [
-        "Start MCP server for AI assistant integration. " +
-            "Add to claude with: claude mcp add --transport sse easy-db-lab http://127.0.0.1:8888/sse",
+        "Start server for AI assistant integration with MCP. " +
+            "Add to claude with: claude mcp add easy-db-lab http://127.0.0.1:8888/mcp",
     ],
 )
 class Server(
@@ -53,21 +53,11 @@ class Server(
             McpConfiguration(
                 mcpServers =
                     mapOf(
-                        "easy-cass-mcp" to
-                            McpServerConfig(
-                                type = "http",
-                                url = "http://localhost:${Constants.Network.EASY_CASS_MCP_PORT}/mcp",
-                            ),
                         "easy-db-lab" to
                             McpServerConfig(
-                                type = "sse",
-                                url = "http://localhost:$port/sse",
-                            ),
-                        "cassandra-easy-stress" to
-                            McpServerConfig(
-                                type = "sse",
-                                url = "http://localhost:${Constants.Network.CASSANDRA_EASY_STRESS_PORT}/sse",
-                            ),
+                                type = "http",
+                                url = "http://localhost:$port/mcp",
+                            )
                     ),
             )
 
@@ -79,7 +69,7 @@ class Server(
     }
 
     override fun execute() {
-        log.info { "Starting easy-db-lab MCP server..." }
+        log.info { "Starting easy-db-lab server with Streamable HTTP MCP..." }
 
         // Generate the .mcp.json file
         val configFile = generateMcpConfig()

@@ -472,10 +472,10 @@ This starts the MCP server on port 8888 (you can use any available port).
 Once the MCP server is running, add it to Claude Code:
 
 ```shell
-claude mcp add --transport sse easy-db-lab http://127.0.0.1:8888/sse
+claude mcp add easy-db-lab http://127.0.0.1:8888/mcp
 ```
 
-This establishes a Server-Sent Events (SSE) connection between Claude Code and your easy-db-lab MCP server.
+This establishes a Streamable HTTP connection between Claude Code and your easy-db-lab MCP server.
 
 ### What You Can Do
 

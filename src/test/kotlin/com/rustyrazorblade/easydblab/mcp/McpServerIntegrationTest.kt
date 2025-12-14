@@ -4,7 +4,7 @@ import com.rustyrazorblade.easydblab.BaseKoinTest
 import com.rustyrazorblade.easydblab.CommandLineParser
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import io.modelcontextprotocol.client.McpClient
-import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport
+import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport
 import io.modelcontextprotocol.spec.McpSchema
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -17,7 +17,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * Integration tests for the MCP server.
+ * Integration tests for the MCP server using Streamable HTTP transport.
  *
  * These tests start an actual MCP server and verify that:
  * 1. The server starts and accepts connections
@@ -87,10 +87,10 @@ class McpServerIntegrationTest : BaseKoinTest() {
                 }.map { it.name }
                 .sorted()
 
-        // Connect to server and list tools
+        // Connect to server and list tools using Streamable HTTP transport
         val transport =
-            HttpClientSseClientTransport
-                .builder("http://127.0.0.1:$serverPort/sse")
+            HttpClientStreamableHttpTransport
+                .builder("http://127.0.0.1:$serverPort/mcp")
                 .build()
 
         val client =
@@ -131,8 +131,8 @@ class McpServerIntegrationTest : BaseKoinTest() {
     @Test
     fun `server should have tools with descriptions`() {
         val transport =
-            HttpClientSseClientTransport
-                .builder("http://127.0.0.1:$serverPort/sse")
+            HttpClientStreamableHttpTransport
+                .builder("http://127.0.0.1:$serverPort/mcp")
                 .build()
 
         val client =
@@ -164,8 +164,8 @@ class McpServerIntegrationTest : BaseKoinTest() {
     @Test
     fun `server should have tools with input schemas`() {
         val transport =
-            HttpClientSseClientTransport
-                .builder("http://127.0.0.1:$serverPort/sse")
+            HttpClientStreamableHttpTransport
+                .builder("http://127.0.0.1:$serverPort/mcp")
                 .build()
 
         val client =
