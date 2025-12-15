@@ -7,7 +7,7 @@ import java.io.File
 
 class AxonOpsWorkbenchTest {
     @Test
-    fun `test create method with Host and User`() {
+    fun `test create method with Host and sshKeyPath`() {
         // Create a mock Host
         val host =
             Host(
@@ -17,25 +17,13 @@ class AxonOpsWorkbenchTest {
                 availabilityZone = "us-west-2a",
             )
 
-        // Create a mock User configuration
-        val userConfig =
-            User(
-                email = "test@example.com",
-                region = "us-west-2",
-                keyName = "test-key",
-                sshKeyPath = "/home/user/.easy-db-lab/secret.pem",
-                awsProfile = "",
-                awsAccessKey = "ACCESS_KEY",
-                awsSecret = "SECRET_KEY",
-                axonOpsOrg = "",
-                axonOpsKey = "",
-            )
+        val sshKeyPath = "/home/user/.easy-db-lab/secret.pem"
 
         // Create configuration using the helper method
         val config =
             AxonOpsWorkbenchConfig.create(
                 host = host,
-                userConfig = userConfig,
+                sshKeyPath = sshKeyPath,
                 clusterName = "test-cluster",
             )
 
@@ -63,7 +51,7 @@ class AxonOpsWorkbenchTest {
     fun `test writeToFile`(
         @TempDir tempDir: File,
     ) {
-        // Create a mock Host and User
+        // Create a mock Host
         val host =
             Host(
                 public = "54.123.45.67",
@@ -72,21 +60,10 @@ class AxonOpsWorkbenchTest {
                 availabilityZone = "us-west-2a",
             )
 
-        val userConfig =
-            User(
-                email = "test@example.com",
-                region = "us-west-2",
-                keyName = "test-key",
-                sshKeyPath = "/path/to/key.pem",
-                awsProfile = "",
-                awsAccessKey = "ACCESS_KEY",
-                awsSecret = "SECRET_KEY",
-                axonOpsOrg = "",
-                axonOpsKey = "",
-            )
+        val sshKeyPath = "/path/to/key.pem"
 
         // Create configuration using the helper method
-        val config = AxonOpsWorkbenchConfig.create(host, userConfig, "test-write")
+        val config = AxonOpsWorkbenchConfig.create(host, sshKeyPath, "test-write")
 
         // Write to file
         val outputFile = File(tempDir, "axonops-workbench.json")

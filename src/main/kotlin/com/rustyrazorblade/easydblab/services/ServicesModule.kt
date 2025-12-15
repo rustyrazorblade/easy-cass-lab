@@ -94,7 +94,6 @@ val servicesModule =
                 get<OutputHandler>(),
                 get<UserConfigProvider>(),
                 get<DockerClientProvider>(),
-                get<User>(),
             )
         }
     }

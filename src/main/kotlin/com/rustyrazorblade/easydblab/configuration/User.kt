@@ -21,7 +21,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
 typealias AwsKeyName = String
-typealias SshKeyPath = String
 
 data class Policy(
     val name: String,
@@ -33,7 +32,6 @@ data class User(
     var email: String,
     var region: String,
     var keyName: String,
-    var sshKeyPath: String,
     // if true we'll load the profile from the AWS credentials rather than this file
     var awsProfile: String,
     // fallback for people who haven't set up the aws cli
@@ -118,15 +116,15 @@ data class User(
         }
 
         /**
-         * Generates an AWS key pair for SSH access to EC2 instances
+         * Generates an AWS key pair for SSH access to EC2 instances.
+         * The private key is automatically saved to ${profileDir}/secret.pem
          *
          * @param context Application context containing profile directory
          * @param awsAccessKey AWS access key for authentication
          * @param awsSecret AWS secret key for authentication
          * @param region AWS region where key pair will be created
          * @param outputHandler Handler for user-facing messages
-         * @return Pair of (AwsKeyName, SshKeyPath) containing the AWS key pair name
-         *         and the local file path to the private key
+         * @return The AWS key pair name
          */
         fun generateAwsKeyPair(
             context: Context,
@@ -134,7 +132,7 @@ data class User(
             awsSecret: String,
             region: Region,
             outputHandler: OutputHandler,
-        ): Pair<AwsKeyName, SshKeyPath> {
+        ): AwsKeyName {
             outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
 
             try {
@@ -177,7 +175,7 @@ data class User(
                 log.info { "Setting secret file permissions $perms" }
                 Files.setPosixFilePermissions(secretFile.toPath(), perms)
 
-                return Pair(keyName, secretFile.absolutePath)
+                return keyName
             } catch (e: Ec2Exception) {
                 if (e.statusCode() == Constants.HttpStatus.FORBIDDEN || e.awsErrorDetails()?.errorCode() == "UnauthorizedOperation") {
                     handlePermissionError(outputHandler, e, "EC2 CreateKeyPair")

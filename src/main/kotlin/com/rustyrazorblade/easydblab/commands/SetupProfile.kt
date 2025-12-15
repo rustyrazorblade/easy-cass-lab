@@ -119,7 +119,6 @@ class SetupProfile(
                 email = email,
                 region = region,
                 keyName = existingConfig["keyName"] as? String ?: "",
-                sshKeyPath = existingConfig["sshKeyPath"] as? String ?: "",
                 awsProfile = existingConfig["awsProfile"] as? String ?: "",
                 awsAccessKey = awsAccessKey,
                 awsSecret = awsSecret,
@@ -155,14 +154,13 @@ class SetupProfile(
 
         // PHASE 4: AWS Operations (after all questions answered)
 
-        // Generate AWS keys only when both keyName and sshKeyPath are missing
-        if (userConfig.keyName.isBlank() || userConfig.sshKeyPath.isBlank()) {
+        // Generate AWS keys only when keyName is missing
+        if (userConfig.keyName.isBlank()) {
             outputHandler.handleMessage("Generating AWS key pair...")
 
-            val (keyName, sshKeyPath) = User.generateAwsKeyPair(context, awsAccessKey, awsSecret, regionObj, outputHandler)
+            val keyName = User.generateAwsKeyPair(context, awsAccessKey, awsSecret, regionObj, outputHandler)
 
             userConfig.keyName = keyName
-            userConfig.sshKeyPath = sshKeyPath
 
             // Save config with key pair
             userConfigProvider.saveUserConfig(userConfig)

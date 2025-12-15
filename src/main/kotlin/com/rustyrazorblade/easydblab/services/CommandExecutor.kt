@@ -10,7 +10,6 @@ import com.rustyrazorblade.easydblab.annotations.TriggerBackup
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.commands.SetupProfile
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
-import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
@@ -75,7 +74,6 @@ class DefaultCommandExecutor(
     private val outputHandler: OutputHandler,
     private val userConfigProvider: UserConfigProvider,
     private val dockerClientProvider: DockerClientProvider,
-    private val userConfig: User,
 ) : CommandExecutor {
     // Thread-local queue for deferred command factories (supports nested command chains)
     private val scheduledQueue = ThreadLocal.withInitial { ArrayDeque<() -> PicoCommand>() }
@@ -178,7 +176,7 @@ class DefaultCommandExecutor(
         // Check if the command requires an SSH key
         if (annotations.any { it is RequireSSHKey }) {
             if (!checkSSHKeyAvailability()) {
-                outputHandler.handleError("SSH key not found at ${userConfig.sshKeyPath}")
+                outputHandler.handleError("SSH key not found at ${userConfigProvider.sshKeyPath}")
                 exitProcess(1)
             }
         }
@@ -241,7 +239,7 @@ class DefaultCommandExecutor(
             false
         }
 
-    private fun checkSSHKeyAvailability(): Boolean = File(userConfig.sshKeyPath).exists()
+    private fun checkSSHKeyAvailability(): Boolean = File(userConfigProvider.sshKeyPath).exists()
 
     companion object {
         private val log = KotlinLogging.logger {}

@@ -23,6 +23,13 @@ class UserConfigProvider(
     private val userConfigFile = File(profileDir, "settings.yaml")
 
     /**
+     * SSH key path is always ${profileDir}/secret.pem
+     * This is where generateAwsKeyPair() writes the private key.
+     */
+    val sshKeyPath: String
+        get() = File(profileDir, "secret.pem").absolutePath
+
+    /**
      * Cached user configuration instance
      */
     private var cachedUserConfig: User? = null

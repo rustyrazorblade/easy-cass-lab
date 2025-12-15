@@ -34,35 +34,6 @@ class UtilsTest {
     }
 
     @Test
-    fun `resolveSshKeyPath handles home directory expansion`() {
-        val homeDir = System.getProperty("user.home")
-
-        val result1 = Utils.resolveSshKeyPath("~/test.pem")
-        assertThat(result1).isEqualTo(File("$homeDir/test.pem").absolutePath)
-
-        val result2 = Utils.resolveSshKeyPath("~/.ssh/id_rsa")
-        assertThat(result2).isEqualTo(File("$homeDir/.ssh/id_rsa").absolutePath)
-    }
-
-    @Test
-    fun `resolveSshKeyPath handles absolute paths`() {
-        val absolutePath = "/tmp/test.pem"
-
-        val result = Utils.resolveSshKeyPath(absolutePath)
-
-        assertThat(result).isEqualTo(File(absolutePath).absolutePath)
-    }
-
-    @Test
-    fun `resolveSshKeyPath handles relative paths`() {
-        val relativePath = "keys/test.pem"
-
-        val result = Utils.resolveSshKeyPath(relativePath)
-
-        assertThat(result).isEqualTo(File(relativePath).absolutePath)
-    }
-
-    @Test
     fun `resolveEasyDbLabUserDir returns default when env var not set`() {
         // When EASY_DB_LAB_USER_DIR is not set, should return ~/.easy-db-lab
         val homeDir = System.getProperty("user.home")

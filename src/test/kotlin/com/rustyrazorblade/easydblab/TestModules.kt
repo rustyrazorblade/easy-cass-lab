@@ -106,7 +106,6 @@ object TestModules {
                     email = "test@example.com",
                     region = "us-west-2",
                     keyName = "test-key",
-                    sshKeyPath = "test-key-path",
                     awsProfile = "",
                     awsAccessKey = "test-access-key",
                     awsSecret = "test-secret",

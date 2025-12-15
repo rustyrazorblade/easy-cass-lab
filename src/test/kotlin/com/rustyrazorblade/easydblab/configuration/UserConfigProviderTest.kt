@@ -77,7 +77,7 @@ class UserConfigProviderTest : BaseKoinTest() {
         assertEquals("test@example.com", user.email)
         assertEquals("us-west-2", user.region)
         assertEquals("test-key", user.keyName)
-        assertEquals("/home/user/.ssh/test-key", user.sshKeyPath)
+        // sshKeyPath is now derived from profileDir, not stored in User
     }
 
     @Test

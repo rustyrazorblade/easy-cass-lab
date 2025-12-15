@@ -447,7 +447,6 @@ class ClusterProvisioningServiceTest {
             awsSecret = "test-secret",
             region = "us-west-2",
             email = "test@example.com",
-            sshKeyPath = "/path/to/key",
             keyName = "test-key",
             awsProfile = "",
         )

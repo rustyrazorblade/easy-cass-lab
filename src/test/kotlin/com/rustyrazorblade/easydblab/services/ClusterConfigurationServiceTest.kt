@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
+import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import java.io.File
 import java.nio.file.Path
 
@@ -21,15 +23,22 @@ import java.nio.file.Path
  */
 class ClusterConfigurationServiceTest {
     private lateinit var outputHandler: OutputHandler
+    private lateinit var userConfigProvider: UserConfigProvider
     private lateinit var service: ClusterConfigurationService
 
     @TempDir
     lateinit var tempDir: Path
 
+    companion object {
+        const val TEST_SSH_KEY_PATH = "/path/to/key"
+    }
+
     @BeforeEach
     fun setup() {
         outputHandler = mock()
-        service = DefaultClusterConfigurationService(outputHandler)
+        userConfigProvider = mock()
+        whenever(userConfigProvider.sshKeyPath).thenReturn(TEST_SSH_KEY_PATH)
+        service = DefaultClusterConfigurationService(outputHandler, userConfigProvider)
     }
 
     @Nested
@@ -76,7 +85,7 @@ class ClusterConfigurationServiceTest {
             val content = sshConfig.readText()
             assertThat(content).contains("StrictHostKeyChecking=no")
             assertThat(content).contains("User ubuntu")
-            assertThat(content).contains("IdentityFile /path/to/key")
+            assertThat(content).contains("IdentityFile $TEST_SSH_KEY_PATH")
         }
 
         @Test
@@ -205,13 +214,15 @@ class ClusterConfigurationServiceTest {
         @Test
         fun `should include SSH key path`() {
             val clusterState = createClusterState()
-            val userConfig = createUserConfig(sshKeyPath = "/custom/key/path")
+            val userConfig = createUserConfig()
+            val customKeyPath = "/custom/key/path"
+            whenever(userConfigProvider.sshKeyPath).thenReturn(customKeyPath)
 
             service.writeAxonOpsWorkbenchConfig(tempDir, clusterState, userConfig)
 
             val configFile = File(tempDir.toFile(), "axonops-workbench.json")
             val content = configFile.readText()
-            assertThat(content).contains("/custom/key/path")
+            assertThat(content).contains(customKeyPath)
         }
 
         @Test
@@ -297,16 +308,12 @@ class ClusterConfigurationServiceTest {
     /**
      * Helper to create User config for testing.
      */
-    private fun createUserConfig(
-        sshKeyPath: String = "/path/to/key",
-        region: String = "us-west-2",
-    ): User =
+    private fun createUserConfig(region: String = "us-west-2"): User =
         User(
             awsAccessKey = "test-access-key",
             awsSecret = "test-secret",
             region = region,
             email = "test@example.com",
-            sshKeyPath = sshKeyPath,
             keyName = "test-key",
             awsProfile = "",
         )

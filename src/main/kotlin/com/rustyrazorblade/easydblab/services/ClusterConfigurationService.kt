@@ -5,6 +5,7 @@ import com.rustyrazorblade.easydblab.configuration.ClusterConfigWriter
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.User
+import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.configuration.getHosts
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -86,9 +87,11 @@ interface ClusterConfigurationService {
  * Default implementation of ClusterConfigurationService.
  *
  * @property outputHandler Handler for user-facing messages
+ * @property userConfigProvider Provider for user configuration including SSH key path
  */
 class DefaultClusterConfigurationService(
     private val outputHandler: OutputHandler,
+    private val userConfigProvider: UserConfigProvider,
 ) : ClusterConfigurationService {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -115,9 +118,10 @@ class DefaultClusterConfigurationService(
         clusterState: ClusterState,
         userConfig: User,
     ) {
+        val sshKeyPath = userConfigProvider.sshKeyPath
         val sshConfigFile = File(workingDirectory.toFile(), SSH_CONFIG_FILE)
         sshConfigFile.bufferedWriter().use { writer ->
-            ClusterConfigWriter.writeSshConfig(writer, userConfig.sshKeyPath, clusterState.hosts)
+            ClusterConfigWriter.writeSshConfig(writer, sshKeyPath, clusterState.hosts)
         }
 
         val envFile = File(workingDirectory.toFile(), ENV_FILE)
@@ -125,7 +129,7 @@ class DefaultClusterConfigurationService(
             ClusterConfigWriter.writeEnvironmentFile(
                 writer,
                 clusterState.hosts,
-                userConfig.sshKeyPath,
+                sshKeyPath,
                 clusterState.name,
             )
         }
@@ -176,7 +180,7 @@ class DefaultClusterConfigurationService(
             val config =
                 AxonOpsWorkbenchConfig.create(
                     host = cassandra0,
-                    userConfig = userConfig,
+                    sshKeyPath = userConfigProvider.sshKeyPath,
                     clusterName = DEFAULT_CLUSTER_NAME,
                 )
             val configFile = File(workingDirectory.toFile(), AXONOPS_CONFIG_FILE)

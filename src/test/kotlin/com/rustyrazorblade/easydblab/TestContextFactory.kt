@@ -32,7 +32,6 @@ object TestContextFactory {
                 email = "test@rustyrazorblade.com",
                 region = "us-west-2",
                 keyName = "test",
-                sshKeyPath = "test",
                 awsProfile = "test",
                 awsAccessKey = "test",
                 awsSecret = "test",

@@ -32,11 +32,11 @@ val contextModule =
         // Provide User configuration via UserConfigProvider
         single { get<UserConfigProvider>().getUserConfig() }
 
-        // Provide SSH configuration from the user config
+        // Provide SSH configuration from the user config provider
         single<SSHConfiguration> {
-            val user = get<com.rustyrazorblade.easydblab.configuration.User>()
+            val userConfigProvider = get<UserConfigProvider>()
             DefaultSSHConfiguration(
-                keyPath = user.sshKeyPath,
+                keyPath = userConfigProvider.sshKeyPath,
             )
         }
     }

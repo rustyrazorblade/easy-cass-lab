@@ -67,18 +67,4 @@ object Utils {
 
         return line
     }
-
-    fun resolveSshKeyPath(keyPath: String): String {
-        val sshKeyPath: String by lazy {
-            var path = keyPath
-
-            if (path.startsWith("~/")) {
-                path = path.replaceFirst("~/", "${System.getProperty("user.home")}/")
-            }
-
-            path
-        }
-
-        return File(sshKeyPath).absolutePath
-    }
 }

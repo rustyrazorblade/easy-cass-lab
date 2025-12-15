@@ -27,16 +27,16 @@ data class AxonOpsWorkbenchConfig(
             }
 
         /**
-         * Creates an AxonOps Workbench configuration for a given host and user configuration
+         * Creates an AxonOps Workbench configuration for a given host and SSH key path
          *
          * @param host The Cassandra host to connect to (typically db0)
-         * @param userConfig The user configuration containing SSH key information
+         * @param sshKeyPath Path to the SSH private key file
          * @param clusterName The name of the Cassandra cluster
          * @return A configured AxonOpsWorkbenchConfig instance
          */
         fun create(
             host: Host,
-            userConfig: User,
+            sshKeyPath: String,
             clusterName: String = "easy-db-lab",
         ): AxonOpsWorkbenchConfig =
             AxonOpsWorkbenchConfig(
@@ -75,7 +75,7 @@ data class AxonOpsWorkbenchConfig(
                         // Default EC2 user
                         username = "ubuntu",
                         password = "",
-                        privatekey = userConfig.sshKeyPath,
+                        privatekey = sshKeyPath,
                         passphrase = "",
                         // Destination is the private IP
                         destaddr = host.private,

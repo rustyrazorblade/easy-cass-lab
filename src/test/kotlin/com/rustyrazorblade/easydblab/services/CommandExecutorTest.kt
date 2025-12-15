@@ -78,7 +78,6 @@ class CommandExecutorTest : BaseKoinTest() {
                 outputHandler = mockOutputHandler,
                 userConfigProvider = mockUserConfigProvider,
                 dockerClientProvider = mockDockerClientProvider,
-                userConfig = mockUserConfig,
             )
     }
 

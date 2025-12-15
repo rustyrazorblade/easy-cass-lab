@@ -310,13 +310,12 @@ internal class AWSResourceSetupServiceTest :
         verify(mockOutputHandler).handleError(any<String>(), any())
     }
 
-    // Helper method to create test user config (no more s3Bucket field)
+    // Helper method to create test user config
     private fun createUserConfig(): User =
         User(
             email = "test@example.com",
             region = "us-west-2",
             keyName = "test-key",
-            sshKeyPath = "/tmp/test.pem",
             awsProfile = "default",
             awsAccessKey = "",
             awsSecret = "",
