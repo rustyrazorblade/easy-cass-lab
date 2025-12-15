@@ -12,6 +12,8 @@
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
+  "forwardPorts": [8000],
+  "appPort": [8000],
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "customizations": {},
   "remoteUser": "node",

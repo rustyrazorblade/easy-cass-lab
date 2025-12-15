@@ -487,7 +487,7 @@ With MCP integration, Claude Code can:
 * Troubleshoot issues by analyzing logs and metrics
 * Automate complex multi-step cluster operations
 
-For detailed documentation, see the [MCP Integration section in the user manual](http://rustyrazorblade.com/easy-db-lab/).
+For detailed documentation, see the [MCP Integration section in the user manual](https://rustyrazorblade.github.io/easy-db-lab/integrations/mcp-server/).
 
 ## Sanity Check Test
 
@@ -499,5 +499,5 @@ gw clean test shadowjar installdist  && easy-db-lab init test --up && source env
 
 ## Contributing
 
-Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-db-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](http://rustyrazorblade.com/easy-db-lab/development) before getting started.
+Interested in contributing?  Check out the [good first issue tag](https://github.com/rustyrazorblade/easy-db-lab/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) first!  Please read the [development documentation](https://rustyrazorblade.github.io/easy-db-lab/development/overview/) before getting started.
 
