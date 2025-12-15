@@ -35,7 +35,7 @@ jobs:
           pip install -r docs/requirements.txt
 
       - name: Build documentation
-        run: mkdocs build -f config/mkdocs.yml --site-dir site
+        run: mkdocs build -f config/mkdocs.yml
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
