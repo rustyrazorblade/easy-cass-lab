@@ -32,6 +32,8 @@ Commands:
     exec <cmd>      Execute command in container
     claude          Start Claude Code (with --allow-dangerously-skip-permissions)
     test            Run Gradle tests
+    docs            Build documentation (MkDocs)
+    docs-serve      Serve documentation locally with live reload
     logs [-f]       View container logs (-f to follow)
     status          Show container status
     down            Stop and remove containers
@@ -165,6 +167,29 @@ cmd_test() {
     devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" ./gradlew test
 }
 
+cmd_docs() {
+    check_devcontainer
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    info "Building documentation..."
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" mkdocs build -f config/mkdocs.yml
+    info "Documentation built to site/"
+}
+
+cmd_docs_serve() {
+    check_devcontainer
+    local container_id
+    container_id=$(get_container_id)
+    if [[ -z "$container_id" ]]; then
+        error "Dev container not running. Run '$(basename "$0") start' first."
+    fi
+    info "Serving documentation at http://127.0.0.1:8000 with live reload (Ctrl+C to stop)..."
+    devcontainer exec --workspace-folder "$WORKSPACE_FOLDER" mkdocs serve -f config/mkdocs.yml -a 0.0.0.0:8000 --livereload
+}
+
 cmd_logs() {
     check_docker
     local container_id
@@ -271,6 +296,12 @@ case "${1:-help}" in
         ;;
     test)
         cmd_test
+        ;;
+    docs)
+        cmd_docs
+        ;;
+    docs-serve)
+        cmd_docs_serve
         ;;
     logs)
         shift

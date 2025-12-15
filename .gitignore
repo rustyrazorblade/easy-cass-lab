@@ -149,3 +149,6 @@ easy-cass-mcp.json
 CLAUDE.local.md
 /k8s
 /restore
+
+# MkDocs build output
+site/

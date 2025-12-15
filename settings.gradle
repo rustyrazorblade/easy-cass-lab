@@ -18,7 +18,6 @@ include 'services:webservice'
 rootProject.name = 'easy-db-lab'
 
 include "core"
-include "manual"
 include "spark-connector-test1"
 
 dependencyResolutionManagement {
