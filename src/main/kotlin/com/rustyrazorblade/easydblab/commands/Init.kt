@@ -8,6 +8,7 @@ import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.cassandra.Up
 import com.rustyrazorblade.easydblab.commands.converters.PicoAZConverter
+import com.rustyrazorblade.easydblab.commands.converters.PicoArchConverter
 import com.rustyrazorblade.easydblab.commands.mixins.OpenSearchInitMixin
 import com.rustyrazorblade.easydblab.commands.mixins.SparkInitMixin
 import com.rustyrazorblade.easydblab.configuration.Arch
@@ -144,6 +145,7 @@ class Init(
     @Option(
         names = ["--arch", "-a", "--cpu"],
         description = ["CPU architecture"],
+        converter = [PicoArchConverter::class],
     )
     var arch: Arch = Arch.AMD64
 
@@ -154,8 +156,10 @@ class Init(
     var opensearch = OpenSearchInitMixin()
 
     @Option(
-        names = ["--tag."],
-        description = ["Tag instances"],
+        names = ["--tag"],
+        description = ["Tag instances (format: key=value, can be repeated)"],
+        arity = "1..*",
+        split = ",",
     )
     var tags: Map<String, String> = mutableMapOf()
 

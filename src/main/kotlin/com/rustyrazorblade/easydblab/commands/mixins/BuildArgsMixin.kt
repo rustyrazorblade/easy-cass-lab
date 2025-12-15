@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.mixins
 
+import com.rustyrazorblade.easydblab.commands.converters.PicoArchConverter
 import com.rustyrazorblade.easydblab.configuration.Arch
 import picocli.CommandLine.Option
 
@@ -25,6 +26,7 @@ class BuildArgsMixin {
     @Option(
         names = ["--arch", "-a", "--cpu"],
         description = ["CPU architecture"],
+        converter = [PicoArchConverter::class],
     )
     var arch: Arch = Arch.AMD64
 }

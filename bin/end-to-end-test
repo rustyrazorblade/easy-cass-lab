@@ -126,7 +126,8 @@ step_init_cluster() {
         ebs_opts="--ebs.type gp3 --ebs.size 256"
         echo "=== EBS volumes enabled (gp3, 256GB) ==="
     fi
-    easy-db-lab init -c 3 -i c5.2xlarge test --clean --up -s 1 $spark_opts $ebs_opts
+    local created_timestamp=$(date +%s)
+    easy-db-lab init -c 3 -i c5.2xlarge test --clean --up -s 1 --tag "created=$created_timestamp" $spark_opts $ebs_opts
 }
 
 step_setup_kubectl() {
