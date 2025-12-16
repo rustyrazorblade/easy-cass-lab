@@ -63,6 +63,7 @@ class EC2VpcService(
         outputHandler.handleMessage("Creating VPC: $name")
 
         val allTags = tags + ("Name" to name)
+        log.info { "Creating VPC with tags $allTags" }
         val tagSpecification = buildTagSpecification("vpc", allTags)
 
         val createRequest =
