@@ -141,6 +141,15 @@ curl() {
   ALL_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" command curl "$@"
 }
 
+# skopeo wrapper that routes through SOCKS5 proxy to reach internal container registries
+skopeo() {
+  ALL_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  HTTP_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  HTTPS_PROXY="socks5h://localhost:$SOCKS5_PROXY_PORT" \
+  NO_PROXY="localhost,127.0.0.1" \
+  command skopeo "$@"
+}
+
 # Start SOCKS5 proxy via SSH dynamic port forwarding
 start-socks5() {
   local port=${1:-$SOCKS5_PROXY_PORT}

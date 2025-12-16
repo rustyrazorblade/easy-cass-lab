@@ -495,18 +495,20 @@ step_stress_test() {
 }
 
 step_registry_push_pull() {
-    echo "=== Testing private registry push/pull over HTTPS ==="
+    echo "=== Testing private registry push/pull ==="
 
-    # Get registry address (private IP - kubectl uses SSH tunnel from env.sh)
+    # Get registry address (private IP - uses SOCKS5 proxy from env.sh)
     local registry=$(easy-db-lab ip control0 --private):5000
 
     echo "=== Registry address: $registry ==="
 
-    # Pull busybox locally, tag for private registry, and push
-    echo "=== Pulling busybox and pushing to private registry ==="
+    # Pull busybox locally and use skopeo to push to private registry
+    # skopeo routes through SOCKS5 proxy (configured in env.sh)
+    echo "=== Pulling busybox and pushing to private registry via skopeo ==="
     docker pull busybox:latest
-    docker tag busybox:latest "${registry}/busybox:e2e"
-    docker push "${registry}/busybox:e2e"
+    skopeo copy --dest-tls-verify=false \
+        docker-daemon:busybox:latest \
+        docker://${registry}/busybox:e2e
 
     # Deploy a pod that pulls from the private registry
     echo "=== Deploying test pod from private registry ==="
@@ -518,10 +520,12 @@ metadata:
   namespace: default
 spec:
   restartPolicy: Never
+  nodeSelector:
+    type: app
   containers:
   - name: test
     image: ${registry}/busybox:e2e
-    command: ["echo", "Registry HTTPS test successful!"]
+    command: ["echo", "Registry test successful!"]
 EOF
 
     # Wait for pod to complete
