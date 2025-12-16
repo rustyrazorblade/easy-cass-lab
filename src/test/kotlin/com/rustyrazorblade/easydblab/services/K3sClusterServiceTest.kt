@@ -145,7 +145,7 @@ class K3sClusterServiceTest {
                 any(),
                 eq("https://10.0.1.1:6443"),
                 eq("test-token-12345"),
-                eq(mapOf("role" to "cassandra", "type" to "db")),
+                eq(mapOf("type" to "db")),
             )
         }
 
@@ -170,7 +170,7 @@ class K3sClusterServiceTest {
                 any(),
                 eq("https://10.0.1.1:6443"),
                 eq("test-token-12345"),
-                eq(mapOf("role" to "stress", "type" to "app")),
+                eq(mapOf("type" to "app")),
             )
         }
 
@@ -376,14 +376,14 @@ class K3sClusterServiceTest {
         fun `should return cassandra labels for Cassandra type`() {
             val labels = service.getNodeLabels(ServerType.Cassandra)
 
-            assertThat(labels).isEqualTo(mapOf("role" to "cassandra", "type" to "db"))
+            assertThat(labels).isEqualTo(mapOf("type" to "db"))
         }
 
         @Test
         fun `should return stress labels for Stress type`() {
             val labels = service.getNodeLabels(ServerType.Stress)
 
-            assertThat(labels).isEqualTo(mapOf("role" to "stress", "type" to "app"))
+            assertThat(labels).isEqualTo(mapOf("type" to "app"))
         }
 
         @Test

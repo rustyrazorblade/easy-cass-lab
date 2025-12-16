@@ -163,6 +163,53 @@ step_verify_k3s() {
     kubectl wait --for=condition=Ready nodes --all --timeout=120s
 }
 
+step_verify_vpc_tags() {
+    echo "=== Verifying VPC tags ==="
+
+    # Extract VPC ID from state.json
+    local vpc_id=$(jq -r '.vpcId' state.json)
+    if [ -z "$vpc_id" ] || [ "$vpc_id" = "null" ]; then
+        echo "ERROR: VPC ID not found in state.json"
+        return 1
+    fi
+
+    echo "VPC ID: $vpc_id"
+
+    # Get VPC tags using AWS CLI
+    local tags=$(aws ec2 describe-vpcs --vpc-ids "$vpc_id" --query 'Vpcs[0].Tags' --output json)
+    echo "VPC Tags: $tags"
+
+    # Verify easy_cass_lab system tag is present
+    local easy_cass_lab_tag=$(echo "$tags" | jq -r '.[] | select(.Key == "easy_cass_lab") | .Value')
+    if [ "$easy_cass_lab_tag" = "1" ]; then
+        echo "  easy_cass_lab tag: OK (value: $easy_cass_lab_tag)"
+    else
+        echo "ERROR: easy_cass_lab tag not found or incorrect"
+        return 1
+    fi
+
+    # Verify ClusterId system tag is present
+    local cluster_id_tag=$(echo "$tags" | jq -r '.[] | select(.Key == "ClusterId") | .Value')
+    if [ -n "$cluster_id_tag" ] && [ "$cluster_id_tag" != "null" ]; then
+        echo "  ClusterId tag: OK (value: $cluster_id_tag)"
+    else
+        echo "ERROR: ClusterId tag not found"
+        return 1
+    fi
+
+    # Verify user-supplied 'created' tag is present (from init --tag "created=$timestamp")
+    local created_tag=$(echo "$tags" | jq -r '.[] | select(.Key == "created") | .Value')
+    if [ -n "$created_tag" ] && [ "$created_tag" != "null" ]; then
+        echo "  created tag: OK (value: $created_tag)"
+    else
+        echo "ERROR: User-supplied 'created' tag not found on VPC"
+        echo "This tag was specified via 'init --tag created=...' and should be propagated to the VPC"
+        return 1
+    fi
+
+    echo "=== VPC tag verification passed ==="
+}
+
 step_list_hosts() {
     echo "=== Listing cluster hosts ==="
     easy-db-lab hosts
@@ -767,6 +814,7 @@ STEPS_WORKDIR=(
     "step_setup_kubectl:Setup kubectl"
     "step_wait_k3s_ready:Wait for K3s"
     "step_verify_k3s:Verify K3s cluster"
+    "step_verify_vpc_tags:Verify VPC tags"
     "step_registry_push_pull:Test registry push/pull"
     "step_list_hosts:List hosts"
     "step_verify_s3_backup:Verify S3 backup"

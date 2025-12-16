@@ -59,7 +59,7 @@ class AwsInfrastructureService(
                         subnetConfig.availabilityZone,
                     )
                 // Ensure routing is configured for each subnet
-                vpcService.ensureRouteTable(vpcId, subnetId, igwId)
+                vpcService.ensureRouteTable(vpcId, subnetId, igwId, config.tags)
                 subnetId
             }
 
@@ -122,7 +122,7 @@ class AwsInfrastructureService(
                     subnetConfig.cidr,
                     config.tags,
                 )
-            vpcService.ensureRouteTable(existingVpcId, subnetId, igwId)
+            vpcService.ensureRouteTable(existingVpcId, subnetId, igwId, config.tags)
             val sgId =
                 vpcService.findOrCreateSecurityGroup(
                     existingVpcId,
@@ -211,7 +211,7 @@ class AwsInfrastructureService(
 
         // Ensure route tables are configured for each subnet
         subnetIds.forEach { subnetId ->
-            vpcService.ensureRouteTable(config.vpcId, subnetId, igwId)
+            vpcService.ensureRouteTable(config.vpcId, subnetId, igwId, baseTags)
         }
 
         // Create security group

@@ -98,7 +98,7 @@ class K3sAgentServiceTest : BaseKoinTest() {
         // Given
         val serverUrl = "https://10.0.1.5:6443"
         val token = "K10abcdef1234567890::server:1234567890abcdef"
-        val labels = mapOf("role" to "cassandra", "type" to "db")
+        val labels = mapOf("type" to "db")
         val successResponse = Response(text = "", stderr = "")
 
         whenever(mockRemoteOps.executeRemotely(eq(testHost), any(), any(), any()))

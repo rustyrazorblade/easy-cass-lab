@@ -7,8 +7,8 @@ easy-db-lab uses K3s to provide a lightweight Kubernetes cluster for deploying s
 K3s is automatically installed on all nodes during provisioning:
 
 - **Control node**: Runs the K3s server (Kubernetes control plane)
-- **Cassandra nodes**: Run as K3s agents with label `role=cassandra`
-- **Stress nodes**: Run as K3s agents with label `role=stress`
+- **Cassandra nodes**: Run as K3s agents with label `type=db`
+- **Stress nodes**: Run as K3s agents with label `type=app`
 
 ## Accessing the Cluster
 
@@ -128,8 +128,8 @@ Nodes are automatically labeled for workload scheduling:
 
 | Node Type | Labels |
 |-----------|--------|
-| Cassandra | `role=cassandra`, `type=db` |
-| Stress | `role=stress`, `type=app` |
+| Cassandra | `type=db` |
+| Stress | `type=app` |
 | Control | (no labels) |
 
 ### Using Node Selectors
@@ -143,7 +143,7 @@ metadata:
   name: stress-worker
 spec:
   nodeSelector:
-    role: stress
+    type: app
   containers:
   - name: worker
     image: my-stress-tool:latest
