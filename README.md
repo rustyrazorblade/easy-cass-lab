@@ -1,5 +1,7 @@
 # easy-db-lab
 
+**[Documentation](https://rustyrazorblade.github.io/easy-db-lab/)**
+
 Formerly known as easy-cass-lab, this project aims to make the process of creating lab environments for database testing in AWS.
 
 **Note:** The project was recently renamed from easy-cass-lab. Some internal code still uses the old naming.
