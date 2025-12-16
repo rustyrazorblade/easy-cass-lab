@@ -19,6 +19,7 @@ import com.rustyrazorblade.easydblab.commands.SetupInstance
 import com.rustyrazorblade.easydblab.commands.SetupProfile
 import com.rustyrazorblade.easydblab.commands.ShowIamPolicies
 import com.rustyrazorblade.easydblab.commands.Status
+import com.rustyrazorblade.easydblab.commands.Up
 import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.aws.Aws
@@ -30,7 +31,6 @@ import com.rustyrazorblade.easydblab.commands.cassandra.ListVersions
 import com.rustyrazorblade.easydblab.commands.cassandra.Restart
 import com.rustyrazorblade.easydblab.commands.cassandra.Start
 import com.rustyrazorblade.easydblab.commands.cassandra.Stop
-import com.rustyrazorblade.easydblab.commands.cassandra.Up
 import com.rustyrazorblade.easydblab.commands.cassandra.UpdateConfig
 import com.rustyrazorblade.easydblab.commands.cassandra.UseCassandra
 import com.rustyrazorblade.easydblab.commands.cassandra.WriteConfig
@@ -234,7 +234,6 @@ class CommandLineParser(
         cassandraCommandLine.addSubcommand("stress", stressCommandLine)
 
         // Cassandra cluster management commands (also available at top level for backwards compatibility)
-        cassandraCommandLine.addSubcommand("up", Up(context))
         cassandraCommandLine.addSubcommand("down", Down(context))
         cassandraCommandLine.addSubcommand("start", Start(context))
         cassandraCommandLine.addSubcommand("stop", Stop(context))

@@ -326,8 +326,8 @@ class DefaultK3sClusterService(
 
     override fun getNodeLabels(serverType: ServerType): Map<String, String> =
         when (serverType) {
-            ServerType.Cassandra -> mapOf("role" to "cassandra", "type" to "db")
-            ServerType.Stress -> mapOf("role" to "stress", "type" to "app")
+            ServerType.Cassandra -> mapOf("type" to "db")
+            ServerType.Stress -> mapOf("type" to "app")
             ServerType.Control -> emptyMap()
         }
 }

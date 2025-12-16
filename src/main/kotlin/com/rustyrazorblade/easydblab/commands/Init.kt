@@ -6,7 +6,7 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
-import com.rustyrazorblade.easydblab.commands.cassandra.Up
+import com.rustyrazorblade.easydblab.commands.Up
 import com.rustyrazorblade.easydblab.commands.converters.PicoAZConverter
 import com.rustyrazorblade.easydblab.commands.converters.PicoArchConverter
 import com.rustyrazorblade.easydblab.commands.mixins.OpenSearchInitMixin
@@ -15,7 +15,6 @@ import com.rustyrazorblade.easydblab.configuration.Arch
 import com.rustyrazorblade.easydblab.configuration.ClusterState
 import com.rustyrazorblade.easydblab.configuration.InitConfig
 import com.rustyrazorblade.easydblab.configuration.User
-import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import com.rustyrazorblade.easydblab.services.CommandExecutor
 import io.github.classgraph.ClassGraph
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -30,6 +29,28 @@ import kotlin.system.exitProcess
 
 /**
  * Initialize this directory for easy-db-lab.
+ *
+ * IMPORTANT: This command only sets up local configuration files and state.
+ * It does NOT provision any AWS infrastructure (VPC, EC2 instances, etc.).
+ *
+ * Responsibilities of init:
+ * - Create and configure state.json with cluster configuration
+ * - Extract resource files (manifests, scripts, etc.)
+ * - Validate AWS credentials and configuration
+ * - Store user-provided tags for later use during provisioning
+ *
+ * What init does NOT do:
+ * - Create VPCs (done by 'up')
+ * - Create EC2 instances (done by 'up')
+ * - Create S3 buckets (done by 'up')
+ * - Create any other AWS resources
+ *
+ * To provision infrastructure after init, use:
+ * - `easy-db-lab up` to create all AWS resources
+ * - Or use `init --up` to combine both steps
+ *
+ * @see Up for infrastructure provisioning
+ * @see Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup
@@ -41,7 +62,6 @@ class Init(
     context: Context,
 ) : PicoBaseCommand(context) {
     private val userConfig: User by inject()
-    private val vpcService: VpcService by inject()
     private val commandExecutor: CommandExecutor by inject()
 
     companion object {
@@ -186,10 +206,13 @@ class Init(
 
         outputHandler.handleMessage("Initializing directory")
 
-        // Create or use existing VPC
-        val vpcId = createOrUseVpc(clusterState)
-        clusterState.vpcId = vpcId
-        clusterStateManager.save(clusterState)
+        // Only set VPC ID if user explicitly provided one via --vpc
+        // Otherwise, VPC will be created during 'up'
+        if (existingVpcId != null) {
+            outputHandler.handleMessage("Using existing VPC: $existingVpcId")
+            clusterState.vpcId = existingVpcId
+            clusterStateManager.save(clusterState)
+        }
 
         extractResourceFiles()
 
@@ -206,22 +229,6 @@ class Init(
                 )
             }
         }
-    }
-
-    /**
-     * Creates a new VPC or uses an existing one if --vpc was provided.
-     */
-    private fun createOrUseVpc(clusterState: ClusterState): String {
-        if (existingVpcId != null) {
-            outputHandler.handleMessage("Using existing VPC: $existingVpcId")
-            return existingVpcId!!
-        }
-
-        outputHandler.handleMessage("Creating VPC for cluster: ${clusterState.name}")
-        val vpcTags = mapOf(Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE, "ClusterId" to clusterState.clusterId)
-        val vpcId = vpcService.createVpc(name, Constants.Vpc.DEFAULT_CIDR, vpcTags)
-        outputHandler.handleMessage("VPC created: $vpcId")
-        return vpcId
     }
 
     private fun validateParameters() {

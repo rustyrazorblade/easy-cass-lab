@@ -86,7 +86,7 @@ internal class AwsInfrastructureServiceTest {
         inOrder.verify(mockVpcService).findOrCreateSubnet(any(), any(), any(), any(), anyOrNull())
 
         // Route table must be configured after VPC, subnet, and IGW exist
-        inOrder.verify(mockVpcService).ensureRouteTable(any(), any(), any())
+        inOrder.verify(mockVpcService).ensureRouteTable(any(), any(), any(), any())
 
         // Security group must be created after VPC
         inOrder.verify(mockVpcService).findOrCreateSecurityGroup(any(), any(), any(), any())
@@ -109,6 +109,7 @@ internal class AwsInfrastructureServiceTest {
             eq("vpc-12345"),
             eq("subnet-12345"),
             eq("igw-12345"),
+            eq(mapOf("easy_cass_lab" to "1")),
         )
     }
 
@@ -356,9 +357,14 @@ internal class AwsInfrastructureServiceTest {
 
         awsInfraService.setupVpcNetworking(config) { "192.168.1.1" }
 
+        val expectedTags =
+            mapOf(
+                "easy_cass_lab" to "1",
+                "ClusterId" to "cluster-123",
+            )
         val inOrder = inOrder(mockVpcService)
-        inOrder.verify(mockVpcService).ensureRouteTable("vpc-existing", "subnet-1", "igw-12345")
-        inOrder.verify(mockVpcService).ensureRouteTable("vpc-existing", "subnet-2", "igw-12345")
+        inOrder.verify(mockVpcService).ensureRouteTable("vpc-existing", "subnet-1", "igw-12345", expectedTags)
+        inOrder.verify(mockVpcService).ensureRouteTable("vpc-existing", "subnet-2", "igw-12345", expectedTags)
     }
 
     @Test

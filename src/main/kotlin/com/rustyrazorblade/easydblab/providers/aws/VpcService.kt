@@ -78,15 +78,18 @@ interface VpcService {
     /**
      * Ensures the route table for the subnet has a default route to the internet gateway.
      * Uses the VPC's main route table and associates it with the subnet.
+     * Also applies tags to the route table for resource tracking.
      *
      * @param vpcId The VPC ID
      * @param subnetId The subnet ID to associate with the route table
      * @param igwId The internet gateway ID to route traffic to
+     * @param tags Tags to apply to the route table (optional)
      */
     fun ensureRouteTable(
         vpcId: VpcId,
         subnetId: SubnetId,
         igwId: InternetGatewayId,
+        tags: Map<String, String> = emptyMap(),
     )
 
     /**

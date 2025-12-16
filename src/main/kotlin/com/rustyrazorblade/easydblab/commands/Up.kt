@@ -1,4 +1,4 @@
-package com.rustyrazorblade.easydblab.commands.cassandra
+package com.rustyrazorblade.easydblab.commands
 
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
@@ -6,9 +6,7 @@ import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.TriggerBackup
-import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
-import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
-import com.rustyrazorblade.easydblab.commands.SetupInstance
+import com.rustyrazorblade.easydblab.commands.cassandra.WriteConfig
 import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.ClusterState
@@ -38,9 +36,7 @@ import com.rustyrazorblade.easydblab.services.RegistryService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.resilience4j.retry.Retry
 import org.koin.core.component.inject
-import picocli.CommandLine.Command
-import picocli.CommandLine.Mixin
-import picocli.CommandLine.Option
+import picocli.CommandLine
 import java.io.File
 import java.net.URL
 import java.time.Duration
@@ -56,13 +52,13 @@ import java.time.Duration
  * After provisioning, it configures K3s on all nodes and applies Kubernetes manifests.
  * State is persisted incrementally as each resource type completes.
  *
- * @see com.rustyrazorblade.easydblab.commands.Init for cluster initialization (must be run first)
- * @see Down for tearing down infrastructure
+ * @see Init for cluster initialization (must be run first)
+ * @see com.rustyrazorblade.easydblab.commands.cassandra.Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup
 @TriggerBackup
-@Command(
+@CommandLine.Command(
     name = "up",
     description = ["Starts instances"],
 )
@@ -101,10 +97,10 @@ class Up(
     // Lock for synchronizing access to workingState from parallel threads
     private val stateLock = Any()
 
-    @Option(names = ["--no-setup", "-n"])
+    @CommandLine.Option(names = ["--no-setup", "-n"])
     var noSetup = false
 
-    @Mixin
+    @CommandLine.Mixin
     var hosts = HostsMixin()
 
     override fun execute() {
@@ -155,12 +151,55 @@ class Up(
         outputHandler.handleMessage("Creating S3 bucket: $bucketName")
         aws.createS3Bucket(bucketName)
         aws.putS3BucketPolicy(bucketName)
-        aws.tagS3Bucket(bucketName, mapOf("ClusterId" to workingState.clusterId))
+        aws.tagS3Bucket(bucketName, mapOf("ClusterId" to workingState.clusterId) + initConfig.tags)
 
         workingState.s3Bucket = bucketName
         clusterStateManager.save(workingState)
 
         outputHandler.handleMessage("S3 bucket created and configured: $bucketName")
+    }
+
+    /**
+     * Creates a new VPC or validates an existing one.
+     *
+     * If no VPC ID is stored in state, creates a new VPC with appropriate tags.
+     * If a VPC ID exists, validates it still exists in AWS.
+     *
+     * @param initConfig Configuration containing cluster name and tags
+     * @return The VPC ID to use for infrastructure
+     */
+    private fun createOrValidateVpc(initConfig: InitConfig): String {
+        val existingVpcId = workingState.vpcId
+
+        if (existingVpcId != null) {
+            // Validate existing VPC still exists
+            val vpcName = vpcService.getVpcName(existingVpcId)
+            if (vpcName == null) {
+                error(
+                    "VPC $existingVpcId not found in AWS. It may have been deleted. " +
+                        "Please run 'easy-db-lab clean' and 'easy-db-lab init' to recreate.",
+                )
+            }
+            log.info { "Using existing VPC: $existingVpcId ($vpcName)" }
+            return existingVpcId
+        }
+
+        // Create new VPC
+        outputHandler.handleMessage("Creating VPC for cluster: ${initConfig.name}")
+        val vpcTags =
+            mapOf(
+                Constants.Vpc.TAG_KEY to Constants.Vpc.TAG_VALUE,
+                "ClusterId" to workingState.clusterId,
+            ) + initConfig.tags
+
+        val vpcId = vpcService.createVpc(initConfig.name, Constants.Vpc.DEFAULT_CIDR, vpcTags)
+        outputHandler.handleMessage("VPC created: $vpcId")
+
+        // Save VPC ID to state
+        workingState.vpcId = vpcId
+        clusterStateManager.save(workingState)
+
+        return vpcId
     }
 
     /**
@@ -172,17 +211,8 @@ class Up(
     private fun provisionInfrastructure(initConfig: InitConfig) {
         outputHandler.handleMessage("Provisioning infrastructure...")
 
-        val vpcId = workingState.vpcId ?: error("VPC ID not found. Please run 'easy-db-lab init' first.")
-
-        // Validate VPC exists in AWS
-        val vpcName = vpcService.getVpcName(vpcId)
-        if (vpcName == null) {
-            error(
-                "VPC $vpcId not found in AWS. It may have been deleted. " +
-                    "Please run 'easy-db-lab clean' and 'easy-db-lab init' to create a new VPC.",
-            )
-        }
-        log.info { "Validated VPC exists: $vpcId ($vpcName)" }
+        // Create VPC if needed, or validate existing one
+        val vpcId = createOrValidateVpc(initConfig)
 
         // Set up VPC networking (subnets, security groups, internet gateway)
         val availabilityZones =
@@ -199,6 +229,7 @@ class Up(
                 region = initConfig.region,
                 availabilityZones = availabilityZones,
                 isOpen = initConfig.open,
+                tags = initConfig.tags,
             )
         val vpcInfra = awsInfrastructureService.setupVpcNetworking(vpcNetworkingConfig) { getExternalIpAddress() }
         val subnetIds = vpcInfra.subnetIds

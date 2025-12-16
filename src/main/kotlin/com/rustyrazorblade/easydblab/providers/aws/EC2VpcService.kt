@@ -214,6 +214,7 @@ class EC2VpcService(
         vpcId: VpcId,
         subnetId: SubnetId,
         igwId: InternetGatewayId,
+        tags: Map<String, String>,
     ) {
         // Get the main route table for the VPC
         val describeRequest =
@@ -239,6 +240,12 @@ class EC2VpcService(
         }
 
         val routeTableId = routeTables[0].routeTableId()
+
+        // Apply tags to the route table if provided
+        if (tags.isNotEmpty()) {
+            createTags(routeTableId, tags)
+            log.info { "Applied tags to route table: $routeTableId" }
+        }
 
         // Check if default route already exists
         val existingRoute =
