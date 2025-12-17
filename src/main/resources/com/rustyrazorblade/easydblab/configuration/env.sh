@@ -5,22 +5,30 @@ YELLOW_BOLD='\033[1;33m'
 NC_BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Determine the cluster directory (where this script is located)
+# Works in both bash and zsh
+if [ -n "${ZSH_VERSION:-}" ]; then
+    CLUSTER_DIR="$(dirname "$(realpath "$0")")"
+else
+    CLUSTER_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+fi
+
 echo -e "${YELLOW_BOLD}[WARNING]${YELLOW} We are creating aliases which override these commands:${NC}"
 echo -e "${NC_BOLD}  ssh\n  sftp\n  scp\n  rsync\n${NC}"
 echo "The aliases point the commands they override to your new cluster."
 echo -e "To undo these changes exit this terminal.\n"
 
-mkdir -p artifacts
+mkdir -p "$CLUSTER_DIR/artifacts"
 
-SSH_CONFIG="$(pwd)/sshConfig"
+SSH_CONFIG="$CLUSTER_DIR/sshConfig"
 ssh() { command ssh -F "$SSH_CONFIG" "$@"; }
 sftp() { command sftp -F "$SSH_CONFIG" "$@"; }
 scp() { command scp -F "$SSH_CONFIG" "$@"; }
 rsync() { command rsync -ave "ssh -F $SSH_CONFIG" "$@"; }
 
 # Configure kubectl to use the K3s cluster kubeconfig (if it exists)
-if [ -f "$(pwd)/kubeconfig" ]; then
-  export KUBECONFIG="$(pwd)/kubeconfig"
+if [ -f "$CLUSTER_DIR/kubeconfig" ]; then
+  export KUBECONFIG="$CLUSTER_DIR/kubeconfig"
   # k9s function to ensure kubeconfig is passed explicitly
   # (k9s has historical issues with KUBECONFIG env var)
   k9s() { HTTPS_PROXY="socks5://localhost:$SOCKS5_PROXY_PORT" command k9s --kubeconfig "$KUBECONFIG" "$@"; }
@@ -39,7 +47,7 @@ c-dl () {
     for i in "${SERVERS[@]}"
     do
         ssh $i "sudo chown -R ubuntu /mnt/db1/cassandra/artifacts/"
-        rsync $i:/mnt/db1/cassandra/artifacts/ artifacts/$i
+        rsync $i:/mnt/db1/cassandra/artifacts/ "$CLUSTER_DIR/artifacts/$i"
     done
 }
 
@@ -56,7 +64,7 @@ c-flame() {
   [ -z "$HOST" ] &&  echo "Host is required"
 
   if [[ $HOST =~ db[0-9*] ]]; then
-    mkdir -p artifacts/$1
+    mkdir -p "$CLUSTER_DIR/artifacts/$1"
     ssh $HOST -C /usr/local/bin/flamegraph "${@:2}"
     c-dl
   else
@@ -69,7 +77,7 @@ c-flame-wall() {
   [ -z "$HOST" ] &&  echo "Host is required"
 
   if [[ $HOST =~ db[0-9*] ]]; then
-    mkdir -p artifacts/$1
+    mkdir -p "$CLUSTER_DIR/artifacts/$1"
     ssh $HOST -C /usr/local/bin/flamegraph -e wall -X '*Unsafe.park*'  -X '*Native.epollWait'  "${@:2}"
     c-dl
   else
@@ -82,7 +90,7 @@ c-flame-compaction() {
   [ -z "$HOST" ] &&  echo "Host is required"
 
   if [[ $HOST =~ db[0-9*] ]]; then
-    mkdir -p artifacts/$1
+    mkdir -p "$CLUSTER_DIR/artifacts/$1"
     ssh $HOST -C /usr/local/bin/flamegraph -e wall -X '*Unsafe.park*' -X '*Native.epollWait' -I '*compaction*' "${@:2}"
     c-dl
   else
@@ -95,7 +103,7 @@ c-flame-offcpu() {
   [ -z "$HOST" ] &&  echo "Host is required"
 
   if [[ $HOST =~ db[0-9*] ]]; then
-    mkdir -p artifacts/$1
+    mkdir -p "$CLUSTER_DIR/artifacts/$1"
     ssh $HOST -C /usr/local/bin/flamegraph -e kprobe:schedule -i 2 --cstack dwarf -X '*Unsafe.park*' "${@:2}"
     c-dl
   else
@@ -108,7 +116,7 @@ c-flame-sepworker() {
   [ -z "$HOST" ] &&  echo "Host is required"
 
   if [[ $HOST =~ db[0-9*] ]]; then
-    mkdir -p artifacts/$1
+    mkdir -p "$CLUSTER_DIR/artifacts/$1"
     ssh $HOST -C /usr/local/bin/flamegraph -I '*SEPWorker*'  "${@:2}"
     c-dl
   else
@@ -153,7 +161,7 @@ skopeo() {
 # Start SOCKS5 proxy via SSH dynamic port forwarding
 start-socks5() {
   local port=${1:-$SOCKS5_PROXY_PORT}
-  local proxy_state_file=".socks5-proxy-state"
+  local proxy_state_file="$CLUSTER_DIR/.socks5-proxy-state"
 
   echo "Starting SOCKS5 proxy..."
 
@@ -233,7 +241,7 @@ start-socks5() {
     echo "  - SOCKS5 proxy started on localhost:$port [PID: $SOCKS5_PROXY_PID]"
 
     # Write proxy state to file
-    local cluster_name=$(basename "$(pwd)")
+    local cluster_name=$(basename "$CLUSTER_DIR")
     local start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     cat > "$proxy_state_file" <<EOF
@@ -273,7 +281,7 @@ EOF
 
 # Stop SOCKS5 proxy
 stop-socks5() {
-  local proxy_state_file=".socks5-proxy-state"
+  local proxy_state_file="$CLUSTER_DIR/.socks5-proxy-state"
 
   echo "Stopping SOCKS5 proxy..."
 
@@ -343,7 +351,7 @@ alias socks5-stop="stop-socks5"
 
 # ClickHouse client helper (interactive)
 clickhouse-client() {
-  ssh -t control0 kubectl exec -it clickhouse-0 -c clickhouse -- clickhouse-client
+  ssh -t control0 kubectl exec -it clickhouse-0 -c clickhouse -- clickhouse-client --user default --password default
 }
 
 # ClickHouse query helper (non-interactive, sends query via HTTP POST)
@@ -351,7 +359,7 @@ clickhouse-client() {
 clickhouse-query() {
   local query="${1:-$(cat)}"
   local control_ip=$(easy-db-lab ip db0 --private)
-  with-proxy curl -s "http://${control_ip}:8123/" -d "$query"
+  with-proxy curl -s -u "default:default" "http://${control_ip}:8123/" -d "$query"
 }
 
 # Automatically start SOCKS5 proxy

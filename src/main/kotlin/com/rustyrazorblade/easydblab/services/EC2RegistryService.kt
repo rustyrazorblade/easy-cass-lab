@@ -64,10 +64,11 @@ class EC2RegistryService(
     }
 
     /**
-     * Configures containerd on a node to trust the registry's TLS certificate.
+     * Configures containerd and K3s on a node to trust the registry's TLS certificate.
      *
      * Downloads the CA certificate from S3 and creates the containerd certificate
-     * configuration for the registry. Restarts containerd to apply the changes.
+     * configuration for the registry. Also configures /etc/rancher/k3s/registries.yaml
+     * with the HTTPS registry endpoint and TLS configuration. Restarts containerd if running.
      *
      * @param host The node to configure
      * @param registryHost The private IP address of the registry (control node)
@@ -90,7 +91,7 @@ class EC2RegistryService(
             "bash $scriptPath '$registryHost' '$registryPort' '$s3Bucket' '$s3Path'",
         )
 
-        log.info { "Configured containerd on ${host.alias} to trust registry at $registryHost:$registryPort" }
+        log.info { "Configured containerd and K3s on ${host.alias} to trust registry at $registryHost:$registryPort" }
     }
 
     /**

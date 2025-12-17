@@ -455,6 +455,9 @@ class Up(
             return
         }
 
+        // Configure registry TLS before K3s starts so registries.yaml is in place
+        configureRegistryTls()
+
         val config =
             K3sClusterConfig(
                 controlHost = controlHosts.first(),
@@ -476,18 +479,15 @@ class Up(
             }
         }
 
-        // Configure registry TLS before starting the registry pod
-        configureRegistryTls()
-
         commandExecutor.execute { K8Apply(context) }
     }
 
     /**
      * Configures TLS for the container registry.
      *
-     * Generates a self-signed certificate on the control node and configures containerd
-     * on all nodes to trust the registry. This must happen before K8s manifests are applied
-     * so the registry pod can start with TLS enabled.
+     * Generates a self-signed certificate on the control node and configures both containerd
+     * and K3s registries.yaml on all nodes to trust the registry. This must happen before K3s
+     * starts so that K3s picks up the HTTPS registry configuration.
      */
     private fun configureRegistryTls() {
         val controlHosts = workingState.hosts[ServerType.Control] ?: emptyList()
