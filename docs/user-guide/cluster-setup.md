@@ -1,71 +1,80 @@
 # Cluster Setup
 
-This guide covers initializing and launching your easy-db-lab cluster.
+This page provides a quick reference for cluster initialization and provisioning. For a complete walkthrough, see the [Tutorial](tutorial.md).
+
+## Quick Start
+
+```bash
+# Initialize a 3-node cluster with i4i.xlarge instances and 1 stress node
+easy-db-lab init my-cluster --db 3 --instance i4i.xlarge --app 1
+
+# Provision AWS infrastructure
+easy-db-lab up
+
+# Set up your shell environment
+source env.sh
+```
+
+Or combine init and up:
+
+```bash
+easy-db-lab init my-cluster --db 3 --instance i4i.xlarge --app 1 --up
+```
 
 ## Initialize
 
-The tool uses the current working directory as a working space for all cluster configs and artifacts.
+The `init` command creates local configuration files but does **not** provision AWS resources.
 
 ```bash
-easy-db-lab init
+easy-db-lab init <cluster-name> [options]
 ```
 
-This creates a `terraform.tf.json` file with your cluster configuration.
-
-### Init Options
+### Common Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--cassandra, -c` | Number of Cassandra instances | 3 |
-| `--stress, -s` | Number of stress instances | 0 |
-| `--instance` | Instance type | c5d.2xlarge |
-| `--region` | AWS region | us-west-2 |
-| `--monitoring, -m` | Enable monitoring (beta) | false |
-| `--cpu` | CPU architecture (x86_64 or arm64) | x86_64 |
-| `--s3-bucket` | S3 bucket for ClickHouse storage | none |
+| `--db`, `-c` | Number of Cassandra instances | 3 |
+| `--stress`, `-s` | Number of stress instances | 0 |
+| `--instance`, `-i` | Instance type | r3.2xlarge |
+| `--ebs.type` | EBS volume type (NONE, gp2, gp3) | NONE |
+| `--ebs.size` | EBS volume size in GB | 256 |
+| `--arch`, `-a` | CPU architecture (AMD64, ARM64) | AMD64 |
+| `--up` | Auto-provision after init | false |
 
-### ARM64 Support
+For the complete options list, see the [Tutorial](tutorial.md#init-options) or run `easy-db-lab init --help`.
 
-For Graviton instances, use the `--cpu arm64` flag:
+## Launch
 
-```bash
-easy-db-lab init --cpu arm64
-```
-
-## Launch Instances
-
-After initializing, launch your instances:
+The `up` command provisions all AWS infrastructure:
 
 ```bash
 easy-db-lab up
 ```
 
-Terraform will ask you to type `yes` to confirm. Use `--yes` to skip the prompt:
+### What Gets Created
 
-```bash
-easy-db-lab up --yes
-```
+- S3 bucket for cluster state
+- VPC with subnets and security groups
+- EC2 instances (Cassandra, Stress, Control nodes)
+- K3s cluster across all nodes (Cassandra, Stress, Control)
 
-### Environment Setup
+### Options
 
-After launching, source the environment file to get helpful aliases:
-
-```bash
-source env.sh
-```
-
-This sets up SSH, SCP, SFTP, and rsync to use the cluster's SSH configuration. See [Shell Aliases](shell-aliases.md) for all available shortcuts.
+| Option | Description |
+|--------|-------------|
+| `--no-setup`, `-n` | Skip K3s and AxonOps setup |
 
 ## Shut Down
 
-To destroy the cluster infrastructure:
+Destroy all cluster infrastructure:
 
 ```bash
 easy-db-lab down
 ```
 
-Add `--yes` to auto-approve:
+## Next Steps
 
-```bash
-easy-db-lab down --yes
-```
+After your cluster is running:
+
+1. [Configure Cassandra](tutorial.md#part-3-configure-cassandra-50) - Select version and apply configuration
+2. [Shell Aliases](shell-aliases.md) - Set up convenient shortcuts

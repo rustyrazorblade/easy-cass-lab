@@ -1,6 +1,6 @@
-# Installing Cassandra
+# Configuring Cassandra
 
-There are two ways to install Cassandra on your instances: using a released build or a custom build.
+This page covers Cassandra version management and configuration. For a step-by-step walkthrough, see the [Tutorial](tutorial.md#part-3-configure-cassandra-50).
 
 ## Supported Versions
 
@@ -12,93 +12,135 @@ easy-db-lab supports the following Cassandra versions:
 | 3.11 | 8 | Stable release |
 | 4.0 | 11 | First 4.x release |
 | 4.1 | 11 | Current LTS |
-| 5.0 | 11 | Latest stable |
-| 5.0-HEAD | 11 | Nightly build from trunk |
+| 5.0 | 11 | **Latest stable (recommended)** |
+| 5.0-HEAD | 11 | Nightly build from 5.0 branch |
 | trunk | 17 | Development branch |
 
-To list versions installed on your cluster:
+## Quick Start
+
+```bash
+# Select Cassandra 5.0
+easy-db-lab cassandra use 5.0
+
+# Generate configuration patch
+easy-db-lab cassandra write-config
+
+# Apply configuration and start
+easy-db-lab cassandra update-config
+easy-db-lab cassandra start
+
+# Verify cluster
+ssh db0 nodetool status
+```
+
+## Version Management
+
+### Select a Version
+
+```bash
+easy-db-lab cassandra use <version>
+```
+
+Examples:
+```bash
+easy-db-lab cassandra use 5.0       # Latest stable
+easy-db-lab cassandra use 4.1       # LTS version
+easy-db-lab cassandra use trunk     # Development branch
+```
+
+This command:
+
+1. Sets the active Cassandra version on all nodes
+2. Downloads current configuration files locally
+3. Applies any existing `cassandra.patch.yaml`
+
+### Specify Java Version
+
+```bash
+easy-db-lab cassandra use 5.0 --java 11
+```
+
+### List Available Versions
 
 ```bash
 easy-db-lab ls
 ```
 
-## The Easy Way - Use a Released Build
+## Configuration
 
-The easiest path to getting a cluster up and running:
+### The Patch File
+
+Cassandra configuration uses a **patch file** approach. The `cassandra.patch.yaml` file contains only the settings you want to customize, which are merged with the default `cassandra.yaml`.
+
+Generate a new patch file:
 
 ```bash
-easy-db-lab use 3.11.4
-easy-db-lab install
-easy-db-lab start
+easy-db-lab cassandra write-config
 ```
 
-Simply replace `3.11.4` with the release version you want to use.
+Options:
+- `-t`, `--tokens`: Number of tokens (default: 4)
 
-## The Hard Way - Use a Custom Build
-
-To install Cassandra with a custom build, follow these steps:
-
-1. Build the version you need and give it a build name (optional)
-2. Tell easy-db-lab to use the custom build
-
-### Step 1: Create a Build
-
-If you have no builds, run the following:
-
-```bash
-easy-db-lab build -n BUILD_NAME /path/to/repo
+Example patch file:
+```yaml
+cluster_name: "my-cluster"
+num_tokens: 4
+seed_provider:
+  class_name: "org.apache.cassandra.locator.SimpleSeedProvider"
+  parameters:
+    seeds: "10.0.1.28"
+hints_directory: "/mnt/db1/cassandra/hints"
+data_file_directories:
+  - "/mnt/db1/cassandra/data"
+commitlog_directory: "/mnt/db1/cassandra/commitlog"
+concurrent_reads: 64
+concurrent_writes: 64
+trickle_fsync: true
+endpoint_snitch: "Ec2Snitch"
 ```
 
-Where:
+!!! info "Auto-Injected Fields"
+    `listen_address` and `rpc_address` are automatically injected with each node's private IP. Do not include them in your patch file.
 
-- `BUILD_NAME` - Name you want to give the build (e.g., `my-build-cass-4.0`)
-- `/path/to/repo` - Full path to clone of the Cassandra repository
-
-### Step 2: Use the Build
-
-If you already have a build that you would like to use:
+### Apply Configuration
 
 ```bash
-easy-db-lab use BUILD_NAME
+easy-db-lab cassandra update-config
 ```
 
-This will copy the binaries and configuration files to the `provisioning/cassandra` directory in your `easy-db-lab` repository.
+Options:
+- `--restart`, `-r`: Restart Cassandra after applying
+- `--hosts`: Filter to specific hosts
 
-### Custom Provisioning Scripts
-
-The `provisioning` directory contains files that can be used to set up your instances. If you want to install other binaries or perform other operations during provisioning, you can add them to the `provisioning/cassandra` directory.
-
-!!! note
-    Any new scripts you add should be prefixed with a number which is used to determine the order they are executed by the `install.sh` script.
-
-### Step 3: Install
-
-To provision the instances:
-
+Apply and restart in one command:
 ```bash
-easy-db-lab install
+easy-db-lab cassandra update-config --restart
 ```
 
-This will push the contents of the `provisioning/cassandra` directory up to each of the instances and install Cassandra on them.
+### Download Configuration
 
-## Listing Available Builds
-
-To see what builds are available:
+Download current configuration files from nodes:
 
 ```bash
-easy-db-lab ls
+easy-db-lab cassandra download-config
 ```
 
-## Starting and Stopping Cassandra
+Files are saved to a local directory named after the version (e.g., `5.0/`).
 
-After installation, manage the Cassandra service:
+## Starting and Stopping
 
 ```bash
-# Start Cassandra on all nodes
-easy-db-lab start
+# Start on all nodes
+easy-db-lab cassandra start
 
-# Stop Cassandra on all nodes
-easy-db-lab stop
+# Stop on all nodes
+easy-db-lab cassandra stop
+
+# Restart on all nodes
+easy-db-lab cassandra restart
+
+# Target specific hosts
+easy-db-lab cassandra start --hosts db0,db1
 ```
 
 ## Cassandra Sidecar
@@ -121,21 +163,42 @@ curl http://<cassandra-node-ip>:9043/api/v1/__health
 
 ### Sidecar Management
 
-The sidecar is managed via systemd and starts automatically with Cassandra:
+The sidecar is managed via systemd:
 
 ```bash
-# Check sidecar status on a node
+# Check status
 ssh db0 sudo systemctl status cassandra-sidecar
 
-# Restart sidecar
+# Restart
 ssh db0 sudo systemctl restart cassandra-sidecar
 ```
 
-### Configuration
+### Sidecar Configuration
 
-The sidecar configuration is located at `/etc/cassandra-sidecar/cassandra-sidecar.yaml` on each node. Key settings include:
+Configuration is located at `/etc/cassandra-sidecar/cassandra-sidecar.yaml` on each node. Key settings:
 
 - Cassandra connection details
 - Data directory paths
 - Traffic shaping and throttling
 - S3 integration settings
+
+## Custom Builds
+
+To use a custom Cassandra build from source:
+
+### Build from Repository
+
+```bash
+easy-db-lab cassandra build -n my-build /path/to/cassandra-repo
+```
+
+### Use Custom Build
+
+```bash
+easy-db-lab cassandra use my-build
+```
+
+## Next Steps
+
+- [Tutorial](tutorial.md) - Complete walkthrough
+- [Shell Aliases](shell-aliases.md) - Convenient shortcuts for Cassandra management

@@ -56,6 +56,17 @@ After deployment, ClickHouse is accessible via:
 
 ClickHouse is configured with two storage policies. You select the policy when creating a table using the `SETTINGS storage_policy` clause.
 
+### Policy Comparison
+
+| Aspect | `local` | `s3_main` |
+|--------|---------|-----------|
+| **Storage Location** | Local NVMe disks | S3 bucket with 10GB local cache |
+| **Performance** | Best latency, highest throughput | Higher latency, cache-dependent |
+| **Capacity** | Limited by disk size | Virtually unlimited |
+| **Cost** | Included in instance cost | S3 storage + request costs |
+| **Data Persistence** | Lost when cluster is destroyed | Persists independently |
+| **Best For** | Benchmarks, low-latency queries | Large datasets, cost-sensitive workloads |
+
 ### Local Storage (`local`)
 
 The default policy stores data on local NVMe disks attached to the database nodes. This provides the best performance for latency-sensitive workloads.
@@ -69,6 +80,13 @@ SETTINGS storage_policy = 'local';
 
 If you omit the `storage_policy` setting, tables use local storage by default.
 
+**When to use local storage:**
+
+- Performance benchmarking where latency matters
+- Temporary or experimental datasets
+- Workloads with predictable data sizes that fit on local disks
+- When you don't need data to persist after cluster teardown
+
 ### S3 Storage (`s3_main`)
 
 The S3 policy stores data in your configured S3 bucket with a 10GB local cache for frequently accessed data. This is ideal for large datasets where storage cost matters more than latency.
@@ -76,7 +94,7 @@ The S3 policy stores data in your configured S3 bucket with a 10GB local cache f
 **Prerequisite**: Your cluster must be initialized with an S3 bucket. Set this during `init`:
 
 ```bash
-easy-db-lab init --s3-bucket my-clickhouse-data
+easy-db-lab init my-cluster --s3-bucket my-clickhouse-data
 ```
 
 Then create tables with S3 storage:
@@ -88,12 +106,19 @@ ORDER BY id
 SETTINGS storage_policy = 's3_main';
 ```
 
-S3 storage provides:
+**When to use S3 storage:**
 
-- Virtually unlimited storage capacity
-- 10GB local cache for hot data
-- Cost-effective storage for large analytical datasets
-- Data persists independently of cluster lifecycle
+- Large analytical datasets (terabytes+)
+- Data that should persist across cluster restarts
+- Cost-sensitive workloads where storage cost > compute cost
+- Sharing data between multiple clusters
+
+**How the cache works:**
+
+- Hot (frequently accessed) data is cached locally for fast reads
+- Cold data is fetched from S3 on demand
+- Cache is automatically managed by ClickHouse
+- First query on cold data will be slower; subsequent queries use cache
 
 ## Stopping ClickHouse
 

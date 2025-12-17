@@ -6,124 +6,127 @@ Complete reference for all easy-db-lab commands.
 
 | Option | Description |
 |--------|-------------|
-| `--help, -h` | Shows help information |
+| `--help`, `-h` | Shows help information |
+| `--vpc-id` | Reconstruct state from existing VPC (requires ClusterId tag) |
+| `--force` | Force state reconstruction even if state.json exists |
 
-## Commands
+---
+
+## Setup Commands
+
+### setup-profile
+
+Set up user profile interactively.
+
+```bash
+easy-db-lab setup-profile
+```
+
+**Aliases:** `setup`
+
+Guides you through:
+
+- Email and AWS credentials collection
+- AWS credential validation
+- Key pair generation
+- IAM role creation
+- Packer VPC infrastructure setup
+- AMI validation/building
+
+### show-iam-policies
+
+Display IAM policies with your account ID populated.
+
+```bash
+easy-db-lab show-iam-policies [policy-name]
+```
+
+**Aliases:** `sip`
+
+| Argument | Description |
+|----------|-------------|
+| `policy-name` | Optional filter: `ec2`, `iam`, or `emr` |
+
+### build-image
+
+Build both base and Cassandra AMI images.
+
+```bash
+easy-db-lab build-image [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--arch` | CPU architecture (AMD64, ARM64) | AMD64 |
+| `--region` | AWS region | (from profile) |
+
+---
+
+## Cluster Lifecycle Commands
 
 ### init
 
 Initialize a directory for easy-db-lab.
 
 ```bash
-easy-db-lab init [options]
+easy-db-lab init [cluster-name] [options]
 ```
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--cassandra, -c` | Number of Cassandra instances | 3 |
-| `--stress, -s` | Number of stress instances | 0 |
-| `--instance` | Instance type | c5d.2xlarge |
-| `--region` | AWS region | us-west-2 |
-| `--monitoring, -m` | Enable monitoring (beta) | false |
-| `--up` | Start instances automatically | false |
+| `--db`, `--cassandra`, `-c` | Number of Cassandra instances | 3 |
+| `--app`, `--stress`, `-s` | Number of stress instances | 0 |
+| `--instance`, `-i` | Cassandra instance type | r3.2xlarge |
+| `--stress-instance`, `-si` | Stress instance type | c7i.2xlarge |
+| `--azs`, `-z` | Availability zones (e.g., `a,b,c`) | all |
+| `--arch`, `-a` | CPU architecture (AMD64, ARM64) | AMD64 |
+| `--ebs.type` | EBS volume type (NONE, gp2, gp3, io1, io2) | NONE |
+| `--ebs.size` | EBS volume size in GB | 256 |
+| `--ebs.iops` | EBS IOPS (gp3 only) | 0 |
+| `--ebs.throughput` | EBS throughput (gp3 only) | 0 |
+| `--ebs.optimized` | Enable EBS optimization | false |
+| `--until` | When instances can be deleted | tomorrow |
+| `--ami` | Override AMI ID | (auto-detected) |
+| `--open` | Unrestricted SSH access | false |
+| `--tag` | Custom tags (key=value, repeatable) | - |
+| `--vpc` | Use existing VPC ID | - |
+| `--up` | Auto-provision after init | false |
+| `--clean` | Remove existing config first | false |
 
 ### up
 
-Start instances.
+Provision AWS infrastructure.
 
 ```bash
 easy-db-lab up [options]
 ```
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--auto-approve, -a, --yes` | Auto approve changes | false |
+| Option | Description |
+|--------|-------------|
+| `--no-setup`, `-n` | Skip K3s setup and AxonOps configuration |
+
+Creates: S3 bucket, VPC, EC2 instances, K3s cluster.
 
 ### down
 
-Shut down a cluster.
+Shut down AWS infrastructure.
 
 ```bash
-easy-db-lab down [options]
+easy-db-lab down [vpc-id] [options]
 ```
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--auto-approve, -a, --yes` | Auto approve changes | false |
-
-### start
-
-Start Cassandra on all nodes via service command.
-
-```bash
-easy-db-lab start [options]
-```
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--all, -a` | Start all services on all instances | false |
-| `--monitoring, -m` | Start services on monitoring instances | false |
-
-### stop
-
-Stop Cassandra on all nodes via service command.
-
-```bash
-easy-db-lab stop [options]
-```
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--all, -a` | Stop all services on all instances | false |
-| `--monitoring, -m` | Stop services on monitoring instances | false |
-
-### install
-
-Install everything on the provisioned instances.
-
-```bash
-easy-db-lab install
-```
-
-### build
-
-Create a custom named Cassandra build from a working directory.
-
-```bash
-easy-db-lab build [options] <path>
-```
+| Argument | Description |
+|----------|-------------|
+| `vpc-id` | Optional: specific VPC to tear down |
 
 | Option | Description |
 |--------|-------------|
-| `-n` | Name of the build |
-
-**Arguments:**
-
-- `<path>` - Path to the Cassandra repository to build
-
-### use
-
-Use a Cassandra build.
-
-```bash
-easy-db-lab use [options] <build-name>
-```
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--config, -c` | Configuration settings in format `key:value,...` | [] |
-
-### ls
-
-List available builds.
-
-```bash
-easy-db-lab ls
-```
+| `--all` | Tear down all VPCs tagged with easy_cass_lab |
+| `--packer` | Tear down the packer infrastructure VPC |
 
 ### clean
 
-Clean up temporary files and artifacts.
+Clean up generated files from the current directory.
 
 ```bash
 easy-db-lab clean
@@ -131,10 +134,233 @@ easy-db-lab clean
 
 ### hosts
 
-Display host information for the current cluster.
+List all hosts in the cluster.
 
 ```bash
 easy-db-lab hosts
+```
+
+### status
+
+Display full environment status.
+
+```bash
+easy-db-lab status
+```
+
+---
+
+## Cassandra Commands
+
+All Cassandra commands are available under the `cassandra` subcommand group.
+
+### cassandra use
+
+Select a Cassandra version.
+
+```bash
+easy-db-lab cassandra use <version> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--java` | Java version to use |
+| `--hosts` | Filter to specific hosts |
+
+Versions: 3.0, 3.11, 4.0, 4.1, 5.0, 5.0-HEAD, trunk
+
+### cassandra write-config
+
+Generate a new configuration patch file.
+
+```bash
+easy-db-lab cassandra write-config [filename] [options]
+```
+
+**Aliases:** `wc`
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-t`, `--tokens` | Number of tokens | 4 |
+
+### cassandra update-config
+
+Apply configuration patch to all nodes.
+
+```bash
+easy-db-lab cassandra update-config [options]
+```
+
+**Aliases:** `uc`
+
+| Option | Description |
+|--------|-------------|
+| `--restart`, `-r` | Restart Cassandra after applying |
+| `--hosts` | Filter to specific hosts |
+
+### cassandra download-config
+
+Download configuration files from nodes.
+
+```bash
+easy-db-lab cassandra download-config [options]
+```
+
+**Aliases:** `dc`
+
+| Option | Description |
+|--------|-------------|
+| `--version` | Version to download config for |
+
+### cassandra start
+
+Start Cassandra on all nodes.
+
+```bash
+easy-db-lab cassandra start [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--sleep` | Time between starts in seconds | 120 |
+| `--hosts` | Filter to specific hosts | - |
+
+### cassandra stop
+
+Stop Cassandra on all nodes.
+
+```bash
+easy-db-lab cassandra stop [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--hosts` | Filter to specific hosts |
+
+### cassandra restart
+
+Restart Cassandra on all nodes.
+
+```bash
+easy-db-lab cassandra restart [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--hosts` | Filter to specific hosts |
+
+### cassandra list
+
+List available Cassandra versions.
+
+```bash
+easy-db-lab cassandra list
+```
+
+**Aliases:** `ls`
+
+---
+
+## Cassandra Stress Commands
+
+Stress testing commands under `cassandra stress`.
+
+### cassandra stress start
+
+Start a stress job on Kubernetes.
+
+```bash
+easy-db-lab cassandra stress start [options]
+```
+
+**Aliases:** `run`
+
+### cassandra stress stop
+
+Stop and delete stress jobs.
+
+```bash
+easy-db-lab cassandra stress stop [options]
+```
+
+### cassandra stress status
+
+Check status of stress jobs.
+
+```bash
+easy-db-lab cassandra stress status
+```
+
+### cassandra stress logs
+
+View logs from stress jobs.
+
+```bash
+easy-db-lab cassandra stress logs [options]
+```
+
+### cassandra stress list
+
+List available workloads.
+
+```bash
+easy-db-lab cassandra stress list
+```
+
+### cassandra stress fields
+
+List available field generators.
+
+```bash
+easy-db-lab cassandra stress fields
+```
+
+### cassandra stress info
+
+Show information about a workload.
+
+```bash
+easy-db-lab cassandra stress info <workload>
+```
+
+---
+
+## Utility Commands
+
+### exec
+
+Execute a shell command on remote hosts.
+
+```bash
+easy-db-lab exec <command> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--hosts` | Filter to specific hosts |
+
+### ip
+
+Get IP address for a host by alias.
+
+```bash
+easy-db-lab ip <alias>
+```
+
+### version
+
+Display the easy-db-lab version.
+
+```bash
+easy-db-lab version
+```
+
+### repl
+
+Start interactive REPL.
+
+```bash
+easy-db-lab repl
 ```
 
 ### server
@@ -142,11 +368,123 @@ easy-db-lab hosts
 Start the MCP server for Claude Code integration.
 
 ```bash
-easy-db-lab server [options]
+easy-db-lab server
 ```
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--port` | Port to listen on | 8080 |
-
 See [MCP Server Integration](../integrations/mcp-server.md) for details.
+
+---
+
+## Kubernetes Commands
+
+### k8 apply
+
+Apply observability stack to K8s cluster.
+
+```bash
+easy-db-lab k8 apply
+```
+
+---
+
+## ClickHouse Commands
+
+### clickhouse start
+
+Deploy ClickHouse cluster to K8s.
+
+```bash
+easy-db-lab clickhouse start [options]
+```
+
+### clickhouse stop
+
+Stop and remove ClickHouse cluster.
+
+```bash
+easy-db-lab clickhouse stop
+```
+
+### clickhouse status
+
+Check ClickHouse cluster status.
+
+```bash
+easy-db-lab clickhouse status
+```
+
+---
+
+## Spark Commands
+
+### spark submit
+
+Submit Spark job to EMR cluster.
+
+```bash
+easy-db-lab spark submit [options]
+```
+
+### spark status
+
+Check status of a Spark job.
+
+```bash
+easy-db-lab spark status [options]
+```
+
+### spark jobs
+
+List recent Spark jobs on the cluster.
+
+```bash
+easy-db-lab spark jobs
+```
+
+### spark logs
+
+Download EMR logs from S3.
+
+```bash
+easy-db-lab spark logs [options]
+```
+
+---
+
+## OpenSearch Commands
+
+### opensearch start
+
+Create an AWS OpenSearch domain.
+
+```bash
+easy-db-lab opensearch start [options]
+```
+
+### opensearch stop
+
+Delete the OpenSearch domain.
+
+```bash
+easy-db-lab opensearch stop
+```
+
+### opensearch status
+
+Check OpenSearch domain status.
+
+```bash
+easy-db-lab opensearch status
+```
+
+---
+
+## AWS Commands
+
+### aws vpcs
+
+List all easy-db-lab VPCs.
+
+```bash
+easy-db-lab aws vpcs
+```

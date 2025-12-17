@@ -2,23 +2,33 @@
 
 Before using easy-db-lab, ensure you have the following:
 
-## AWS Credentials
-
-- An AWS access key and secret. easy-db-lab creates and destroys infrastructure.
-- You will be prompted for these the first time you start easy-db-lab.
-- The access key needs permissions to:
-  - Create an S3 bucket
-  - Create SSH keys
-  - Manage EC2 instances
-
-!!! note
-    Separate keys are used by default for security reasons.
-
 ## System Requirements
 
-- **Operating System**: Mac or Linux (shell script dependency)
-- **Java**: JDK 21 or later (for running the application)
+| Requirement | Details |
+|-------------|---------|
+| **Operating System** | macOS or Linux |
+| **Java** | JDK 21 or later |
+| **Docker** | Required for building custom AMIs |
 
-## Recommended Setup
+## AWS Requirements
 
-We **highly** recommend setting up proper AWS credential management. See the [AWS CLI documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) for best practices.
+- **AWS Account**: A dedicated AWS account is recommended for lab environments
+- **AWS Access Key & Secret**: Credentials for programmatic access
+- **IAM Permissions**: Permissions to create EC2, IAM, S3, and optionally EMR resources
+
+!!! tip
+    Run `easy-db-lab show-iam-policies` to see the exact IAM policies required with your account ID populated. See [Setup](setup.md#getting-iam-policies) for details.
+
+## Optional
+
+- **AxonOps Account**: For free Cassandra monitoring. Create an account at [axonops.com](https://axonops.com/)
+
+## Next Steps
+
+Run the interactive setup to configure your profile:
+
+```bash
+easy-db-lab setup-profile
+```
+
+See the [Setup Guide](setup.md) for detailed instructions.
