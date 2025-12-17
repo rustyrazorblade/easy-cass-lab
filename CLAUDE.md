@@ -287,9 +287,9 @@ Cassandra and control nodes are set up with OpenTelemetry.
 
 Local OTel nodes are forwarding metrics to the control node.
 
-## User Manual
+## Documentation
 
-The user manual is located in manual/index.adoc.
+User documentation is in `docs/` (MkDocs format).
 - Don't use wildcard imports.
 - Always use assertj style assertions, not the raw junit ones.
 - Constants and magic numbers should be stored in com.rustyrazorblade.easydblab.Constants
