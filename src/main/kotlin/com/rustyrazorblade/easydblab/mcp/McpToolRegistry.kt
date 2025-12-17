@@ -1,8 +1,5 @@
 package com.rustyrazorblade.easydblab.mcp
 
-import com.rustyrazorblade.easydblab.CommandLineParser
-import com.rustyrazorblade.easydblab.Context
-import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.output.OutputHandler
@@ -22,28 +19,49 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import picocli.CommandLine.Mixin
 import picocli.CommandLine.Option
-import kotlin.getValue
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
 import picocli.CommandLine.Command as PicoCommandAnnotation
 
 /** Registry that manages easy-db-lab commands as MCP tools. */
-open class McpToolRegistry(
-    private val context: Context,
-) : KoinComponent {
+open class McpToolRegistry : KoinComponent {
     val outputHandler: OutputHandler by inject()
     private val commandExecutor: CommandExecutor by inject()
 
     companion object {
         private val log = KotlinLogging.logger {}
+
+        /**
+         * List of command classes annotated with @McpCommand.
+         * This is the source of truth for MCP-exposed commands.
+         */
+        private val mcpCommandClasses: List<KClass<out PicoCommand>> =
+            listOf(
+                com.rustyrazorblade.easydblab.commands.Status::class,
+                com.rustyrazorblade.easydblab.commands.PruneAMIs::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.Start::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.Stop::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.Restart::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.ListVersions::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.UseCassandra::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.DownloadConfig::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.UpdateConfig::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStart::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStop::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStatus::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressList::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressLogs::class,
+                com.rustyrazorblade.easydblab.commands.cassandra.stress.StressInfo::class,
+            )
     }
 
     data class ToolInfo(
         val name: String,
         val description: String,
         val inputSchema: JsonObject,
-        val entry: PicoCommandEntry,
+        val commandClass: KClass<out PicoCommand>,
     )
 
     data class ToolResult(
@@ -55,17 +73,11 @@ open class McpToolRegistry(
      * Get all available tools from the command registry. Only includes commands annotated with
      * @McpCommand.
      */
-    open fun getTools(): List<ToolInfo> {
-        val parser = CommandLineParser(context)
-
-        // PicoCLI commands with @McpCommand annotation
-        return parser.picoCommands
-            .filter { entry ->
-                // Create a temporary instance to check for annotation
-                val tempCommand = entry.factory()
-                tempCommand::class.java.isAnnotationPresent(McpCommand::class.java)
-            }.map { entry -> createToolInfoFromPico(entry) }
-    }
+    open fun getTools(): List<ToolInfo> =
+        mcpCommandClasses
+            .filter { cls ->
+                cls.java.isAnnotationPresent(McpCommand::class.java)
+            }.map { cls -> createToolInfoFromClass(cls) }
 
     /** Execute a tool by name with the given arguments. */
     fun executeTool(
@@ -83,8 +95,8 @@ open class McpToolRegistry(
         return executeAndCaptureResult(name) {
             // Use CommandExecutor for full lifecycle (requirements, execution, backup)
             commandExecutor.execute {
-                // Create a fresh command instance using the factory
-                val freshCommand = tool.entry.factory()
+                // Create a fresh command instance using Koin
+                val freshCommand = createCommandInstance(tool.commandClass)
 
                 // Map JSON arguments to command parameters
                 arguments?.let {
@@ -96,6 +108,9 @@ open class McpToolRegistry(
             }
         }
     }
+
+    /** Create a fresh command instance using Koin. */
+    private fun createCommandInstance(commandClass: KClass<out PicoCommand>): PicoCommand = getKoin().get(commandClass)
 
     /** Common execution wrapper that handles output and errors. */
     private fun executeAndCaptureResult(
@@ -113,22 +128,26 @@ open class McpToolRegistry(
             ToolResult(content = listOf("Error executing command: ${e.message}"), isError = true)
         }
 
-    /** Create ToolInfo from a PicoCLI command entry. */
-    private fun createToolInfoFromPico(entry: PicoCommandEntry): ToolInfo {
+    /** Create ToolInfo from a command class. */
+    private fun createToolInfoFromClass(commandClass: KClass<out PicoCommand>): ToolInfo {
         // Create a temporary instance to extract metadata
-        val tempCommand = entry.factory()
+        val tempCommand = createCommandInstance(commandClass)
         val description = extractPicoDescription(tempCommand)
         val schema = generatePicoSchema(tempCommand)
 
+        // Get command name from annotation
+        val commandAnnotation = commandClass.java.getAnnotation(PicoCommandAnnotation::class.java)
+        val commandName = commandAnnotation?.name ?: commandClass.simpleName?.lowercase() ?: "unknown"
+
         // Generate namespaced tool name from package + command name
-        val toolName = generateToolName(tempCommand, entry.name)
+        val toolName = generateToolName(tempCommand, commandName)
         log.info { "Creating PicoCLI tool info for '$toolName': $description" }
 
         return ToolInfo(
             name = toolName,
             description = description,
             inputSchema = schema,
-            entry = entry,
+            commandClass = commandClass,
         )
     }
 

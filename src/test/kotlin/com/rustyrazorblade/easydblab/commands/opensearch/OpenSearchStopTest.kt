@@ -62,7 +62,7 @@ class OpenSearchStopTest : BaseKoinTest() {
 
     @Test
     fun `command has correct default options`() {
-        val command = OpenSearchStop(context)
+        val command = OpenSearchStop()
 
         assertThat(command.force).isFalse()
     }
@@ -82,7 +82,7 @@ class OpenSearchStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithoutOpenSearch)
 
-        val command = OpenSearchStop(context)
+        val command = OpenSearchStop()
         command.force = true
         command.execute()
 
@@ -104,7 +104,7 @@ class OpenSearchStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 
-        val command = OpenSearchStop(context)
+        val command = OpenSearchStop()
         command.force = false
         command.execute()
 
@@ -126,7 +126,7 @@ class OpenSearchStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 
-        val command = OpenSearchStop(context)
+        val command = OpenSearchStop()
         command.force = true
         command.execute()
 
@@ -149,7 +149,7 @@ class OpenSearchStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithOpenSearch)
 
-        val command = OpenSearchStop(context)
+        val command = OpenSearchStop()
         command.force = true
         command.execute()
 

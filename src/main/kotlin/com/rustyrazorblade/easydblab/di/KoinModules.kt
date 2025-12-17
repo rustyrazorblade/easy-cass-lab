@@ -27,5 +27,6 @@ object KoinModules {
             awsModule,
             servicesModule,
             configurationModule,
+            commandsModule,
         )
 }

@@ -9,14 +9,14 @@ import picocli.CommandLine.Spec
  *
  * This command groups subcommands for AWS resource discovery and management:
  * - vpcs: List easy-db-lab VPCs
- *
- * Note: Sub-commands are registered manually in CommandLineParser to inject
- * the Context dependency that PicoCommands require.
  */
 @Command(
     name = "aws",
     description = ["AWS resource discovery and management operations"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        Vpcs::class,
+    ],
 )
 class Aws : Runnable {
     @Spec

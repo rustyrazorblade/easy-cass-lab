@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.spark
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -26,9 +25,7 @@ import picocli.CommandLine.Option
     name = "status",
     description = ["Check status of a Spark job"],
 )
-class SparkStatus(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SparkStatus : PicoBaseCommand() {
     private val sparkService: SparkService by inject()
 
     @Option(

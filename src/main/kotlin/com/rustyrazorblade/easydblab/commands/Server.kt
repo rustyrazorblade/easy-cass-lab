@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.mcp.McpServer
@@ -23,9 +22,7 @@ import java.io.File
             "Add to claude with: claude mcp add --transport sse easy-db-lab http://127.0.0.1:<port>/sse",
     ],
 )
-class Server(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Server : PicoBaseCommand() {
     @Option(
         names = ["--port", "-p"],
         description = ["MCP server port (0 = any free port)"],
@@ -51,7 +48,7 @@ class Server(
         log.info { "Starting easy-db-lab MCP server..." }
 
         try {
-            val server = McpServer(context)
+            val server = McpServer()
             server.start(port) { actualPort ->
                 // Generate .mcp.json with actual port
                 val config =

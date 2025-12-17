@@ -50,16 +50,15 @@ data class StatusResponse(
 )
 
 /** MCP server implementation using the official SDK. */
-class McpServer(
-    private val context: Context,
-) : KoinComponent {
+class McpServer : KoinComponent {
     companion object {
         private val log = KotlinLogging.logger {}
     }
 
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
 
-    private val toolRegistry = McpToolRegistry(context)
+    private val toolRegistry = McpToolRegistry()
     private val executionSemaphore = Semaphore(1) // Only allow one tool execution at a time
 
     // Status tracking components

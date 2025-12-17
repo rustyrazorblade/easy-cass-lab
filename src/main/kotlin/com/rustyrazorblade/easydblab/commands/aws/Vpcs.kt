@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.aws
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.providers.aws.VpcService
 import org.koin.core.component.inject
@@ -17,9 +16,7 @@ import picocli.CommandLine.Command
     description = ["List all easy-db-lab VPCs"],
     mixinStandardHelpOptions = true,
 )
-class Vpcs(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Vpcs : PicoBaseCommand() {
     private val vpcService: VpcService by inject()
 
     override fun execute() {

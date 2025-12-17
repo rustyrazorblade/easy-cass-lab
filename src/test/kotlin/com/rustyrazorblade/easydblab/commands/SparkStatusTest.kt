@@ -49,7 +49,7 @@ class SparkStatusTest : BaseKoinTest() {
 
     @Test
     fun `command has sensible defaults`() {
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         assertThat(command.stepId).isNull()
         assertThat(command.downloadLogs).isFalse()
     }
@@ -60,7 +60,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
 
         whenever(mockSparkService.validateCluster())
             .thenReturn(Result.failure(IllegalStateException("No EMR cluster found")))
@@ -77,7 +77,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         command.stepId = "s-EXPLICIT123"
 
         val jobStatus =
@@ -107,7 +107,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         command.stepId = null
 
         val jobs =
@@ -148,7 +148,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         command.stepId = null
 
         whenever(mockSparkService.validateCluster()).thenReturn(Result.success(validClusterInfo))
@@ -166,7 +166,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         command.stepId = "s-STEP123"
         command.downloadLogs = true
 
@@ -195,7 +195,7 @@ class SparkStatusTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkStatus(context)
+        val command = SparkStatus()
         command.stepId = "s-STEP123"
 
         whenever(mockSparkService.validateCluster()).thenReturn(Result.success(validClusterInfo))

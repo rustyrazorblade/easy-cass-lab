@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -18,9 +17,7 @@ import picocli.CommandLine.Command
     aliases = ["ls"],
     description = ["List available versions"],
 )
-class ListVersions(
-    context: Context,
-) : PicoBaseCommand(context) {
+class ListVersions : PicoBaseCommand() {
     override fun execute() {
         clusterState.getHosts(ServerType.Cassandra).first().let {
             val response = remoteOps.executeRemotely(it, "ls /usr/local/cassandra", output = false)

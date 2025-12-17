@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -23,9 +22,7 @@ import picocli.CommandLine.Mixin
     name = "restart",
     description = ["Restart cassandra"],
 )
-class Restart(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Restart : PicoBaseCommand() {
     private val cassandraService: CassandraService by inject()
     private val sidecarService: SidecarService by inject()
     private val hostOperationsService: HostOperationsService by inject()

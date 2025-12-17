@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.Host
@@ -26,9 +25,7 @@ import kotlin.system.exitProcess
     name = "upload-keys",
     description = ["Upload authorized (public) keys from the ./authorized_keys directory"],
 )
-class UploadAuthorizedKeys(
-    context: Context,
-) : PicoBaseCommand(context) {
+class UploadAuthorizedKeys : PicoBaseCommand() {
     private val hostOperationsService: HostOperationsService by inject()
 
     @Parameters(description = ["Local directory of authorized keys"], defaultValue = "authorized_keys")

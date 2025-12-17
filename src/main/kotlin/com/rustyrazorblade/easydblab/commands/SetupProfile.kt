@@ -2,7 +2,6 @@ package com.rustyrazorblade.easydblab.commands
 
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.Utils
 import com.rustyrazorblade.easydblab.configuration.Arch
 import com.rustyrazorblade.easydblab.configuration.User
@@ -31,9 +30,7 @@ import kotlin.system.exitProcess
     aliases = ["setup"],
     description = ["Set up user profile interactively"],
 )
-class SetupProfile(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SetupProfile : PicoBaseCommand() {
     private val userConfigProvider: UserConfigProvider by inject()
     private val awsResourceSetup: AWSResourceSetupService by inject()
     private val awsInfra: AwsInfrastructureService by inject()
@@ -219,7 +216,7 @@ class SetupProfile(
                 outputHandler.handleMessage("Building AMI for ${archType.type} architecture...")
 
                 commandExecutor.execute {
-                    BuildImage(context).apply {
+                    BuildImage().apply {
                         buildArgs.arch = archType
                         buildArgs.region = userConfig.region
                     }

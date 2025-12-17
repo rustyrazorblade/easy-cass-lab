@@ -15,11 +15,23 @@ import picocli.CommandLine.Spec
  * - status: Check status of stress jobs
  * - stop: Delete stress jobs
  * - logs: View logs from stress jobs
+ * - list: List available stress profiles
+ * - info: Get info about a stress profile
+ * - fields: Show fields for a stress profile
  */
 @Command(
     name = "stress",
     description = ["Cassandra stress testing operations on K8s"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        StressStart::class,
+        StressStop::class,
+        StressStatus::class,
+        StressLogs::class,
+        StressList::class,
+        StressInfo::class,
+        StressFields::class,
+    ],
 )
 class Stress : Runnable {
     @Spec

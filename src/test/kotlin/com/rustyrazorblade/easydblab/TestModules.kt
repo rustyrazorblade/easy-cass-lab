@@ -4,6 +4,7 @@ import com.rustyrazorblade.easydblab.commands.PicoCommand
 import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
+import com.rustyrazorblade.easydblab.di.commandsModule
 import com.rustyrazorblade.easydblab.output.BufferedOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AMIValidator
@@ -50,6 +51,7 @@ object TestModules {
             testOutputModule(),
             testSSHModule(),
             testCommandExecutorModule(),
+            commandsModule,
         )
 
     /**

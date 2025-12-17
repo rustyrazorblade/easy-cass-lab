@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.BuildArgsMixin
@@ -22,9 +21,7 @@ import picocli.CommandLine.Mixin
     name = "build-cassandra",
     description = ["Build the Cassandra image"],
 )
-class BuildCassandraImage(
-    context: Context,
-) : PicoBaseCommand(context) {
+class BuildCassandraImage : PicoBaseCommand() {
     @Mixin
     var buildArgs = BuildArgsMixin()
 

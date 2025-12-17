@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.cassandra.stress
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -25,9 +24,7 @@ import picocli.CommandLine.Parameters
     name = "info",
     description = ["Show information about a cassandra-easy-stress workload"],
 )
-class StressInfo(
-    context: Context,
-) : PicoBaseCommand(context) {
+class StressInfo : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val stressJobService: StressJobService by inject()
 

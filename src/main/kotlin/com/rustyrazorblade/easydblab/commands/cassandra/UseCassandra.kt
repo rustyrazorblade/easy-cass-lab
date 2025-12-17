@@ -2,7 +2,6 @@ package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.TriggerBackup
@@ -31,9 +30,7 @@ import kotlin.system.exitProcess
     name = "use",
     description = ["Use a Cassandra version (3.0, 3.11, 4.0, 4.1)"],
 )
-class UseCassandra(
-    context: Context,
-) : PicoBaseCommand(context) {
+class UseCassandra : PicoBaseCommand() {
     private val hostOperationsService: HostOperationsService by inject()
     private val commandExecutor: CommandExecutor by inject()
 
@@ -80,11 +77,11 @@ class UseCassandra(
 
         clusterStateManager.save(state)
 
-        commandExecutor.execute { DownloadConfig(context) }
+        commandExecutor.execute { DownloadConfig() }
 
         // make sure we only apply to the filtered hosts
         commandExecutor.execute {
-            UpdateConfig(context).apply { this.hosts = this@UseCassandra.hosts }
+            UpdateConfig().apply { this.hosts = this@UseCassandra.hosts }
         }
 
         with(TermColors()) {

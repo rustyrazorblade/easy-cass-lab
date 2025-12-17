@@ -13,14 +13,14 @@ import picocli.CommandLine.Spec
  *
  * Available sub-commands:
  * - apply: Apply observability stack (OTel, Prometheus, Grafana) to K8s cluster
- *
- * Note: Sub-commands are registered manually in CommandLineParser to inject
- * the Context dependency that PicoCommands require.
  */
 @Command(
     name = "k8",
     description = ["Kubernetes cluster operations"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        K8Apply::class,
+    ],
 )
 class K8 : Runnable {
     @Spec

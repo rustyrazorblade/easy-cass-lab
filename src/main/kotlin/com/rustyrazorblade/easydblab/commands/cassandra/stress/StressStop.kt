@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.cassandra.stress
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -24,9 +23,7 @@ import picocli.CommandLine.Parameters
     name = "stop",
     description = ["Stop and delete stress jobs"],
 )
-class StressStop(
-    context: Context,
-) : PicoBaseCommand(context) {
+class StressStop : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val stressJobService: StressJobService by inject()
 

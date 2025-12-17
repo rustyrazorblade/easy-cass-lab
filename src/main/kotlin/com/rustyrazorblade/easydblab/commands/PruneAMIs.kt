@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.providers.aws.AMIService
@@ -18,9 +17,7 @@ import picocli.CommandLine.Option
     name = "prune-amis",
     description = ["Prune older private AMIs while keeping the newest N per architecture and type"],
 )
-class PruneAMIs(
-    context: Context,
-) : PicoBaseCommand(context) {
+class PruneAMIs : PicoBaseCommand() {
     private val service: AMIService by inject()
     private val ec2Service: EC2Service by inject()
 

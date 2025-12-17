@@ -23,47 +23,20 @@ import com.rustyrazorblade.easydblab.commands.Up
 import com.rustyrazorblade.easydblab.commands.UploadAuthorizedKeys
 import com.rustyrazorblade.easydblab.commands.Version
 import com.rustyrazorblade.easydblab.commands.aws.Aws
-import com.rustyrazorblade.easydblab.commands.aws.Vpcs
 import com.rustyrazorblade.easydblab.commands.cassandra.Cassandra
-import com.rustyrazorblade.easydblab.commands.cassandra.Down
-import com.rustyrazorblade.easydblab.commands.cassandra.DownloadConfig
-import com.rustyrazorblade.easydblab.commands.cassandra.ListVersions
-import com.rustyrazorblade.easydblab.commands.cassandra.Restart
-import com.rustyrazorblade.easydblab.commands.cassandra.Start
-import com.rustyrazorblade.easydblab.commands.cassandra.Stop
-import com.rustyrazorblade.easydblab.commands.cassandra.UpdateConfig
-import com.rustyrazorblade.easydblab.commands.cassandra.UseCassandra
-import com.rustyrazorblade.easydblab.commands.cassandra.WriteConfig
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.Stress
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressFields
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressInfo
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressList
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressLogs
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStart
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStatus
-import com.rustyrazorblade.easydblab.commands.cassandra.stress.StressStop
 import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouse
-import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStart
-import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStatus
-import com.rustyrazorblade.easydblab.commands.clickhouse.ClickHouseStop
 import com.rustyrazorblade.easydblab.commands.k8.K8
-import com.rustyrazorblade.easydblab.commands.k8.K8Apply
 import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearch
-import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStart
-import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStatus
-import com.rustyrazorblade.easydblab.commands.opensearch.OpenSearchStop
 import com.rustyrazorblade.easydblab.commands.spark.Spark
-import com.rustyrazorblade.easydblab.commands.spark.SparkJobs
-import com.rustyrazorblade.easydblab.commands.spark.SparkLogs
-import com.rustyrazorblade.easydblab.commands.spark.SparkStatus
-import com.rustyrazorblade.easydblab.commands.spark.SparkSubmit
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
+import com.rustyrazorblade.easydblab.di.KoinCommandFactory
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.services.BackupRestoreService
 import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.services.DefaultCommandExecutor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import picocli.CommandLine
 import picocli.CommandLine.Command
@@ -73,23 +46,43 @@ import picocli.CommandLine.Spec
 import kotlin.system.exitProcess
 
 /**
- * Represents a PicoCLI command registration.
- * Uses a factory function to create new instances for each execution.
- */
-data class PicoCommandEntry(
-    val name: String,
-    val factory: () -> PicoCommand,
-    val aliases: List<String> = listOf(),
-)
-
-/**
  * Root command for easy-db-lab CLI.
- * When no subcommand is provided, displays help.
+ * Declaratively registers all top-level commands and parent command groups.
  */
 @Command(
     name = "easy-db-lab",
     description = ["Tool to create Cassandra lab environments in AWS"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        // Top-level commands
+        Version::class,
+        Clean::class,
+        Ip::class,
+        Hosts::class,
+        Status::class,
+        Exec::class,
+        ConfigureAxonOps::class,
+        UploadAuthorizedKeys::class,
+        ShowIamPolicies::class,
+        ConfigureAWS::class,
+        PruneAMIs::class,
+        BuildBaseImage::class,
+        BuildCassandraImage::class,
+        BuildImage::class,
+        Init::class,
+        SetupInstance::class,
+        Up::class,
+        SetupProfile::class,
+        Repl::class,
+        Server::class,
+        // Parent command groups
+        Spark::class,
+        K8::class,
+        ClickHouse::class,
+        Cassandra::class,
+        OpenSearch::class,
+        Aws::class,
+    ],
 )
 class EasyDBLabCommand : Runnable {
     @Spec
@@ -113,191 +106,93 @@ class EasyDBLabCommand : Runnable {
     }
 }
 
-class CommandLineParser(
-    val context: Context,
-) : KoinComponent {
-    /** Registry for PicoCLI commands. */
-    val picoCommands: List<PicoCommandEntry>
-
-    /** Map of command names and aliases to their PicoCLI entries for fast lookup. */
-    private val picoCommandMap: Map<String, PicoCommandEntry>
-
-    /** The main PicoCLI CommandLine instance with all subcommands registered. */
-    private val commandLine: CommandLine
-
+/**
+ * Command line parser using PicoCLI with Koin dependency injection.
+ *
+ * All commands are registered declaratively via @Command annotations.
+ * KoinCommandFactory provides command instances with injected dependencies.
+ */
+class CommandLineParser : KoinComponent {
+    private val context: Context by inject()
     private val logger = KotlinLogging.logger {}
     private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
     private val outputHandler: OutputHandler by inject()
-    private val commandExecutor: CommandExecutor by inject()
 
-    init {
-        // PicoCLI commands - all commands are now fully migrated
-        // Each entry uses a factory to create fresh instances for each execution
-        picoCommands =
-            listOf(
-                PicoCommandEntry("version", { Version(context) }),
-                PicoCommandEntry("clean", { Clean(context) }),
-                PicoCommandEntry("list", { ListVersions(context) }, listOf("ls")),
-                PicoCommandEntry("ip", { Ip(context) }),
-                PicoCommandEntry("hosts", { Hosts(context) }),
-                PicoCommandEntry("stop", { Stop(context) }),
-                PicoCommandEntry("start", { Start(context) }),
-                PicoCommandEntry("status", { Status(context) }),
-                PicoCommandEntry("restart", { Restart(context) }),
-                PicoCommandEntry("exec", { Exec(context) }),
-                PicoCommandEntry("down", { Down(context) }),
-                PicoCommandEntry("download-config", { DownloadConfig(context) }, listOf("dc")),
-                PicoCommandEntry("write-config", { WriteConfig(context) }, listOf("wc")),
-                PicoCommandEntry("update-config", { UpdateConfig(context) }, listOf("uc")),
-                PicoCommandEntry("use", { UseCassandra(context) }),
-                PicoCommandEntry("configure-axonops", { ConfigureAxonOps(context) }),
-                PicoCommandEntry("upload-keys", { UploadAuthorizedKeys(context) }),
-                PicoCommandEntry("show-iam-policies", { ShowIamPolicies(context) }, listOf("sip")),
-                PicoCommandEntry("configure-aws", { ConfigureAWS(context) }),
-                PicoCommandEntry("prune-amis", { PruneAMIs(context) }),
-                PicoCommandEntry("build-base", { BuildBaseImage(context) }),
-                PicoCommandEntry("build-cassandra", { BuildCassandraImage(context) }),
-                PicoCommandEntry("build-image", { BuildImage(context) }),
-                PicoCommandEntry("init", { Init(context) }),
-                PicoCommandEntry("setup-instances", { SetupInstance(context) }, listOf("si")),
-                PicoCommandEntry("up", { Up(context) }),
-                PicoCommandEntry("setup-profile", { SetupProfile(context) }, listOf("setup")),
-                PicoCommandEntry("repl", { Repl(context) }),
-                PicoCommandEntry("server", { Server(context) }),
-            )
-
-        // Build lookup map including aliases
-        picoCommandMap =
-            buildMap {
-                for (entry in picoCommands) {
-                    put(entry.name, entry)
-                    for (alias in entry.aliases) {
-                        put(alias, entry)
-                    }
+    /** The main PicoCLI CommandLine instance with all subcommands registered. */
+    private val commandLine: CommandLine =
+        CommandLine(EasyDBLabCommand::class.java, KoinCommandFactory()).apply {
+            // Set exception handler to ensure non-zero exit code on exceptions
+            executionExceptionHandler =
+                CommandLine.IExecutionExceptionHandler { ex, cmd, _ ->
+                    cmd.err.println(ex.message)
+                    ex.printStackTrace(cmd.err)
+                    Constants.ExitCodes.ERROR
                 }
-            }
 
-        // Create root command and register all subcommands
-        val rootCommand = EasyDBLabCommand()
-        commandLine = CommandLine(rootCommand)
+            // Set execution strategy to delegate to CommandExecutor for full lifecycle
+            executionStrategy =
+                CommandLine.IExecutionStrategy { parseResult ->
+                    // Get the root command to check for --vpc-id option
+                    val rootCmd = parseResult.commandSpec().userObject()
+                    if (rootCmd is EasyDBLabCommand && rootCmd.vpcId != null) {
+                        // Reconstruct state from VPC before running any subcommand
+                        handleVpcIdStateReconstruction(rootCmd.vpcId!!, rootCmd.force)
+                    }
 
-        // Register all subcommands with PicoCLI
-        // Note: aliases should be defined in the @Command annotation on each command class
-        for (entry in picoCommands) {
-            val cmd = entry.factory()
-            val subCommandLine = commandLine.addSubcommand(entry.name, cmd)
-            // Register aliases from our PicoCommandEntry (for backward compatibility with REPL)
-            for (alias in entry.aliases) {
-                subCommandLine.commandSpec.aliases(*arrayOf(alias))
-            }
+                    // Find the deepest subcommand (handles nested commands like "spark submit")
+                    var currentParseResult = parseResult.subcommand()
+                    while (currentParseResult?.subcommand() != null) {
+                        currentParseResult = currentParseResult.subcommand()
+                    }
+
+                    // Execute PicoCommands through CommandExecutor for full lifecycle
+                    // (requirements, execution, scheduled commands, backup)
+                    if (currentParseResult != null) {
+                        val cmd = currentParseResult.commandSpec().userObject()
+                        if (cmd is PicoCommand) {
+                            // Check profile setup BEFORE resolving CommandExecutor
+                            // to avoid triggering AWS dependency resolution chain.
+                            // SetupProfile is exempt since it creates the profile.
+                            val isSetupCommand = cmd is SetupProfile
+                            if (!isSetupCommand) {
+                                val userConfigProvider = get<UserConfigProvider>()
+                                if (!userConfigProvider.isSetup()) {
+                                    val output = get<OutputHandler>()
+                                    output.handleError(
+                                        "Profile not configured.\n" +
+                                            "Please run 'easy-db-lab setup-profile' to configure your environment.",
+                                    )
+                                    return@IExecutionStrategy Constants.ExitCodes.ERROR
+                                }
+                            }
+
+                            // Get CommandExecutor lazily when a command actually runs
+                            val executor = get<CommandExecutor>() as DefaultCommandExecutor
+                            return@IExecutionStrategy executor.executeTopLevel(cmd)
+                        }
+                    }
+
+                    // Fallback for non-PicoCommand (like root command help)
+                    CommandLine.RunLast().execute(parseResult)
+                }
         }
 
-        // Register Spark parent command with its sub-commands
-        // Spark is a parent command that contains submit, status, and jobs sub-commands
-        // The sub-commands are PicoCommands that need Context, so we create them here
-        // Note: We must create the CommandLine first and add subcommands before registering
-        // with the parent, because addSubcommand() returns the parent, not the child
-        val sparkCommandLine = CommandLine(Spark())
-        sparkCommandLine.addSubcommand("submit", SparkSubmit(context))
-        sparkCommandLine.addSubcommand("status", SparkStatus(context))
-        sparkCommandLine.addSubcommand("jobs", SparkJobs(context))
-        sparkCommandLine.addSubcommand("logs", SparkLogs(context))
-        commandLine.addSubcommand("spark", sparkCommandLine)
-
-        // Register K8s parent command with its sub-commands
-        // K8 is a parent command for Kubernetes cluster operations
-        val k8CommandLine = CommandLine(K8())
-        k8CommandLine.addSubcommand("apply", K8Apply(context))
-        commandLine.addSubcommand("k8", k8CommandLine)
-
-        // Register ClickHouse parent command with its sub-commands
-        // ClickHouse is a parent command for ClickHouse cluster operations on K8s
-        val clickHouseCommandLine = CommandLine(ClickHouse())
-        clickHouseCommandLine.addSubcommand("start", ClickHouseStart(context))
-        clickHouseCommandLine.addSubcommand("status", ClickHouseStatus(context))
-        clickHouseCommandLine.addSubcommand("stop", ClickHouseStop(context))
-        commandLine.addSubcommand("clickhouse", clickHouseCommandLine)
-
-        // Register Cassandra parent command with nested stress commands and cluster operations
-        // Cassandra is a parent command for Cassandra tooling operations
-        val cassandraCommandLine = CommandLine(Cassandra())
-
-        // Stress is a nested parent command for cassandra-easy-stress job operations on K8s
-        val stressCommandLine = CommandLine(Stress())
-        stressCommandLine.addSubcommand("start", StressStart(context))
-        stressCommandLine.addSubcommand("status", StressStatus(context))
-        stressCommandLine.addSubcommand("stop", StressStop(context))
-        stressCommandLine.addSubcommand("logs", StressLogs(context))
-        stressCommandLine.addSubcommand("list", StressList(context))
-        stressCommandLine.addSubcommand("fields", StressFields(context))
-        stressCommandLine.addSubcommand("info", StressInfo(context))
-        cassandraCommandLine.addSubcommand("stress", stressCommandLine)
-
-        // Cassandra cluster management commands (also available at top level for backwards compatibility)
-        cassandraCommandLine.addSubcommand("down", Down(context))
-        cassandraCommandLine.addSubcommand("start", Start(context))
-        cassandraCommandLine.addSubcommand("stop", Stop(context))
-        cassandraCommandLine.addSubcommand("restart", Restart(context))
-        cassandraCommandLine.addSubcommand("list", ListVersions(context))
-        cassandraCommandLine.addSubcommand("use", UseCassandra(context))
-        cassandraCommandLine.addSubcommand("download-config", DownloadConfig(context))
-        cassandraCommandLine.addSubcommand("write-config", WriteConfig(context))
-        cassandraCommandLine.addSubcommand("update-config", UpdateConfig(context))
-
-        commandLine.addSubcommand("cassandra", cassandraCommandLine)
-
-        // Register OpenSearch parent command with its sub-commands
-        // OpenSearch is a parent command for AWS-managed OpenSearch domain operations
-        val openSearchCommandLine = CommandLine(OpenSearch())
-        openSearchCommandLine.addSubcommand("start", OpenSearchStart(context))
-        openSearchCommandLine.addSubcommand("status", OpenSearchStatus(context))
-        openSearchCommandLine.addSubcommand("stop", OpenSearchStop(context))
-        commandLine.addSubcommand("opensearch", openSearchCommandLine)
-
-        // Register AWS parent command with its sub-commands
-        // AWS is a parent command for AWS resource discovery and management
-        val awsCommandLine = CommandLine(Aws())
-        awsCommandLine.addSubcommand("vpcs", Vpcs(context))
-        commandLine.addSubcommand("aws", awsCommandLine)
-
-        // Set exception handler to ensure non-zero exit code on exceptions
-        commandLine.executionExceptionHandler =
-            CommandLine.IExecutionExceptionHandler { ex, cmd, _ ->
-                cmd.err.println(ex.message)
-                ex.printStackTrace(cmd.err)
-                Constants.ExitCodes.ERROR
+    /**
+     * List of all command names for REPL tab completion.
+     */
+    val commandNames: Set<String>
+        get() =
+            buildSet {
+                fun collectNames(spec: CommandSpec) {
+                    add(spec.name())
+                    spec.aliases().forEach { add(it) }
+                    spec.subcommands().values.forEach { collectNames(it.commandSpec) }
+                }
+                commandLine.commandSpec
+                    .subcommands()
+                    .values
+                    .forEach { collectNames(it.commandSpec) }
             }
-
-        // Set execution strategy to delegate to CommandExecutor for full lifecycle
-        commandLine.executionStrategy =
-            CommandLine.IExecutionStrategy { parseResult ->
-                // Get the root command to check for --vpc-id option
-                val rootCmd = parseResult.commandSpec().userObject()
-                if (rootCmd is EasyDBLabCommand && rootCmd.vpcId != null) {
-                    // Reconstruct state from VPC before running any subcommand
-                    handleVpcIdStateReconstruction(rootCmd.vpcId!!, rootCmd.force)
-                }
-
-                // Find the deepest subcommand (handles nested commands like "spark submit")
-                var currentParseResult = parseResult.subcommand()
-                while (currentParseResult?.subcommand() != null) {
-                    currentParseResult = currentParseResult.subcommand()
-                }
-
-                // Execute PicoCommands through CommandExecutor for full lifecycle
-                // (requirements, execution, scheduled commands, backup)
-                if (currentParseResult != null) {
-                    val cmd = currentParseResult.commandSpec().userObject()
-                    if (cmd is PicoCommand) {
-                        return@IExecutionStrategy (commandExecutor as DefaultCommandExecutor)
-                            .executeTopLevel(cmd)
-                    }
-                }
-
-                // Fallback for non-PicoCommand (like root command help)
-                CommandLine.RunLast().execute(parseResult)
-            }
-    }
 
     /**
      * Handles state reconstruction from a VPC ID.
@@ -326,11 +221,6 @@ class CommandLineParser(
                 throw error
             }
     }
-
-    /**
-     * Checks if a command name or alias refers to a registered command.
-     */
-    fun isPicoCommand(name: String): Boolean = picoCommandMap.containsKey(name)
 
     // For the repl
     fun eval(input: String) {

@@ -78,7 +78,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `returns public IP by default`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "db0"
 
         command.execute()
@@ -90,7 +90,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `returns public IP when --public flag is set`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "db0"
         command.publicIp = true
 
@@ -103,7 +103,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `returns private IP when --private flag is set`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "db0"
         command.privateIp = true
 
@@ -116,7 +116,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `finds host across different server types`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "app0"
         command.privateIp = true
 
@@ -129,7 +129,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `returns correct IP for second cassandra node`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "db1"
         command.privateIp = true
 
@@ -142,7 +142,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `throws error when host not found`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = "nonexistent"
 
         assertThatThrownBy { command.execute() }
@@ -152,7 +152,7 @@ class IpTest : BaseKoinTest() {
 
     @Test
     fun `throws error when no host alias provided`() {
-        val command = Ip(context)
+        val command = Ip()
         command.host = ""
 
         assertThatThrownBy { command.execute() }

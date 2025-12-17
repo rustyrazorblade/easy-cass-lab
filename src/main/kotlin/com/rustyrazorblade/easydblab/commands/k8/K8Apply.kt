@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.k8
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -31,9 +30,7 @@ import java.nio.file.Path
     name = "apply",
     description = ["Apply observability stack to K8s cluster"],
 )
-class K8Apply(
-    context: Context,
-) : PicoBaseCommand(context) {
+class K8Apply : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val k8sService: K8sService by inject()
 

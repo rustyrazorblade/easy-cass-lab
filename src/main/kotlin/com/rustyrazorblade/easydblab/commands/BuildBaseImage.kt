@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.BuildArgsMixin
@@ -22,9 +21,7 @@ import picocli.CommandLine.Mixin
     name = "build-base",
     description = ["Build the base image"],
 )
-class BuildBaseImage(
-    context: Context,
-) : PicoBaseCommand(context) {
+class BuildBaseImage : PicoBaseCommand() {
     @Mixin
     var buildArgs = BuildArgsMixin()
 

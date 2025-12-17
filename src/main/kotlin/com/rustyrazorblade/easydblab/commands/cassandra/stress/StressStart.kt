@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.cassandra.stress
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -34,9 +33,7 @@ import kotlin.io.path.readText
     aliases = ["run"],
     description = ["Start a cassandra-easy-stress job on K8s. Args are passed to cassandra-easy-stress."],
 )
-class StressStart(
-    context: Context,
-) : PicoBaseCommand(context) {
+class StressStart : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val stressJobService: StressJobService by inject()
 

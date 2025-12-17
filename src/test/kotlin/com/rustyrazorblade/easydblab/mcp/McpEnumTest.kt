@@ -1,75 +1,58 @@
 package com.rustyrazorblade.easydblab.mcp
 
-import com.rustyrazorblade.easydblab.Context
-import com.rustyrazorblade.easydblab.PicoCommandEntry
+import com.rustyrazorblade.easydblab.BaseKoinTest
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.PicoCommand
-import com.rustyrazorblade.easydblab.di.KoinModules
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.mockito.kotlin.mock
+import org.koin.core.module.Module
+import org.koin.dsl.module
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 
-class McpEnumTest {
-    private lateinit var context: Context
+class McpEnumTest : BaseKoinTest() {
     private lateinit var registry: McpToolRegistry
+
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            module {
+                factory { TestCommandWithEnum() }
+            },
+        )
 
     @BeforeEach
     fun setup() {
-        context = mock()
-
-        // Initialize Koin for dependency injection
-        startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { context } }) }
-
-        registry = McpToolRegistry(context)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        stopKoin()
+        registry = McpToolRegistry()
     }
 
     @Test
     fun `test enum schema generation with type property`() {
         // Create a test command with enum
-        val testCommand = TestCommandWithEnum(context)
-        val entry = PicoCommandEntry("enum-test", { TestCommandWithEnum(context) })
+        val testCommand = TestCommandWithEnum()
 
-        // Use reflection to call createToolInfoFromPico
-        val createToolInfoMethod =
-            McpToolRegistry::class.java
-                .getDeclaredMethod(
-                    "createToolInfoFromPico",
-                    PicoCommandEntry::class.java,
-                ).apply { isAccessible = true }
-
-        val toolInfo = createToolInfoMethod.invoke(registry, entry) as McpToolRegistry.ToolInfo
+        // Use the public generatePicoSchema method to test schema generation
+        val schema = registry.generatePicoSchema(testCommand)
 
         // Print the schema to see what's being generated
         println("Generated schema for enum command:")
         println(
             Json { prettyPrint = true }
-                .encodeToString(JsonObject.serializer(), toolInfo.inputSchema),
+                .encodeToString(JsonObject.serializer(), schema),
         )
 
-        // Just verify the schema is not null and has some content
-        val schema = toolInfo.inputSchema
+        // Verify the schema is not null and has some content
         assertThat(schema).isNotNull
         assertThat(schema.size).isGreaterThan(0)
     }
 
     @Test
     fun `test enum value mapping from arguments`() {
-        val testCommand = TestCommandWithEnum(context)
+        val testCommand = TestCommandWithEnum()
 
         // Create arguments with enum value
         val arguments =
@@ -78,7 +61,7 @@ class McpEnumTest {
                 put("mode", "production")
             }
 
-        // Map arguments to PicoCLI command
+        // Map arguments to PicoCLI command using reflection
         val mapArgumentsMethod =
             McpToolRegistry::class.java
                 .getDeclaredMethod(
@@ -110,9 +93,7 @@ class McpEnumTest {
     }
 
     @Command(name = "enum-test", description = ["Test command with enum parameters"])
-    class TestCommandWithEnum(
-        context: Context,
-    ) : PicoBaseCommand(context) {
+    class TestCommandWithEnum : PicoBaseCommand() {
         @Option(names = ["--arch", "-a"], description = ["CPU architecture"])
         var arch: TestArch = TestArch.AMD64
 
@@ -120,7 +101,7 @@ class McpEnumTest {
         var mode: TestMode = TestMode.DEVELOPMENT
 
         override fun execute() {
-            println("Executing with arch=$arch, mode=$mode")
+            outputHandler.handleMessage("Executing with arch=$arch, mode=$mode")
         }
     }
 }

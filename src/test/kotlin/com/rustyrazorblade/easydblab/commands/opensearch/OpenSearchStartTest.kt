@@ -75,7 +75,7 @@ class OpenSearchStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithoutInfrastructure)
 
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
 
         assertThatThrownBy { command.execute() }
             .isInstanceOf(IllegalStateException::class.java)
@@ -102,7 +102,7 @@ class OpenSearchStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithEmptySubnets)
 
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
 
         assertThatThrownBy { command.execute() }
             .isInstanceOf(IllegalStateException::class.java)
@@ -126,7 +126,7 @@ class OpenSearchStartTest : BaseKoinTest() {
         whenever(mockOpenSearchService.createDomain(any())).thenReturn(domainResult)
         whenever(mockOpenSearchService.waitForDomainActive(any(), any(), any())).thenReturn(domainResult)
 
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
         command.wait = true
         command.execute()
 
@@ -152,7 +152,7 @@ class OpenSearchStartTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithInfrastructure)
         whenever(mockOpenSearchService.createDomain(any())).thenReturn(domainResult)
 
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
         // Default behavior: wait = false
         command.execute()
 
@@ -177,7 +177,7 @@ class OpenSearchStartTest : BaseKoinTest() {
         whenever(mockOpenSearchService.createDomain(any())).thenReturn(domainResult)
         whenever(mockOpenSearchService.waitForDomainActive(any(), any(), any())).thenReturn(domainResult)
 
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
         command.instanceType = "r5.large.search"
         command.execute()
 

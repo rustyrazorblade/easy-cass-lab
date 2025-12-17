@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.spark
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -27,9 +26,7 @@ import picocli.CommandLine.Option
     name = "logs",
     description = ["Download EMR logs from S3"],
 )
-class SparkLogs(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SparkLogs : PicoBaseCommand() {
     private val sparkService: SparkService by inject()
 
     @Option(

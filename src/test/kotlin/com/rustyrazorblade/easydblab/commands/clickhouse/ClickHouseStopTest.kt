@@ -64,7 +64,7 @@ class ClickHouseStopTest : BaseKoinTest() {
 
     @Test
     fun `command has correct default options`() {
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
 
         assertThat(command.force).isFalse()
     }
@@ -81,7 +81,7 @@ class ClickHouseStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
         command.force = true
 
         // When/Then
@@ -105,7 +105,7 @@ class ClickHouseStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
 
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
         command.force = false
 
         // When
@@ -138,7 +138,7 @@ class ClickHouseStopTest : BaseKoinTest() {
             ),
         ).thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
         command.force = true
 
         // When
@@ -176,7 +176,7 @@ class ClickHouseStopTest : BaseKoinTest() {
             ),
         ).thenReturn(Result.failure(RuntimeException("Resource deletion failed")))
 
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
         command.force = true
 
         // When/Then
@@ -208,7 +208,7 @@ class ClickHouseStopTest : BaseKoinTest() {
             ),
         ).thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStop(context)
+        val command = ClickHouseStop()
         command.force = true
 
         // When

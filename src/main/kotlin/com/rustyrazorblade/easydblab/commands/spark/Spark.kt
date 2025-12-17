@@ -15,14 +15,18 @@ import picocli.CommandLine.Spec
  * - submit: Submit a Spark job to the EMR cluster
  * - status: Check the status of a Spark job (defaults to most recent)
  * - jobs: List recent Spark jobs on the cluster
- *
- * Note: Sub-commands are registered manually in CommandLineParser to inject
- * the Context dependency that PicoCommands require.
+ * - logs: View logs from a Spark job
  */
 @Command(
     name = "spark",
     description = ["Spark EMR cluster operations"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        SparkSubmit::class,
+        SparkStatus::class,
+        SparkJobs::class,
+        SparkLogs::class,
+    ],
 )
 class Spark : Runnable {
     @Spec

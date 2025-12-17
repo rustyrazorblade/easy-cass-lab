@@ -1,19 +1,18 @@
 package com.rustyrazorblade.easydblab.commands
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
-import com.rustyrazorblade.easydblab.TestContextFactory
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
+import org.koin.test.get
 import java.io.File
 
 class CleanTest : BaseKoinTest() {
-    @TempDir
-    lateinit var workingDir: File
-
     @Test
     fun `clean deletes state file from working directory`() {
-        // Create test files in temp dir
+        // Use context's working directory from Koin
+        val workingDir = context.workingDirectory
+
+        // Create test files in working directory
         val stateFile = File(workingDir, "state.json")
         val envFile = File(workingDir, "env.sh")
         val environmentFile = File(workingDir, "environment.sh")
@@ -26,8 +25,9 @@ class CleanTest : BaseKoinTest() {
         assertThat(envFile).exists()
         assertThat(environmentFile).exists()
 
-        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-        Clean(testContext).execute()
+        // Get Clean command from Koin (it will inject context automatically)
+        val clean = get<Clean>()
+        clean.execute()
 
         assertThat(stateFile).doesNotExist()
         assertThat(envFile).doesNotExist()
@@ -36,6 +36,8 @@ class CleanTest : BaseKoinTest() {
 
     @Test
     fun `clean deletes provisioning directory from working directory`() {
+        val workingDir = context.workingDirectory
+
         // Create provisioning directory
         val provisioningDir = File(workingDir, "provisioning")
         provisioningDir.mkdir()
@@ -43,14 +45,16 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(provisioningDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-        Clean(testContext).execute()
+        val clean = get<Clean>()
+        clean.execute()
 
         assertThat(provisioningDir).doesNotExist()
     }
 
     @Test
     fun `clean does not delete artifacts directory if it contains files`() {
+        val workingDir = context.workingDirectory
+
         // Create artifacts directory with content
         val artifactsDir = File(workingDir, "artifacts")
         artifactsDir.mkdir()
@@ -58,8 +62,8 @@ class CleanTest : BaseKoinTest() {
 
         assertThat(artifactsDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-        Clean(testContext).execute()
+        val clean = get<Clean>()
+        clean.execute()
 
         // artifacts should still exist because it contains files
         assertThat(artifactsDir).exists()
@@ -67,14 +71,16 @@ class CleanTest : BaseKoinTest() {
 
     @Test
     fun `clean deletes empty artifacts directory`() {
+        val workingDir = context.workingDirectory
+
         // Create empty artifacts directory
         val artifactsDir = File(workingDir, "artifacts")
         artifactsDir.mkdir()
 
         assertThat(artifactsDir).exists()
 
-        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-        Clean(testContext).execute()
+        val clean = get<Clean>()
+        clean.execute()
 
         // artifacts should be deleted because it's empty
         assertThat(artifactsDir).doesNotExist()
@@ -82,6 +88,8 @@ class CleanTest : BaseKoinTest() {
 
     @Test
     fun `clean operates only on specified working directory`() {
+        val workingDir = context.workingDirectory
+
         // Create a file in working directory
         val workingDirFile = File(workingDir, "state.json")
         workingDirFile.createNewFile()
@@ -93,8 +101,8 @@ class CleanTest : BaseKoinTest() {
         projectRootFile.createNewFile()
 
         try {
-            val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-            Clean(testContext).execute()
+            val clean = get<Clean>()
+            clean.execute()
 
             // Working directory file should be deleted
             assertThat(workingDirFile).doesNotExist()
@@ -110,14 +118,16 @@ class CleanTest : BaseKoinTest() {
 
     @Test
     fun `clean deletes ssh config file`() {
+        val workingDir = context.workingDirectory
+
         // Create ssh config file
         val sshConfig = File(workingDir, "sshConfig")
         sshConfig.createNewFile()
 
         assertThat(sshConfig).exists()
 
-        val testContext = TestContextFactory.createTestContext(tempDir, workingDirectory = workingDir)
-        Clean(testContext).execute()
+        val clean = get<Clean>()
+        clean.execute()
 
         assertThat(sshConfig).doesNotExist()
     }

@@ -152,7 +152,7 @@ class DefaultCommandExecutor(
         if (annotations.any { it is RequireProfileSetup }) {
             if (!userConfigProvider.isSetup()) {
                 // Run setup command with full lifecycle
-                executeWithLifecycle(SetupProfile(context))
+                executeWithLifecycle(SetupProfile())
 
                 // Show message and exit
                 with(TermColors()) {
