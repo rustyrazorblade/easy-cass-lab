@@ -45,7 +45,8 @@ class McpServerSimpleTest : BaseKoinTest() {
         assertThat(schema.size).isGreaterThan(0)
 
         // Verify the tool has the basic properties we expect
-        assertThat(toolInfo.name).isEqualTo("simple-test")
+        // Note: hyphens are normalized to underscores in tool names
+        assertThat(toolInfo.name).isEqualTo("simple_test")
         assertThat(toolInfo.description).isEqualTo("Simple test command")
     }
 

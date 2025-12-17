@@ -21,9 +21,9 @@ class McpDebugTest : BaseKoinTest() {
         // Verify we have tools registered
         assertThat(tools).isNotEmpty()
 
-        // Verify some expected tools are present
+        // Verify some expected tools are present (namespaced names)
         val toolNames = tools.map { it.name }
-        assertThat(toolNames).contains("init", "up", "down")
+        assertThat(toolNames).contains("init", "up", "cassandra_down")
     }
 
     @Test

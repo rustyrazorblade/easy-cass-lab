@@ -7,33 +7,38 @@ import com.rustyrazorblade.easydblab.output.FilteringChannelOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputEvent
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.sse.heartbeat
-import io.ktor.sse.ServerSentEvent
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.GetPromptResult
-import io.modelcontextprotocol.kotlin.sdk.Implementation
-import io.modelcontextprotocol.kotlin.sdk.PromptMessage
-import io.modelcontextprotocol.kotlin.sdk.Role
-import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
-import io.modelcontextprotocol.kotlin.sdk.TextContent
-import io.modelcontextprotocol.kotlin.sdk.Tool
+import io.ktor.server.response.respond
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
+import io.ktor.server.sse.SSE
+import io.ktor.server.sse.sse
+import io.ktor.util.collections.ConcurrentMap
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import io.modelcontextprotocol.kotlin.sdk.server.mcp
+import io.modelcontextprotocol.kotlin.sdk.server.ServerSession
+import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.GetPromptResult
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.PromptMessage
+import io.modelcontextprotocol.kotlin.sdk.types.Role
+import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.Semaphore
 import kotlin.concurrent.thread
 import kotlin.getValue
-import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class StatusResponse(
@@ -212,7 +217,6 @@ class McpServer(
             server.addTool(
                 name = toolInfo.name,
                 description = toolInfo.description,
-                inputSchema = Tool.Input(toolInfo.inputSchema),
                 handler = createToolHandler(),
             )
         }
@@ -235,10 +239,7 @@ class McpServer(
                 messages =
                     listOf(
                         PromptMessage(
-                            role =
-                                Role.entries.first {
-                                    it.toString().lowercase() == "user"
-                                },
+                            role = Role.User,
                             content = TextContent(text = promptResource.content),
                         ),
                     ),
@@ -259,7 +260,10 @@ class McpServer(
         }
     }
 
-    fun start(port: Int) {
+    fun start(
+        port: Int,
+        onStarted: (actualPort: Int) -> Unit,
+    ) {
         try {
             log.info { "Starting MCP server with SDK (version ${context.version})" }
             initializeStreaming()
@@ -267,10 +271,9 @@ class McpServer(
             val server = createServer()
             registerServerTools(server)
             registerAllPrompts(server)
-            displayStartupMessage(port)
             messageBuffer.start()
 
-            startEmbeddedServer(port, server)
+            startEmbeddedServer(port, server, onStarted)
         } catch (e: IllegalStateException) {
             log.error { "Transport error: ${e.message}" }
             throw e
@@ -282,20 +285,17 @@ class McpServer(
 
     private fun createServer(): Server =
         Server(
-            serverInfo =
-                Implementation(
-                    name = "easy-db-lab",
-                    version = context.version.toString(),
-                ),
-            options =
-                ServerOptions(
-                    capabilities =
-                        ServerCapabilities(
-                            tools = ServerCapabilities.Tools(listChanged = true),
-                            prompts = ServerCapabilities.Prompts(listChanged = true),
-                            logging = null,
-                        ),
-                ),
+            Implementation(
+                name = "easy-db-lab",
+                version = context.version.toString(),
+            ),
+            ServerOptions(
+                capabilities =
+                    ServerCapabilities(
+                        tools = ServerCapabilities.Tools(listChanged = true),
+                        prompts = ServerCapabilities.Prompts(listChanged = true),
+                    ),
+            ),
         )
 
     private fun registerServerTools(server: Server) {
@@ -303,35 +303,73 @@ class McpServer(
         server.addTool(
             name = "get_server_status",
             description = "Get the status of background tool execution and accumulated messages",
-            inputSchema = Tool.Input(buildJsonObject { /* no parameters needed */ }),
             handler = createStatusHandler(),
         )
         registerTools(server)
     }
 
-    private fun displayStartupMessage(port: Int) {
-        outputHandler.handleMessage(
-            """
-            Starting MCP server on port $port...
-
-            Server is now available at: http://127.0.0.1:$port/sse
-            """.trimIndent(),
-        )
-    }
-
     private fun startEmbeddedServer(
         port: Int,
         server: Server,
+        onStarted: (actualPort: Int) -> Unit,
     ) {
-        embeddedServer(Netty, host = "0.0.0.0", port = port) {
-            mcp {
-                heartbeat {
-                    period = 5.seconds
-                    event = ServerSentEvent("heartbeat")
+        val serverSessions = ConcurrentMap<String, ServerSession>()
+
+        val ktorServer =
+            embeddedServer(Netty, host = "127.0.0.1", port = port) {
+                install(SSE)
+                routing {
+                    sse("/sse") {
+                        val transport = SseServerTransport("/message", this)
+                        val serverSession = server.createSession(transport)
+                        serverSessions[transport.sessionId] = serverSession
+
+                        serverSession.onClose {
+                            log.info { "Server session closed for: ${transport.sessionId}" }
+                            serverSessions.remove(transport.sessionId)
+                        }
+                        awaitCancellation()
+                    }
+                    post("/message") {
+                        val sessionId: String? = call.request.queryParameters["sessionId"]
+                        if (sessionId == null) {
+                            call.respond(HttpStatusCode.BadRequest, "Missing sessionId parameter")
+                            return@post
+                        }
+
+                        val transport = serverSessions[sessionId]?.transport as? SseServerTransport
+                        if (transport == null) {
+                            call.respond(HttpStatusCode.NotFound, "Session not found")
+                            return@post
+                        }
+
+                        transport.handlePostMessage(call)
+                    }
                 }
-                server
+            }.start(wait = false)
+
+        // Get the actual port (important when port 0 is requested)
+        val actualPort =
+            kotlinx.coroutines.runBlocking {
+                ktorServer.engine
+                    .resolvedConnectors()
+                    .first()
+                    .port
             }
-        }.start(wait = true)
+
+        // Notify caller of actual port before blocking
+        onStarted(actualPort)
+
+        outputHandler.handleMessage(
+            """
+            Starting MCP server on port $actualPort...
+
+            Server is now available at: http://127.0.0.1:$actualPort/sse
+            """.trimIndent(),
+        )
+
+        // Wait for shutdown
+        Thread.currentThread().join()
 
         log.info { "MCP server stopped" }
     }
