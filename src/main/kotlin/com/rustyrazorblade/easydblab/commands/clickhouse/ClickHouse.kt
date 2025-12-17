@@ -19,6 +19,11 @@ import picocli.CommandLine.Spec
     name = "clickhouse",
     description = ["ClickHouse cluster operations on K8s"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        ClickHouseStart::class,
+        ClickHouseStatus::class,
+        ClickHouseStop::class,
+    ],
 )
 class ClickHouse : Runnable {
     @Spec

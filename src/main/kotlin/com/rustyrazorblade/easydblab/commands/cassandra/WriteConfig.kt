@@ -1,15 +1,10 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.TriggerBackup
-import com.rustyrazorblade.easydblab.commands.PicoCommand
-import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
+import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.configuration.ServerType
 import com.rustyrazorblade.easydblab.configuration.getHosts
-import com.rustyrazorblade.easydblab.output.OutputHandler
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -25,14 +20,7 @@ import java.io.File
     aliases = ["wc"],
     description = ["Write a new cassandra configuration patch file"],
 )
-class WriteConfig(
-    val context: Context,
-) : PicoCommand,
-    KoinComponent {
-    private val outputHandler: OutputHandler by inject()
-    private val clusterStateManager: ClusterStateManager by inject()
-    private val clusterState by lazy { clusterStateManager.load() }
-
+class WriteConfig : PicoBaseCommand() {
     companion object {
         private const val DEFAULT_TOKEN_COUNT = 4
         private const val DEFAULT_CONCURRENT_READS = 64

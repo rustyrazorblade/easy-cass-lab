@@ -72,7 +72,7 @@ class StressStatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = StressStatus(context)
+        val command = StressStatus()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -114,7 +114,7 @@ class StressStatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockStressJobService.listJobs(any())).thenReturn(Result.success(testJobs))
 
-        val command = StressStatus(context)
+        val command = StressStatus()
 
         // When
         command.execute()
@@ -140,7 +140,7 @@ class StressStatusTest : BaseKoinTest() {
         whenever(mockStressJobService.listJobs(any()))
             .thenReturn(Result.failure(RuntimeException("Failed to list jobs")))
 
-        val command = StressStatus(context)
+        val command = StressStatus()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -182,7 +182,7 @@ class StressStatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockStressJobService.listJobs(any())).thenReturn(Result.success(testJobs))
 
-        val command = StressStatus(context)
+        val command = StressStatus()
         command.jobName = "test"
 
         // When
@@ -208,7 +208,7 @@ class StressStatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockStressJobService.listJobs(any())).thenReturn(Result.success(emptyList()))
 
-        val command = StressStatus(context)
+        val command = StressStatus()
 
         // When - should not throw
         command.execute()

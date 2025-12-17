@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.commands
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.Up
@@ -58,9 +57,7 @@ import kotlin.system.exitProcess
     name = "init",
     description = ["Initialize this directory for easy-db-lab"],
 )
-class Init(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Init : PicoBaseCommand() {
     private val userConfig: User by inject()
     private val commandExecutor: CommandExecutor by inject()
 
@@ -221,7 +218,7 @@ class Init(
         if (start) {
             outputHandler.handleMessage("Provisioning instances")
             // Schedule Up to run after Init's full lifecycle completes
-            commandExecutor.schedule { Up(context) }
+            commandExecutor.schedule { Up() }
         } else {
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -274,7 +271,7 @@ class Init(
         if (clean) {
             outputHandler.handleMessage("Cleaning existing configuration...")
             // Execute Clean immediately with full lifecycle
-            commandExecutor.execute { Clean(context) }
+            commandExecutor.execute { Clean() }
         }
 
         val state =

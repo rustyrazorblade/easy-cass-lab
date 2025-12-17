@@ -2,7 +2,6 @@ package com.rustyrazorblade.easydblab.services
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.TriggerBackup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.configuration.ClusterState
@@ -88,7 +87,7 @@ class CommandExecutorTest : BaseKoinTest() {
         // When
         val exitCode =
             commandExecutor.execute {
-                TestCommand(context) { executionOrder.add("command1") }
+                TestCommand { executionOrder.add("command1") }
             }
 
         // Then
@@ -101,7 +100,7 @@ class CommandExecutorTest : BaseKoinTest() {
         // When
         val exitCode =
             commandExecutor.execute {
-                FailingCommand(context)
+                FailingCommand()
             }
 
         // Then
@@ -114,10 +113,10 @@ class CommandExecutorTest : BaseKoinTest() {
     fun `schedule should defer command execution until after current command lifecycle`() {
         // Given - a command that schedules another command
         val parentCommand =
-            TestCommand(context) {
+            TestCommand {
                 executionOrder.add("parent_before_schedule")
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("scheduled") }
+                    TestCommand { executionOrder.add("scheduled") }
                 }
                 executionOrder.add("parent_after_schedule")
             }
@@ -139,16 +138,16 @@ class CommandExecutorTest : BaseKoinTest() {
     fun `multiple scheduled commands should run in order`() {
         // Given - a command that schedules multiple commands
         val parentCommand =
-            TestCommand(context) {
+            TestCommand {
                 executionOrder.add("parent")
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("first") }
+                    TestCommand { executionOrder.add("first") }
                 }
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("second") }
+                    TestCommand { executionOrder.add("second") }
                 }
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("third") }
+                    TestCommand { executionOrder.add("third") }
                 }
             }
 
@@ -164,16 +163,16 @@ class CommandExecutorTest : BaseKoinTest() {
     fun `failure in scheduled command should stop chain and return error code`() {
         // Given - a command that schedules a failing command followed by another
         val parentCommand =
-            TestCommand(context) {
+            TestCommand {
                 executionOrder.add("parent")
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("first") }
+                    TestCommand { executionOrder.add("first") }
                 }
                 commandExecutor.schedule {
-                    FailingCommand(context).also { executionOrder.add("failing") }
+                    FailingCommand().also { executionOrder.add("failing") }
                 }
                 commandExecutor.schedule {
-                    TestCommand(context) { executionOrder.add("should_not_run") }
+                    TestCommand { executionOrder.add("should_not_run") }
                 }
             }
 
@@ -193,13 +192,13 @@ class CommandExecutorTest : BaseKoinTest() {
     fun `scheduled commands can schedule additional commands`() {
         // Given - nested scheduling
         val parentCommand =
-            TestCommand(context) {
+            TestCommand {
                 executionOrder.add("parent")
                 commandExecutor.schedule {
-                    TestCommand(context) {
+                    TestCommand {
                         executionOrder.add("first")
                         commandExecutor.schedule {
-                            TestCommand(context) { executionOrder.add("nested") }
+                            TestCommand { executionOrder.add("nested") }
                         }
                     }
                 }
@@ -236,7 +235,7 @@ class CommandExecutorTest : BaseKoinTest() {
         // When
         val exitCode =
             commandExecutor.execute {
-                BackupTriggeringCommand(context) { executionOrder.add("backup_command") }
+                BackupTriggeringCommand { executionOrder.add("backup_command") }
             }
 
         // Then
@@ -249,7 +248,7 @@ class CommandExecutorTest : BaseKoinTest() {
         // When
         val exitCode =
             commandExecutor.execute {
-                TestCommand(context) { executionOrder.add("regular_command") }
+                TestCommand { executionOrder.add("regular_command") }
             }
 
         // Then
@@ -262,7 +261,7 @@ class CommandExecutorTest : BaseKoinTest() {
         // When
         val exitCode =
             commandExecutor.execute {
-                FailingBackupTriggeringCommand(context)
+                FailingBackupTriggeringCommand()
             }
 
         // Then
@@ -290,10 +289,10 @@ class CommandExecutorTest : BaseKoinTest() {
 
         // When
         val parentCommand =
-            TestCommand(context) {
+            TestCommand {
                 executionOrder.add("parent")
                 commandExecutor.schedule {
-                    BackupTriggeringCommand(context) { executionOrder.add("scheduled_backup") }
+                    BackupTriggeringCommand { executionOrder.add("scheduled_backup") }
                 }
             }
         val exitCode = commandExecutor.executeTopLevel(parentCommand)
@@ -308,9 +307,8 @@ class CommandExecutorTest : BaseKoinTest() {
     /** Simple test command that executes a provided action */
     @Command(name = "test-command")
     inner class TestCommand(
-        context: Context,
         private val action: () -> Unit = {},
-    ) : PicoBaseCommand(context) {
+    ) : PicoBaseCommand() {
         override fun execute() {
             action()
         }
@@ -318,9 +316,7 @@ class CommandExecutorTest : BaseKoinTest() {
 
     /** Test command that fails with an exception */
     @Command(name = "failing-command")
-    inner class FailingCommand(
-        context: Context,
-    ) : PicoBaseCommand(context) {
+    inner class FailingCommand : PicoBaseCommand() {
         override fun execute(): Unit = throw RuntimeException("Command failed intentionally")
     }
 
@@ -328,9 +324,8 @@ class CommandExecutorTest : BaseKoinTest() {
     @TriggerBackup
     @Command(name = "backup-triggering-command")
     inner class BackupTriggeringCommand(
-        context: Context,
         private val action: () -> Unit = {},
-    ) : PicoBaseCommand(context) {
+    ) : PicoBaseCommand() {
         override fun execute() {
             action()
         }
@@ -339,9 +334,7 @@ class CommandExecutorTest : BaseKoinTest() {
     /** Test command with @TriggerBackup that fails */
     @TriggerBackup
     @Command(name = "failing-backup-command")
-    inner class FailingBackupTriggeringCommand(
-        context: Context,
-    ) : PicoBaseCommand(context) {
+    inner class FailingBackupTriggeringCommand : PicoBaseCommand() {
         override fun execute(): Unit = throw RuntimeException("Backup command failed")
     }
 }

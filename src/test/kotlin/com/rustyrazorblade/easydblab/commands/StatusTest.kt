@@ -108,7 +108,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute displays message when cluster state does not exist`() {
         whenever(mockClusterStateManager.exists()).thenReturn(false)
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -120,7 +120,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute displays cluster section`() {
         setupBasicClusterState()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -138,7 +138,7 @@ class StatusTest : BaseKoinTest() {
         setupBasicClusterState()
         setupInstanceStates()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -156,7 +156,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute displays networking section`() {
         setupBasicClusterState()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -174,7 +174,7 @@ class StatusTest : BaseKoinTest() {
         setupBasicClusterState()
         setupSecurityGroup()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -204,7 +204,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -230,7 +230,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -260,7 +260,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockRemoteOperationsService.getRemoteVersion(any(), any()))
             .thenThrow(RuntimeException("Connection refused"))
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -291,7 +291,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockClusterStateManager.exists()).thenReturn(true)
         whenever(mockClusterStateManager.load()).thenReturn(clusterState)
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -308,7 +308,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockEmrService.getClusterStatus("j-TESTABC123"))
             .thenReturn(EMRClusterStatus("j-TESTABC123", "WAITING", null))
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -327,7 +327,7 @@ class StatusTest : BaseKoinTest() {
         whenever(mockEmrService.getClusterStatus("j-TESTABC123"))
             .thenThrow(RuntimeException("EMR service unavailable"))
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -343,7 +343,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute handles missing spark cluster gracefully`() {
         setupBasicClusterState()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -358,7 +358,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute displays S3 bucket section`() {
         setupBasicClusterStateWithS3Bucket("test-bucket-123")
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()
@@ -375,7 +375,7 @@ class StatusTest : BaseKoinTest() {
     fun `execute handles missing S3 bucket gracefully`() {
         setupBasicClusterState()
 
-        val command = Status(context)
+        val command = Status()
         command.execute()
 
         val captor = argumentCaptor<String>()

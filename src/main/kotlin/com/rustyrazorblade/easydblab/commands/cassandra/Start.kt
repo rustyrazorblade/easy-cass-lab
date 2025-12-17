@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
@@ -29,9 +28,7 @@ import java.io.File
     name = "start",
     description = ["Start cassandra on all nodes via service command"],
 )
-class Start(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Start : PicoBaseCommand() {
     private val userConfig: User by inject()
     private val cassandraService: CassandraService by inject()
     private val sidecarService: SidecarService by inject()

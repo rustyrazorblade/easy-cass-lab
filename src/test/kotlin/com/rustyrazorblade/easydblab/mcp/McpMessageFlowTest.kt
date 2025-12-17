@@ -58,8 +58,8 @@ class McpMessageFlowTest : KoinComponent {
         // Initialize Koin for dependency injection
         startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { context } }) }
 
-        mcpServer = McpServer(context)
-        registry = McpToolRegistry(context)
+        mcpServer = McpServer()
+        registry = McpToolRegistry()
     }
 
     @AfterEach

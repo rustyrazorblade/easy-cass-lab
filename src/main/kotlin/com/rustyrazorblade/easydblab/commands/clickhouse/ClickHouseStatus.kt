@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.clickhouse
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -25,9 +24,7 @@ import picocli.CommandLine.Command
     name = "status",
     description = ["Check ClickHouse cluster status"],
 )
-class ClickHouseStatus(
-    context: Context,
-) : PicoBaseCommand(context) {
+class ClickHouseStatus : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val k8sService: K8sService by inject()
 

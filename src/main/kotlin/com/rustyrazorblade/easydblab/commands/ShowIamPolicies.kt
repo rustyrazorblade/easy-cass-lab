@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.providers.aws.AWS
@@ -17,9 +16,7 @@ import picocli.CommandLine.Parameters
     aliases = ["sip"],
     description = ["Display IAM policies with account ID populated"],
 )
-class ShowIamPolicies(
-    context: Context,
-) : PicoBaseCommand(context) {
+class ShowIamPolicies : PicoBaseCommand() {
     private val aws: AWS by inject()
 
     @Parameters(

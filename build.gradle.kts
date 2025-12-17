@@ -70,6 +70,7 @@ dependencies {
 
     // CLI and UI
     implementation(libs.picocli)
+    implementation(libs.picocli.shell.jline3)
     implementation(libs.jline)
     implementation(libs.mordant)
 

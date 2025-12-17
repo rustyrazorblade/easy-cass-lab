@@ -86,6 +86,7 @@ testcontainers-localstack = { module = "org.testcontainers:localstack", version.
 
 # CLI and UI
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+picocli-shell-jline3 = { module = "info.picocli:picocli-shell-jline3", version.ref = "picocli" }
 jline = { module = "org.jline:jline", version.ref = "jline" }
 mordant = { module = "com.github.ajalt:mordant", version.ref = "mordant" }
 

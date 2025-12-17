@@ -1,59 +1,62 @@
 package com.rustyrazorblade.easydblab.mcp
 
 import com.rustyrazorblade.easydblab.BaseKoinTest
-import com.rustyrazorblade.easydblab.Context
-import com.rustyrazorblade.easydblab.PicoCommandEntry
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.module.Module
+import org.koin.dsl.module
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 
 class McpServerSimpleTest : BaseKoinTest() {
     private lateinit var registry: McpToolRegistry
 
+    override fun additionalTestModules(): List<Module> =
+        listOf(
+            module {
+                factory { SimpleTestCommand() }
+            },
+        )
+
     @BeforeEach
     fun setup() {
-        registry = McpToolRegistry(context)
+        registry = McpToolRegistry()
     }
 
     @Test
     fun `test schema generation for simple command`() {
-        // Create a test command entry
-        val entry = PicoCommandEntry("simple-test", { SimpleTestCommand(context) })
+        // Create a test command
+        val testCommand = SimpleTestCommand()
 
-        // Use reflection to call createToolInfoFromPico
-        val createToolInfoMethod =
-            McpToolRegistry::class.java
-                .getDeclaredMethod(
-                    "createToolInfoFromPico",
-                    PicoCommandEntry::class.java,
-                ).apply { isAccessible = true }
-
-        val toolInfo = createToolInfoMethod.invoke(registry, entry) as McpToolRegistry.ToolInfo
+        // Use the public generatePicoSchema method
+        val schema = registry.generatePicoSchema(testCommand)
 
         // Print the schema to see what's being generated
         println("Generated schema for simple command:")
-        println(Json.encodeToString(JsonObject.serializer(), toolInfo.inputSchema))
+        println(Json.encodeToString(JsonObject.serializer(), schema))
 
-        // Just verify the schema is not null and has some content
-        val schema = toolInfo.inputSchema
+        // Verify the schema is not null and has some content
         assertThat(schema).isNotNull
         assertThat(schema.size).isGreaterThan(0)
+    }
 
-        // Verify the tool has the basic properties we expect
+    @Test
+    fun `test tool name generation`() {
+        val testCommand = SimpleTestCommand()
+
+        // Test the generateToolName method
+        val toolName = registry.generateToolName(testCommand, "simple-test")
+
         // Note: hyphens are normalized to underscores in tool names
-        assertThat(toolInfo.name).isEqualTo("simple_test")
-        assertThat(toolInfo.description).isEqualTo("Simple test command")
+        assertThat(toolName).isEqualTo("simple_test")
     }
 
     @Command(name = "simple-test", description = ["Simple test command"])
-    class SimpleTestCommand(
-        context: Context,
-    ) : PicoBaseCommand(context) {
+    class SimpleTestCommand : PicoBaseCommand() {
         @Option(names = ["--name", "-n"], description = ["Name parameter"], required = true)
         var name: String = ""
 
@@ -64,7 +67,7 @@ class McpServerSimpleTest : BaseKoinTest() {
         var enabled: Boolean = false
 
         override fun execute() {
-            println("Executing with name=$name, count=$count, enabled=$enabled")
+            outputHandler.handleMessage("Executing with name=$name, count=$count, enabled=$enabled")
         }
     }
 }

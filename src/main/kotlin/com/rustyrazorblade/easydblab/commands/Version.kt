@@ -13,10 +13,10 @@ import picocli.CommandLine.Command
     name = "version",
     description = ["Display the easy-db-lab version"],
 )
-class Version(
-    private val context: Context,
-) : PicoCommand,
+class Version :
+    PicoCommand,
     KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
 
     override fun execute() {

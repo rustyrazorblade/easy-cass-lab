@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands
 
 import com.github.ajalt.mordant.TermColors
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
 import com.rustyrazorblade.easydblab.commands.converters.PicoServerTypeConverter
@@ -33,9 +32,7 @@ import picocli.CommandLine.Parameters
     name = "exec",
     description = ["Execute a shell command on remote hosts"],
 )
-class Exec(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Exec : PicoBaseCommand() {
     private val hostOperationsService: HostOperationsService by inject()
 
     @Mixin

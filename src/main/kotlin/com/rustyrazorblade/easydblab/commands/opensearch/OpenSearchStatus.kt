@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.opensearch
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -23,9 +22,7 @@ import software.amazon.awssdk.services.opensearch.model.ResourceNotFoundExceptio
     name = "status",
     description = ["Check OpenSearch domain status"],
 )
-class OpenSearchStatus(
-    context: Context,
-) : PicoBaseCommand(context) {
+class OpenSearchStatus : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val openSearchService: OpenSearchService by inject()
 

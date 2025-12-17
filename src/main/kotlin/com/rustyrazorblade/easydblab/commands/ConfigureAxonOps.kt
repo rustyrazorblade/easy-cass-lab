@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
@@ -23,9 +22,7 @@ import kotlin.system.exitProcess
     name = "configure-axonops",
     description = ["Setup / configure axon-agent for use with the Cassandra cluster"],
 )
-class ConfigureAxonOps(
-    context: Context,
-) : PicoBaseCommand(context) {
+class ConfigureAxonOps : PicoBaseCommand() {
     private val userConfig: User by inject()
     private val hostOperationsService: HostOperationsService by inject()
 

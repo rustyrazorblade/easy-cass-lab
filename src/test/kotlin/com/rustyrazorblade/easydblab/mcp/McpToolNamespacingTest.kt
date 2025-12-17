@@ -24,13 +24,13 @@ class McpToolNamespacingTest : BaseKoinTest() {
 
     @BeforeEach
     fun setup() {
-        registry = McpToolRegistry(context)
+        registry = McpToolRegistry()
     }
 
     @Test
     fun `top-level command generates simple name without namespace`() {
         // Status is in com.rustyrazorblade.easydblab.commands (top-level)
-        val command = Status(context)
+        val command = Status()
         val toolName = registry.generateToolName(command, "status")
 
         assertThat(toolName).isEqualTo("status")
@@ -39,7 +39,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
     @Test
     fun `single-level nested command generates namespace_name`() {
         // Start is in com.rustyrazorblade.easydblab.commands.cassandra
-        val command = Start(context)
+        val command = Start()
         val toolName = registry.generateToolName(command, "start")
 
         assertThat(toolName).isEqualTo("cassandra_start")
@@ -48,7 +48,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
     @Test
     fun `double-level nested command generates full namespace_name`() {
         // StressStart is in com.rustyrazorblade.easydblab.commands.cassandra.stress
-        val command = StressStart(context)
+        val command = StressStart()
         val toolName = registry.generateToolName(command, "start")
 
         assertThat(toolName).isEqualTo("cassandra_stress_start")
@@ -57,7 +57,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
     @Test
     fun `hyphenated command name converts to underscores`() {
         // UpdateConfig has name="update-config"
-        val command = UpdateConfig(context)
+        val command = UpdateConfig()
         val toolName = registry.generateToolName(command, "update-config")
 
         assertThat(toolName).isEqualTo("cassandra_update_config")
@@ -65,7 +65,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
 
     @Test
     fun `clickhouse namespace is correct`() {
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
         val toolName = registry.generateToolName(command, "start")
 
         assertThat(toolName).isEqualTo("clickhouse_start")
@@ -73,7 +73,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
 
     @Test
     fun `opensearch namespace is correct`() {
-        val command = OpenSearchStart(context)
+        val command = OpenSearchStart()
         val toolName = registry.generateToolName(command, "start")
 
         assertThat(toolName).isEqualTo("opensearch_start")
@@ -81,7 +81,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
 
     @Test
     fun `spark namespace is correct`() {
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         val toolName = registry.generateToolName(command, "submit")
 
         assertThat(toolName).isEqualTo("spark_submit")
@@ -89,7 +89,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
 
     @Test
     fun `k8 namespace is correct`() {
-        val command = K8Apply(context)
+        val command = K8Apply()
         val toolName = registry.generateToolName(command, "apply")
 
         assertThat(toolName).isEqualTo("k8_apply")
@@ -112,7 +112,7 @@ class McpToolNamespacingTest : BaseKoinTest() {
         // Verify some expected namespaced names exist
         // Note: Only commands with @McpCommand annotation are included
         assertThat(toolNames).contains("status")
-        assertThat(toolNames).contains("hosts")
-        assertThat(toolNames).contains("clean")
+        assertThat(toolNames).contains("cassandra_start")
+        assertThat(toolNames).contains("cassandra_stress_start")
     }
 }

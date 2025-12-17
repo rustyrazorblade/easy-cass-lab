@@ -17,7 +17,7 @@ class McpSchemaValidationTest : BaseKoinTest() {
 
     @BeforeEach
     fun setup() {
-        registry = McpToolRegistry(context)
+        registry = McpToolRegistry()
     }
 
     @Test

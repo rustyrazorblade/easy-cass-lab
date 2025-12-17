@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
 import com.rustyrazorblade.easydblab.configuration.Host
@@ -22,9 +21,7 @@ import java.nio.file.Path
     aliases = ["si"],
     description = ["Runs setup_instance.sh on all Cassandra instances"],
 )
-class SetupInstance(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SetupInstance : PicoBaseCommand() {
     private val hostOperationsService: HostOperationsService by inject()
 
     @Mixin

@@ -47,10 +47,11 @@ import java.time.format.DateTimeFormatter
     description = ["Display full environment status"],
 )
 @Suppress("TooManyFunctions")
-class Status(
-    private val context: Context,
-) : PicoCommand,
+class Status :
+    PicoCommand,
     KoinComponent {
+    private val context: Context by inject()
+
     companion object {
         private val log = KotlinLogging.logger {}
         private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

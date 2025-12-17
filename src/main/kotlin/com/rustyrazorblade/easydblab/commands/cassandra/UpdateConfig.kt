@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.commands.cassandra
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
@@ -35,9 +34,7 @@ import kotlin.io.path.inputStream
     aliases = ["uc"],
     description = ["Upload the cassandra.yaml fragment to all nodes and apply to cassandra.yaml"],
 )
-class UpdateConfig(
-    context: Context,
-) : PicoBaseCommand(context) {
+class UpdateConfig : PicoBaseCommand() {
     private val hostOperationsService: HostOperationsService by inject()
     private val commandExecutor: CommandExecutor by inject()
 
@@ -116,7 +113,7 @@ class UpdateConfig(
 
         if (restart) {
             commandExecutor.execute {
-                Restart(context).apply { this.hosts = this@UpdateConfig.hosts }
+                Restart().apply { this.hosts = this@UpdateConfig.hosts }
             }
         }
     }

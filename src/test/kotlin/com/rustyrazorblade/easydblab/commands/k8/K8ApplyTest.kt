@@ -70,7 +70,7 @@ class K8ApplyTest : BaseKoinTest() {
 
     @Test
     fun `command has correct default options`() {
-        val command = K8Apply(context)
+        val command = K8Apply()
 
         assertThat(command.timeoutSeconds).isEqualTo(120)
         assertThat(command.skipWait).isFalse()
@@ -88,7 +88,7 @@ class K8ApplyTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = K8Apply(context)
+        val command = K8Apply()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -113,7 +113,7 @@ class K8ApplyTest : BaseKoinTest() {
         whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
         whenever(mockK8sService.waitForPodsReady(any(), any())).thenReturn(Result.success(Unit))
 
-        val command = K8Apply(context)
+        val command = K8Apply()
 
         // When
         command.execute()
@@ -139,7 +139,7 @@ class K8ApplyTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockK8sService.applyManifests(any(), any())).thenReturn(Result.success(Unit))
 
-        val command = K8Apply(context)
+        val command = K8Apply()
         command.skipWait = true
 
         // When
@@ -167,7 +167,7 @@ class K8ApplyTest : BaseKoinTest() {
         whenever(mockK8sService.applyManifests(any(), any()))
             .thenReturn(Result.failure(RuntimeException("kubectl apply failed")))
 
-        val command = K8Apply(context)
+        val command = K8Apply()
 
         // When/Then
         assertThatThrownBy { command.execute() }

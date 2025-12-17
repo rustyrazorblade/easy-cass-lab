@@ -65,7 +65,7 @@ class StressLogsTest : BaseKoinTest() {
 
     @Test
     fun `command has correct default options`() {
-        val command = StressLogs(context)
+        val command = StressLogs()
 
         assertThat(command.tailLines).isNull()
         // jobName is a lateinit required parameter, so we only test tailLines default
@@ -83,7 +83,7 @@ class StressLogsTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = StressLogs(context)
+        val command = StressLogs()
         command.jobName = "stress-test-1234567890"
 
         // When/Then
@@ -133,7 +133,7 @@ class StressLogsTest : BaseKoinTest() {
         whenever(mockStressJobService.getPodLogs(any(), any(), isNull()))
             .thenReturn(Result.success(logOutput))
 
-        val command = StressLogs(context)
+        val command = StressLogs()
         command.jobName = "stress-test-1234567890"
 
         // When
@@ -182,7 +182,7 @@ class StressLogsTest : BaseKoinTest() {
         whenever(mockStressJobService.getPodLogs(any(), any(), eq(100)))
             .thenReturn(Result.success("Last 100 lines..."))
 
-        val command = StressLogs(context)
+        val command = StressLogs()
         command.jobName = "stress-test-1234567890"
         command.tailLines = 100
 
@@ -214,7 +214,7 @@ class StressLogsTest : BaseKoinTest() {
         whenever(mockStressJobService.getPodsForJob(any(), any()))
             .thenReturn(Result.success(emptyList()))
 
-        val command = StressLogs(context)
+        val command = StressLogs()
         command.jobName = "stress-test-1234567890"
 
         // When/Then
@@ -240,7 +240,7 @@ class StressLogsTest : BaseKoinTest() {
         whenever(mockStressJobService.getPodsForJob(any(), any()))
             .thenReturn(Result.failure(RuntimeException("Failed to get pods")))
 
-        val command = StressLogs(context)
+        val command = StressLogs()
         command.jobName = "stress-test-1234567890"
 
         // When/Then

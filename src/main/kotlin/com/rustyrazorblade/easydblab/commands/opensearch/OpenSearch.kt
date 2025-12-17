@@ -19,6 +19,11 @@ import picocli.CommandLine.Spec
     name = "opensearch",
     description = ["AWS OpenSearch domain operations"],
     mixinStandardHelpOptions = true,
+    subcommands = [
+        OpenSearchStart::class,
+        OpenSearchStatus::class,
+        OpenSearchStop::class,
+    ],
 )
 class OpenSearch : Runnable {
     @Spec

@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.cassandra.stress
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -25,9 +24,7 @@ import picocli.CommandLine.Parameters
     name = "fields",
     description = ["List available cassandra-easy-stress field generators"],
 )
-class StressFields(
-    context: Context,
-) : PicoBaseCommand(context) {
+class StressFields : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val stressJobService: StressJobService by inject()
 

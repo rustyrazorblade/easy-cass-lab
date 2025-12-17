@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.RequireSSHKey
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -25,9 +24,7 @@ import picocli.CommandLine.Mixin
     name = "stop",
     description = ["Stop cassandra on all nodes via service command"],
 )
-class Stop(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Stop : PicoBaseCommand() {
     private val cassandraService: CassandraService by inject()
     private val sidecarService: SidecarService by inject()
     private val hostOperationsService: HostOperationsService by inject()

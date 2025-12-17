@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.mixins.BuildArgsMixin
@@ -18,9 +17,7 @@ import picocli.CommandLine.Mixin
     name = "build-image",
     description = ["Build both the base and Cassandra image"],
 )
-class BuildImage(
-    context: Context,
-) : PicoBaseCommand(context) {
+class BuildImage : PicoBaseCommand() {
     @Mixin
     var buildArgs = BuildArgsMixin()
 
@@ -28,10 +25,10 @@ class BuildImage(
 
     override fun execute() {
         commandExecutor.execute {
-            BuildBaseImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }
+            BuildBaseImage().apply { this.buildArgs = this@BuildImage.buildArgs }
         }
         commandExecutor.execute {
-            BuildCassandraImage(context).apply { this.buildArgs = this@BuildImage.buildArgs }
+            BuildCassandraImage().apply { this.buildArgs = this@BuildImage.buildArgs }
         }
     }
 }

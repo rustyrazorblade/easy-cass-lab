@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.opensearch
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -30,9 +29,7 @@ import picocli.CommandLine.Option
     name = "start",
     description = ["Create an AWS OpenSearch domain"],
 )
-class OpenSearchStart(
-    context: Context,
-) : PicoBaseCommand(context) {
+class OpenSearchStart : PicoBaseCommand() {
     private val log = KotlinLogging.logger {}
     private val openSearchService: OpenSearchService by inject()
     private val aws: AWS by inject()

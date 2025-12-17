@@ -16,10 +16,10 @@ import java.io.File
     name = "clean",
     description = ["Clean up generated files from the current directory"],
 )
-class Clean(
-    private val context: Context,
-) : PicoCommand,
+class Clean :
+    PicoCommand,
     KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
 
     companion object {

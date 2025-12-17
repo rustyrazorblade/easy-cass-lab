@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.cassandra
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
 import com.rustyrazorblade.easydblab.commands.mixins.HostsMixin
@@ -20,9 +19,7 @@ import picocli.CommandLine.Option
     aliases = ["dc"],
     description = ["Download JVM and YAML config files"],
 )
-class DownloadConfig(
-    context: Context,
-) : PicoBaseCommand(context) {
+class DownloadConfig : PicoBaseCommand() {
     @Mixin
     var hosts = HostsMixin()
 

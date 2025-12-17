@@ -2,7 +2,6 @@ package com.rustyrazorblade.easydblab.commands
 
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.annotations.TriggerBackup
@@ -62,9 +61,7 @@ import java.time.Duration
     name = "up",
     description = ["Starts instances"],
 )
-class Up(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Up : PicoBaseCommand() {
     private val userConfig: User by inject()
     private val aws: AWS by inject()
     private val vpcService: VpcService by inject()
@@ -113,7 +110,7 @@ class Up(
         reapplyS3Policy()
         provisionInfrastructure(initConfig)
         writeConfigurationFiles()
-        commandExecutor.execute { WriteConfig(context) }
+        commandExecutor.execute { WriteConfig() }
         waitForSshAndDownloadVersions()
         setupInstancesIfNeeded()
     }
@@ -437,12 +434,12 @@ class Up(
                 )
             }
         } else {
-            commandExecutor.execute { SetupInstance(context) }
+            commandExecutor.execute { SetupInstance() }
             startK3sOnAllNodes()
 
             if (userConfig.axonOpsKey.isNotBlank() && userConfig.axonOpsOrg.isNotBlank()) {
                 outputHandler.handleMessage("Setting up axonops for ${userConfig.axonOpsOrg}")
-                commandExecutor.execute { ConfigureAxonOps(context) }
+                commandExecutor.execute { ConfigureAxonOps() }
             }
         }
     }
@@ -479,7 +476,7 @@ class Up(
             }
         }
 
-        commandExecutor.execute { K8Apply(context) }
+        commandExecutor.execute { K8Apply() }
     }
 
     /**

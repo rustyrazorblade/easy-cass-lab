@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands.spark
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -25,9 +24,7 @@ import java.io.File
     name = "submit",
     description = ["Submit Spark job to EMR cluster"],
 )
-class SparkSubmit(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SparkSubmit : PicoBaseCommand() {
     private val sparkService: SparkService by inject()
     private val objectStore: ObjectStore by inject()
 

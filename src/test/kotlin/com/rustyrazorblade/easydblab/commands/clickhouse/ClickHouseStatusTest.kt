@@ -81,7 +81,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = ClickHouseStatus(context)
+        val command = ClickHouseStatus()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -117,7 +117,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
         whenever(mockK8sService.getNamespaceStatus(any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(statusOutput))
 
-        val command = ClickHouseStatus(context)
+        val command = ClickHouseStatus()
 
         // When
         command.execute()
@@ -144,7 +144,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
         whenever(mockK8sService.getNamespaceStatus(any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.failure(RuntimeException("Namespace not found")))
 
-        val command = ClickHouseStatus(context)
+        val command = ClickHouseStatus()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -170,7 +170,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
         whenever(mockK8sService.getNamespaceStatus(any(), eq("default")))
             .thenReturn(Result.success("Running"))
 
-        val command = ClickHouseStatus(context)
+        val command = ClickHouseStatus()
 
         // When
         command.execute()
@@ -196,7 +196,7 @@ class ClickHouseStatusTest : BaseKoinTest() {
         whenever(mockK8sService.getNamespaceStatus(any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success("Running"))
 
-        val command = ClickHouseStatus(context)
+        val command = ClickHouseStatus()
 
         // When/Then
         assertThatThrownBy { command.execute() }

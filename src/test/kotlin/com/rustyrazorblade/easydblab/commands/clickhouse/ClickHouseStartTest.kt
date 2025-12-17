@@ -104,7 +104,7 @@ class ClickHouseStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -140,7 +140,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When
         command.execute()
@@ -179,7 +179,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When
         command.execute()
@@ -217,7 +217,7 @@ class ClickHouseStartTest : BaseKoinTest() {
             ),
         ).thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
         command.skipWait = true
 
         // When
@@ -255,7 +255,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         whenever(mockK8sService.applyManifests(any(), any()))
             .thenReturn(Result.failure(RuntimeException("kubectl apply failed")))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -291,7 +291,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         whenever(mockK8sService.waitForPodsReady(any(), eq(600), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
         command.timeoutSeconds = 600
 
         // When
@@ -317,7 +317,7 @@ class ClickHouseStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlOnly)
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -342,7 +342,7 @@ class ClickHouseStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithInsufficientNodes)
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -373,7 +373,7 @@ class ClickHouseStartTest : BaseKoinTest() {
         whenever(mockK8sService.waitForPodsReady(any(), any(), eq(Constants.ClickHouse.NAMESPACE)))
             .thenReturn(Result.success(Unit))
 
-        val command = ClickHouseStart(context)
+        val command = ClickHouseStart()
 
         // When - should not throw, just warn
         command.execute()

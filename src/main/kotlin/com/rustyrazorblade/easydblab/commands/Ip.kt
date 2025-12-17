@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.configuration.ClusterStateManager
@@ -31,9 +30,8 @@ import picocli.CommandLine.Parameters
     name = "ip",
     description = ["Get IP address for a host by alias"],
 )
-class Ip(
-    @Suppress("UnusedPrivateProperty") private val context: Context,
-) : PicoCommand,
+class Ip :
+    PicoCommand,
     KoinComponent {
     private val outputHandler: OutputHandler by inject()
     private val clusterStateManager: ClusterStateManager by inject()

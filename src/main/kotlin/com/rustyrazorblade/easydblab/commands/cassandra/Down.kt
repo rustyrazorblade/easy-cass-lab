@@ -3,7 +3,6 @@ package com.rustyrazorblade.easydblab.commands.cassandra
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -37,9 +36,7 @@ import java.util.Scanner
     description = ["Shut down AWS infrastructure"],
 )
 @Suppress("TooManyFunctions")
-class Down(
-    context: Context,
-) : PicoBaseCommand(context) {
+class Down : PicoBaseCommand() {
     @CommandLine.Parameters(
         index = "0",
         arity = "0..1",

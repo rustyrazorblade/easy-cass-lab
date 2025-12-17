@@ -92,7 +92,7 @@ class StressStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = StressStart(context)
+        val command = StressStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -115,7 +115,7 @@ class StressStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControlOnly)
 
-        val command = StressStart(context)
+        val command = StressStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -141,7 +141,7 @@ class StressStartTest : BaseKoinTest() {
         whenever(mockStressJobService.startJob(any(), any(), any(), any(), any(), anyOrNull()))
             .thenReturn(Result.success("job-created"))
 
-        val command = StressStart(context)
+        val command = StressStart()
 
         // When
         command.execute()
@@ -178,7 +178,7 @@ class StressStartTest : BaseKoinTest() {
         whenever(mockStressJobService.startJob(any(), any(), any(), any(), any(), anyOrNull()))
             .thenReturn(Result.success("job-created"))
 
-        val command = StressStart(context)
+        val command = StressStart()
         command.stressArgs = listOf("BasicTimeSeries", "-d", "1h", "--threads", "100")
 
         // When
@@ -224,7 +224,7 @@ class StressStartTest : BaseKoinTest() {
         whenever(mockStressJobService.startJob(any(), any(), any(), any(), any(), anyOrNull()))
             .thenReturn(Result.success("job-created"))
 
-        val command = StressStart(context)
+        val command = StressStart()
         command.profilePath = profileFile.toPath()
 
         // When
@@ -262,7 +262,7 @@ class StressStartTest : BaseKoinTest() {
         whenever(mockStressJobService.startJob(any(), any(), any(), any(), any(), anyOrNull()))
             .thenReturn(Result.failure(RuntimeException("Job creation failed")))
 
-        val command = StressStart(context)
+        val command = StressStart()
 
         // When/Then
         assertThatThrownBy { command.execute() }
@@ -286,7 +286,7 @@ class StressStartTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithNodes)
 
-        val command = StressStart(context)
+        val command = StressStart()
         command.profilePath = File(tempDir, "nonexistent.yaml").toPath()
 
         // When/Then
@@ -313,7 +313,7 @@ class StressStartTest : BaseKoinTest() {
         whenever(mockStressJobService.startJob(any(), any(), any(), any(), any(), anyOrNull()))
             .thenReturn(Result.success("job-created"))
 
-        val command = StressStart(context)
+        val command = StressStart()
         command.jobName = "my-test"
 
         // When

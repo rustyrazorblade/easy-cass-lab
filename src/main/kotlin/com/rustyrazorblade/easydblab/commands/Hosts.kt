@@ -22,10 +22,10 @@ import picocli.CommandLine.Option
     name = "hosts",
     description = ["List all hosts in the cluster"],
 )
-class Hosts(
-    private val context: Context,
-) : PicoCommand,
+class Hosts :
+    PicoCommand,
     KoinComponent {
+    private val context: Context by inject()
     private val outputHandler: OutputHandler by inject()
     private val clusterStateManager: ClusterStateManager by inject()
     private val clusterState by lazy { clusterStateManager.load() }

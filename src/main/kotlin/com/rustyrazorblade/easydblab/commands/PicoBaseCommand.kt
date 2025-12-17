@@ -12,11 +12,16 @@ import org.koin.core.component.inject
  *
  * Provides injected services for SSH operations, cluster state, and output handling.
  * Most commands extend this class to get access to common infrastructure services.
+ *
+ * All dependencies are injected via Koin, including Context. Commands are instantiated
+ * by KoinCommandFactory which ensures proper dependency injection.
  */
-abstract class PicoBaseCommand(
-    val context: Context,
-) : PicoCommand,
+abstract class PicoBaseCommand :
+    PicoCommand,
     KoinComponent {
+    /** Injected Context for accessing configuration and state directories. */
+    protected val context: Context by inject()
+
     /** Injected RemoteOperationsService for SSH operations. */
     protected val remoteOps: RemoteOperationsService by inject()
 

@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.mcp
 
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.di.KoinModules
 import com.rustyrazorblade.easydblab.output.CompositeOutputHandler
 import com.rustyrazorblade.easydblab.output.FilteringChannelOutputHandler
@@ -16,18 +15,13 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.test.KoinTest
 import org.koin.test.inject
-import org.mockito.kotlin.mock
 import java.lang.reflect.Field
 import java.util.concurrent.Semaphore
 
 class McpServerStreamingTest : KoinTest {
-    private lateinit var mockContext: Context
-
     @BeforeEach
     fun setup() {
-        mockContext = mock()
-
-        startKoin { modules(KoinModules.getAllModules() + org.koin.dsl.module { single { mockContext } }) }
+        startKoin { modules(KoinModules.getAllModules()) }
     }
 
     @AfterEach
@@ -55,7 +49,7 @@ class McpServerStreamingTest : KoinTest {
 
     @Test
     fun `MCP server should maintain semaphore-based single command execution`() {
-        val server = McpServer(mockContext)
+        val server = McpServer()
 
         // Use reflection to access the private executionSemaphore field for testing
         val semaphoreField: Field = McpServer::class.java.getDeclaredField("executionSemaphore")
@@ -79,7 +73,7 @@ class McpServerStreamingTest : KoinTest {
     @Test
     fun `MCP server should be instantiable with mock context`() {
         // This test verifies that we can create an MCP server instance
-        val server = McpServer(mockContext)
+        val server = McpServer()
         assertNotNull(server, "Should be able to create McpServer instance")
     }
 
@@ -89,7 +83,7 @@ class McpServerStreamingTest : KoinTest {
         val compositeHandler = outputHandler as CompositeOutputHandler
         val initialHandlerCount = compositeHandler.getHandlerCount()
 
-        val server = McpServer(mockContext)
+        val server = McpServer()
         server.initializeStreaming()
 
         // Verify that a FilteringChannelOutputHandler was added
@@ -111,7 +105,7 @@ class McpServerStreamingTest : KoinTest {
         val outputHandler: OutputHandler by inject()
         val compositeHandler = outputHandler as CompositeOutputHandler
 
-        val server = McpServer(mockContext)
+        val server = McpServer()
 
         // Initialize streaming twice
         server.initializeStreaming()

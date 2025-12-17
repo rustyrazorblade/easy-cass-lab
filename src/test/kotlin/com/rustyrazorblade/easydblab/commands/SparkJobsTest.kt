@@ -45,7 +45,7 @@ class SparkJobsTest : BaseKoinTest() {
 
     @Test
     fun `command has default limit of 10`() {
-        val command = SparkJobs(context)
+        val command = SparkJobs()
         assertThat(command.limit).isEqualTo(SparkService.DEFAULT_JOB_LIST_LIMIT)
     }
 
@@ -55,7 +55,7 @@ class SparkJobsTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkJobs(context)
+        val command = SparkJobs()
 
         whenever(mockSparkService.validateCluster())
             .thenReturn(Result.failure(IllegalStateException("No EMR cluster found")))
@@ -72,7 +72,7 @@ class SparkJobsTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkJobs(context)
+        val command = SparkJobs()
 
         val jobs =
             listOf(
@@ -103,7 +103,7 @@ class SparkJobsTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkJobs(context)
+        val command = SparkJobs()
 
         whenever(mockSparkService.validateCluster()).thenReturn(Result.success(validClusterInfo))
         whenever(mockSparkService.listJobs(any(), any())).thenReturn(Result.success(emptyList()))
@@ -118,7 +118,7 @@ class SparkJobsTest : BaseKoinTest() {
         initMocks()
 
         // Given
-        val command = SparkJobs(context)
+        val command = SparkJobs()
 
         whenever(mockSparkService.validateCluster()).thenReturn(Result.success(validClusterInfo))
         whenever(mockSparkService.listJobs(any(), any()))

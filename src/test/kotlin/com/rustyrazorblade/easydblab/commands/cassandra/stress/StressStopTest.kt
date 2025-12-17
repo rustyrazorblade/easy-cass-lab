@@ -66,7 +66,7 @@ class StressStopTest : BaseKoinTest() {
 
     @Test
     fun `command has correct default options`() {
-        val command = StressStop(context)
+        val command = StressStop()
 
         assertThat(command.deleteAll).isFalse()
         assertThat(command.jobName).isNull()
@@ -84,7 +84,7 @@ class StressStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(emptyState)
 
-        val command = StressStop(context)
+        val command = StressStop()
         command.deleteAll = true
 
         // When/Then
@@ -108,7 +108,7 @@ class StressStopTest : BaseKoinTest() {
 
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
 
-        val command = StressStop(context)
+        val command = StressStop()
         // Neither jobName nor deleteAll is set
 
         // When/Then
@@ -133,7 +133,7 @@ class StressStopTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockStressJobService.stopJob(any(), any())).thenReturn(Result.success(Unit))
 
-        val command = StressStop(context)
+        val command = StressStop()
         command.jobName = "stress-test-1234567890"
 
         // When
@@ -181,7 +181,7 @@ class StressStopTest : BaseKoinTest() {
         whenever(mockStressJobService.listJobs(any())).thenReturn(Result.success(testJobs))
         whenever(mockStressJobService.stopJob(any(), any())).thenReturn(Result.success(Unit))
 
-        val command = StressStop(context)
+        val command = StressStop()
         command.deleteAll = true
         command.force = true // Need force=true to actually delete
 
@@ -209,7 +209,7 @@ class StressStopTest : BaseKoinTest() {
         whenever(mockStressJobService.stopJob(any(), any()))
             .thenReturn(Result.failure(RuntimeException("Job deletion failed")))
 
-        val command = StressStop(context)
+        val command = StressStop()
         command.jobName = "stress-test-1234567890"
 
         // When/Then
@@ -234,7 +234,7 @@ class StressStopTest : BaseKoinTest() {
         whenever(mockClusterStateManager.load()).thenReturn(stateWithControl)
         whenever(mockStressJobService.listJobs(any())).thenReturn(Result.success(emptyList()))
 
-        val command = StressStop(context)
+        val command = StressStop()
         command.deleteAll = true
 
         // When - should not throw

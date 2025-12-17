@@ -56,7 +56,7 @@ class SparkSubmitTest : BaseKoinTest() {
 
     @Test
     fun `command validates required parameters`() {
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
 
         // Verify optional parameters have defaults and required lateinit vars are not initialized
         assertThat(command.jobArgs).isEmpty()
@@ -127,7 +127,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = "s3://test-bucket/jars/app.jar"
         command.mainClass = "com.example.Main"
 
@@ -172,7 +172,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = localJar.absolutePath
         command.mainClass = "com.example.Main"
 
@@ -205,7 +205,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = "s3://test-bucket/jars/app.jar"
         command.mainClass = "com.example.Main"
 
@@ -231,7 +231,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = "s3://test-bucket/jars/app.jar"
         command.mainClass = "com.example.Main"
 
@@ -265,7 +265,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = "/nonexistent/path/app.jar"
         command.mainClass = "com.example.Main"
 
@@ -295,7 +295,7 @@ class SparkSubmitTest : BaseKoinTest() {
         // Initialize mocks before use
         initMocks()
 
-        val command = SparkSubmit(context)
+        val command = SparkSubmit()
         command.jarPath = notAJar.absolutePath
         command.mainClass = "com.example.Main"
 

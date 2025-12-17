@@ -5,7 +5,6 @@ import com.github.dockerjava.api.exception.DockerException
 import com.rustyrazorblade.easydblab.di.KoinModules
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.context.startKoin
-import org.koin.java.KoinJavaComponent.get
 import software.amazon.awssdk.core.exception.SdkServiceException
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.s3.model.S3Exception
@@ -21,8 +20,7 @@ fun main(arguments: Array<String>) {
         modules(KoinModules.getAllModules())
     }
 
-    val context = get<Context>(Context::class.java)
-    val parser = CommandLineParser(context)
+    val parser = CommandLineParser()
     try {
         parser.eval(arguments)
     } catch (e: DockerException) {

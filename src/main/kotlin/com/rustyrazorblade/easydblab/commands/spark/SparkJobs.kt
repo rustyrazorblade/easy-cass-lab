@@ -1,7 +1,6 @@
 package com.rustyrazorblade.easydblab.commands.spark
 
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.McpCommand
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
 import com.rustyrazorblade.easydblab.commands.PicoBaseCommand
@@ -29,9 +28,7 @@ import java.util.Locale
     name = "jobs",
     description = ["List recent Spark jobs on the cluster"],
 )
-class SparkJobs(
-    context: Context,
-) : PicoBaseCommand(context) {
+class SparkJobs : PicoBaseCommand() {
     private val sparkService: SparkService by inject()
 
     @Option(
