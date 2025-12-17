@@ -119,14 +119,61 @@ open class McpToolRegistry(
         val tempCommand = entry.factory()
         val description = extractPicoDescription(tempCommand)
         val schema = generatePicoSchema(tempCommand)
-        log.info { "Creating PicoCLI tool info for $description : $schema" }
+
+        // Generate namespaced tool name from package + command name
+        val toolName = generateToolName(tempCommand, entry.name)
+        log.info { "Creating PicoCLI tool info for '$toolName': $description" }
 
         return ToolInfo(
-            name = entry.name,
+            name = toolName,
             description = description,
             inputSchema = schema,
             entry = entry,
         )
+    }
+
+    /**
+     * Generates a namespaced tool name from the command's package and command name.
+     *
+     * The namespace is derived from the package path after "com.rustyrazorblade.easydblab.commands",
+     * with dots converted to underscores. The command name has hyphens converted to underscores.
+     *
+     * Commands outside the standard commands package hierarchy use the plain command name.
+     *
+     * Examples:
+     * - commands.Status with name="status" → "status"
+     * - commands.cassandra.Start with name="start" → "cassandra_start"
+     * - commands.cassandra.stress.StressStart with name="start" → "cassandra_stress_start"
+     * - commands.cassandra.UpdateConfig with name="update-config" → "cassandra_update_config"
+     * - mcp.TestCommand with name="test" → "test" (not in commands package)
+     */
+    internal fun generateToolName(
+        command: PicoCommand,
+        commandName: String,
+    ): String {
+        val packageName = command::class.java.packageName
+        val basePackage = "com.rustyrazorblade.easydblab.commands"
+        val normalizedName = commandName.replace("-", "_")
+
+        // If not in the commands package, use plain name
+        if (!packageName.startsWith(basePackage)) {
+            return normalizedName
+        }
+
+        val namespace =
+            if (packageName == basePackage) {
+                "" // Top-level command, no namespace
+            } else {
+                packageName
+                    .removePrefix("$basePackage.")
+                    .replace(".", "_")
+            }
+
+        return if (namespace.isEmpty()) {
+            normalizedName
+        } else {
+            "${namespace}_$normalizedName"
+        }
     }
 
     /** Extract description from PicoCLI @Command annotation. */

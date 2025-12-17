@@ -1,6 +1,5 @@
 package com.rustyrazorblade.easydblab.commands
 
-import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.annotations.RequireDocker
 import com.rustyrazorblade.easydblab.annotations.RequireProfileSetup
@@ -21,7 +20,7 @@ import java.io.File
     name = "server",
     description = [
         "Start MCP server for AI assistant integration. " +
-            "Add to claude with: claude mcp add --transport sse easy-db-lab http://127.0.0.1:8888/sse",
+            "Add to claude with: claude mcp add --transport sse easy-db-lab http://127.0.0.1:<port>/sse",
     ],
 )
 class Server(
@@ -29,9 +28,9 @@ class Server(
 ) : PicoBaseCommand(context) {
     @Option(
         names = ["--port", "-p"],
-        description = ["MCP server port"],
+        description = ["MCP server port (0 = any free port)"],
     )
-    var port: Int = Constants.Network.DEFAULT_MCP_PORT
+    var port: Int = 0
 
     companion object {
         private val log = KotlinLogging.logger {}
@@ -48,54 +47,33 @@ class Server(
         val mcpServers: Map<String, McpServerConfig>,
     )
 
-    private fun generateMcpConfig(): File {
-        val config =
-            McpConfiguration(
-                mcpServers =
-                    mapOf(
-                        "easy-cass-mcp" to
-                            McpServerConfig(
-                                type = "http",
-                                url = "http://localhost:${Constants.Network.EASY_CASS_MCP_PORT}/mcp",
-                            ),
-                        "easy-db-lab" to
-                            McpServerConfig(
-                                type = "sse",
-                                url = "http://localhost:$port/sse",
-                            ),
-                        "cassandra-easy-stress" to
-                            McpServerConfig(
-                                type = "sse",
-                                url = "http://localhost:${Constants.Network.CASSANDRA_EASY_STRESS_PORT}/sse",
-                            ),
-                    ),
-            )
-
-        val json = Json { prettyPrint = true }
-        val configFile = File(".mcp.json")
-        configFile.writeText(json.encodeToString(config))
-
-        return configFile
-    }
-
     override fun execute() {
         log.info { "Starting easy-db-lab MCP server..." }
 
-        // Generate the .mcp.json file
-        val configFile = generateMcpConfig()
-        outputHandler.handleMessage(
-            """
-            MCP configuration saved to: ${configFile.absolutePath}
-
-            """.trimIndent(),
-        )
-
         try {
-            // Create and start the MCP server with SDK
             val server = McpServer(context)
-            server.start(port)
+            server.start(port) { actualPort ->
+                // Generate .mcp.json with actual port
+                val config =
+                    McpConfiguration(
+                        mcpServers =
+                            mapOf(
+                                "easy-db-lab" to
+                                    McpServerConfig(
+                                        type = "sse",
+                                        url = "http://localhost:$actualPort/sse",
+                                    ),
+                            ),
+                    )
+                val json = Json { prettyPrint = true }
+                val configFile = File(".mcp.json")
+                configFile.writeText(json.encodeToString(config))
 
-            // The server will run until interrupted
+                outputHandler.handleMessage(
+                    "MCP configuration saved to: ${configFile.absolutePath}\n",
+                )
+            }
+
             log.info { "MCP server stopped." }
         } catch (e: RuntimeException) {
             log.error(e) { "Failed to start MCP server" }
