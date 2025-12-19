@@ -8,15 +8,11 @@ object Constants {
     object Paths {
         const val LOCAL_MOUNT = "/local"
         const val CREDENTIALS_MOUNT = "/credentials"
-        const val AWS_CREDENTIALS_MOUNT = "/awscredentials"
-
-        // Remote paths
-        const val REMOTE_HOME = "/home/ubuntu"
     }
 
     // Server types
     object Servers {
-        const val CASSANDRA = "cassandra"
+        const val DATABASE = "cassandra"
         const val STRESS = "stress"
         const val CONTROL = "control"
     }
@@ -28,8 +24,6 @@ object Constants {
         const val MILLIS_PER_MINUTE = 60_000L
         const val THREAD_SLEEP_DELAY_MS = 10L
         const val THREAD_JOIN_TIMEOUT_MS = 1000L
-        const val OTEL_STARTUP_DELAY_MS = 2000L
-        const val SETUP_TIMEOUT_SECONDS = 60
     }
 
     // EMR configuration
@@ -80,13 +74,6 @@ object Constants {
         const val LOG_RETRIEVAL_RETRY_DELAY_MS = 3000L
     }
 
-    // File and directory permissions (octal equivalents in decimal)
-    object FilePermissions {
-        const val FILE_READ_WRITE = 420 // Octal 0644
-        const val FILE_READ_ONLY = 256 // Octal 0400
-        const val DIR_USER_ONLY = 448 // Octal 0700
-    }
-
     // Exit codes
     object ExitCodes {
         const val ERROR = 1
@@ -96,17 +83,7 @@ object Constants {
     object Network {
         const val MIN_PORT = 0
         const val MAX_PORT = 65535
-        const val DEFAULT_MCP_PORT = 8888
-        const val EASY_CASS_MCP_PORT = 8000
-        const val CASSANDRA_EASY_STRESS_PORT = 9000
-        const val OPENSEARCH_PORT = 9200
-        const val OPENSEARCH_DASHBOARDS_PORT = 5601
-        const val HTTPS_PORT = 443
-        const val HTTP_PORT = 80
         const val SSH_PORT = 22
-        const val CASSANDRA_NATIVE_PORT = 7000
-        const val CASSANDRA_JMX_PORT = 3000
-        const val CASSANDRA_JMX_PORT_END = 16001
     }
 
     // HTTP Status Codes
@@ -121,8 +98,6 @@ object Constants {
 
     // Docker configuration (for local container operations)
     object Docker {
-        const val CONTAINER_ID_DISPLAY_LENGTH = 12
-        const val CONTAINER_POLLING_INTERVAL_MS = 1000L
         const val FRAME_REPORTING_INTERVAL = 100
     }
 
@@ -144,12 +119,6 @@ object Constants {
 
         // AMI configuration
         const val AMI_PATTERN_TEMPLATE = "rustyrazorblade/images/easy-db-lab-cassandra-%s-*"
-        const val AMI_NAME_SYSTEM_PROPERTY = "easydblab.ami.name"
-        const val AMI_OVERRIDE_ENV = "EASY_CASS_LAB_AMI"
-
-        // Storage configuration
-        const val DEFAULT_VOLUME_SIZE_GB = 1024
-        const val DEFAULT_IOPS = 3000
 
         // IAM Role Names
         object Roles {
@@ -165,12 +134,6 @@ object Constants {
         const val BUCKET_PREFIX = "easy-db-lab-"
     }
 
-    // Monitoring
-    object Monitoring {
-        const val PROMETHEUS_JOB_CASSANDRA = "cassandra"
-        const val PROMETHEUS_JOB_STRESS = "stress"
-    }
-
     // Configuration file paths
     object ConfigPaths {
         // Cassandra node configs
@@ -182,26 +145,12 @@ object Constants {
         const val CASSANDRA_PATCH_FILE = "cassandra.patch.yaml"
     }
 
-    // Cassandra Sidecar configuration
-    object Sidecar {
-        const val STORAGE_DIR = "/mnt/db1/cassandra/data"
-        const val STAGING_DIR = "/mnt/db1/cassandra/import"
-    }
-
-    // Remote file existence checks
-    object RemoteChecks {
-        const val FILE_EXISTS_SUFFIX = "&& echo 'exists' || echo 'not found'"
-        const val EXISTS_RESPONSE = "exists"
-        const val NOT_FOUND_RESPONSE = "not found"
-    }
-
     // K3s configuration
     object K3s {
         const val REMOTE_KUBECONFIG = "/etc/rancher/k3s/k3s.yaml"
         const val LOCAL_KUBECONFIG = "kubeconfig"
         const val NODE_TOKEN_PATH = "/var/lib/rancher/k3s/server/node-token"
         const val DEFAULT_SERVER_URL = "https://127.0.0.1:6443"
-        const val KUBECTL_PATH = "/usr/local/bin/kubectl"
     }
 
     // K8s observability configuration
@@ -223,7 +172,6 @@ object Constants {
         const val DEFAULT_INSTANCE_TYPE = "t3.small.search"
         const val DEFAULT_INSTANCE_COUNT = 1
         const val DEFAULT_EBS_SIZE_GB = 100
-        const val MINIMUM_NODES_REQUIRED = 1
         const val POLL_INTERVAL_MS = 30_000L // 30 seconds - domains take 10-30 min to create
         const val MAX_POLL_TIMEOUT_MS = 45 * 60 * 1000L // 45 minutes max wait
         const val LOG_INTERVAL_POLLS = 2 // Log every 2 polls (60 seconds at 30s interval)
@@ -235,14 +183,7 @@ object Constants {
         const val NAMESPACE = "default"
         const val HTTP_PORT = 8123
         const val NATIVE_PORT = 9000
-        const val INTERSERVER_PORT = 9009
-        const val METRICS_PORT = 9363
-        const val KEEPER_CLIENT_PORT = 2181
-        const val KEEPER_RAFT_PORT = 9234
-        const val DEFAULT_REPLICAS = 2
-        const val DEFAULT_KEEPER_REPLICAS = 3
         const val MINIMUM_NODES_REQUIRED = 3
-        const val DATA_PATH = "/mnt/db1/clickhouse"
         const val S3_SECRET_NAME = "clickhouse-s3-credentials"
     }
 

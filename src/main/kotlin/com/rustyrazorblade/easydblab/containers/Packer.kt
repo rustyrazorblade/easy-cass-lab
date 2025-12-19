@@ -113,7 +113,7 @@ class Packer(
         FileUtils.copyDirectory(File(localPackerPath), tempDir)
         logger.info { "Copied packer files from $localPackerPath to $tempDir" }
 
-        if (!release && directory == Constants.Servers.CASSANDRA) {
+        if (!release && directory == Constants.Servers.DATABASE) {
             // if we're doing a C* image, we
             val initial = Path.of(localPackerPath, Constants.Packer.CASSANDRA_VERSIONS_FILE)
             val extras = context.cassandraVersionsExtra.toPath()

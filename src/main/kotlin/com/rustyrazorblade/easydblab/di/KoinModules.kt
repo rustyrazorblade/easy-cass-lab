@@ -28,5 +28,6 @@ object KoinModules {
             servicesModule,
             configurationModule,
             commandsModule,
+            prompterModule,
         )
 }

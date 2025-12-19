@@ -5,10 +5,12 @@ import com.rustyrazorblade.easydblab.configuration.Host
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.di.commandsModule
+import com.rustyrazorblade.easydblab.di.prompterModule
 import com.rustyrazorblade.easydblab.output.BufferedOutputHandler
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AMIValidator
 import com.rustyrazorblade.easydblab.providers.aws.AWS
+import com.rustyrazorblade.easydblab.providers.aws.AWSClientFactory
 import com.rustyrazorblade.easydblab.providers.ssh.DefaultSSHConfiguration
 import com.rustyrazorblade.easydblab.providers.ssh.RemoteOperationsService
 import com.rustyrazorblade.easydblab.providers.ssh.SSHConfiguration
@@ -52,6 +54,7 @@ object TestModules {
             testSSHModule(),
             testCommandExecutorModule(),
             commandsModule,
+            prompterModule,
         )
 
     /**
@@ -136,6 +139,34 @@ object TestModules {
             // Using real AWS class with mocked clients ensures the service logic
             // is tested while preventing actual AWS API calls
             single { AWS(get<IamClient>(), get<S3Client>(), get<StsClient>()) }
+
+            // Mock AWSClientFactory that returns the injected AWS service
+            single<AWSClientFactory> {
+                val aws = get<AWS>()
+                object : AWSClientFactory {
+                    override fun createAWSClient(
+                        accessKey: String,
+                        secret: String,
+                        region: software.amazon.awssdk.regions.Region,
+                    ): AWS = aws
+
+                    override fun createAWSClientWithProfile(
+                        profileName: String,
+                        region: software.amazon.awssdk.regions.Region,
+                    ): AWS = aws
+
+                    override fun createEc2Client(
+                        accessKey: String,
+                        secret: String,
+                        region: software.amazon.awssdk.regions.Region,
+                    ): software.amazon.awssdk.services.ec2.Ec2Client = mock()
+
+                    override fun createEc2ClientWithProfile(
+                        profileName: String,
+                        region: software.amazon.awssdk.regions.Region,
+                    ): software.amazon.awssdk.services.ec2.Ec2Client = mock()
+                }
+            }
 
             // Mock AMIValidator to prevent AMI validation during tests
             single { mock<AMIValidator>() }
@@ -244,5 +275,17 @@ object TestModules {
                         }
                 }
             }
+        }
+
+    /**
+     * Creates a test Prompter module with a TestPrompter that returns predefined responses.
+     * Use this when testing commands that require specific user input responses.
+     *
+     * @param responses Map of question text (or partial match) to response value
+     * @return Module providing a TestPrompter with the given responses
+     */
+    fun testPrompterModule(responses: Map<String, String> = emptyMap()) =
+        module {
+            single<Prompter> { TestPrompter(responses) }
         }
 }

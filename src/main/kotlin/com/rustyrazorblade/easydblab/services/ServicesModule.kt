@@ -86,10 +86,11 @@ val servicesModule =
         }
 
         // Command executor for scheduling and executing commands with full lifecycle
+        // Note: BackupRestoreService is lazily injected in DefaultCommandExecutor to avoid
+        // triggering the AWS dependency chain during setup-profile (when settings.yaml doesn't exist yet)
         single<CommandExecutor> {
             DefaultCommandExecutor(
                 get<Context>(),
-                get<BackupRestoreService>(),
                 get<ClusterStateManager>(),
                 get<OutputHandler>(),
                 get<UserConfigProvider>(),

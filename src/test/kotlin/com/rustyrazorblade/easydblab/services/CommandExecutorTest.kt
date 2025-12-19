@@ -72,7 +72,6 @@ class CommandExecutorTest : BaseKoinTest() {
         commandExecutor =
             DefaultCommandExecutor(
                 context = context,
-                backupRestoreService = mockBackupRestoreService,
                 clusterStateManager = mockClusterStateManager,
                 outputHandler = mockOutputHandler,
                 userConfigProvider = mockUserConfigProvider,

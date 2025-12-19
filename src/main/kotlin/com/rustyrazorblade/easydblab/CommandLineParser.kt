@@ -7,6 +7,7 @@ import com.rustyrazorblade.easydblab.commands.BuildImage
 import com.rustyrazorblade.easydblab.commands.Clean
 import com.rustyrazorblade.easydblab.commands.ConfigureAWS
 import com.rustyrazorblade.easydblab.commands.ConfigureAxonOps
+import com.rustyrazorblade.easydblab.commands.Down
 import com.rustyrazorblade.easydblab.commands.Exec
 import com.rustyrazorblade.easydblab.commands.Hosts
 import com.rustyrazorblade.easydblab.commands.Init
@@ -31,17 +32,14 @@ import com.rustyrazorblade.easydblab.commands.spark.Spark
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.di.KoinCommandFactory
 import com.rustyrazorblade.easydblab.output.OutputHandler
-import com.rustyrazorblade.easydblab.services.BackupRestoreService
 import com.rustyrazorblade.easydblab.services.CommandExecutor
 import com.rustyrazorblade.easydblab.services.DefaultCommandExecutor
-import io.github.oshai.kotlinlogging.KotlinLogging
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Model.CommandSpec
-import picocli.CommandLine.Option
 import picocli.CommandLine.Spec
 import kotlin.system.exitProcess
 
@@ -57,6 +55,7 @@ import kotlin.system.exitProcess
         // Top-level commands
         Version::class,
         Clean::class,
+        Down::class,
         Ip::class,
         Hosts::class,
         Status::class,
@@ -88,18 +87,6 @@ class EasyDBLabCommand : Runnable {
     @Spec
     lateinit var spec: CommandSpec
 
-    @Option(
-        names = ["--vpc-id"],
-        description = ["Reconstruct state from existing VPC. Requires ClusterId tag on VPC."],
-    )
-    var vpcId: String? = null
-
-    @Option(
-        names = ["--force"],
-        description = ["Force state reconstruction even if state.json already exists"],
-    )
-    var force: Boolean = false
-
     override fun run() {
         // Show help when no subcommand is provided
         spec.commandLine().usage(System.out)
@@ -113,9 +100,6 @@ class EasyDBLabCommand : Runnable {
  * KoinCommandFactory provides command instances with injected dependencies.
  */
 class CommandLineParser : KoinComponent {
-    private val context: Context by inject()
-    private val logger = KotlinLogging.logger {}
-    private val regex = """("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|[^\s"']+)+""".toRegex()
     private val outputHandler: OutputHandler by inject()
 
     /** The main PicoCLI CommandLine instance with all subcommands registered. */
@@ -132,13 +116,6 @@ class CommandLineParser : KoinComponent {
             // Set execution strategy to delegate to CommandExecutor for full lifecycle
             executionStrategy =
                 CommandLine.IExecutionStrategy { parseResult ->
-                    // Get the root command to check for --vpc-id option
-                    val rootCmd = parseResult.commandSpec().userObject()
-                    if (rootCmd is EasyDBLabCommand && rootCmd.vpcId != null) {
-                        // Reconstruct state from VPC before running any subcommand
-                        handleVpcIdStateReconstruction(rootCmd.vpcId!!, rootCmd.force)
-                    }
-
                     // Find the deepest subcommand (handles nested commands like "spark submit")
                     var currentParseResult = parseResult.subcommand()
                     while (currentParseResult?.subcommand() != null) {
@@ -150,23 +127,8 @@ class CommandLineParser : KoinComponent {
                     if (currentParseResult != null) {
                         val cmd = currentParseResult.commandSpec().userObject()
                         if (cmd is PicoCommand) {
-                            // Check profile setup BEFORE resolving CommandExecutor
-                            // to avoid triggering AWS dependency resolution chain.
-                            // SetupProfile is exempt since it creates the profile.
-                            val isSetupCommand = cmd is SetupProfile
-                            if (!isSetupCommand) {
-                                val userConfigProvider = get<UserConfigProvider>()
-                                if (!userConfigProvider.isSetup()) {
-                                    val output = get<OutputHandler>()
-                                    output.handleError(
-                                        "Profile not configured.\n" +
-                                            "Please run 'easy-db-lab setup-profile' to configure your environment.",
-                                    )
-                                    return@IExecutionStrategy Constants.ExitCodes.ERROR
-                                }
-                            }
-
-                            // Get CommandExecutor lazily when a command actually runs
+                            // Route ALL commands to CommandExecutor
+                            // Profile check is handled by @RequireProfileSetup annotation in CommandExecutor
                             val executor = get<CommandExecutor>() as DefaultCommandExecutor
                             return@IExecutionStrategy executor.executeTopLevel(cmd)
                         }
@@ -176,63 +138,6 @@ class CommandLineParser : KoinComponent {
                     CommandLine.RunLast().execute(parseResult)
                 }
         }
-
-    /**
-     * List of all command names for REPL tab completion.
-     */
-    val commandNames: Set<String>
-        get() =
-            buildSet {
-                fun collectNames(spec: CommandSpec) {
-                    add(spec.name())
-                    spec.aliases().forEach { add(it) }
-                    spec.subcommands().values.forEach { collectNames(it.commandSpec) }
-                }
-                commandLine.commandSpec
-                    .subcommands()
-                    .values
-                    .forEach { collectNames(it.commandSpec) }
-            }
-
-    /**
-     * Handles state reconstruction from a VPC ID.
-     *
-     * This is triggered when --vpc-id is provided on the command line.
-     * It reconstructs the local state.json from AWS resources associated with the VPC,
-     * and restores cluster configuration files (kubeconfig, k8s manifests, cassandra.patch.yaml) from S3.
-     *
-     * @param vpcId The VPC ID to reconstruct state from
-     * @param force If true, overwrites existing state.json
-     * @throws IllegalStateException if state.json exists and --force is not provided
-     */
-    private fun handleVpcIdStateReconstruction(
-        vpcId: String,
-        force: Boolean,
-    ) {
-        val backupRestoreService: BackupRestoreService by inject()
-
-        backupRestoreService
-            .restoreFromVpc(
-                vpcId = vpcId,
-                workingDirectory = context.workingDirectory.absolutePath,
-                force = force,
-            ).onFailure { error ->
-                logger.error(error) { "Failed to restore from VPC: $vpcId" }
-                throw error
-            }
-    }
-
-    // For the repl
-    fun eval(input: String) {
-        val matches = regex.findAll(input)
-        val result = mutableListOf<String>()
-
-        for (match in matches) {
-            result.add(match.value.trim('"', '\''))
-        }
-
-        return eval(result.toTypedArray())
-    }
 
     @Suppress("SpreadOperator")
     fun eval(input: Array<String>) {
