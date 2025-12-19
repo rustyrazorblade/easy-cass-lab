@@ -2,28 +2,31 @@ package com.rustyrazorblade.easydblab.commands
 
 import com.github.ajalt.mordant.TermColors
 import com.rustyrazorblade.easydblab.Constants
-import com.rustyrazorblade.easydblab.Utils
+import com.rustyrazorblade.easydblab.Prompter
 import com.rustyrazorblade.easydblab.configuration.Arch
+import com.rustyrazorblade.easydblab.configuration.Policy
 import com.rustyrazorblade.easydblab.configuration.User
 import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.providers.aws.AMIValidationException
 import com.rustyrazorblade.easydblab.providers.aws.AMIValidator
 import com.rustyrazorblade.easydblab.providers.aws.AWS
+import com.rustyrazorblade.easydblab.providers.aws.AWSClientFactory
 import com.rustyrazorblade.easydblab.providers.aws.AwsInfrastructureService
 import com.rustyrazorblade.easydblab.services.AWSResourceSetupService
 import com.rustyrazorblade.easydblab.services.CommandExecutor
 import org.koin.core.component.inject
 import picocli.CommandLine.Command
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.iam.IamClient
-import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.sts.StsClient
-import kotlin.system.exitProcess
 
 /**
  * Sets up user profile interactively.
+ *
+ * The setup process follows these phases:
+ * 1. Check if profile already exists (early exit if complete)
+ * 2. Collect core credentials (email, region, AWS profile or access key/secret)
+ * 3. Validate AWS credentials (retry on failure)
+ * 4. Collect optional info (AxonOps)
+ * 5. Ensure AWS resources exist (key pair, IAM roles, S3 bucket, VPC, AMI)
  */
 @Command(
     name = "setup-profile",
@@ -36,65 +39,137 @@ class SetupProfile : PicoBaseCommand() {
     private val awsInfra: AwsInfrastructureService by inject()
     private val amiValidator: AMIValidator by inject()
     private val commandExecutor: CommandExecutor by inject()
+    private val prompter: Prompter by inject()
+    private val awsClientFactory: AWSClientFactory by inject()
 
     override fun execute() {
-        // Load existing config values if file exists
         val existingConfig = userConfigProvider.loadExistingConfig()
 
-        // Track if we need to prompt for any new fields
-        val needsPrompting =
-            !existingConfig.containsKey("email") ||
-                !existingConfig.containsKey("region") ||
-                !existingConfig.containsKey("awsAccessKey") ||
-                !existingConfig.containsKey("awsSecret")
-
-        // If all required fields exist, just load and return
-        if (!needsPrompting) {
+        if (isProfileAlreadySetUp(existingConfig)) {
             outputHandler.handleMessage("Profile is already set up!")
             return
         }
 
-        // Show welcome message at the start
         showWelcomeMessage()
 
-        // PHASE 1: Collect email (with resource tag note)
+        // Retry loop for credential collection and validation
+        val (credentials, regionObj) = collectAndValidateCredentials(existingConfig)
+
+        val userConfig = createInitialUserConfig(credentials, existingConfig)
+        userConfigProvider.saveUserConfig(userConfig)
+        outputHandler.handleMessage("Credentials saved")
+
+        collectAndSaveOptionalInfo(existingConfig, userConfig)
+
+        ensureAwsResources(userConfig, credentials, regionObj)
+
+        showSuccessMessage()
+    }
+
+    /**
+     * Checks if the profile already has all required fields configured.
+     * Accepts either profile-based auth (awsProfile set) or static credentials.
+     */
+    private fun isProfileAlreadySetUp(existingConfig: Map<String, Any>): Boolean {
+        val hasEmailAndRegion = existingConfig.containsKey("email") && existingConfig.containsKey("region")
+        if (!hasEmailAndRegion) return false
+
+        val hasProfile = (existingConfig["awsProfile"] as? String)?.isNotEmpty() == true
+        val hasCredentials = existingConfig.containsKey("awsAccessKey") && existingConfig.containsKey("awsSecret")
+
+        return hasProfile || hasCredentials
+    }
+
+    /**
+     * Collects credentials and validates them, retrying on failure.
+     * Returns validated credentials and region.
+     * @throws SetupProfileException if credentials fail validation after max retries
+     */
+    private fun collectAndValidateCredentials(existingConfig: Map<String, Any>): Pair<CoreCredentials, Region> {
+        var attempt = 0
+        while (attempt < MAX_CREDENTIAL_RETRIES) {
+            attempt++
+            val credentials = collectCoreCredentials(existingConfig)
+            val regionObj = Region.of(credentials.region)
+
+            try {
+                validateAwsCredentials(credentials, regionObj)
+                return credentials to regionObj
+            } catch (e: SetupProfileException) {
+                if (attempt >= MAX_CREDENTIAL_RETRIES) {
+                    throw e
+                }
+                with(TermColors()) {
+                    outputHandler.handleMessage(
+                        yellow("\nCredential validation failed. Please try again. (Attempt $attempt of $MAX_CREDENTIAL_RETRIES)\n"),
+                    )
+                }
+                // Loop continues - will ask for profile/credentials again
+            }
+        }
+        // This shouldn't be reached, but satisfies the compiler
+        throw SetupProfileException("Maximum credential validation attempts exceeded")
+    }
+
+    companion object {
+        /** Maximum number of credential validation attempts before giving up. */
+        const val MAX_CREDENTIAL_RETRIES = 3
+    }
+
+    /**
+     * Collects core credentials required for AWS access.
+     * Asks for AWS profile first; if provided, skips access key/secret prompts.
+     */
+    private fun collectCoreCredentials(existingConfig: Map<String, Any>): CoreCredentials {
         outputHandler.handleMessage("Your email will be added to AWS resource tags to identify the owner.")
         val email = promptIfMissing(existingConfig, "email", "What's your email?", "")
-
-        // PHASE 2: Collect AWS credentials
         val region = promptIfMissing(existingConfig, "region", "What AWS region do you use?", "us-west-2")
-        val awsAccessKey = promptIfMissing(existingConfig, "awsAccessKey", "Please enter your AWS Access Key", "")
-        val awsSecret =
-            promptIfMissing(
-                existingConfig,
-                "awsSecret",
-                "Please enter your AWS Secret Access Key",
+
+        // Ask for AWS profile first (empty = manual credentials)
+        val awsProfile =
+            prompter.prompt(
+                "AWS Profile name (or press Enter to enter credentials manually)",
                 "",
-                secret = true,
             )
 
-        // Validate AWS credentials before asking remaining questions
+        val (awsAccessKey, awsSecret) =
+            if (awsProfile.isNotEmpty()) {
+                // Using profile - skip credential prompts
+                "" to ""
+            } else {
+                // Manual credentials
+                val key = promptIfMissing(existingConfig, "awsAccessKey", "Please enter your AWS Access Key", "")
+                val secret =
+                    promptIfMissing(
+                        existingConfig,
+                        PromptField("awsSecret", "Please enter your AWS Secret Access Key", "", secret = true),
+                    )
+                key to secret
+            }
+
+        return CoreCredentials(email, region, awsProfile, awsAccessKey, awsSecret)
+    }
+
+    /**
+     * Validates AWS credentials and optionally displays IAM policies.
+     * Uses profile-based auth if awsProfile is set, otherwise static credentials.
+     * @throws SetupProfileException if credentials are invalid
+     */
+    private fun validateAwsCredentials(
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ) {
         outputHandler.handleMessage("Validating AWS credentials...")
 
-        val regionObj = Region.of(region)
         try {
-            val tempAWS = createTemporaryAWSClient(awsAccessKey, awsSecret, regionObj)
+            val tempAWS = createAwsClient(credentials, regionObj)
             tempAWS.checkPermissions()
 
             with(TermColors()) {
                 outputHandler.handleMessage(green("AWS credentials validated successfully"))
             }
 
-            // Ask if user wants to see IAM policies with actual account ID (after validation)
-            val showPolicies =
-                Utils.prompt(
-                    "Do you want to see the IAM policies with your account ID populated?",
-                    "N",
-                )
-            if (showPolicies.equals("y", true)) {
-                val accountId = tempAWS.getAccountId()
-                displayIAMPolicies(accountId)
-            }
+            offerIamPolicyDisplay(tempAWS)
         } catch (e: Exception) {
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -107,143 +182,269 @@ class SetupProfile : PicoBaseCommand() {
                     ),
                 )
             }
-            exitProcess(1)
+            throw SetupProfileException("AWS credentials are invalid", e)
+        }
+    }
+
+    /**
+     * Creates an AWS client using either profile or static credentials.
+     */
+    private fun createAwsClient(
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ): AWS =
+        if (credentials.awsProfile.isNotEmpty()) {
+            awsClientFactory.createAWSClientWithProfile(credentials.awsProfile, regionObj)
+        } else {
+            awsClientFactory.createAWSClient(credentials.awsAccessKey, credentials.awsSecret, regionObj)
         }
 
-        // Save credentials after successful validation
-        val userConfig =
-            User(
-                email = email,
-                region = region,
-                keyName = existingConfig["keyName"] as? String ?: "",
-                awsProfile = existingConfig["awsProfile"] as? String ?: "",
-                awsAccessKey = awsAccessKey,
-                awsSecret = awsSecret,
-                axonOpsOrg = existingConfig["axonOpsOrg"] as? String ?: "",
-                axonOpsKey = existingConfig["axonOpsKey"] as? String ?: "",
+    /**
+     * Offers to display IAM policies with the user's account ID.
+     */
+    private fun offerIamPolicyDisplay(aws: AWS) {
+        val showPolicies =
+            prompter.prompt(
+                "Do you want to see the IAM policies with your account ID populated?",
+                "N",
             )
+        if (showPolicies.equals("y", true)) {
+            val accountId = aws.getAccountId()
+            displayIAMPolicies(accountId)
+        }
+    }
 
-        userConfigProvider.saveUserConfig(userConfig)
-        outputHandler.handleMessage("Credentials saved")
+    /**
+     * Creates the initial User configuration from collected credentials.
+     */
+    private fun createInitialUserConfig(
+        credentials: CoreCredentials,
+        existingConfig: Map<String, Any>,
+    ): User =
+        User(
+            email = credentials.email,
+            region = credentials.region,
+            keyName = existingConfig["keyName"] as? String ?: "",
+            awsProfile = credentials.awsProfile,
+            awsAccessKey = credentials.awsAccessKey,
+            awsSecret = credentials.awsSecret,
+            axonOpsOrg = existingConfig["axonOpsOrg"] as? String ?: "",
+            axonOpsKey = existingConfig["axonOpsKey"] as? String ?: "",
+            s3Bucket = existingConfig["s3Bucket"] as? String ?: "",
+        )
 
-        // PHASE 3: Collect AxonOps info (after validation, before resource creation)
-        val axonOpsOrg = promptIfMissing(existingConfig, "axonOpsOrg", "AxonOps Org", "", skippable = true)
+    /**
+     * Collects optional configuration info and saves the updated config.
+     */
+    private fun collectAndSaveOptionalInfo(
+        existingConfig: Map<String, Any>,
+        userConfig: User,
+    ) {
+        val axonOpsOrg =
+            promptIfMissing(
+                existingConfig,
+                PromptField("axonOpsOrg", "AxonOps Org", "", skippable = true),
+            )
         val axonOpsKey =
             promptIfMissing(
                 existingConfig,
-                "axonOpsKey",
-                "AxonOps Key",
-                "",
-                secret = true,
-                skippable = true,
+                PromptField("axonOpsKey", "AxonOps Key", "", secret = true, skippable = true),
             )
 
-        // Collect remaining fields
-        val awsProfile = promptIfMissing(existingConfig, "awsProfile", "AWS Profile", "", skippable = true)
-
-        // Update user config with all collected fields and save
         userConfig.axonOpsOrg = axonOpsOrg
         userConfig.axonOpsKey = axonOpsKey
-        userConfig.awsProfile = awsProfile
 
         userConfigProvider.saveUserConfig(userConfig)
         outputHandler.handleMessage("Configuration saved")
+    }
 
-        // PHASE 4: AWS Operations (after all questions answered)
+    /**
+     * Ensures all required AWS resources exist.
+     */
+    private fun ensureAwsResources(
+        userConfig: User,
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ) {
+        ensureKeyPair(userConfig, credentials, regionObj)
+        ensureIamRoles(userConfig)
+        ensureS3Bucket(userConfig, credentials, regionObj)
+        ensurePackerVpc()
+        ensureAmi(userConfig)
+    }
 
-        // Generate AWS keys only when keyName is missing
+    /**
+     * Generates an AWS key pair if one doesn't exist.
+     */
+    private fun ensureKeyPair(
+        userConfig: User,
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ) {
         if (userConfig.keyName.isBlank()) {
             outputHandler.handleMessage("Generating AWS key pair...")
-
-            val keyName = User.generateAwsKeyPair(context, awsAccessKey, awsSecret, regionObj, outputHandler)
-
+            val ec2Client = createEc2Client(credentials, regionObj)
+            val keyName =
+                User.generateAwsKeyPair(
+                    context,
+                    ec2Client,
+                    outputHandler,
+                )
             userConfig.keyName = keyName
-
-            // Save config with key pair
             userConfigProvider.saveUserConfig(userConfig)
             outputHandler.handleMessage("Key pair saved")
         }
+    }
 
-        // Create IAM roles if not already present
+    /**
+     * Creates an EC2 client using either profile or static credentials.
+     */
+    private fun createEc2Client(
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ) = if (credentials.awsProfile.isNotEmpty()) {
+        awsClientFactory.createEc2ClientWithProfile(credentials.awsProfile, regionObj)
+    } else {
+        awsClientFactory.createEc2Client(credentials.awsAccessKey, credentials.awsSecret, regionObj)
+    }
+
+    /**
+     * Ensures IAM roles are configured.
+     */
+    private fun ensureIamRoles(userConfig: User) {
         outputHandler.handleMessage("Ensuring IAM roles are configured...")
         awsResourceSetup.ensureAWSResources(userConfig)
         outputHandler.handleMessage("IAM resources validated")
+    }
 
-        // Create Packer VPC infrastructure
+    /**
+     * Creates an S3 bucket for shared resources if one doesn't exist.
+     */
+    private fun ensureS3Bucket(
+        userConfig: User,
+        credentials: CoreCredentials,
+        regionObj: Region,
+    ) {
+        if (userConfig.s3Bucket.isBlank()) {
+            outputHandler.handleMessage("Creating S3 bucket for shared resources...")
+            val bucketName = "easy-db-lab-${java.util.UUID.randomUUID()}"
+
+            val awsClient = createAwsClient(credentials, regionObj)
+            awsClient.createS3Bucket(bucketName)
+            awsClient.putS3BucketPolicy(bucketName)
+            awsClient.tagS3Bucket(
+                bucketName,
+                mapOf(
+                    "Profile" to context.profile,
+                    "Owner" to credentials.email,
+                    "easy_cass_lab" to "1",
+                ),
+            )
+
+            userConfig.s3Bucket = bucketName
+            userConfigProvider.saveUserConfig(userConfig)
+            outputHandler.handleMessage("S3 bucket created: $bucketName")
+        }
+    }
+
+    /**
+     * Creates Packer VPC infrastructure.
+     */
+    private fun ensurePackerVpc() {
         outputHandler.handleMessage("Creating Packer VPC infrastructure...")
-
         awsInfra.ensurePackerInfrastructure(Constants.Network.SSH_PORT)
-
         outputHandler.handleMessage("Packer VPC infrastructure ready")
+    }
 
-        // Validate AMI and build if not found
+    /**
+     * Validates that a required AMI exists, offering to build one if not found.
+     */
+    private fun ensureAmi(userConfig: User) {
         outputHandler.handleMessage("Checking for required AMI...")
-
         val archType = Arch.AMD64
 
         try {
-            amiValidator.validateAMI(
-                overrideAMI = "",
-                requiredArchitecture = archType,
-            )
+            amiValidator.validateAMI(overrideAMI = "", requiredArchitecture = archType)
             outputHandler.handleMessage("AMI found for ${archType.type} architecture")
         } catch (e: AMIValidationException.NoAMIFound) {
+            handleMissingAmi(archType, userConfig)
+        }
+    }
+
+    /**
+     * Handles the case when no AMI is found - prompts user and optionally builds one.
+     */
+    private fun handleMissingAmi(
+        archType: Arch,
+        userConfig: User,
+    ) {
+        with(TermColors()) {
+            outputHandler.handleMessage(
+                yellow(
+                    """
+
+                    AMI not found for ${archType.type} architecture.
+
+                    The system needs to build a custom AMI for your architecture.
+                    This process takes approximately 10-15 minutes.
+
+                    """.trimIndent(),
+                ),
+            )
+        }
+
+        val proceed = prompter.prompt("Press Enter to start building the AMI, or type 'skip' to exit setup", "")
+
+        if (proceed.equals("skip", ignoreCase = true)) {
+            outputHandler.handleMessage("Setup cancelled. Run 'easy-db-lab build-image' to build the AMI later.")
+            return
+        }
+
+        buildAmi(archType, userConfig)
+    }
+
+    /**
+     * Builds an AMI for the specified architecture.
+     */
+    private fun buildAmi(
+        archType: Arch,
+        userConfig: User,
+    ) {
+        try {
+            outputHandler.handleMessage("Building AMI for ${archType.type} architecture...")
+
+            commandExecutor.execute {
+                BuildImage().apply {
+                    buildArgs.arch = archType
+                    buildArgs.region = userConfig.region
+                }
+            }
+
+            with(TermColors()) {
+                outputHandler.handleMessage(green("AMI build completed successfully"))
+            }
+        } catch (buildError: Exception) {
             with(TermColors()) {
                 outputHandler.handleMessage(
-                    yellow(
+                    red(
                         """
 
-                        AMI not found for ${archType.type} architecture.
+                        Failed to build AMI: ${buildError.message}
 
-                        The system needs to build a custom AMI for your architecture.
-                        This process takes approximately 10-15 minutes.
+                        You can manually build the AMI later by running:
+                          easy-db-lab build-image --arch ${archType.type} --region ${userConfig.region}
 
                         """.trimIndent(),
                     ),
                 )
             }
-
-            // Prompt user to continue
-            val proceed = Utils.prompt("Press Enter to start building the AMI, or type 'skip' to exit setup", "")
-
-            if (proceed.equals("skip", ignoreCase = true)) {
-                outputHandler.handleMessage("Setup cancelled. Run 'easy-db-lab build-image' to build the AMI later.")
-                return
-            }
-
-            // Build the AMI
-            try {
-                outputHandler.handleMessage("Building AMI for ${archType.type} architecture...")
-
-                commandExecutor.execute {
-                    BuildImage().apply {
-                        buildArgs.arch = archType
-                        buildArgs.region = userConfig.region
-                    }
-                }
-
-                with(TermColors()) {
-                    outputHandler.handleMessage(green("AMI build completed successfully"))
-                }
-            } catch (buildError: Exception) {
-                with(TermColors()) {
-                    outputHandler.handleMessage(
-                        red(
-                            """
-
-                            Failed to build AMI: ${buildError.message}
-
-                            You can manually build the AMI later by running:
-                              easy-db-lab build-image --arch ${archType.type} --region ${userConfig.region}
-
-                            """.trimIndent(),
-                        ),
-                    )
-                }
-            }
         }
+    }
 
-        // Show success message
+    /**
+     * Shows the success message after setup completes.
+     */
+    private fun showSuccessMessage() {
         with(TermColors()) {
             outputHandler.handleMessage(green("\nAccount setup complete!"))
         }
@@ -294,7 +495,12 @@ class SetupProfile : PicoBaseCommand() {
      */
     private fun displayIAMPolicies(accountId: String) {
         val policies = User.getRequiredIAMPolicies(accountId)
+        displayIamPolicyHeader()
+        displayPolicyBodies(policies)
+        displayIamPolicyFooter()
+    }
 
+    private fun displayIamPolicyHeader() {
         outputHandler.handleMessage(
             """
 
@@ -312,7 +518,9 @@ class SetupProfile : PicoBaseCommand() {
 
             """.trimIndent(),
         )
+    }
 
+    private fun displayPolicyBodies(policies: List<Policy>) {
         policies.forEachIndexed { index, policy ->
             with(TermColors()) {
                 outputHandler.handleMessage(
@@ -327,7 +535,9 @@ class SetupProfile : PicoBaseCommand() {
                 )
             }
         }
+    }
 
+    private fun displayIamPolicyFooter() {
         outputHandler.handleMessage(
             """
             ========================================
@@ -361,66 +571,53 @@ class SetupProfile : PicoBaseCommand() {
     }
 
     /**
-     * Creates a temporary AWS client from provided credentials for validation.
+     * Prompts for a field only if it's missing from existing config.
+     * Returns existing value if present, prompts user otherwise.
      */
-    private fun createTemporaryAWSClient(
-        accessKey: String,
-        secret: String,
-        region: Region,
-    ): AWS {
-        val credentialsProvider =
-            StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(accessKey, secret),
-            )
+    private fun promptIfMissing(
+        existingConfig: Map<String, Any>,
+        field: PromptField,
+    ): String {
+        if (existingConfig.containsKey(field.fieldName)) {
+            return existingConfig[field.fieldName] as String
+        }
 
-        val iamClient =
-            IamClient
-                .builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .build()
+        if (field.skippable && field.default.isEmpty()) {
+            return ""
+        }
 
-        val s3Client =
-            S3Client
-                .builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .build()
-
-        val stsClient =
-            StsClient
-                .builder()
-                .region(region)
-                .credentialsProvider(credentialsProvider)
-                .build()
-
-        return AWS(iamClient, s3Client, stsClient)
+        return prompter.prompt(field.prompt, field.default, field.secret)
     }
 
     /**
-     * Helper function to prompt for a field only if it's missing from existing config.
-     * Returns existing value if present, prompts user otherwise.
-     * Skips prompting for skippable fields with empty defaults.
+     * Convenience overload for non-skippable, non-secret fields.
      */
     private fun promptIfMissing(
         existingConfig: Map<String, Any>,
         fieldName: String,
         prompt: String,
         default: String,
-        secret: Boolean = false,
-        skippable: Boolean = false,
-    ): String {
-        // If exists in config, return it
-        if (existingConfig.containsKey(fieldName)) {
-            return existingConfig[fieldName] as String
-        }
+    ): String = promptIfMissing(existingConfig, PromptField(fieldName, prompt, default))
 
-        // If skippable and empty default, return empty
-        if (skippable && default.isEmpty()) {
-            return ""
-        }
+    /**
+     * Configuration for a field to prompt for.
+     */
+    private data class PromptField(
+        val fieldName: String,
+        val prompt: String,
+        val default: String,
+        val secret: Boolean = false,
+        val skippable: Boolean = false,
+    )
 
-        // Otherwise prompt
-        return Utils.prompt(prompt, default, secret)
-    }
+    /**
+     * Data class to hold core credentials collected during setup.
+     */
+    private data class CoreCredentials(
+        val email: String,
+        val region: String,
+        val awsProfile: String,
+        val awsAccessKey: String,
+        val awsSecret: String,
+    )
 }

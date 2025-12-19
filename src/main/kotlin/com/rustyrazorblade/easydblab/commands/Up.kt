@@ -52,7 +52,7 @@ import java.time.Duration
  * State is persisted incrementally as each resource type completes.
  *
  * @see Init for cluster initialization (must be run first)
- * @see com.rustyrazorblade.easydblab.commands.cassandra.Down for tearing down infrastructure
+ * @see Down for tearing down infrastructure
  */
 @McpCommand
 @RequireProfileSetup

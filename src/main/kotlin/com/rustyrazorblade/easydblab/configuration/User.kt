@@ -6,10 +6,9 @@ import com.rustyrazorblade.easydblab.Constants
 import com.rustyrazorblade.easydblab.Context
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.aws.AWSPolicy
-import com.rustyrazorblade.easydblab.providers.aws.EC2
 import io.github.oshai.kotlinlogging.KotlinLogging
 import software.amazon.awssdk.core.exception.SdkServiceException
-import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.ec2.Ec2Client
 import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest
 import software.amazon.awssdk.services.ec2.model.Ec2Exception
 import software.amazon.awssdk.services.ec2.model.ResourceType
@@ -39,6 +38,8 @@ data class User(
     var awsSecret: String,
     var axonOpsOrg: String = "",
     var axonOpsKey: String = "",
+    // Profile-level S3 bucket for shared resources (AMIs, base images, etc.)
+    var s3Bucket: String = "",
 ) {
     companion object {
         val log = KotlinLogging.logger {}
@@ -120,25 +121,18 @@ data class User(
          * The private key is automatically saved to ${profileDir}/secret.pem
          *
          * @param context Application context containing profile directory
-         * @param awsAccessKey AWS access key for authentication
-         * @param awsSecret AWS secret key for authentication
-         * @param region AWS region where key pair will be created
+         * @param ec2Client EC2 client for AWS API calls (supports both profile and credential auth)
          * @param outputHandler Handler for user-facing messages
          * @return The AWS key pair name
          */
         fun generateAwsKeyPair(
             context: Context,
-            awsAccessKey: String,
-            awsSecret: String,
-            region: Region,
+            ec2Client: Ec2Client,
             outputHandler: OutputHandler,
         ): AwsKeyName {
             outputHandler.handleMessage("Generating AWS key pair and SSH credentials...")
 
             try {
-                val ec2 = EC2(awsAccessKey, awsSecret, region)
-                val ec2Client = ec2.client
-
                 val keyName = "easy-db-lab-${UUID.randomUUID()}"
                 val tagSpecification =
                     TagSpecification

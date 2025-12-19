@@ -14,6 +14,8 @@ import com.rustyrazorblade.easydblab.configuration.UserConfigProvider
 import com.rustyrazorblade.easydblab.output.OutputHandler
 import com.rustyrazorblade.easydblab.providers.docker.DockerClientProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 import java.util.ArrayDeque
 import kotlin.system.exitProcess
@@ -69,12 +71,15 @@ interface CommandExecutor {
  */
 class DefaultCommandExecutor(
     private val context: Context,
-    private val backupRestoreService: BackupRestoreService,
     private val clusterStateManager: ClusterStateManager,
     private val outputHandler: OutputHandler,
     private val userConfigProvider: UserConfigProvider,
     private val dockerClientProvider: DockerClientProvider,
-) : CommandExecutor {
+) : CommandExecutor,
+    KoinComponent {
+    // Lazy injection - only resolves when first accessed (defers AWS dependency chain)
+    private val backupRestoreService: BackupRestoreService by inject()
+
     // Thread-local queue for deferred command factories (supports nested command chains)
     private val scheduledQueue = ThreadLocal.withInitial { ArrayDeque<() -> PicoCommand>() }
 
@@ -95,6 +100,9 @@ class DefaultCommandExecutor(
      * @return Exit code (0 for success, non-zero for failure)
      */
     fun executeTopLevel(command: PicoCommand): Int {
+        // VPC reconstruction from environment variable (if set)
+        handleVpcReconstructionFromEnv()
+
         val exitCode = executeWithLifecycle(command)
 
         // Process scheduled commands (each with full lifecycle)
@@ -240,6 +248,27 @@ class DefaultCommandExecutor(
         }
 
     private fun checkSSHKeyAvailability(): Boolean = File(userConfigProvider.sshKeyPath).exists()
+
+    /**
+     * Handles VPC state reconstruction from environment variable.
+     *
+     * If EASY_DB_LAB_RESTORE_VPC is set, reconstructs state from the specified VPC ID
+     * before executing any command. This allows recovery of state from an existing
+     * AWS environment without needing command-line flags.
+     */
+    private fun handleVpcReconstructionFromEnv() {
+        val vpcId = System.getenv("EASY_DB_LAB_RESTORE_VPC") ?: return
+
+        backupRestoreService
+            .restoreFromVpc(
+                vpcId = vpcId,
+                workingDirectory = context.workingDirectory.absolutePath,
+                force = true, // Always force when using env var (explicit user action)
+            ).onFailure { error ->
+                log.error(error) { "Failed to restore from VPC: $vpcId" }
+                throw error
+            }
+    }
 
     companion object {
         private val log = KotlinLogging.logger {}

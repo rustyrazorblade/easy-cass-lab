@@ -234,6 +234,142 @@ Create custom assertions for:
 
 5. **Keep Tests Focused**: Each test should verify one specific behavior
 
+## Testing Interactive Commands with TestPrompter
+
+Commands that require user input (like `setup-profile`) can be tested deterministically using `TestPrompter`. This test utility replaces the real `Prompter` interface and returns predefined responses.
+
+### Basic Usage
+
+```kotlin
+class MyCommandTest : BaseKoinTest() {
+    private lateinit var testPrompter: TestPrompter
+
+    override fun additionalTestModules() = listOf(
+        module {
+            single<Prompter> { testPrompter }
+        }
+    )
+
+    @BeforeEach
+    fun setup() {
+        // Configure responses - keys can be exact matches or partial matches
+        testPrompter = TestPrompter(
+            mapOf(
+                "email" to "test@example.com",
+                "region" to "us-west-2",
+                "AWS Access Key" to "AKIAIOSFODNN7EXAMPLE",
+            )
+        )
+    }
+
+    @Test
+    fun `should collect user credentials`() {
+        // Run command that prompts for input
+        val command = SetupProfile()
+        command.call()
+
+        // Verify prompts were called
+        assertThat(testPrompter.wasPromptedFor("email")).isTrue()
+        assertThat(testPrompter.wasPromptedFor("region")).isTrue()
+    }
+}
+```
+
+### Response Matching
+
+TestPrompter supports two matching strategies:
+
+1. **Exact match**: The question text matches a key exactly
+2. **Partial match**: The question text contains the key (case-insensitive)
+
+```kotlin
+val prompter = TestPrompter(
+    mapOf(
+        // Exact match - only matches "email" exactly
+        "email" to "test@example.com",
+
+        // Partial match - matches any question containing "AWS Profile"
+        "AWS Profile" to "my-profile",
+    )
+)
+```
+
+### Sequential Responses for Retry Testing
+
+For testing retry logic (e.g., credential validation failures), use `addSequentialResponses()`:
+
+```kotlin
+@Test
+fun `should retry on invalid credentials`() {
+    testPrompter = TestPrompter()
+
+    // First call returns invalid credentials, second returns valid ones
+    testPrompter.addSequentialResponses(
+        "AWS Access Key",
+        "invalid-key",      // First attempt
+        "AKIAVALIDKEY123"   // Second attempt (after retry)
+    )
+
+    testPrompter.addSequentialResponses(
+        "AWS Secret",
+        "invalid-secret",
+        "valid-secret-key"
+    )
+
+    val command = SetupProfile()
+    command.call()
+
+    // Verify the command handled retry correctly
+    val callLog = testPrompter.getCallLog()
+    val accessKeyCalls = callLog.filter { it.question.contains("Access Key") }
+    assertThat(accessKeyCalls).hasSize(2)
+}
+```
+
+### Verifying Prompt Behavior
+
+TestPrompter records all prompt calls for verification:
+
+```kotlin
+@Test
+fun `should not prompt for credentials when using AWS profile`() {
+    testPrompter = TestPrompter(
+        mapOf(
+            "AWS Profile" to "my-profile",  // Non-empty = use profile auth
+        )
+    )
+
+    val command = SetupProfile()
+    command.call()
+
+    // Verify credential prompts were skipped
+    assertThat(testPrompter.wasPromptedFor("Access Key")).isFalse()
+    assertThat(testPrompter.wasPromptedFor("Secret")).isFalse()
+
+    // Check detailed call log
+    val callLog = testPrompter.getCallLog()
+    assertThat(callLog).anyMatch { it.question.contains("email") }
+}
+```
+
+### TestPrompter API Reference
+
+| Method | Description |
+|--------|-------------|
+| `prompt(question, default, secret)` | Returns configured response or default |
+| `addSequentialResponses(key, vararg responses)` | Configure different responses for retry scenarios |
+| `getCallLog()` | Returns list of all prompt calls with details |
+| `wasPromptedFor(questionContains)` | Check if any prompt contained the given text |
+| `clear()` | Reset call log and sequential state |
+
+### PromptCall Data Class
+
+Each recorded call contains:
+- `question`: The prompt question text
+- `default`: The default value offered
+- `secret`: Whether input was masked (for passwords)
+- `returnedValue`: The value that was returned
+
 ## Additional Resources
 
 - [AssertJ Documentation](https://assertj.github.io/doc/)

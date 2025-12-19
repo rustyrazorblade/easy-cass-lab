@@ -152,3 +152,4 @@ CLAUDE.local.md
 
 # MkDocs build output
 site/
+.claude/settings.local.json

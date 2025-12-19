@@ -35,7 +35,7 @@ data class Context(
      * Long term, should probably make this something they can do via a command.
      * Will be useful once multiple cloud providers are supported.
      */
-    var profile = System.getenv("EASY_CASS_LAB_PROFILE") ?: "default"
+    var profile = System.getenv("EASY_DB_LAB_PROFILE") ?: "default"
     var profilesDir = File(easyDbLabUserDirectory, "profiles")
     var profileDir = File(profilesDir, profile)
 

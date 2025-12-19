@@ -160,6 +160,9 @@ val awsModule =
             )
         }
 
+        // Provide AWSClientFactory for creating AWS clients with custom credentials
+        single<AWSClientFactory> { DefaultAWSClientFactory() }
+
         // Provide ObjectStore implementation (S3) as singleton
         single<ObjectStore> {
             S3ObjectStore(

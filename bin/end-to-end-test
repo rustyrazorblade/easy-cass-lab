@@ -211,7 +211,7 @@ step_list_hosts() {
     easy-db-lab status
 
     echo "=== Listing available Cassandra versions ==="
-    easy-db-lab list
+    easy-db-lab cassandra list
 }
 
 step_verify_s3_backup() {
@@ -273,10 +273,10 @@ step_setup_cassandra() {
         return 0
     fi
     echo "=== Setting Cassandra version to 5.0 ==="
-    easy-db-lab use 5.0
+    easy-db-lab cassandra use 5.0
 
     echo "=== Updating configuration ==="
-    easy-db-lab update-config
+    easy-db-lab cassandra update-config
 }
 
 step_verify_cassandra_backup() {
@@ -338,11 +338,11 @@ step_verify_restore() {
     echo "=== Creating restore directory: $restore_dir ==="
     mkdir -p "$restore_dir"
 
-    # Change into restore directory and run status with --vpc-id
-    echo "=== Running status with --vpc-id to trigger restore ==="
+    # Change into restore directory and run status with EASY_DB_LAB_RESTORE_VPC env var
+    echo "=== Running status with EASY_DB_LAB_RESTORE_VPC to trigger restore ==="
     (
         cd "$restore_dir"
-        easy-db-lab --vpc-id "$vpc_id" status
+        EASY_DB_LAB_RESTORE_VPC="$vpc_id" easy-db-lab status
     )
 
     # Verify restored files
@@ -431,22 +431,22 @@ step_cassandra_start_stop() {
         return 0
     fi
     echo "=== Starting Cassandra ==="
-    easy-db-lab start
+    easy-db-lab cassandra start
 
     echo "=== Status With Cassandra Running ==="
     easy-db-lab status
 
     echo "=== Stopping Cassandra ==="
-    easy-db-lab stop
+    easy-db-lab cassandra stop
 
     echo "=== Waiting for Cassandra to stop ==="
     sleep 10
 
     echo "=== Starting Cassandra again ==="
-    easy-db-lab start
+    easy-db-lab cassandra start
 
     echo "=== Restarting Cassandra ==="
-    easy-db-lab restart
+    easy-db-lab cassandra restart
 }
 
 step_test_ssh_nodetool() {
