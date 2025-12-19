@@ -1,6 +1,7 @@
 {
   "name": "Claude Code Sandbox",
   "build": {
+    "context": "..",
     "dockerfile": "Dockerfile",
     "args": {
       "TZ": "${localEnv:TZ:America/Los_Angeles}",
@@ -16,6 +17,7 @@
   "appPort": [8000],
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
   "customizations": {},
+  "postCreateCommand": ".devcontainer/setup-mcp.sh",
   "remoteUser": "node",
   "mounts": [
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume"
