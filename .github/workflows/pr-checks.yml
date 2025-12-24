@@ -121,20 +121,25 @@ jobs:
       - name: Build cassandra-analytics and publish to Maven local
         working-directory: .cassandra-analytics
         run: |
-          # Build only the modules needed for bulk-writer (skip integration/test modules that need dtest jars)
-          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew assemble publishToMavenLocal \
+          # Build only the modules needed for bulk-writer
+          # Skip integration/test modules entirely - they need dtest jars we don't have
+          SKIP_MODULES="-x :cassandra-analytics-integration-framework:jar \
+            -x :cassandra-analytics-integration-framework:javadoc \
+            -x :cassandra-analytics-integration-tests:jar \
+            -x :cassandra-analytics-integration-tests:javadoc \
+            -x :cassandra-analytics-core-example:jar \
+            -x :cassandra-analytics-core-example:javadoc"
+
+          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew publishToMavenLocal \
             -PartifactType=common \
-            -x test -x checkstyleMain -x checkstyleTest \
-            -x :cassandra-analytics-integration-framework:compileJava \
-            -x :cassandra-analytics-integration-tests:compileJava \
-            -x :cassandra-analytics-core-example:compileJava \
+            -x test -x checkstyleMain -x checkstyleTest -x javadoc \
+            $SKIP_MODULES \
             --no-daemon
-          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew assemble publishToMavenLocal \
+
+          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew publishToMavenLocal \
             -PartifactType=spark \
-            -x test -x checkstyleMain -x checkstyleTest \
-            -x :cassandra-analytics-integration-framework:compileJava \
-            -x :cassandra-analytics-integration-tests:compileJava \
-            -x :cassandra-analytics-core-example:compileJava \
+            -x test -x checkstyleMain -x checkstyleTest -x javadoc \
+            $SKIP_MODULES \
             --no-daemon
 
       - name: Set up Java 21 for easy-db-lab
