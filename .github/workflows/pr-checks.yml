@@ -27,7 +27,8 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Run tests
-        run: ./gradlew test --no-daemon
+        # Exclude bulk-writer module - requires cassandra-analytics SNAPSHOTs from local Maven
+        run: ./gradlew test --no-daemon -x :bulk-writer:compileJava -x :bulk-writer:test
 
       - name: Upload test results
         if: always()
@@ -90,3 +91,78 @@ jobs:
           path: |
             build/reports/detekt/
           retention-days: 30
+
+  # Bulk writer integration test - builds cassandra-analytics and runs Docker Compose test
+  bulk-writer-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Clone cassandra-analytics
+        run: |
+          git clone --depth 1 https://github.com/apache/cassandra-analytics.git .cassandra-analytics
+
+      - name: Set up Java 11 for cassandra-analytics
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Cache cassandra-analytics Maven artifacts
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/apache/cassandra
+          key: cassandra-analytics-maven-${{ runner.os }}-v1
+          restore-keys: |
+            cassandra-analytics-maven-
+
+      - name: Build cassandra-analytics and publish to Maven local
+        working-directory: .cassandra-analytics
+        run: |
+          # Build only the modules needed for bulk-writer (skip integration/test modules that need dtest jars)
+          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew assemble publishToMavenLocal \
+            -PartifactType=common \
+            -x test -x checkstyleMain -x checkstyleTest \
+            -x :cassandra-analytics-integration-framework:compileJava \
+            -x :cassandra-analytics-integration-tests:compileJava \
+            -x :cassandra-analytics-core-example:compileJava \
+            --no-daemon
+          SCALA_VERSION=2.12 SPARK_VERSION=3 ./gradlew assemble publishToMavenLocal \
+            -PartifactType=spark \
+            -x test -x checkstyleMain -x checkstyleTest \
+            -x :cassandra-analytics-integration-framework:compileJava \
+            -x :cassandra-analytics-integration-tests:compileJava \
+            -x :cassandra-analytics-core-example:compileJava \
+            --no-daemon
+
+      - name: Set up Java 21 for easy-db-lab
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Build bulk-writer shadow JAR
+        run: ./gradlew :bulk-writer:shadowJar --no-daemon
+
+      - name: Run Docker Compose integration test
+        run: bin/test-local-bulk-writer 100 2 1
+        timeout-minutes: 10
+
+      - name: Show Docker logs on failure
+        if: failure()
+        run: |
+          cd bulk-writer
+          docker compose logs || true
+
+      - name: Cleanup Docker
+        if: always()
+        run: |
+          cd bulk-writer
+          docker compose down -v --remove-orphans || true
