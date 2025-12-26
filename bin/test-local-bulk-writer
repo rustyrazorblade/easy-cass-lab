@@ -127,6 +127,9 @@ set +x
 echo ""
 echo "=== Step 8: Verifying data ==="
 docker compose exec -T cassandra cqlsh -e "SELECT COUNT(*) FROM $KEYSPACE.$TABLE;"
+echo ""
+echo "Sample data:"
+docker compose exec -T cassandra cqlsh -e "SELECT * FROM $KEYSPACE.$TABLE LIMIT 5;"
 
 echo ""
 echo "=== Test complete! ==="

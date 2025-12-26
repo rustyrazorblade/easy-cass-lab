@@ -28,7 +28,7 @@ services:
       - MAX_HEAP_SIZE=1G
       - HEAP_NEWSIZE=200M
     volumes:
-      - cassandra-data:/var/lib/cassandra
+      - ./cassandra-data:/var/lib/cassandra
     healthcheck:
       test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
       interval: 10s
@@ -52,7 +52,7 @@ services:
     volumes:
       - ./sidecar-config.yaml:/conf/sidecar.yaml:ro
       # Sidecar needs write access to staging directory for SSTable uploads
-      - cassandra-data:/var/lib/cassandra
+      - ./cassandra-data:/var/lib/cassandra
 
   spark-master:
     image: apache/spark:3.5.7
@@ -87,9 +87,6 @@ services:
     networks:
       bulk-writer-net:
         ipv4_address: 10.99.0.11
-
-volumes:
-  cassandra-data:
 
 networks:
   bulk-writer-net:
