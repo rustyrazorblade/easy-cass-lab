@@ -19,6 +19,7 @@ rootProject.name = 'easy-db-lab'
 
 include "core"
 include "spark-connector-test1"
+include "bulk-writer"
 
 dependencyResolutionManagement {
     repositories {
