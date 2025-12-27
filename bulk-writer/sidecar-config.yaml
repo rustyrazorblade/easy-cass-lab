@@ -15,6 +15,7 @@ cassandra_instances:
     hints_dir: /var/lib/cassandra/hints
     saved_caches_dir: /var/lib/cassandra/saved_caches
     staging_dir: /var/lib/cassandra/staging
+    cdc_dir: /var/lib/cassandra/cdc_raw
     jmx_host: 127.0.0.1
     jmx_port: 7199
     jmx_ssl_enabled: false
@@ -22,43 +23,43 @@ cassandra_instances:
 sidecar:
   host: 0.0.0.0
   port: 9043
-  request_idle_timeout_millis: 300000
-  request_timeout_millis: 300000
+  request_idle_timeout: 5m
+  request_timeout: 5m
   tcp_keep_alive: false
   accept_backlog: 1024
   server_verticle_instances: 1
   throttle:
     stream_requests_per_sec: 5000
     delay_sec: 5
-    timeout_sec: 10
+    timeout: 10s
   traffic_shaping:
     inbound_global_bandwidth_bps: 0
     outbound_global_bandwidth_bps: 0
     peak_outbound_global_bandwidth_bps: 419430400
-    max_delay_to_wait_millis: 15000
-    check_interval_for_stats_millis: 1000
+    max_delay_to_wait: 15s
+    check_interval_for_stats: 1s
     inbound_global_file_bandwidth_bps: 0
   sstable_upload:
     concurrent_upload_limit: 80
-    min_free_space_percent: 10
-  allowable_time_skew_in_minutes: 60
+    min_free_space_percent: 1
+  allowable_time_skew: 60m
   sstable_import:
-    poll_interval_millis: 100
+    execute_interval: 2s
     cache:
-      expire_after_access_millis: 7200000
+      expire_after_access: 2h
       maximum_size: 10000
   worker_pools:
     service:
       name: "sidecar-worker-pool"
       size: 20
-      max_execution_time_millis: 60000
+      max_execution_time: 60s
     internal:
       name: "sidecar-internal-worker-pool"
       size: 20
-      max_execution_time_millis: 900000
+      max_execution_time: 15m
   jmx:
     max_retries: 3
-    retry_delay_millis: 200
+    retry_delay_millis: 2000
   schema:
     is_enabled: true
     keyspace: sidecar_internal
@@ -73,7 +74,7 @@ driver_parameters:
 
 healthcheck:
   initial_delay_millis: 0
-  poll_freq_millis: 30000
+  execute_interval: 30s
 
 cassandra_input_validation:
   forbidden_keyspaces:
@@ -99,4 +100,4 @@ blob_restore:
 s3_client:
   concurrency: 4
   thread_name_prefix: s3-client
-  thread_keep_alive_seconds: 60
+  thread_keep_alive: 60s

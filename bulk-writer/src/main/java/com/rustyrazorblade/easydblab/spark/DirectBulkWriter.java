@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * Usage:
  *   spark-submit --class com.rustyrazorblade.easydblab.spark.DirectBulkWriter \
- *     bulk-writer.jar host1,host2,host3 mykeyspace mytable datacenter1 [rowCount] [parallelism] [replicationFactor] [--skip-ddl]
+ *     bulk-writer.jar host1,host2,host3 mykeyspace mytable datacenter1 [rowCount] [parallelism] [replicationFactor]
  */
 public class DirectBulkWriter extends AbstractBulkWriter {
 

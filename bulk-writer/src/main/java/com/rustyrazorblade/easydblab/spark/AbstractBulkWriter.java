@@ -1,5 +1,6 @@
 package com.rustyrazorblade.easydblab.spark;
 
+import org.apache.cassandra.spark.bulkwriter.BulkSparkConf;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -84,7 +85,7 @@ public abstract class AbstractBulkWriter {
      */
     protected void parseArgs(String[] args) {
         if (args.length < 4) {
-            System.err.println("Usage: <sidecarContactPoints> <keyspace> <table> <localDc> [rowCount] [parallelism] [replicationFactor] [--skip-ddl]");
+            System.err.println("Usage: <sidecarContactPoints> <keyspace> <table> <localDc> [rowCount] [parallelism] [replicationFactor]");
             System.err.println("  sidecarContactPoints: Comma-separated list of sidecar hosts (e.g., 'host1,host2,host3')");
             System.err.println("  keyspace: Target Cassandra keyspace");
             System.err.println("  table: Target Cassandra table");
@@ -92,7 +93,6 @@ public abstract class AbstractBulkWriter {
             System.err.println("  rowCount: Number of rows to write (default: 1000000)");
             System.err.println("  parallelism: Number of partitions (default: 10)");
             System.err.println("  replicationFactor: Keyspace replication factor (default: 3)");
-            System.err.println("  --skip-ddl: Skip keyspace/table creation");
             System.exit(1);
         }
 
@@ -135,11 +135,15 @@ public abstract class AbstractBulkWriter {
 
     /**
      * Initialize Spark session with the given app name.
+     * Configures JDK11 options required for Cassandra SSTable generation.
      */
     protected void initSpark(String appName) {
         SparkConf conf = new SparkConf()
             .setAppName(appName)
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+
+        // Setup JDK11 options and Kryo registrator required for SSTable generation
+        BulkSparkConf.setupSparkConf(conf, true);
 
         spark = SparkSession.builder()
             .config(conf)
