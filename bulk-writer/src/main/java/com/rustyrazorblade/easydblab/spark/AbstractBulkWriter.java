@@ -140,7 +140,9 @@ public abstract class AbstractBulkWriter {
     protected void initSpark(String appName) {
         SparkConf conf = new SparkConf()
             .setAppName(appName)
-            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+            // DEBUG: Keep staged files for inspection after job completes
+            .set("spark.cassandra_analytics.job.skip_clean", "true");
 
         // Setup JDK11 options and Kryo registrator required for SSTable generation
         BulkSparkConf.setupSparkConf(conf, true);
